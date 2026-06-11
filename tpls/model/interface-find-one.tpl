@@ -1,0 +1,2 @@
+FindOne(ctx context.Context, {{.lowerStartCamelPrimaryKey}} {{.dataType}}) (*{{.upperStartCamelObject}}, error)
+List(ctx context.Context, req {{.upperStartCamelObject}}ListReq) ([]{{.upperStartCamelObject}}, int64, error)

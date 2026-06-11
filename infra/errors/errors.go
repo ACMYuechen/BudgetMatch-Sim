@@ -1,0 +1,28 @@
+package errors
+
+import "errors"
+
+var (
+	// 系统级错误
+	ErrInternal = errors.New("internal server error")
+	// 数据库相关错误
+	ErrDatabase = errors.New("database error")
+	// 用户相关错误
+	ErrUserNotFound    = errors.New("user not found")
+	ErrUserExists      = errors.New("user already exists")
+	ErrInvalidPassword = errors.New("invalid password")
+	// Token相关错误
+	ErrTokenGeneration = errors.New("failed to generate token")
+	ErrInvalidToken    = errors.New("invalid token")
+	// 权限相关错误
+	ErrUnauthorized = errors.New("unauthorized")
+	// 限流相关错误
+	ErrTooManyRequests = errors.New("too many requests, please try again later")
+	ErrLimitExceeded   = errors.New("request limit exceeded, please try again later")
+	// 验证码相关错误
+	ErrCodeInvalid = errors.New("invalid verification code")
+	ErrCodeExpired = errors.New("verification code expired")
+	// 邮箱相关错误
+	ErrInvalidEmail    = errors.New("invalid email address")
+	ErrEmailSendFailed = errors.New("failed to send email")
+)

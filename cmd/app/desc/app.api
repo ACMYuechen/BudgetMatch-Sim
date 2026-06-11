@@ -1,0 +1,13 @@
+syntax = "v1"
+
+//////////////////////////////// 健康检查 /////////////////////////////////////////////////////
+@server (
+	prefix: /api
+	group:  health
+	tags:   health
+)
+service app {
+	@doc "健康检查"
+	@handler Health
+	get /health
+}

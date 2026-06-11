@@ -1,0 +1,1 @@
+`json:"{{.field}}" gorm:"{{.field}}"`

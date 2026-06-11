@@ -1,0 +1,70 @@
+syntax = "v1"
+
+// 用户列表请求
+type UserListReq {
+	Page     int `json:"page" form:"page,default=1"`
+	PageSize int `json:"page_size" form:"page_size,default=10"`
+	Status   int `json:"status" form:"status,default=0"`
+	Role     int `json:"role" form:"role,default=0"`
+}
+
+// 用户列表项
+type UserItem {
+	UserId    string `json:"user_id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Role      int64  `json:"role"`
+	Status    int64  `json:"status"`
+	Avatar    string `json:"avatar"`
+	Remark    string `json:"remark"`
+	CreatedAt string `json:"created_at"`
+}
+
+// 用户列表响应
+type UserListResp {
+	List     []UserItem `json:"list"`
+	Total    int64      `json:"total"`
+	Page     int        `json:"page"`
+	PageSize int        `json:"page_size"`
+}
+
+// 用户详情请求
+type GetUserDetailReq {
+	UserId string `json:"user_id" path:"user_id"`
+}
+
+// 用户详情响应
+type GetUserDetailResp {
+	UserId    string `json:"user_id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Role      int64  `json:"role"`
+	Status    int64  `json:"status"`
+	Avatar    string `json:"avatar"`
+	Remark    string `json:"remark"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// 更新用户状态请求
+type UpdateUserStatusReq {
+	UserId string `json:"user_id"`
+	Status int64  `json:"status" validate:"required,oneof=1 2 3 4"`
+}
+
+// 更新用户状态响应
+type UpdateUserStatusResp {
+	Success bool `json:"success"`
+}
+
+// 删除用户请求
+type DeleteUserReq {
+	UserId string `json:"user_id" path:"user_id"`
+}
+
+// 删除用户响应
+type DeleteUserResp {
+	Success bool `json:"success"`
+}

@@ -1,0 +1,128 @@
+version: "3.8"
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: budgetmatch-sim-postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: budgetmatch-sim
+      TZ: Asia/Shanghai
+      PGTZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d budgetmatch-sim"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - budgetmatch-sim-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: budgetmatch-sim-redis
+    command: redis-server --requirepass 12345678 --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "12345678", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - budgetmatch-sim-network
+
+  # Auth RPC 服务（gRPC + HTTP gateway，port 10003/10000）
+  auth-rpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./services/rpc/auth
+        PORT: 10003
+    container_name: budgetmatch-sim-auth-rpc
+    environment:
+      - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=12345678
+    ports:
+      - "10003:10003"
+      - "10000:10000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
+  # App 服务（REST API，port 10002）
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./cmd/app
+        PORT: 10002
+    container_name: budgetmatch-sim-app
+    environment:
+      # app 不直连数据库，所有数据操作通过 RPC
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=12345678
+      - AUTHRPC_ENDPOINT=auth-rpc:10003
+    ports:
+      - "10002:10002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-rpc:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
+  # Admin 服务（REST API，port 10001）
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./cmd/admin
+        PORT: 10001
+    container_name: budgetmatch-sim-admin
+    environment:
+      # admin 不直接访问 DB/Redis，所有数据操作通过 auth-rpc
+      - AUTHRPC_ENDPOINT=auth-rpc:10003
+    ports:
+      - "10001:10001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-rpc:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  budgetmatch-sim-network:
+    driver: bridge

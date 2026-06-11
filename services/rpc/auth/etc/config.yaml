@@ -1,0 +1,47 @@
+Name: auth.rpc
+ListenOn: 0.0.0.0:10003
+Timeout: 60000
+
+Gateway:
+  Name: auth.gateway
+  Host: 0.0.0.0
+  Port: 10000
+  Upstreams:
+    - Name: auth
+      Grpc:
+        Target: 127.0.0.1:10003
+      ProtoSets:
+        - ./services/rpc/auth/gateway/auth.pb
+
+# Auth配置（生产环境请通过环境变量覆盖）
+Auth:
+  Secret: "${JWT_SECRET}"       # JWT 签名密钥
+  Expire: 86400                  # Token 过期时间（秒）
+  Email:
+    From: "${EMAIL_FROM}"        # 发件邮箱
+    Password: "${EMAIL_PASSWORD}" # 邮箱授权码
+
+# 数据库配置
+Database:
+  LogLevel: 4
+  Driver: "Postgres"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  MaxOpenConns: 100
+  MaxIdleConns: 20
+  ConnMaxLifetime: 7200s
+  ConnMaxIdleTime: 300s
+  AutoMigrate: true
+  PrepareStmt: true
+
+# Redis配置
+Redis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 2
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3

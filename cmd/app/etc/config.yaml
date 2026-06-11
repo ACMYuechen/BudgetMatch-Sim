@@ -1,0 +1,29 @@
+Name: budgetmatch-sim
+Host: 0.0.0.0
+Port: 10002
+Timeout: 600000
+MaxBytes: 524288000
+
+# Auth配置（生产环境请通过环境变量覆盖）
+Auth:
+  Secret: "${JWT_SECRET}"      # JWT 签名密钥
+  Expire: 86400                 # Token 过期时间（秒）
+
+# Redis配置
+Redis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 2
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3
+
+# 调用 auth-rpc
+AuthRpc:
+  Endpoints:
+    - 127.0.0.1:10003
+  NonBlock: true

@@ -1,0 +1,11 @@
+Name: budgetmatch-sim
+Host: 0.0.0.0
+Port: 10001
+Timeout: 600000
+MaxBytes: 524288000
+
+# 认证中心 RPC（admin 不直接访问 DB，所有数据操作通过 auth-rpc）
+AuthRpc:
+  Endpoints:
+    - 127.0.0.1:10003
+  NonBlock: true

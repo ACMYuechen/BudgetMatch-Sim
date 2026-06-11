@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# 文档
+*.md
+LICENSE
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude / 本地配置
+.claude/
+
+# 日志
+logs/
+*.log
+
+# 临时文件
+tmp/
+temp/
+
+# 生成的 Swagger（如有）
+cmd/*/desc/*.json
+cmd/*/desc/*.yaml
