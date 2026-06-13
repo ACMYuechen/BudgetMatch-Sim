@@ -2,17 +2,6 @@ Name: seckill.rpc
 ListenOn: 0.0.0.0:10004
 Timeout: 60000
 
-Gateway:
-  Name: seckill.gateway
-  Host: 0.0.0.0
-  Port: 10005
-  Upstreams:
-    - Name: seckill
-      Grpc:
-        Target: 127.0.0.1:10004
-      ProtoSets:
-        - ./services/rpc/seckill/gateway/seckill.pb
-
 Auth:
   Secret: "${JWT_SECRET}"
   Expire: 86400

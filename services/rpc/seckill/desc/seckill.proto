@@ -3,8 +3,6 @@ syntax = "proto3";
 package seckill;
 option go_package = "./pb";
 
-import "google/api/annotations.proto";
-
 // ========== Activity ==========
 
 message Activity {
@@ -219,112 +217,26 @@ message GetOrderResp {
 // ========== Services ==========
 
 service ActivityService {
-  rpc CreateActivity(CreateActivityReq) returns (CreateActivityResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/activities"
-      body: "*"
-    };
-  }
-
-  rpc UpdateActivity(UpdateActivityReq) returns (UpdateActivityResp) {
-    option (google.api.http) = {
-      put: "/api/seckill/activities/{id}"
-      body: "*"
-    };
-  }
-
-  rpc GetActivity(GetActivityReq) returns (GetActivityResp) {
-    option (google.api.http) = {
-      get: "/api/seckill/activities/{id}"
-    };
-  }
-
-  rpc ListActivities(ListActivitiesReq) returns (ListActivitiesResp) {
-    option (google.api.http) = {
-      get: "/api/seckill/activities"
-    };
-  }
-
-  rpc DeleteActivity(DeleteActivityReq) returns (DeleteActivityResp) {
-    option (google.api.http) = {
-      delete: "/api/seckill/activities/{id}"
-    };
-  }
-
-  rpc PreheatActivity(PreheatActivityReq) returns (PreheatActivityResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/activities/{id}/preheat"
-      body: "*"
-    };
-  }
-
-  rpc OnlineActivity(OnlineActivityReq) returns (OnlineActivityResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/activities/{id}/online"
-      body: "*"
-    };
-  }
-
-  rpc OfflineActivity(OfflineActivityReq) returns (OfflineActivityResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/activities/{id}/offline"
-      body: "*"
-    };
-  }
+  rpc CreateActivity(CreateActivityReq) returns (CreateActivityResp);
+  rpc UpdateActivity(UpdateActivityReq) returns (UpdateActivityResp);
+  rpc GetActivity(GetActivityReq) returns (GetActivityResp);
+  rpc ListActivities(ListActivitiesReq) returns (ListActivitiesResp);
+  rpc DeleteActivity(DeleteActivityReq) returns (DeleteActivityResp);
+  rpc PreheatActivity(PreheatActivityReq) returns (PreheatActivityResp);
+  rpc OnlineActivity(OnlineActivityReq) returns (OnlineActivityResp);
+  rpc OfflineActivity(OfflineActivityReq) returns (OfflineActivityResp);
 }
 
 service SkuService {
-  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/skus"
-      body: "*"
-    };
-  }
-
-  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp) {
-    option (google.api.http) = {
-      put: "/api/seckill/skus/{id}"
-      body: "*"
-    };
-  }
-
-  rpc GetSku(GetSkuReq) returns (GetSkuResp) {
-    option (google.api.http) = {
-      get: "/api/seckill/skus/{id}"
-    };
-  }
-
-  rpc ListSkusByActivity(ListSkusByActivityReq) returns (ListSkusByActivityResp) {
-    option (google.api.http) = {
-      get: "/api/seckill/skus"
-    };
-  }
-
-  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {
-    option (google.api.http) = {
-      delete: "/api/seckill/skus/{id}"
-    };
-  }
+  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp);
+  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp);
+  rpc GetSku(GetSkuReq) returns (GetSkuResp);
+  rpc ListSkusByActivity(ListSkusByActivityReq) returns (ListSkusByActivityResp);
+  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp);
 }
 
 service SeckillService {
-  rpc AcquireToken(AcquireTokenReq) returns (AcquireTokenResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/token"
-      body: "*"
-    };
-  }
-
-  rpc SubmitOrder(SubmitOrderReq) returns (SubmitOrderResp) {
-    option (google.api.http) = {
-      post: "/api/seckill/order"
-      body: "*"
-    };
-  }
-
-  rpc GetOrder(GetOrderReq) returns (GetOrderResp) {
-    option (google.api.http) = {
-      get: "/api/seckill/orders/{order_id}"
-    };
-  }
+  rpc AcquireToken(AcquireTokenReq) returns (AcquireTokenResp);
+  rpc SubmitOrder(SubmitOrderReq) returns (SubmitOrderResp);
+  rpc GetOrder(GetOrderReq) returns (GetOrderResp);
 }

@@ -7,7 +7,6 @@
 package pb
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -2074,7 +2073,7 @@ var File_services_rpc_seckill_desc_seckill_proto protoreflect.FileDescriptor
 
 const file_services_rpc_seckill_desc_seckill_proto_rawDesc = "" +
 	"\n" +
-	"'services/rpc/seckill/desc/seckill.proto\x12\aseckill\x1a\x1cgoogle/api/annotations.proto\"\x81\x02\n" +
+	"'services/rpc/seckill/desc/seckill.proto\x12\aseckill\"\x81\x02\n" +
 	"\bActivity\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -2231,27 +2230,27 @@ const file_services_rpc_seckill_desc_seckill_proto_rawDesc = "" +
 	"\ftotal_amount\x18\x06 \x01(\x03R\vtotalAmount\x12\x16\n" +
 	"\x06status\x18\a \x01(\x05R\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt2\xb2\a\n" +
-	"\x0fActivityService\x12m\n" +
-	"\x0eCreateActivity\x12\x1a.seckill.CreateActivityReq\x1a\x1b.seckill.CreateActivityResp\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/api/seckill/activities\x12r\n" +
-	"\x0eUpdateActivity\x12\x1a.seckill.UpdateActivityReq\x1a\x1b.seckill.UpdateActivityResp\"'\x82\xd3\xe4\x93\x02!:\x01*\x1a\x1c/api/seckill/activities/{id}\x12f\n" +
-	"\vGetActivity\x12\x17.seckill.GetActivityReq\x1a\x18.seckill.GetActivityResp\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/seckill/activities/{id}\x12j\n" +
-	"\x0eListActivities\x12\x1a.seckill.ListActivitiesReq\x1a\x1b.seckill.ListActivitiesResp\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/api/seckill/activities\x12o\n" +
-	"\x0eDeleteActivity\x12\x1a.seckill.DeleteActivityReq\x1a\x1b.seckill.DeleteActivityResp\"$\x82\xd3\xe4\x93\x02\x1e*\x1c/api/seckill/activities/{id}\x12}\n" +
-	"\x0fPreheatActivity\x12\x1b.seckill.PreheatActivityReq\x1a\x1c.seckill.PreheatActivityResp\"/\x82\xd3\xe4\x93\x02):\x01*\"$/api/seckill/activities/{id}/preheat\x12y\n" +
-	"\x0eOnlineActivity\x12\x1a.seckill.OnlineActivityReq\x1a\x1b.seckill.OnlineActivityResp\".\x82\xd3\xe4\x93\x02(:\x01*\"#/api/seckill/activities/{id}/online\x12}\n" +
-	"\x0fOfflineActivity\x12\x1b.seckill.OfflineActivityReq\x1a\x1c.seckill.OfflineActivityResp\"/\x82\xd3\xe4\x93\x02):\x01*\"$/api/seckill/activities/{id}/offline2\xe6\x03\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt2\xe6\x04\n" +
+	"\x0fActivityService\x12I\n" +
+	"\x0eCreateActivity\x12\x1a.seckill.CreateActivityReq\x1a\x1b.seckill.CreateActivityResp\x12I\n" +
+	"\x0eUpdateActivity\x12\x1a.seckill.UpdateActivityReq\x1a\x1b.seckill.UpdateActivityResp\x12@\n" +
+	"\vGetActivity\x12\x17.seckill.GetActivityReq\x1a\x18.seckill.GetActivityResp\x12I\n" +
+	"\x0eListActivities\x12\x1a.seckill.ListActivitiesReq\x1a\x1b.seckill.ListActivitiesResp\x12I\n" +
+	"\x0eDeleteActivity\x12\x1a.seckill.DeleteActivityReq\x1a\x1b.seckill.DeleteActivityResp\x12L\n" +
+	"\x0fPreheatActivity\x12\x1b.seckill.PreheatActivityReq\x1a\x1c.seckill.PreheatActivityResp\x12I\n" +
+	"\x0eOnlineActivity\x12\x1a.seckill.OnlineActivityReq\x1a\x1b.seckill.OnlineActivityResp\x12L\n" +
+	"\x0fOfflineActivity\x12\x1b.seckill.OfflineActivityReq\x1a\x1c.seckill.OfflineActivityResp2\xca\x02\n" +
 	"\n" +
-	"SkuService\x12X\n" +
-	"\tCreateSku\x12\x15.seckill.CreateSkuReq\x1a\x16.seckill.CreateSkuResp\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/api/seckill/skus\x12]\n" +
-	"\tUpdateSku\x12\x15.seckill.UpdateSkuReq\x1a\x16.seckill.UpdateSkuResp\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\x1a\x16/api/seckill/skus/{id}\x12Q\n" +
-	"\x06GetSku\x12\x12.seckill.GetSkuReq\x1a\x13.seckill.GetSkuResp\"\x1e\x82\xd3\xe4\x93\x02\x18\x12\x16/api/seckill/skus/{id}\x12p\n" +
-	"\x12ListSkusByActivity\x12\x1e.seckill.ListSkusByActivityReq\x1a\x1f.seckill.ListSkusByActivityResp\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/seckill/skus\x12Z\n" +
-	"\tDeleteSku\x12\x15.seckill.DeleteSkuReq\x1a\x16.seckill.DeleteSkuResp\"\x1e\x82\xd3\xe4\x93\x02\x18*\x16/api/seckill/skus/{id}2\xb6\x02\n" +
-	"\x0eSeckillService\x12b\n" +
-	"\fAcquireToken\x12\x18.seckill.AcquireTokenReq\x1a\x19.seckill.AcquireTokenResp\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/seckill/token\x12_\n" +
-	"\vSubmitOrder\x12\x17.seckill.SubmitOrderReq\x1a\x18.seckill.SubmitOrderResp\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/seckill/order\x12_\n" +
-	"\bGetOrder\x12\x14.seckill.GetOrderReq\x1a\x15.seckill.GetOrderResp\"&\x82\xd3\xe4\x93\x02 \x12\x1e/api/seckill/orders/{order_id}B\x06Z\x04./pbb\x06proto3"
+	"SkuService\x12:\n" +
+	"\tCreateSku\x12\x15.seckill.CreateSkuReq\x1a\x16.seckill.CreateSkuResp\x12:\n" +
+	"\tUpdateSku\x12\x15.seckill.UpdateSkuReq\x1a\x16.seckill.UpdateSkuResp\x121\n" +
+	"\x06GetSku\x12\x12.seckill.GetSkuReq\x1a\x13.seckill.GetSkuResp\x12U\n" +
+	"\x12ListSkusByActivity\x12\x1e.seckill.ListSkusByActivityReq\x1a\x1f.seckill.ListSkusByActivityResp\x12:\n" +
+	"\tDeleteSku\x12\x15.seckill.DeleteSkuReq\x1a\x16.seckill.DeleteSkuResp2\xd0\x01\n" +
+	"\x0eSeckillService\x12C\n" +
+	"\fAcquireToken\x12\x18.seckill.AcquireTokenReq\x1a\x19.seckill.AcquireTokenResp\x12@\n" +
+	"\vSubmitOrder\x12\x17.seckill.SubmitOrderReq\x1a\x18.seckill.SubmitOrderResp\x127\n" +
+	"\bGetOrder\x12\x14.seckill.GetOrderReq\x1a\x15.seckill.GetOrderRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_rpc_seckill_desc_seckill_proto_rawDescOnce sync.Once

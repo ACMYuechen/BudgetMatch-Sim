@@ -67,7 +67,7 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
-  # Seckill RPC 服务（gRPC + HTTP gateway，port 10004/10005）
+  # Seckill RPC 服务（gRPC，port 10004）
   seckill-rpc:
     build:
       context: .
@@ -82,7 +82,6 @@ services:
       - REDIS_PASSWORD=12345678
     ports:
       - "10004:10004"
-      - "10005:10005"
     depends_on:
       postgres:
         condition: service_healthy
