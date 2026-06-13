@@ -7,6 +7,9 @@ appDesc = $(appPWD)/desc
 authRpcPWD = services/rpc/auth
 authRpcDesc = $(authRpcPWD)/desc
 
+seckillRpcPWD = services/rpc/seckill
+seckillRpcDesc = $(seckillRpcPWD)/desc
+
 # =============================================================================
 # 帮助
 # =============================================================================
@@ -42,6 +45,11 @@ api-all:
 	@goctl api format --dir $(authRpcDesc)
 	@goctl rpc protoc $(authRpcDesc)/auth.proto --go_out=$(authRpcPWD) --go-grpc_out=$(authRpcPWD) --zrpc_out=$(authRpcPWD) --style=go_zero -m -I . -I $(authRpcDesc)
 	@rm -f $(authRpcPWD)/auth.go $(authRpcPWD)/etc/auth.yaml
+	@echo "生成 seckill RPC..."
+	@goctl rpc protoc $(seckillRpcDesc)/seckill.proto --go_out=$(seckillRpcPWD) --go-grpc_out=$(seckillRpcPWD) --zrpc_out=$(seckillRpcPWD) --style=go_zero -m -I . -I $(seckillRpcDesc)
+	@rm -f $(seckillRpcPWD)/seckill.go $(seckillRpcPWD)/etc/seckill.yaml
+	@mkdir -p $(seckillRpcPWD)/gateway
+	@protoc -I $(seckillRpcDesc) --descriptor_set_out=$(seckillRpcPWD)/gateway/seckill.pb --include_imports $(seckillRpcDesc)/seckill.proto
 	@echo "生成 gateway proto descriptor..."
 	@mkdir -p $(authRpcPWD)/gateway
 	@protoc -I $(authRpcDesc) --descriptor_set_out=$(authRpcPWD)/gateway/auth.pb --include_imports $(authRpcDesc)/auth.proto
@@ -93,7 +101,10 @@ smoke-test:
 	@echo "3. Admin 服务健康检查"
 	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10001/api/health || echo "   ❌ 连接失败"
 	@echo ""
-	@echo "4. PostgreSQL 连通性"
+	@echo "4. Seckill Gateway 健康检查"
+	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10005/api/health || echo "   ❌ 连接失败"
+	@echo ""
+	@echo "5. PostgreSQL 连通性"
 	@docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
 	@echo "5. Redis 连通性"

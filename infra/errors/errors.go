@@ -25,4 +25,14 @@ var (
 	// 邮箱相关错误
 	ErrInvalidEmail    = errors.New("invalid email address")
 	ErrEmailSendFailed = errors.New("failed to send email")
+	// 秒杀相关错误
+	ErrSeckillActivityNotFound = errors.New("seckill activity not found")
+	ErrSeckillSkuNotFound      = errors.New("seckill sku not found")
+	ErrSeckillOrderNotFound    = errors.New("seckill order not found")
+	ErrSeckillStockNotEnough   = errors.New("seckill stock not enough")
+	ErrSeckillActivityNotStart = errors.New("seckill activity not started yet")
+	ErrSeckillActivityEnded    = errors.New("seckill activity has ended")
+	ErrSeckillTokenInvalid     = errors.New("seckill token invalid or expired")
+	ErrSeckillAlreadyPurchased = errors.New("already purchased this seckill item")
+	ErrSeckillSubmitFailed     = errors.New("seckill order submit failed")
 )

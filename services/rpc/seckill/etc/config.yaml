@@ -1,0 +1,41 @@
+Name: seckill.rpc
+ListenOn: 0.0.0.0:10004
+Timeout: 60000
+
+Gateway:
+  Name: seckill.gateway
+  Host: 0.0.0.0
+  Port: 10005
+  Upstreams:
+    - Name: seckill
+      Grpc:
+        Target: 127.0.0.1:10004
+      ProtoSets:
+        - ./services/rpc/seckill/gateway/seckill.pb
+
+Auth:
+  Secret: "${JWT_SECRET}"
+  Expire: 86400
+
+Database:
+  LogLevel: 4
+  Driver: "Postgres"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  MaxOpenConns: 100
+  MaxIdleConns: 20
+  ConnMaxLifetime: 7200s
+  ConnMaxIdleTime: 300s
+  AutoMigrate: true
+  PrepareStmt: true
+
+Redis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 3
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3

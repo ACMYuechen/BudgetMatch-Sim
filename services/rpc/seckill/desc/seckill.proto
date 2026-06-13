@@ -1,0 +1,330 @@
+syntax = "proto3";
+
+package seckill;
+option go_package = "./pb";
+
+import "google/api/annotations.proto";
+
+// ========== Activity ==========
+
+message Activity {
+  string id          = 1;
+  string title       = 2;
+  string description = 3;
+  string banner_url  = 4;
+  string start_time  = 5;
+  string end_time    = 6;
+  int32  status      = 7;
+  string created_at  = 8;
+  string updated_at  = 9;
+}
+
+message CreateActivityReq {
+  string title       = 1;
+  string description = 2;
+  string banner_url  = 3;
+  string start_time  = 4;
+  string end_time    = 5;
+}
+
+message CreateActivityResp {
+  string id = 1;
+}
+
+message UpdateActivityReq {
+  string id          = 1;
+  string title       = 2;
+  string description = 3;
+  string banner_url  = 4;
+  string start_time  = 5;
+  string end_time    = 6;
+}
+
+message UpdateActivityResp {
+  bool success = 1;
+}
+
+message GetActivityReq {
+  string id = 1;
+}
+
+message GetActivityResp {
+  Activity activity = 1;
+}
+
+message ListActivitiesReq {
+  int32 page      = 1;
+  int32 page_size = 2;
+  int32 status    = 3;
+}
+
+message ListActivitiesResp {
+  repeated Activity list      = 1;
+  int64             total     = 2;
+  int32             page      = 3;
+  int32             page_size = 4;
+}
+
+message DeleteActivityReq {
+  string id = 1;
+}
+
+message DeleteActivityResp {
+  bool success = 1;
+}
+
+message PreheatActivityReq {
+  string id = 1;
+}
+
+message PreheatActivityResp {
+  bool success = 1;
+}
+
+message OnlineActivityReq {
+  string id = 1;
+}
+
+message OnlineActivityResp {
+  bool success = 1;
+}
+
+message OfflineActivityReq {
+  string id = 1;
+}
+
+message OfflineActivityResp {
+  bool success = 1;
+}
+
+// ========== SKU ==========
+
+message Sku {
+  string id             = 1;
+  string activity_id    = 2;
+  string title          = 3;
+  string subtitle       = 4;
+  string pic            = 5;
+  int64  original_price = 6;
+  int64  seckill_price  = 7;
+  int64  stock          = 8;
+  int64  sold           = 9;
+  int64  lock_stock     = 10;
+  int32  status         = 11;
+  int64  sort           = 12;
+  string created_at     = 13;
+  string updated_at     = 14;
+}
+
+message CreateSkuReq {
+  string activity_id    = 1;
+  string title          = 2;
+  string subtitle       = 3;
+  string pic            = 4;
+  int64  original_price = 5;
+  int64  seckill_price  = 6;
+  int64  stock          = 7;
+  int64  sort           = 8;
+}
+
+message CreateSkuResp {
+  string id = 1;
+}
+
+message UpdateSkuReq {
+  string id             = 1;
+  string title          = 2;
+  string subtitle       = 3;
+  string pic            = 4;
+  int64  original_price = 5;
+  int64  seckill_price  = 6;
+  int64  stock          = 7;
+  int64  sort           = 8;
+  int32  status         = 9;
+}
+
+message UpdateSkuResp {
+  bool success = 1;
+}
+
+message GetSkuReq {
+  string id = 1;
+}
+
+message GetSkuResp {
+  Sku sku = 1;
+}
+
+message ListSkusByActivityReq {
+  string activity_id = 1;
+  int32  page        = 2;
+  int32  page_size   = 3;
+}
+
+message ListSkusByActivityResp {
+  repeated Sku list      = 1;
+  int64        total     = 2;
+  int32        page      = 3;
+  int32        page_size = 4;
+}
+
+message DeleteSkuReq {
+  string id = 1;
+}
+
+message DeleteSkuResp {
+  bool success = 1;
+}
+
+// ========== Seckill ==========
+
+message AcquireTokenReq {
+  string activity_id = 1;
+  string sku_id      = 2;
+  string user_id     = 3;
+}
+
+message AcquireTokenResp {
+  string token = 1;
+}
+
+message SubmitOrderReq {
+  string activity_id = 1;
+  string sku_id      = 2;
+  string user_id     = 3;
+  string token       = 4;
+  int64  quantity    = 5;
+}
+
+message SubmitOrderResp {
+  string order_id = 1;
+  int32  status   = 2; // 0: queued, 1: success, 2: failed
+}
+
+message GetOrderReq {
+  string order_id = 1;
+}
+
+message GetOrderResp {
+  string order_id    = 1;
+  string activity_id = 2;
+  string sku_id      = 3;
+  string user_id     = 4;
+  int64  quantity    = 5;
+  int64  total_amount = 6;
+  int32  status      = 7;
+  string created_at  = 8;
+}
+
+// ========== Services ==========
+
+service ActivityService {
+  rpc CreateActivity(CreateActivityReq) returns (CreateActivityResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/activities"
+      body: "*"
+    };
+  }
+
+  rpc UpdateActivity(UpdateActivityReq) returns (UpdateActivityResp) {
+    option (google.api.http) = {
+      put: "/api/seckill/activities/{id}"
+      body: "*"
+    };
+  }
+
+  rpc GetActivity(GetActivityReq) returns (GetActivityResp) {
+    option (google.api.http) = {
+      get: "/api/seckill/activities/{id}"
+    };
+  }
+
+  rpc ListActivities(ListActivitiesReq) returns (ListActivitiesResp) {
+    option (google.api.http) = {
+      get: "/api/seckill/activities"
+    };
+  }
+
+  rpc DeleteActivity(DeleteActivityReq) returns (DeleteActivityResp) {
+    option (google.api.http) = {
+      delete: "/api/seckill/activities/{id}"
+    };
+  }
+
+  rpc PreheatActivity(PreheatActivityReq) returns (PreheatActivityResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/activities/{id}/preheat"
+      body: "*"
+    };
+  }
+
+  rpc OnlineActivity(OnlineActivityReq) returns (OnlineActivityResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/activities/{id}/online"
+      body: "*"
+    };
+  }
+
+  rpc OfflineActivity(OfflineActivityReq) returns (OfflineActivityResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/activities/{id}/offline"
+      body: "*"
+    };
+  }
+}
+
+service SkuService {
+  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/skus"
+      body: "*"
+    };
+  }
+
+  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp) {
+    option (google.api.http) = {
+      put: "/api/seckill/skus/{id}"
+      body: "*"
+    };
+  }
+
+  rpc GetSku(GetSkuReq) returns (GetSkuResp) {
+    option (google.api.http) = {
+      get: "/api/seckill/skus/{id}"
+    };
+  }
+
+  rpc ListSkusByActivity(ListSkusByActivityReq) returns (ListSkusByActivityResp) {
+    option (google.api.http) = {
+      get: "/api/seckill/skus"
+    };
+  }
+
+  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {
+    option (google.api.http) = {
+      delete: "/api/seckill/skus/{id}"
+    };
+  }
+}
+
+service SeckillService {
+  rpc AcquireToken(AcquireTokenReq) returns (AcquireTokenResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/token"
+      body: "*"
+    };
+  }
+
+  rpc SubmitOrder(SubmitOrderReq) returns (SubmitOrderResp) {
+    option (google.api.http) = {
+      post: "/api/seckill/order"
+      body: "*"
+    };
+  }
+
+  rpc GetOrder(GetOrderReq) returns (GetOrderResp) {
+    option (google.api.http) = {
+      get: "/api/seckill/orders/{order_id}"
+    };
+  }
+}

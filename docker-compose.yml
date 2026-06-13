@@ -67,6 +67,31 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
+  # Seckill RPC 服务（gRPC + HTTP gateway，port 10004/10005）
+  seckill-rpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./services/rpc/seckill
+        PORT: 10004
+    container_name: budgetmatch-sim-seckill-rpc
+    environment:
+      - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=12345678
+    ports:
+      - "10004:10004"
+      - "10005:10005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
   # App 服务（REST API，port 10002）
   app:
     build:
@@ -81,6 +106,7 @@ services:
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
       - AUTHRPC_ENDPOINT=auth-rpc:10003
+      - SECKILLRPC_ENDPOINT=seckill-rpc:10004
     ports:
       - "10002:10002"
     depends_on:
@@ -89,6 +115,8 @@ services:
       redis:
         condition: service_healthy
       auth-rpc:
+        condition: service_started
+      seckill-rpc:
         condition: service_started
     networks:
       - budgetmatch-sim-network
@@ -106,6 +134,7 @@ services:
     environment:
       # admin 不直接访问 DB/Redis，所有数据操作通过 auth-rpc
       - AUTHRPC_ENDPOINT=auth-rpc:10003
+      - SECKILLRPC_ENDPOINT=seckill-rpc:10004
     ports:
       - "10001:10001"
     depends_on:
@@ -114,6 +143,8 @@ services:
       redis:
         condition: service_healthy
       auth-rpc:
+        condition: service_started
+      seckill-rpc:
         condition: service_started
     networks:
       - budgetmatch-sim-network
