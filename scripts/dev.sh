@@ -41,13 +41,13 @@ sleep 5
 # 串行启动：auth-rpc 先启动并自动创建数据库表
 echo "🚀 启动服务..."
 
-echo "  → auth-rpc (port 10003 + gateway 10000) — 先启动创建数据库表"
+echo "  → auth-rpc (port 10003) — 先启动创建数据库表"
 (cd services/rpc/auth && nohup go run . > ../../../$LOG_DIR/auth-rpc.log 2>&1 &)
 echo $! > $PID_DIR/auth-rpc.pid
 
 sleep 5
 
-echo "  → seckill-rpc (port 10004 + gateway 10005)"
+echo "  → seckill-rpc (port 10004)"
 (cd services/rpc/seckill && nohup go run . > ../../../$LOG_DIR/seckill-rpc.log 2>&1 &)
 echo $! > $PID_DIR/seckill-rpc.pid
 
@@ -67,8 +67,8 @@ echo ""
 echo "✅ 所有服务已启动"
 echo ""
 echo "查看日志:"
-echo "  tail -f logs/auth-rpc.log     # auth RPC + gateway"
-echo "  tail -f logs/seckill-rpc.log  # seckill RPC + gateway"
+echo "  tail -f logs/auth-rpc.log     # auth RPC"
+echo "  tail -f logs/seckill-rpc.log  # seckill RPC"
 echo "  tail -f logs/app.log          # app 服务"
 echo "  tail -f logs/admin.log        # admin 服务"
 echo ""

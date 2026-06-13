@@ -3,8 +3,6 @@ syntax = "proto3";
 package auth;
 option go_package = "./pb";
 
-import "google/api/annotations.proto";
-
 // 用户基础信息
 message User {
   string id       = 1;
@@ -192,92 +190,22 @@ message DeleteUserResp {
 }
 
 service AuthService {
-  rpc UsernameLogin(UsernameLoginReq) returns (LoginResp) {
-    option (google.api.http) = {
-      post: "/api/auth/login/username"
-      body: "*"
-    };
-  }
-
-  rpc EmailLogin(EmailLoginReq) returns (LoginResp) {
-    option (google.api.http) = {
-      post: "/api/auth/login/email"
-      body: "*"
-    };
-  }
-
-  rpc EmailRegister(EmailRegisterReq) returns (RegisterResp) {
-    option (google.api.http) = {
-      post: "/api/auth/register/email"
-      body: "*"
-    };
-  }
-
-  rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenResp) {
-    option (google.api.http) = {
-      post: "/api/auth/validate"
-      body: "*"
-    };
-  }
-
-  rpc SendCode(SendCodeReq) returns (SendCodeResp) {
-    option (google.api.http) = {
-      post: "/api/auth/send_code"
-      body: "*"
-    };
-  }
-
-  rpc LoginByCode(LoginByCodeReq) returns (LoginByCodeResp) {
-    option (google.api.http) = {
-      post: "/api/auth/login/code"
-      body: "*"
-    };
-  }
+  rpc UsernameLogin(UsernameLoginReq) returns (LoginResp) {}
+  rpc EmailLogin(EmailLoginReq) returns (LoginResp) {}
+  rpc EmailRegister(EmailRegisterReq) returns (RegisterResp) {}
+  rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenResp) {}
+  rpc SendCode(SendCodeReq) returns (SendCodeResp) {}
+  rpc LoginByCode(LoginByCodeReq) returns (LoginByCodeResp) {}
 }
 
 service UserService {
-  rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoResp) {
-    option (google.api.http) = {
-      get: "/api/user/info"
-    };
-  }
-
-  rpc GetUserProfile(GetUserProfileReq) returns (GetUserProfileResp) {
-    option (google.api.http) = {
-      get: "/api/user/profile"
-    };
-  }
-
-  rpc UpdateUserProfile(UpdateUserProfileReq) returns (UpdateUserProfileResp) {
-    option (google.api.http) = {
-      post: "/api/user/profile"
-      body: "*"
-    };
-  }
+  rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoResp) {}
+  rpc GetUserProfile(GetUserProfileReq) returns (GetUserProfileResp) {}
+  rpc UpdateUserProfile(UpdateUserProfileReq) returns (UpdateUserProfileResp) {}
 
   // 管理后台接口
-  rpc ListUsers(ListUsersReq) returns (ListUsersResp) {
-    option (google.api.http) = {
-      get: "/api/admin/users"
-    };
-  }
-
-  rpc GetUserDetail(GetUserDetailReq) returns (GetUserDetailResp) {
-    option (google.api.http) = {
-      get: "/api/admin/users/{user_id}"
-    };
-  }
-
-  rpc UpdateUserStatus(UpdateUserStatusReq) returns (UpdateUserStatusResp) {
-    option (google.api.http) = {
-      put: "/api/admin/users/status"
-      body: "*"
-    };
-  }
-
-  rpc DeleteUser(DeleteUserReq) returns (DeleteUserResp) {
-    option (google.api.http) = {
-      delete: "/api/admin/users/{user_id}"
-    };
-  }
+  rpc ListUsers(ListUsersReq) returns (ListUsersResp) {}
+  rpc GetUserDetail(GetUserDetailReq) returns (GetUserDetailResp) {}
+  rpc UpdateUserStatus(UpdateUserStatusReq) returns (UpdateUserStatusResp) {}
+  rpc DeleteUser(DeleteUserReq) returns (DeleteUserResp) {}
 }

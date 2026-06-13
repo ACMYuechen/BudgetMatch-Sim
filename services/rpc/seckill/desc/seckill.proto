@@ -217,26 +217,26 @@ message GetOrderResp {
 // ========== Services ==========
 
 service ActivityService {
-  rpc CreateActivity(CreateActivityReq) returns (CreateActivityResp);
-  rpc UpdateActivity(UpdateActivityReq) returns (UpdateActivityResp);
-  rpc GetActivity(GetActivityReq) returns (GetActivityResp);
-  rpc ListActivities(ListActivitiesReq) returns (ListActivitiesResp);
-  rpc DeleteActivity(DeleteActivityReq) returns (DeleteActivityResp);
-  rpc PreheatActivity(PreheatActivityReq) returns (PreheatActivityResp);
-  rpc OnlineActivity(OnlineActivityReq) returns (OnlineActivityResp);
-  rpc OfflineActivity(OfflineActivityReq) returns (OfflineActivityResp);
+  rpc CreateActivity(CreateActivityReq) returns (CreateActivityResp) {}
+  rpc UpdateActivity(UpdateActivityReq) returns (UpdateActivityResp) {}
+  rpc GetActivity(GetActivityReq) returns (GetActivityResp) {}
+  rpc ListActivities(ListActivitiesReq) returns (ListActivitiesResp) {}
+  rpc DeleteActivity(DeleteActivityReq) returns (DeleteActivityResp) {}
+  rpc PreheatActivity(PreheatActivityReq) returns (PreheatActivityResp) {}
+  rpc OnlineActivity(OnlineActivityReq) returns (OnlineActivityResp) {}
+  rpc OfflineActivity(OfflineActivityReq) returns (OfflineActivityResp) {}
 }
 
 service SkuService {
-  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp);
-  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp);
-  rpc GetSku(GetSkuReq) returns (GetSkuResp);
-  rpc ListSkusByActivity(ListSkusByActivityReq) returns (ListSkusByActivityResp);
-  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp);
+  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp) {}
+  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp) {}
+  rpc GetSku(GetSkuReq) returns (GetSkuResp) {}
+  rpc ListSkusByActivity(ListSkusByActivityReq) returns (ListSkusByActivityResp) {}
+  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {}
 }
 
 service SeckillService {
-  rpc AcquireToken(AcquireTokenReq) returns (AcquireTokenResp);
-  rpc SubmitOrder(SubmitOrderReq) returns (SubmitOrderResp);
-  rpc GetOrder(GetOrderReq) returns (GetOrderResp);
+  rpc AcquireToken(AcquireTokenReq) returns (AcquireTokenResp) {}
+  rpc SubmitOrder(SubmitOrderReq) returns (SubmitOrderResp) {}
+  rpc GetOrder(GetOrderReq) returns (GetOrderResp) {}
 }

@@ -42,7 +42,7 @@ services:
     networks:
       - budgetmatch-sim-network
 
-  # Auth RPC 服务（gRPC + HTTP gateway，port 10003/10000）
+  # Auth RPC 服务（gRPC，port 10003）
   auth-rpc:
     build:
       context: .
@@ -57,7 +57,6 @@ services:
       - REDIS_PASSWORD=12345678
     ports:
       - "10003:10003"
-      - "10000:10000"
     depends_on:
       postgres:
         condition: service_healthy

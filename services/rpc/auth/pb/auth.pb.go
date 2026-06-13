@@ -7,7 +7,6 @@
 package pb
 
 import (
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1696,7 +1695,7 @@ var File_services_rpc_auth_desc_auth_proto protoreflect.FileDescriptor
 
 const file_services_rpc_auth_desc_auth_proto_rawDesc = "" +
 	"\n" +
-	"!services/rpc/auth/desc/auth.proto\x12\x04auth\x1a\x1cgoogle/api/annotations.proto\"\xa2\x01\n" +
+	"!services/rpc/auth/desc/auth.proto\x12\x04auth\"\xa2\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
@@ -1812,24 +1811,24 @@ const file_services_rpc_auth_desc_auth_proto_rawDesc = "" +
 	"\rDeleteUserReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"*\n" +
 	"\x0eDeleteUserResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xb5\x04\n" +
-	"\vAuthService\x12]\n" +
-	"\rUsernameLogin\x12\x16.auth.UsernameLoginReq\x1a\x0f.auth.LoginResp\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/api/auth/login/username\x12T\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\xf5\x02\n" +
+	"\vAuthService\x12:\n" +
+	"\rUsernameLogin\x12\x16.auth.UsernameLoginReq\x1a\x0f.auth.LoginResp\"\x00\x124\n" +
 	"\n" +
-	"EmailLogin\x12\x13.auth.EmailLoginReq\x1a\x0f.auth.LoginResp\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/auth/login/email\x12`\n" +
-	"\rEmailRegister\x12\x16.auth.EmailRegisterReq\x1a\x12.auth.RegisterResp\"#\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/api/auth/register/email\x12_\n" +
-	"\rValidateToken\x12\x16.auth.ValidateTokenReq\x1a\x17.auth.ValidateTokenResp\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/auth/validate\x12Q\n" +
-	"\bSendCode\x12\x11.auth.SendCodeReq\x1a\x12.auth.SendCodeResp\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/auth/send_code\x12[\n" +
-	"\vLoginByCode\x12\x14.auth.LoginByCodeReq\x1a\x15.auth.LoginByCodeResp\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/api/auth/login/code2\xaf\x05\n" +
-	"\vUserService\x12R\n" +
-	"\vGetUserInfo\x12\x14.auth.GetUserInfoReq\x1a\x15.auth.GetUserInfoResp\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/user/info\x12^\n" +
-	"\x0eGetUserProfile\x12\x17.auth.GetUserProfileReq\x1a\x18.auth.GetUserProfileResp\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/user/profile\x12j\n" +
-	"\x11UpdateUserProfile\x12\x1a.auth.UpdateUserProfileReq\x1a\x1b.auth.UpdateUserProfileResp\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/api/user/profile\x12N\n" +
-	"\tListUsers\x12\x12.auth.ListUsersReq\x1a\x13.auth.ListUsersResp\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/admin/users\x12d\n" +
-	"\rGetUserDetail\x12\x16.auth.GetUserDetailReq\x1a\x17.auth.GetUserDetailResp\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/api/admin/users/{user_id}\x12m\n" +
-	"\x10UpdateUserStatus\x12\x19.auth.UpdateUserStatusReq\x1a\x1a.auth.UpdateUserStatusResp\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\x1a\x17/api/admin/users/status\x12[\n" +
+	"EmailLogin\x12\x13.auth.EmailLoginReq\x1a\x0f.auth.LoginResp\"\x00\x12=\n" +
+	"\rEmailRegister\x12\x16.auth.EmailRegisterReq\x1a\x12.auth.RegisterResp\"\x00\x12B\n" +
+	"\rValidateToken\x12\x16.auth.ValidateTokenReq\x1a\x17.auth.ValidateTokenResp\"\x00\x123\n" +
+	"\bSendCode\x12\x11.auth.SendCodeReq\x1a\x12.auth.SendCodeResp\"\x00\x12<\n" +
+	"\vLoginByCode\x12\x14.auth.LoginByCodeReq\x1a\x15.auth.LoginByCodeResp\"\x002\xe4\x03\n" +
+	"\vUserService\x12<\n" +
+	"\vGetUserInfo\x12\x14.auth.GetUserInfoReq\x1a\x15.auth.GetUserInfoResp\"\x00\x12E\n" +
+	"\x0eGetUserProfile\x12\x17.auth.GetUserProfileReq\x1a\x18.auth.GetUserProfileResp\"\x00\x12N\n" +
+	"\x11UpdateUserProfile\x12\x1a.auth.UpdateUserProfileReq\x1a\x1b.auth.UpdateUserProfileResp\"\x00\x126\n" +
+	"\tListUsers\x12\x12.auth.ListUsersReq\x1a\x13.auth.ListUsersResp\"\x00\x12B\n" +
+	"\rGetUserDetail\x12\x16.auth.GetUserDetailReq\x1a\x17.auth.GetUserDetailResp\"\x00\x12K\n" +
+	"\x10UpdateUserStatus\x12\x19.auth.UpdateUserStatusReq\x1a\x1a.auth.UpdateUserStatusResp\"\x00\x127\n" +
 	"\n" +
-	"DeleteUser\x12\x13.auth.DeleteUserReq\x1a\x14.auth.DeleteUserResp\"\"\x82\xd3\xe4\x93\x02\x1c*\x1a/api/admin/users/{user_id}B\x06Z\x04./pbb\x06proto3"
+	"DeleteUser\x12\x13.auth.DeleteUserReq\x1a\x14.auth.DeleteUserRespB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_rpc_auth_desc_auth_proto_rawDescOnce sync.Once

@@ -48,9 +48,6 @@ api-all:
 	@echo "生成 seckill RPC..."
 	@goctl rpc protoc $(seckillRpcDesc)/seckill.proto --go_out=$(seckillRpcPWD) --go-grpc_out=$(seckillRpcPWD) --zrpc_out=$(seckillRpcPWD) --style=go_zero -m -I . -I $(seckillRpcDesc)
 	@rm -f $(seckillRpcPWD)/seckill.go $(seckillRpcPWD)/etc/seckill.yaml
-	@echo "生成 gateway proto descriptor..."
-	@mkdir -p $(authRpcPWD)/gateway
-	@protoc -I $(authRpcDesc) --descriptor_set_out=$(authRpcPWD)/gateway/auth.pb --include_imports $(authRpcDesc)/auth.proto
 	@echo "所有代码生成完成"
 
 # =============================================================================
@@ -90,8 +87,8 @@ test:
 smoke-test:
 	@echo "🔥 冒烟测试..."
 	@echo ""
-	@echo "1. Auth Gateway 健康检查"
-	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10000/api/health || echo "   ❌ 连接失败"
+	@echo "1. Auth RPC 端口检查"
+	@ss -ltnp 2>/dev/null | grep -q ":10003 " && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
 	@echo "2. App 服务健康检查"
 	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10002/api/health || echo "   ❌ 连接失败"

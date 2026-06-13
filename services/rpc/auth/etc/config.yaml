@@ -2,17 +2,6 @@ Name: auth.rpc
 ListenOn: 0.0.0.0:10003
 Timeout: 60000
 
-Gateway:
-  Name: auth.gateway
-  Host: 0.0.0.0
-  Port: 10000
-  Upstreams:
-    - Name: auth
-      Grpc:
-        Target: 127.0.0.1:10003
-      ProtoSets:
-        - ./gateway/auth.pb
-
 # Auth配置（生产环境请通过环境变量覆盖）
 JwtAuth:
   Secret: "${JWT_SECRET}"       # JWT 签名密钥

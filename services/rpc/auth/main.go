@@ -3,10 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
-	"strings"
-
-	"github.com/zeromicro/go-zero/gateway"
 
 	"budgetmatch-sim/services/rpc/auth/internal/config"
 	"budgetmatch-sim/services/rpc/auth/internal/interceptor"
@@ -51,33 +47,5 @@ func main() {
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
 
-	// 启动 gRPC 网关
-	if c.Gateway.Port > 0 {
-		gw := gateway.MustNewServer(c.Gateway, gateway.WithHeaderProcessor(forwardHeadersToMetadata))
-		sg.Add(gw)
-		fmt.Printf("Starting gateway server at %s:%d...\n", c.Gateway.Host, c.Gateway.Port)
-	}
-
 	sg.Start()
-}
-
-func forwardHeadersToMetadata(header http.Header) []string {
-	keys := []string{
-		"authorization",
-		"x-forwarded-for",
-		"x-real-ip",
-		"user-agent",
-	}
-
-	var vals []string
-	for _, key := range keys {
-		for _, value := range header.Values(key) {
-			if value == "" {
-				continue
-			}
-			vals = append(vals, strings.ToLower(key)+":"+value)
-		}
-	}
-
-	return vals
 }
