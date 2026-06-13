@@ -7,7 +7,7 @@ package server
 import (
 	"context"
 
-	userservicelogic "budgetmatch-sim/services/rpc/auth/internal/logic/userservice"
+	"budgetmatch-sim/services/rpc/auth/internal/logic/userservice"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
 	"budgetmatch-sim/services/rpc/auth/pb"
 )
