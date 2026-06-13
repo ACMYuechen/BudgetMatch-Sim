@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	health "budgetmatch-sim/cmd/app/internal/handler/health"
+	seckill "budgetmatch-sim/cmd/app/internal/handler/seckill"
 	"budgetmatch-sim/cmd/app/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -22,5 +23,50 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 		},
 		rest.WithPrefix("/api"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware, serverCtx.SeckillRateLimitMiddleware},
+			[]rest.Route{
+				{
+					// 活动列表
+					Method:  http.MethodGet,
+					Path:    "/activities",
+					Handler: seckill.ActivityListHandler(serverCtx),
+				},
+				{
+					// 活动详情
+					Method:  http.MethodGet,
+					Path:    "/activities/:id",
+					Handler: seckill.ActivityDetailHandler(serverCtx),
+				},
+				{
+					// SKU列表
+					Method:  http.MethodGet,
+					Path:    "/skus",
+					Handler: seckill.SkuListHandler(serverCtx),
+				},
+				{
+					// 获取秒杀令牌
+					Method:  http.MethodPost,
+					Path:    "/token",
+					Handler: seckill.AcquireTokenHandler(serverCtx),
+				},
+				{
+					// 提交秒杀订单
+					Method:  http.MethodPost,
+					Path:    "/orders",
+					Handler: seckill.SubmitOrderHandler(serverCtx),
+				},
+				{
+					// 查询订单
+					Method:  http.MethodGet,
+					Path:    "/orders/:order_id",
+					Handler: seckill.GetOrderHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/seckill"),
 	)
 }

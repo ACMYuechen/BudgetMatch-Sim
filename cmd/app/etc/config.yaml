@@ -27,3 +27,9 @@ AuthRpc:
   Endpoints:
     - 127.0.0.1:10003
   NonBlock: true
+
+# 秒杀服务 RPC
+SeckillRpc:
+  Endpoints:
+    - 127.0.0.1:10004
+  NonBlock: true

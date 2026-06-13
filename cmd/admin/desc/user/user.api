@@ -68,3 +68,29 @@ type DeleteUserReq {
 type DeleteUserResp {
 	Success bool `json:"success"`
 }
+
+
+//////////////////////////////// 用户管理 /////////////////////////////////////////////////////
+@server (
+	prefix: /api/admin
+	group:  user
+	tags:   user
+	middleware: AuthMiddleware
+)
+service admin {
+	@doc "用户列表"
+	@handler UserList
+	get /users (UserListReq) returns (UserListResp)
+
+	@doc "用户详情"
+	@handler GetUserDetail
+	get /users/:user_id (GetUserDetailReq) returns (GetUserDetailResp)
+
+	@doc "更新用户状态"
+	@handler UpdateUserStatus
+	put /users/status (UpdateUserStatusReq) returns (UpdateUserStatusResp)
+
+	@doc "删除用户"
+	@handler DeleteUser
+	delete /users/:user_id (DeleteUserReq) returns (DeleteUserResp)
+}

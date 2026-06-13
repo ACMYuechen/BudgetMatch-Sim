@@ -7,6 +7,9 @@ import (
 	"budgetmatch-sim/cmd/admin/internal/middleware"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/client/userservice"
+	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
+	"budgetmatch-sim/services/rpc/seckill/client/skuservice"
+	"budgetmatch-sim/services/rpc/seckill/client/seckillservice"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/zeromicro/go-zero/rest"
@@ -18,8 +21,11 @@ type ServiceContext struct {
 	Validator *validator.Validate
 
 	// RPC 客户端
-	AuthClient authservice.AuthService
-	UserClient userservice.UserService
+	AuthClient     authservice.AuthService
+	UserClient     userservice.UserService
+	ActivityClient activityservice.ActivityService
+	SkuClient      skuservice.SkuService
+	SeckillClient  seckillservice.SeckillService
 
 	// 中间件配置
 	AuthMiddleware rest.Middleware
@@ -30,14 +36,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	authclient := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc))
 	userclient := userservice.NewUserService(zrpc.MustNewClient(c.AuthRpc))
+	seckillclient := zrpc.MustNewClient(c.SeckillRpc)
+	activityclient := activityservice.NewActivityService(seckillclient)
+	skuclient := skuservice.NewSkuService(seckillclient)
+	seckillSvcClient := seckillservice.NewSeckillService(seckillclient)
 
 	return &ServiceContext{
 		Config:    c,
 		Validator: valid,
 
 		// RPC 客户端
-		AuthClient: authclient,
-		UserClient: userclient,
+		AuthClient:     authclient,
+		UserClient:     userclient,
+		ActivityClient: activityclient,
+		SkuClient:      skuclient,
+		SeckillClient:  seckillSvcClient,
 
 		// 中间件配置
 		AuthMiddleware: middleware.NewAuthMiddleware(authclient).Handle,
