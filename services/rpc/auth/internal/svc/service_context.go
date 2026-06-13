@@ -28,7 +28,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	// 初始化 Redis
-	redisClient, err := iredis.NewRedisDB(c.Redis)
+	redisClient, err := iredis.NewRedisDB(c.CacheRedis)
 	if err != nil {
 		logx.Must(err)
 	}

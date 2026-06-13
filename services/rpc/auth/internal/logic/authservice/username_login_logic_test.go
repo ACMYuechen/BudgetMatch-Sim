@@ -61,7 +61,7 @@ func TestUsernameLogin_Success(t *testing.T) {
 
 	svcCtx := &svc.ServiceContext{
 		Config: config.Config{
-			Auth: auth.Config{
+			JwtAuth: auth.Config{
 				Secret: "test-secret",
 				Expire: 3600,
 			},
@@ -94,7 +94,7 @@ func TestUsernameLogin_UserNotFound(t *testing.T) {
 	}
 
 	svcCtx := &svc.ServiceContext{
-		Config:    config.Config{Auth: auth.Config{Secret: "test", Expire: 3600}},
+		Config:    config.Config{JwtAuth: auth.Config{Secret: "test", Expire: 3600}},
 		UserStore: mockStore,
 	}
 
@@ -124,7 +124,7 @@ func TestUsernameLogin_InvalidPassword(t *testing.T) {
 	}
 
 	svcCtx := &svc.ServiceContext{
-		Config:    config.Config{Auth: auth.Config{Secret: "test", Expire: 3600}},
+		Config:    config.Config{JwtAuth: auth.Config{Secret: "test", Expire: 3600}},
 		UserStore: mockStore,
 	}
 

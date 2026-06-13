@@ -29,7 +29,7 @@ func NewValidateTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Val
 
 func (l *ValidateTokenLogic) ValidateToken(in *pb.ValidateTokenReq) (*pb.ValidateTokenResp, error) {
 	// 验证 token
-	token, err := auth.ValidateToken(in.Token, l.svcCtx.Config.Auth.Secret)
+	token, err := auth.ValidateToken(in.Token, l.svcCtx.Config.JwtAuth.Secret)
 	if err != nil {
 		l.Logger.Errorf("failed to validate token: %v, error: %v", in.Token, err)
 		return nil, errors.ErrInvalidToken
@@ -46,7 +46,7 @@ func (l *ValidateTokenLogic) ValidateToken(in *pb.ValidateTokenReq) (*pb.Validat
 	}
 
 	// 获取用户 ID
-	userId, err := auth.GetUserIdFromToken(in.Token, l.svcCtx.Config.Auth.Secret)
+	userId, err := auth.GetUserIdFromToken(in.Token, l.svcCtx.Config.JwtAuth.Secret)
 	if err != nil {
 		l.Logger.Errorf("invalid token, user ID not found: %v", in.Token)
 		return nil, errors.ErrInvalidToken

@@ -50,13 +50,13 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		}
 
 		// 验证 token
-		_, err := auth.ValidateToken(tokenString, svcCtx.Config.Auth.Secret)
+		_, err := auth.ValidateToken(tokenString, svcCtx.Config.JwtAuth.Secret)
 		if err != nil {
 			return nil, errors.ErrInvalidToken
 		}
 
 		// 获取用户 ID
-		userId, err := auth.GetUserIdFromToken(tokenString, svcCtx.Config.Auth.Secret)
+		userId, err := auth.GetUserIdFromToken(tokenString, svcCtx.Config.JwtAuth.Secret)
 		if err != nil {
 			return nil, errors.ErrInvalidToken
 		}

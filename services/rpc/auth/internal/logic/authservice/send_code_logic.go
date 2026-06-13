@@ -59,7 +59,7 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 	}
 
 	// 发送邮件
-	err = auth.SendEmail(l.svcCtx.Config.Auth, email, code)
+	err = auth.SendEmail(l.svcCtx.Config.JwtAuth, email, code)
 	if err != nil {
 		l.Logger.Errorf("failed to send email to: %v, error: %v", email, err)
 		// 邮件发送失败，回滚已写入的验证码

@@ -11,8 +11,8 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Gateway  gateway.GatewayConf `json:"gateway,optional"`
-	Database database.Config
-	Redis    redis.Config
-	Auth     auth.Config
+	Gateway    gateway.GatewayConf `json:"gateway,optional"`
+	Database   database.Config
+	CacheRedis redis.Config        `json:"cacheRedis"`
+	JwtAuth    auth.Config         `json:"jwtAuth"`
 }

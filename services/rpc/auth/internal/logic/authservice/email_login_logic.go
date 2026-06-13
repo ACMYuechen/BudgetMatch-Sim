@@ -44,7 +44,7 @@ func (l *EmailLoginLogic) EmailLogin(in *pb.EmailLoginReq) (*pb.LoginResp, error
 	}
 
 	// 生成 token
-	token, err := auth.GenerateToken(u.Id, l.svcCtx.Config.Auth.Secret, l.svcCtx.Config.Auth.Expire, int(u.Role))
+	token, err := auth.GenerateToken(u.Id, l.svcCtx.Config.JwtAuth.Secret, l.svcCtx.Config.JwtAuth.Expire, int(u.Role))
 	if err != nil {
 		l.Logger.Errorf("failed to generate token for user id: %v, error: %v", u.Id, err)
 		return nil, errors.ErrTokenGeneration

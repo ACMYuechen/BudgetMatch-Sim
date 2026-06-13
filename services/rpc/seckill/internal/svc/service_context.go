@@ -41,7 +41,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	// init Redis
-	redisClient, err := iredis.NewRedisDB(c.Redis)
+	redisClient, err := iredis.NewRedisDB(c.CacheRedis)
 	if err != nil {
 		logx.Must(err)
 	}

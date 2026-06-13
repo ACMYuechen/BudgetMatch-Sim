@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database database.Config
-	Redis    redis.Config
-	Auth     auth.Config
+	Database   database.Config
+	CacheRedis redis.Config `json:"cacheRedis"`
+	JwtAuth    auth.Config  `json:"jwtAuth"`
 }

@@ -6,11 +6,29 @@ PID_DIR=".pids"
 
 mkdir -p $LOG_DIR $PID_DIR
 
+# 加载本地环境变量（供 conf.UseEnv() 替换配置中的 ${VAR}）
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 # 清理旧进程
 for pidfile in $PID_DIR/*.pid; do
     [ -f "$pidfile" ] && kill $(cat "$pidfile") 2>/dev/null || true
+    rm -f "$pidfile"
 done
-rm -f $PID_DIR/*.pid
+
+# 兜底：按端口清理可能残留的本地服务进程
+for port in 10000 10001 10002 10003 10004 10005; do
+    pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
+    for pid in $pids; do
+        kill -9 "$pid" 2>/dev/null || true
+    done
+done
+
+# 短暂等待，确保端口释放
+sleep 1
 
 # 启动基础设施
 echo "🐳 启动基础设施 (postgres + redis)..."

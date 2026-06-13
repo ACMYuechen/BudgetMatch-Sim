@@ -2,7 +2,7 @@ Name: seckill.rpc
 ListenOn: 0.0.0.0:10004
 Timeout: 60000
 
-Auth:
+JwtAuth:
   Secret: "${JWT_SECRET}"
   Expire: 86400
 
@@ -17,7 +17,7 @@ Database:
   AutoMigrate: true
   PrepareStmt: true
 
-Redis:
+CacheRedis:
   Address: "127.0.0.1:6379"
   Password: "12345678"
   DB: 3

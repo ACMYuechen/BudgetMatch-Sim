@@ -18,7 +18,7 @@ type Config struct {
 	Email struct {
 		From     string `json:"from"`
 		Password string `json:"password"`
-	} `json:"email"`
+	} `json:"email,optional"`
 }
 
 // //////////////////////////// Token 相关 ///////////////////////////////
