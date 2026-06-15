@@ -1,0 +1,37 @@
+Name: mall.rpc
+ListenOn: 0.0.0.0:10005
+Timeout: 60000
+
+JwtAuth:
+  Secret: "${JWT_SECRET}"
+  Expire: 86400
+
+Database:
+  LogLevel: 4
+  Driver: "Postgres"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  MaxOpenConns: 100
+  MaxIdleConns: 20
+  ConnMaxLifetime: 7200s
+  ConnMaxIdleTime: 300s
+  AutoMigrate: true
+  PrepareStmt: true
+
+CacheRedis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 4
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3
+
+RocketMQ:
+  NameServers:
+    - "127.0.0.1:9876"
+  GroupName: "mall-rpc"
+  RetryTimes: 2
+  SendMsgTimeout: 3000

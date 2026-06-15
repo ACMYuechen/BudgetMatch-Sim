@@ -35,4 +35,12 @@ var (
 	ErrSeckillTokenInvalid     = errors.New("seckill token invalid or expired")
 	ErrSeckillAlreadyPurchased = errors.New("already purchased this seckill item")
 	ErrSeckillSubmitFailed     = errors.New("seckill order submit failed")
+	// 商城相关错误
+	ErrMallProductNotFound        = errors.New("mall product not found")
+	ErrMallSkuNotFound            = errors.New("mall sku not found")
+	ErrMallOrderNotFound          = errors.New("mall order not found")
+	ErrMallStockNotEnough         = errors.New("mall stock not enough")
+	ErrMallInvalidOrderTransition = errors.New("invalid order status transition")
+	ErrMallOrderCannotCancel      = errors.New("order cannot be cancelled")
+	ErrMallDuplicateOrder         = errors.New("duplicate order request")
 )

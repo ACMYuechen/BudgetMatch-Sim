@@ -42,7 +42,34 @@ services:
     networks:
       - budgetmatch-sim-network
 
+  # RocketMQ NameServer
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: budgetmatch-sim-rocketmq-namesrv
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: budgetmatch-sim-rocketmq-broker
+    command: sh mqbroker -n rocketmq-namesrv:9876
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
   # Auth RPC 服务（gRPC，port 10003）
+
   auth-rpc:
     build:
       context: .
@@ -90,7 +117,37 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
+  # Mall RPC 服务（gRPC，port 10005）
+  mall-rpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./services/rpc/mall
+        PORT: 10005
+    container_name: budgetmatch-sim-mall-rpc
+    environment:
+      - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=12345678
+      - ROCKETMQ_NAMESERVERS=rocketmq-namesrv:9876
+    ports:
+      - "10005:10005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rocketmq-namesrv:
+        condition: service_started
+      rocketmq-broker:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
   # App 服务（REST API，port 10002）
+
   app:
     build:
       context: .
@@ -105,6 +162,7 @@ services:
       - REDIS_PASSWORD=12345678
       - AUTHRPC_ENDPOINT=auth-rpc:10003
       - SECKILLRPC_ENDPOINT=seckill-rpc:10004
+      - MALLRPC_ENDPOINT=mall-rpc:10005
     ports:
       - "10002:10002"
     depends_on:
@@ -130,9 +188,10 @@ services:
         PORT: 10001
     container_name: budgetmatch-sim-admin
     environment:
-      # admin 不直接访问 DB/Redis，所有数据操作通过 auth-rpc
+      # admin 不直接访问 DB/Redis，所有数据操作通过 RPC
       - AUTHRPC_ENDPOINT=auth-rpc:10003
       - SECKILLRPC_ENDPOINT=seckill-rpc:10004
+      - MALLRPC_ENDPOINT=mall-rpc:10005
     ports:
       - "10001:10001"
     depends_on:

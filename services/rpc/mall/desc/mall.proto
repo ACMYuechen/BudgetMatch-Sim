@@ -1,0 +1,269 @@
+syntax = "proto3";
+
+package mall;
+option go_package = "./pb";
+
+// ========== Product (SPU) ==========
+
+message Product {
+  string id          = 1;
+  string spu_code    = 2;
+  string name        = 3;
+  string category_id = 4;
+  string brand       = 5;
+  int32  status      = 6;
+  string main_image  = 7;
+  string detail      = 8;
+  string created_at  = 9;
+  string updated_at  = 10;
+}
+
+message CreateProductReq {
+  string spu_code    = 1;
+  string name        = 2;
+  string category_id = 3;
+  string brand       = 4;
+  string main_image  = 5;
+  string detail      = 6;
+}
+
+message CreateProductResp {
+  string id = 1;
+}
+
+message UpdateProductReq {
+  string id          = 1;
+  string name        = 2;
+  string category_id = 3;
+  string brand       = 4;
+  int32  status      = 5;
+  string main_image  = 6;
+  string detail      = 7;
+}
+
+message UpdateProductResp {
+  bool success = 1;
+}
+
+message DeleteProductReq {
+  string id = 1;
+}
+
+message DeleteProductResp {
+  bool success = 1;
+}
+
+message GetProductReq {
+  string id = 1;
+}
+
+message GetProductResp {
+  Product product = 1;
+}
+
+message ListProductsReq {
+  int32  page      = 1;
+  int32  page_size = 2;
+  string category_id = 3;
+  string keyword     = 4;
+  int32  status      = 5;
+}
+
+message ListProductsResp {
+  repeated Product list      = 1;
+  int64            total     = 2;
+  int32            page      = 3;
+  int32            page_size = 4;
+}
+
+// ========== SKU ==========
+
+message Sku {
+  string id         = 1;
+  string product_id = 2;
+  string sku_code   = 3;
+  string name       = 4;
+  string specs      = 5;
+  int64  price      = 6;
+  int64  stock      = 7;
+  int64  sold       = 8;
+  int32  status     = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message CreateSkuReq {
+  string product_id = 1;
+  string sku_code   = 2;
+  string name       = 3;
+  string specs      = 4;
+  int64  price      = 5;
+  int64  stock      = 6;
+}
+
+message CreateSkuResp {
+  string id = 1;
+}
+
+message UpdateSkuReq {
+  string id       = 1;
+  string name     = 2;
+  string specs    = 3;
+  int64  price    = 4;
+  int64  stock    = 5;
+  int32  status   = 6;
+}
+
+message UpdateSkuResp {
+  bool success = 1;
+}
+
+message DeleteSkuReq {
+  string id = 1;
+}
+
+message DeleteSkuResp {
+  bool success = 1;
+}
+
+message GetSkuReq {
+  string id = 1;
+}
+
+message GetSkuResp {
+  Sku sku = 1;
+}
+
+message ListSkusByProductReq {
+  string product_id = 1;
+  int32  page       = 2;
+  int32  page_size  = 3;
+  int32  status     = 4;
+}
+
+message ListSkusByProductResp {
+  repeated Sku list      = 1;
+  int64        total     = 2;
+  int32        page      = 3;
+  int32        page_size = 4;
+}
+
+// ========== Order ==========
+
+message OrderItem {
+  string product_id  = 1;
+  string sku_id      = 2;
+  string sku_name    = 3;
+  int64  price       = 4;
+  int64  quantity    = 5;
+  int64  total_amount = 6;
+  string snapshot    = 7;
+}
+
+message Order {
+  string          id              = 1;
+  string          user_id         = 2;
+  int64           total_amount    = 3;
+  int32           status          = 4;
+  string          pay_type        = 5;
+  string          pay_time        = 6;
+  string          remark          = 7;
+  string          snapshot        = 8;
+  string          idempotency_key = 9;
+  repeated OrderItem items        = 10;
+  string          created_at      = 11;
+  string          updated_at      = 12;
+}
+
+message CreateOrderReq {
+  string user_id         = 1;
+  string sku_id          = 2;
+  int64  quantity        = 3;
+  string remark          = 4;
+  string idempotency_key = 5;
+}
+
+message CreateOrderResp {
+  string order_id = 1;
+  int32  status   = 2;
+}
+
+message GetOrderReq {
+  string order_id = 1;
+  string user_id  = 2;
+}
+
+message GetOrderResp {
+  Order order = 1;
+}
+
+message ListOrdersReq {
+  string user_id = 1;
+  int32  page    = 2;
+  int32  page_size = 3;
+  int32  status  = 4;
+}
+
+message ListOrdersResp {
+  repeated Order list      = 1;
+  int64          total     = 2;
+  int32          page      = 3;
+  int32          page_size = 4;
+}
+
+message CancelOrderReq {
+  string order_id = 1;
+  string user_id  = 2;
+}
+
+message CancelOrderResp {
+  bool success = 1;
+}
+
+message UpdateOrderStatusReq {
+  string order_id = 1;
+  string user_id  = 2;
+  int32  status   = 3;
+}
+
+message UpdateOrderStatusResp {
+  bool success = 1;
+}
+
+message PayOrderReq {
+  string order_id = 1;
+  string user_id  = 2;
+  string pay_type = 3;
+}
+
+message PayOrderResp {
+  string order_id   = 1;
+  int32  status     = 2;
+  string pay_url    = 3;
+  string message    = 4;
+}
+
+// ========== Services ==========
+
+service ProductService {
+  rpc CreateProduct(CreateProductReq) returns (CreateProductResp) {}
+  rpc UpdateProduct(UpdateProductReq) returns (UpdateProductResp) {}
+  rpc DeleteProduct(DeleteProductReq) returns (DeleteProductResp) {}
+  rpc GetProduct(GetProductReq) returns (GetProductResp) {}
+  rpc ListProducts(ListProductsReq) returns (ListProductsResp) {}
+
+  rpc CreateSku(CreateSkuReq) returns (CreateSkuResp) {}
+  rpc UpdateSku(UpdateSkuReq) returns (UpdateSkuResp) {}
+  rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {}
+  rpc GetSku(GetSkuReq) returns (GetSkuResp) {}
+  rpc ListSkusByProduct(ListSkusByProductReq) returns (ListSkusByProductResp) {}
+}
+
+service OrderService {
+  rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp) {}
+  rpc GetOrder(GetOrderReq) returns (GetOrderResp) {}
+  rpc ListOrders(ListOrdersReq) returns (ListOrdersResp) {}
+  rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp) {}
+  rpc UpdateOrderStatus(UpdateOrderStatusReq) returns (UpdateOrderStatusResp) {}
+  rpc PayOrder(PayOrderReq) returns (PayOrderResp) {}
+}

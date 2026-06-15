@@ -2230,27 +2230,27 @@ const file_services_rpc_seckill_desc_seckill_proto_rawDesc = "" +
 	"\ftotal_amount\x18\x06 \x01(\x03R\vtotalAmount\x12\x16\n" +
 	"\x06status\x18\a \x01(\x05R\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt2\xe6\x04\n" +
-	"\x0fActivityService\x12I\n" +
-	"\x0eCreateActivity\x12\x1a.seckill.CreateActivityReq\x1a\x1b.seckill.CreateActivityResp\x12I\n" +
-	"\x0eUpdateActivity\x12\x1a.seckill.UpdateActivityReq\x1a\x1b.seckill.UpdateActivityResp\x12@\n" +
-	"\vGetActivity\x12\x17.seckill.GetActivityReq\x1a\x18.seckill.GetActivityResp\x12I\n" +
-	"\x0eListActivities\x12\x1a.seckill.ListActivitiesReq\x1a\x1b.seckill.ListActivitiesResp\x12I\n" +
-	"\x0eDeleteActivity\x12\x1a.seckill.DeleteActivityReq\x1a\x1b.seckill.DeleteActivityResp\x12L\n" +
-	"\x0fPreheatActivity\x12\x1b.seckill.PreheatActivityReq\x1a\x1c.seckill.PreheatActivityResp\x12I\n" +
-	"\x0eOnlineActivity\x12\x1a.seckill.OnlineActivityReq\x1a\x1b.seckill.OnlineActivityResp\x12L\n" +
-	"\x0fOfflineActivity\x12\x1b.seckill.OfflineActivityReq\x1a\x1c.seckill.OfflineActivityResp2\xca\x02\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt2\xf6\x04\n" +
+	"\x0fActivityService\x12K\n" +
+	"\x0eCreateActivity\x12\x1a.seckill.CreateActivityReq\x1a\x1b.seckill.CreateActivityResp\"\x00\x12K\n" +
+	"\x0eUpdateActivity\x12\x1a.seckill.UpdateActivityReq\x1a\x1b.seckill.UpdateActivityResp\"\x00\x12B\n" +
+	"\vGetActivity\x12\x17.seckill.GetActivityReq\x1a\x18.seckill.GetActivityResp\"\x00\x12K\n" +
+	"\x0eListActivities\x12\x1a.seckill.ListActivitiesReq\x1a\x1b.seckill.ListActivitiesResp\"\x00\x12K\n" +
+	"\x0eDeleteActivity\x12\x1a.seckill.DeleteActivityReq\x1a\x1b.seckill.DeleteActivityResp\"\x00\x12N\n" +
+	"\x0fPreheatActivity\x12\x1b.seckill.PreheatActivityReq\x1a\x1c.seckill.PreheatActivityResp\"\x00\x12K\n" +
+	"\x0eOnlineActivity\x12\x1a.seckill.OnlineActivityReq\x1a\x1b.seckill.OnlineActivityResp\"\x00\x12N\n" +
+	"\x0fOfflineActivity\x12\x1b.seckill.OfflineActivityReq\x1a\x1c.seckill.OfflineActivityResp\"\x002\xd4\x02\n" +
 	"\n" +
-	"SkuService\x12:\n" +
-	"\tCreateSku\x12\x15.seckill.CreateSkuReq\x1a\x16.seckill.CreateSkuResp\x12:\n" +
-	"\tUpdateSku\x12\x15.seckill.UpdateSkuReq\x1a\x16.seckill.UpdateSkuResp\x121\n" +
-	"\x06GetSku\x12\x12.seckill.GetSkuReq\x1a\x13.seckill.GetSkuResp\x12U\n" +
-	"\x12ListSkusByActivity\x12\x1e.seckill.ListSkusByActivityReq\x1a\x1f.seckill.ListSkusByActivityResp\x12:\n" +
-	"\tDeleteSku\x12\x15.seckill.DeleteSkuReq\x1a\x16.seckill.DeleteSkuResp2\xd0\x01\n" +
-	"\x0eSeckillService\x12C\n" +
-	"\fAcquireToken\x12\x18.seckill.AcquireTokenReq\x1a\x19.seckill.AcquireTokenResp\x12@\n" +
-	"\vSubmitOrder\x12\x17.seckill.SubmitOrderReq\x1a\x18.seckill.SubmitOrderResp\x127\n" +
-	"\bGetOrder\x12\x14.seckill.GetOrderReq\x1a\x15.seckill.GetOrderRespB\x06Z\x04./pbb\x06proto3"
+	"SkuService\x12<\n" +
+	"\tCreateSku\x12\x15.seckill.CreateSkuReq\x1a\x16.seckill.CreateSkuResp\"\x00\x12<\n" +
+	"\tUpdateSku\x12\x15.seckill.UpdateSkuReq\x1a\x16.seckill.UpdateSkuResp\"\x00\x123\n" +
+	"\x06GetSku\x12\x12.seckill.GetSkuReq\x1a\x13.seckill.GetSkuResp\"\x00\x12W\n" +
+	"\x12ListSkusByActivity\x12\x1e.seckill.ListSkusByActivityReq\x1a\x1f.seckill.ListSkusByActivityResp\"\x00\x12<\n" +
+	"\tDeleteSku\x12\x15.seckill.DeleteSkuReq\x1a\x16.seckill.DeleteSkuResp\"\x002\xd6\x01\n" +
+	"\x0eSeckillService\x12E\n" +
+	"\fAcquireToken\x12\x18.seckill.AcquireTokenReq\x1a\x19.seckill.AcquireTokenResp\"\x00\x12B\n" +
+	"\vSubmitOrder\x12\x17.seckill.SubmitOrderReq\x1a\x18.seckill.SubmitOrderResp\"\x00\x129\n" +
+	"\bGetOrder\x12\x14.seckill.GetOrderReq\x1a\x15.seckill.GetOrderResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_rpc_seckill_desc_seckill_proto_rawDescOnce sync.Once

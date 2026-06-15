@@ -10,6 +10,9 @@ authRpcDesc = $(authRpcPWD)/desc
 seckillRpcPWD = services/rpc/seckill
 seckillRpcDesc = $(seckillRpcPWD)/desc
 
+mallRpcPWD = services/rpc/mall
+mallRpcDesc = $(mallRpcPWD)/desc
+
 # =============================================================================
 # 帮助
 # =============================================================================
@@ -48,6 +51,10 @@ api-all:
 	@echo "生成 seckill RPC..."
 	@goctl rpc protoc $(seckillRpcDesc)/seckill.proto --go_out=$(seckillRpcPWD) --go-grpc_out=$(seckillRpcPWD) --zrpc_out=$(seckillRpcPWD) --style=go_zero -m -I . -I $(seckillRpcDesc)
 	@rm -f $(seckillRpcPWD)/seckill.go $(seckillRpcPWD)/etc/seckill.yaml
+	@echo "生成 mall RPC..."
+	@goctl api format --dir $(mallRpcDesc)
+	@goctl rpc protoc $(mallRpcDesc)/mall.proto --go_out=$(mallRpcPWD) --go-grpc_out=$(mallRpcPWD) --zrpc_out=$(mallRpcPWD) --style=go_zero -m -I . -I $(mallRpcDesc)
+	@rm -f $(mallRpcPWD)/mall.go $(mallRpcPWD)/etc/mall.yaml
 	@echo "所有代码生成完成"
 
 # =============================================================================
@@ -95,6 +102,9 @@ smoke-test:
 	@echo ""
 	@echo "3. Admin 服务健康检查"
 	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10001/api/health || echo "   ❌ 连接失败"
+	@echo ""
+	@echo "4.5. Mall RPC 端口检查"
+	@ss -ltnp 2>/dev/null | grep -q ":10005 " && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
 	@echo "4. PostgreSQL 连通性"
 	@docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"

@@ -1819,16 +1819,16 @@ const file_services_rpc_auth_desc_auth_proto_rawDesc = "" +
 	"\rEmailRegister\x12\x16.auth.EmailRegisterReq\x1a\x12.auth.RegisterResp\"\x00\x12B\n" +
 	"\rValidateToken\x12\x16.auth.ValidateTokenReq\x1a\x17.auth.ValidateTokenResp\"\x00\x123\n" +
 	"\bSendCode\x12\x11.auth.SendCodeReq\x1a\x12.auth.SendCodeResp\"\x00\x12<\n" +
-	"\vLoginByCode\x12\x14.auth.LoginByCodeReq\x1a\x15.auth.LoginByCodeResp\"\x002\xe4\x03\n" +
+	"\vLoginByCode\x12\x14.auth.LoginByCodeReq\x1a\x15.auth.LoginByCodeResp\"\x002\xe6\x03\n" +
 	"\vUserService\x12<\n" +
 	"\vGetUserInfo\x12\x14.auth.GetUserInfoReq\x1a\x15.auth.GetUserInfoResp\"\x00\x12E\n" +
 	"\x0eGetUserProfile\x12\x17.auth.GetUserProfileReq\x1a\x18.auth.GetUserProfileResp\"\x00\x12N\n" +
 	"\x11UpdateUserProfile\x12\x1a.auth.UpdateUserProfileReq\x1a\x1b.auth.UpdateUserProfileResp\"\x00\x126\n" +
 	"\tListUsers\x12\x12.auth.ListUsersReq\x1a\x13.auth.ListUsersResp\"\x00\x12B\n" +
 	"\rGetUserDetail\x12\x16.auth.GetUserDetailReq\x1a\x17.auth.GetUserDetailResp\"\x00\x12K\n" +
-	"\x10UpdateUserStatus\x12\x19.auth.UpdateUserStatusReq\x1a\x1a.auth.UpdateUserStatusResp\"\x00\x127\n" +
+	"\x10UpdateUserStatus\x12\x19.auth.UpdateUserStatusReq\x1a\x1a.auth.UpdateUserStatusResp\"\x00\x129\n" +
 	"\n" +
-	"DeleteUser\x12\x13.auth.DeleteUserReq\x1a\x14.auth.DeleteUserRespB\x06Z\x04./pbb\x06proto3"
+	"DeleteUser\x12\x13.auth.DeleteUserReq\x1a\x14.auth.DeleteUserResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_rpc_auth_desc_auth_proto_rawDescOnce sync.Once
