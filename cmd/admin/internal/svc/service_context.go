@@ -10,6 +10,8 @@ import (
 	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
 	"budgetmatch-sim/services/rpc/seckill/client/skuservice"
 	"budgetmatch-sim/services/rpc/seckill/client/seckillservice"
+	"budgetmatch-sim/services/rpc/mall/client/orderservice"
+	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/zeromicro/go-zero/rest"
@@ -25,7 +27,9 @@ type ServiceContext struct {
 	UserClient     userservice.UserService
 	ActivityClient activityservice.ActivityService
 	SkuClient      skuservice.SkuService
-	SeckillClient  seckillservice.SeckillService
+	SeckillClient   seckillservice.SeckillService
+	MallProductClient productservice.ProductService
+	MallOrderClient   orderservice.OrderService
 
 	// 中间件配置
 	AuthMiddleware rest.Middleware
@@ -40,6 +44,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	activityclient := activityservice.NewActivityService(seckillclient)
 	skuclient := skuservice.NewSkuService(seckillclient)
 	seckillSvcClient := seckillservice.NewSeckillService(seckillclient)
+	mallclient := zrpc.MustNewClient(c.MallRpc)
+	mallProductClient := productservice.NewProductService(mallclient)
+	mallOrderClient := orderservice.NewOrderService(mallclient)
 
 	return &ServiceContext{
 		Config:    c,
@@ -50,7 +57,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		UserClient:     userclient,
 		ActivityClient: activityclient,
 		SkuClient:      skuclient,
-		SeckillClient:  seckillSvcClient,
+		SeckillClient:   seckillSvcClient,
+		MallProductClient: mallProductClient,
+		MallOrderClient:   mallOrderClient,
 
 		// 中间件配置
 		AuthMiddleware: middleware.NewAuthMiddleware(authclient).Handle,

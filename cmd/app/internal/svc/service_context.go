@@ -13,6 +13,8 @@ import (
 	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
 	"budgetmatch-sim/services/rpc/seckill/client/seckillservice"
 	"budgetmatch-sim/services/rpc/seckill/client/skuservice"
+	"budgetmatch-sim/services/rpc/mall/client/orderservice"
+	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -30,7 +32,9 @@ type ServiceContext struct {
 	UserClient     userservice.UserService
 	ActivityClient activityservice.ActivityService
 	SkuClient      skuservice.SkuService
-	SeckillClient  seckillservice.SeckillService
+	SeckillClient   seckillservice.SeckillService
+	MallProductClient productservice.ProductService
+	MallOrderClient   orderservice.OrderService
 
 	// 中间件配置
 	AuthMiddleware         rest.Middleware
@@ -46,6 +50,9 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 	activityclient := activityservice.NewActivityService(seckillclient)
 	skuclient := skuservice.NewSkuService(seckillclient)
 	seckillSvcClient := seckillservice.NewSeckillService(seckillclient)
+	mallclient := zrpc.MustNewClient(c.MallRpc)
+	mallProductClient := productservice.NewProductService(mallclient)
+	mallOrderClient := orderservice.NewOrderService(mallclient)
 
 	// 创建秒杀限流中间件（仅对 /token 和 /orders 路径限流，60 秒窗口内最多 10 次请求）
 	var seckillRateMiddleware rest.Middleware
@@ -64,7 +71,9 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 		UserClient:     userclient,
 		ActivityClient: activityclient,
 		SkuClient:      skuclient,
-		SeckillClient:  seckillSvcClient,
+		SeckillClient:   seckillSvcClient,
+		MallProductClient: mallProductClient,
+		MallOrderClient:   mallOrderClient,
 
 		// 中间件配置
 		AuthMiddleware:             middleware.NewAuthMiddleware(authclient).Handle,

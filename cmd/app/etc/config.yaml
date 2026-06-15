@@ -33,3 +33,9 @@ SeckillRpc:
   Endpoints:
     - 127.0.0.1:10004
   NonBlock: true
+
+# 商城服务 RPC
+MallRpc:
+  Endpoints:
+    - 127.0.0.1:10005
+  NonBlock: true
