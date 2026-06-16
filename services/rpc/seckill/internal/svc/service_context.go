@@ -3,7 +3,9 @@ package svc
 import (
 	"time"
 
+	"budgetmatch-sim/infra/configcenter"
 	"budgetmatch-sim/infra/database"
+	"budgetmatch-sim/infra/dlock"
 	"budgetmatch-sim/infra/limit"
 	iredis "budgetmatch-sim/infra/redis"
 	"budgetmatch-sim/services/rpc/seckill/internal/config"
@@ -28,9 +30,18 @@ type ServiceContext struct {
 	StockManager  *stock.StockManager
 	OrderConsumer *consumer.OrderConsumer
 
+	// etcd 分布式锁管理器
+	LockManager *dlock.Manager
+
+	// 动态配置中心
+	ConfigCenter *configcenter.ConfigCenter
+
+	// 运行时动态配置状态（封装了读写锁）
+	DynamicState *dynamicState
+
 	// 限流器
-	ActivityRateLimiter limit.Limiter // 活动级全局滑动窗口
-	UserRateLimiter     limit.Limiter // 用户级令牌桶
+	ActivityRateLimiter *limit.SlidingWindowLimiter // 活动级全局滑动窗口
+	UserRateLimiter     *limit.TokenBucketLimiter   // 用户级令牌桶
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -76,7 +87,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// init order consumer
 	orderConsumer := consumer.NewOrderConsumer(redisClient.Client(), db.DB(), orderStore, skuStore, stockManager)
 
-	return &ServiceContext{
+	// init etcd lock manager
+	lockManager, err := dlock.NewManager(c.Etcd.Hosts)
+	if err != nil {
+		logx.Errorf("dlock manager init failed: %v, continue without distributed lock", err)
+	}
+
+	svc := &ServiceContext{
 		Config:        c,
 		DB:            db.DB(),
 		Redis:         redisClient.Client(),
@@ -86,8 +103,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 		StockManager:  stockManager,
 		OrderConsumer: orderConsumer,
+		LockManager:   lockManager,
+		DynamicState:  newDynamicState(),
 
 		ActivityRateLimiter: activityRateLimiter,
 		UserRateLimiter:     userRateLimiter,
 	}
+
+	// 启动 etcd 动态配置监听
+	svc.ConfigCenter, err = configcenter.New(c.Etcd.Hosts)
+	if err != nil {
+		logx.Errorf("configcenter init failed: %v, use default config", err)
+		svc.applyDynamicConfig(config.DefaultDynamicConfig)
+	} else {
+		svc.ConfigCenter.Watch(seckillConfigKey, svc.loadDynamicConfig)
+	}
+
+	return svc
 }

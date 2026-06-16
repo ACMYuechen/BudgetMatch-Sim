@@ -1,6 +1,25 @@
 version: "3.8"
 
 services:
+  # etcd 服务注册与配置中心
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.15
+    container_name: budgetmatch-sim-etcd
+    environment:
+      - ETCD_NAME=etcd-1
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+      - ETCD_INITIAL_CLUSTER=etcd-1=http://etcd:2380
+      - ETCD_INITIAL_CLUSTER_STATE=new
+    ports:
+      - "2379:2379"
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
   # PostgreSQL 数据库
   postgres:
     image: postgres:16-alpine
@@ -82,6 +101,7 @@ services:
       - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
+      - ETCD_HOSTS=etcd:2379
     ports:
       - "10003:10003"
     depends_on:
@@ -89,6 +109,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      etcd:
+        condition: service_started
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
@@ -106,6 +128,7 @@ services:
       - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
+      - ETCD_HOSTS=etcd:2379
     ports:
       - "10004:10004"
     depends_on:
@@ -113,6 +136,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      etcd:
+        condition: service_started
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
@@ -131,6 +156,7 @@ services:
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
       - ROCKETMQ_NAMESERVERS=rocketmq-namesrv:9876
+      - ETCD_HOSTS=etcd:2379
     ports:
       - "10005:10005"
     depends_on:
@@ -141,6 +167,8 @@ services:
       rocketmq-namesrv:
         condition: service_started
       rocketmq-broker:
+        condition: service_started
+      etcd:
         condition: service_started
     networks:
       - budgetmatch-sim-network
@@ -160,9 +188,7 @@ services:
       # app 不直连数据库，所有数据操作通过 RPC
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
-      - AUTHRPC_ENDPOINT=auth-rpc:10003
-      - SECKILLRPC_ENDPOINT=seckill-rpc:10004
-      - MALLRPC_ENDPOINT=mall-rpc:10005
+      - ETCD_HOSTS=etcd:2379
     ports:
       - "10002:10002"
     depends_on:
@@ -173,6 +199,8 @@ services:
       auth-rpc:
         condition: service_started
       seckill-rpc:
+        condition: service_started
+      etcd:
         condition: service_started
     networks:
       - budgetmatch-sim-network
@@ -189,9 +217,7 @@ services:
     container_name: budgetmatch-sim-admin
     environment:
       # admin 不直接访问 DB/Redis，所有数据操作通过 RPC
-      - AUTHRPC_ENDPOINT=auth-rpc:10003
-      - SECKILLRPC_ENDPOINT=seckill-rpc:10004
-      - MALLRPC_ENDPOINT=mall-rpc:10005
+      - ETCD_HOSTS=etcd:2379
     ports:
       - "10001:10001"
     depends_on:
@@ -202,6 +228,8 @@ services:
       auth-rpc:
         condition: service_started
       seckill-rpc:
+        condition: service_started
+      etcd:
         condition: service_started
     networks:
       - budgetmatch-sim-network

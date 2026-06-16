@@ -62,6 +62,21 @@ func NewTokenBucketLimiter(client redis.UniversalClient, capacity, rate int64, i
 	}
 }
 
+// SetCapacity 动态修改桶容量
+func (l *TokenBucketLimiter) SetCapacity(capacity int64) {
+	l.capacity = capacity
+}
+
+// SetRate 动态修改每次 refill 令牌数
+func (l *TokenBucketLimiter) SetRate(rate int64) {
+	l.rate = rate
+}
+
+// SetInterval 动态修改 refill 间隔
+func (l *TokenBucketLimiter) SetInterval(interval time.Duration) {
+	l.interval = interval
+}
+
 // Allow 尝试获取一个令牌，返回是否允许通过
 func (l *TokenBucketLimiter) Allow(ctx context.Context, key string) bool {
 	now := time.Now().UnixMilli()

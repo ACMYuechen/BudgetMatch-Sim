@@ -2,6 +2,12 @@ Name: auth.rpc
 ListenOn: 0.0.0.0:10003
 Timeout: 60000
 
+# 服务注册到 etcd
+Etcd:
+  Hosts:
+    - ${ETCD_HOSTS}
+  Key: auth.rpc
+
 # Auth配置（生产环境请通过环境变量覆盖）
 JwtAuth:
   Secret: "${JWT_SECRET}"       # JWT 签名密钥

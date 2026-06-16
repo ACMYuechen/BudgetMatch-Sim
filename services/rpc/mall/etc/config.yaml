@@ -2,6 +2,12 @@ Name: mall.rpc
 ListenOn: 0.0.0.0:10005
 Timeout: 60000
 
+# 服务注册到 etcd
+Etcd:
+  Hosts:
+    - ${ETCD_HOSTS}
+  Key: mall.rpc
+
 JwtAuth:
   Secret: "${JWT_SECRET}"
   Expire: 86400

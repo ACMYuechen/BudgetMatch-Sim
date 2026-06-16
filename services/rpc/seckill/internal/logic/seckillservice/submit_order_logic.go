@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 
+	"budgetmatch-sim/infra/dlock"
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/internal/svc"
 	"budgetmatch-sim/services/rpc/seckill/pb"
@@ -99,17 +100,46 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}
 
 	// 7. deduct stock from Redis
+	// 对于低库存 SKU，使用 etcd 分布式锁兜底，防止 Redis 主从切换等极端场景下超卖
 	qty := in.Quantity
 	if qty <= 0 {
 		qty = 1
 	}
-	remain, err := l.svcCtx.StockManager.Deduct(in.ActivityId, in.SkuId, qty)
-	if err != nil {
-		if err == errors.ErrSeckillStockNotEnough {
-			return nil, errors.ErrSeckillStockNotEnough
+
+	var remain int64
+	if sku.Stock <= l.svcCtx.LowStockThreshold() {
+		lock, err := l.svcCtx.LockManager.NewLock(fmt.Sprintf("/seckill/lock/stock/%s/%s", in.ActivityId, in.SkuId), 10)
+		if err != nil {
+			l.Logger.Errorf("failed to create etcd lock: %v", err)
+			return nil, errors.ErrInternal
 		}
-		l.Logger.Errorf("failed to deduct stock: %v", err)
-		return nil, errors.ErrInternal
+		defer lock.Close()
+
+		err = dlock.WithLock(l.ctx, lock, func() error {
+			r, err := l.svcCtx.StockManager.Deduct(in.ActivityId, in.SkuId, qty)
+			if err != nil {
+				return err
+			}
+			remain = r
+			return nil
+		})
+		if err != nil {
+			if err == errors.ErrSeckillStockNotEnough {
+				return nil, errors.ErrSeckillStockNotEnough
+			}
+			l.Logger.Errorf("failed to deduct stock with lock: %v", err)
+			return nil, errors.ErrInternal
+		}
+	} else {
+		r, err := l.svcCtx.StockManager.Deduct(in.ActivityId, in.SkuId, qty)
+		if err != nil {
+			if err == errors.ErrSeckillStockNotEnough {
+				return nil, errors.ErrSeckillStockNotEnough
+			}
+			l.Logger.Errorf("failed to deduct stock: %v", err)
+			return nil, errors.ErrInternal
+		}
+		remain = r
 	}
 	if remain < 0 {
 		return nil, errors.ErrSeckillStockNotEnough
