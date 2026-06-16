@@ -12,6 +12,7 @@ require (
 	github.com/redis/go-redis/v9 v9.17.3
 	github.com/stretchr/testify v1.11.1
 	github.com/zeromicro/go-zero v1.10.0
+	go.etcd.io/etcd/client/v3 v3.5.15
 	golang.org/x/crypto v0.46.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.11
@@ -81,7 +82,6 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.15 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.37.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.29.0 // indirect

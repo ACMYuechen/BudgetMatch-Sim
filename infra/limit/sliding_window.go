@@ -45,6 +45,16 @@ func NewSlidingWindowLimiter(client redis.UniversalClient, window time.Duration,
 	}
 }
 
+// SetWindow 动态修改时间窗口
+func (l *SlidingWindowLimiter) SetWindow(window time.Duration) {
+	l.window = window
+}
+
+// SetMax 动态修改窗口内最大请求数
+func (l *SlidingWindowLimiter) SetMax(max int64) {
+	l.max = max
+}
+
 // Allow 判断当前请求是否在窗口限制内
 func (l *SlidingWindowLimiter) Allow(ctx context.Context, key string) bool {
 	now := time.Now().UnixMilli()

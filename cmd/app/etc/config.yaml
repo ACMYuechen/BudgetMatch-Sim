@@ -24,18 +24,30 @@ Redis:
 
 # 调用 auth-rpc
 AuthRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: auth.rpc
   Endpoints:
     - 127.0.0.1:10003
   NonBlock: true
 
 # 秒杀服务 RPC
 SeckillRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: seckill.rpc
   Endpoints:
     - 127.0.0.1:10004
   NonBlock: true
 
 # 商城服务 RPC
 MallRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: mall.rpc
   Endpoints:
     - 127.0.0.1:10005
   NonBlock: true

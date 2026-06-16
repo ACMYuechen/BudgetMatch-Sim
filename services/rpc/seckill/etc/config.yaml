@@ -2,6 +2,12 @@ Name: seckill.rpc
 ListenOn: 0.0.0.0:10004
 Timeout: 60000
 
+# 服务注册到 etcd
+Etcd:
+  Hosts:
+    - ${ETCD_HOSTS}
+  Key: seckill.rpc
+
 JwtAuth:
   Secret: "${JWT_SECRET}"
   Expire: 86400
