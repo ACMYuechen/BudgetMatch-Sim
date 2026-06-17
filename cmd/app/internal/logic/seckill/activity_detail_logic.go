@@ -34,7 +34,7 @@ func (l *ActivityDetailLogic) ActivityDetail(req *types.ActivityDetailReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get activity: %v", err)
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	activity := rpcResp.Activity

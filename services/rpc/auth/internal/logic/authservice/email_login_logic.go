@@ -30,24 +30,24 @@ func (l *EmailLoginLogic) EmailLogin(in *pb.EmailLoginReq) (*pb.LoginResp, error
 	u, err := l.svcCtx.UserStore.FindByEmail(l.ctx, in.Email)
 	if err != nil {
 		l.Logger.Errorf("failed to find user by email: %v, error: %v", in.Email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if u == nil {
 		l.Logger.Infof("user not found with email: %v", in.Email)
-		return nil, errors.ErrUserNotFound
+		return nil, errors.UserNotFound
 	}
 
 	// 验证密码
 	if err := auth.ComparePassword(u.Password, in.Password); err != nil {
 		l.Logger.Infof("invalid password for email: %v", in.Email)
-		return nil, errors.ErrInvalidPassword
+		return nil, errors.InvalidPassword
 	}
 
 	// 生成 token
 	token, err := auth.GenerateToken(u.Id, l.svcCtx.Config.JwtAuth.Secret, l.svcCtx.Config.JwtAuth.Expire, int(u.Role))
 	if err != nil {
 		l.Logger.Errorf("failed to generate token for user id: %v, error: %v", u.Id, err)
-		return nil, errors.ErrTokenGeneration
+		return nil, errors.TokenGeneration
 	}
 
 	return &pb.LoginResp{

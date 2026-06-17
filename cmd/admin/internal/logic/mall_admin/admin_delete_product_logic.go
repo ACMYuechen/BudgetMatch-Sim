@@ -30,7 +30,7 @@ func (l *AdminDeleteProductLogic) AdminDeleteProduct(req *types.AdminDeleteProdu
 	_, err := l.svcCtx.MallProductClient.DeleteProduct(l.ctx, &pb.DeleteProductReq{Id: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to delete product: %v", err)
-		return errors.ErrInternal
+		return errors.Internal
 	}
 	return nil
 }

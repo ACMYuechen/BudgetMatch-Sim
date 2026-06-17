@@ -34,7 +34,7 @@ func (l *ActivityPreheatLogic) ActivityPreheat(req *types.ActivityPreheatReq) (r
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to preheat activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.ActivityPreheatResp{

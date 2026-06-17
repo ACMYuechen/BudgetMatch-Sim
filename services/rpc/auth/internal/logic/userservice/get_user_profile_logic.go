@@ -31,7 +31,7 @@ func (l *GetUserProfileLogic) GetUserProfile(in *pb.GetUserProfileReq) (*pb.GetU
 	u, ok := l.ctx.Value(interceptor.ContextKeyUser).(*user.Users)
 	if !ok || u == nil {
 		l.Logger.Error("user not found in context")
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 	userId := u.Id
 

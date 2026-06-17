@@ -34,7 +34,7 @@ func (l *SkuDetailLogic) SkuDetail(req *types.SkuDetailReq) (resp *types.SkuDeta
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get sku: %v", err)
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 
 	sku := rpcResp.Sku

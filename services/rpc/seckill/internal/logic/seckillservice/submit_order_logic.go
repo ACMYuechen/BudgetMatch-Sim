@@ -33,14 +33,14 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	// 1. validate token
 	skuIDFromToken, err := l.svcCtx.StockManager.GetToken(in.Token)
 	if err == redis.Nil {
-		return nil, errors.ErrSeckillTokenInvalid
+		return nil, errors.SeckillTokenInvalid
 	}
 	if err != nil {
 		l.Logger.Errorf("failed to get token: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 	if skuIDFromToken != in.SkuId {
-		return nil, errors.ErrSeckillTokenInvalid
+		return nil, errors.SeckillTokenInvalid
 	}
 	// delete token after use (one-time)
 	if err := l.svcCtx.StockManager.DelToken(in.Token); err != nil {
@@ -51,52 +51,52 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 	if activity.Status != 1 && activity.Status != 2 {
-		return nil, errors.ErrSeckillActivityNotStart
+		return nil, errors.SeckillActivityEnded
 	}
 	now := time.Now()
 	if now.Before(activity.StartTime) {
-		return nil, errors.ErrSeckillActivityNotStart
+		return nil, errors.SeckillActivityNotStart
 	}
 	if now.After(activity.EndTime) {
-		return nil, errors.ErrSeckillActivityEnded
+		return nil, errors.SeckillActivityEnded
 	}
 
 	// 3. validate sku
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.SkuId)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if sku == nil || sku.Status != 1 || sku.ActivityId != in.ActivityId {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 
 	// 4. rate limit: activity-level global sliding window (5s / 1000 requests per activity)
 	activityKey := fmt.Sprintf("seckill:limit:activity:%s", in.ActivityId)
 	if !l.svcCtx.ActivityRateLimiter.Allow(l.ctx, activityKey) {
-		return nil, errors.ErrTooManyRequests
+		return nil, errors.TooManyRequests
 	}
 
 	// 5. rate limit: user-level token bucket (capacity 5, refill 1 per 60s per user)
 	userKey := fmt.Sprintf("seckill:limit:user:%s", in.UserId)
 	if !l.svcCtx.UserRateLimiter.Allow(l.ctx, userKey) {
-		return nil, errors.ErrTooManyRequests
+		return nil, errors.TooManyRequests
 	}
 
 	// 6. check already purchased
 	existingOrder, err := l.svcCtx.OrderStore.FindByActivityAndSkuAndUser(l.ctx, in.ActivityId, in.SkuId, in.UserId)
 	if err != nil {
 		l.Logger.Errorf("failed to check existing order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if existingOrder != nil && existingOrder.Status == 1 {
-		return nil, errors.ErrSeckillAlreadyPurchased
+		return nil, errors.SeckillAlreadyPurchased
 	}
 
 	// 7. deduct stock from Redis
@@ -111,7 +111,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		lock, err := l.svcCtx.LockManager.NewLock(fmt.Sprintf("/seckill/lock/stock/%s/%s", in.ActivityId, in.SkuId), 10)
 		if err != nil {
 			l.Logger.Errorf("failed to create etcd lock: %v", err)
-			return nil, errors.ErrInternal
+			return nil, errors.Internal
 		}
 		defer lock.Close()
 
@@ -124,25 +124,25 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 			return nil
 		})
 		if err != nil {
-			if err == errors.ErrSeckillStockNotEnough {
-				return nil, errors.ErrSeckillStockNotEnough
+			if err == errors.SeckillStockNotEnough {
+				return nil, errors.SeckillStockNotEnough
 			}
 			l.Logger.Errorf("failed to deduct stock with lock: %v", err)
-			return nil, errors.ErrInternal
+			return nil, errors.Internal
 		}
 	} else {
 		r, err := l.svcCtx.StockManager.Deduct(in.ActivityId, in.SkuId, qty)
 		if err != nil {
-			if err == errors.ErrSeckillStockNotEnough {
-				return nil, errors.ErrSeckillStockNotEnough
+			if err == errors.SeckillStockNotEnough {
+				return nil, errors.SeckillStockNotEnough
 			}
 			l.Logger.Errorf("failed to deduct stock: %v", err)
-			return nil, errors.ErrInternal
+			return nil, errors.Internal
 		}
 		remain = r
 	}
 	if remain < 0 {
-		return nil, errors.ErrSeckillStockNotEnough
+		return nil, errors.SeckillStockNotEnough
 	}
 
 	// 8. generate order_id and push to stream
@@ -164,7 +164,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		l.Logger.Errorf("failed to add to stream: %v", err)
 		// rollback stock
 		l.svcCtx.StockManager.Rollback(in.ActivityId, in.SkuId, qty)
-		return nil, errors.ErrSeckillSubmitFailed
+		return nil, errors.SeckillSubmitFailed
 	}
 
 	return &pb.SubmitOrderResp{

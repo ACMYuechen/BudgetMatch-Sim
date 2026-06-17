@@ -28,15 +28,15 @@ func (l *DeleteProductLogic) DeleteProduct(in *pb.DeleteProductReq) (*pb.DeleteP
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if product == nil {
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	if err := l.svcCtx.ProductStore.Delete(l.ctx, in.Id); err != nil {
 		l.Logger.Errorf("failed to delete product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	_ = l.svcCtx.Redis.Del(l.ctx, productCacheKey(in.Id))

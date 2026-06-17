@@ -30,16 +30,16 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if order == nil {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	if order.UserId != in.UserId {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	if order.Status != OrderStatusPending {
-		return nil, errors.ErrMallInvalidOrderTransition
+		return nil, errors.MallInvalidOrderTransition
 	}
 
 	// mock payment: directly mark as paid
@@ -50,7 +50,7 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 
 	if err := l.svcCtx.OrderStore.Update(l.ctx, order); err != nil {
 		l.Logger.Errorf("failed to update order payment: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// send event

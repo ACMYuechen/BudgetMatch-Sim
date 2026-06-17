@@ -29,17 +29,17 @@ func (l *PreheatActivityLogic) PreheatActivity(in *pb.PreheatActivityReq) (*pb.P
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	// load all skus for this activity and preheat stock to Redis
 	skus, _, err := l.svcCtx.SkuStore.ListByActivity(l.ctx, in.Id, 1, 1000)
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	now := time.Now()
@@ -71,7 +71,7 @@ func (l *PreheatActivityLogic) PreheatActivity(in *pb.PreheatActivityReq) (*pb.P
 	activity.Status = 2
 	if err := l.svcCtx.ActivityStore.Update(l.ctx, activity); err != nil {
 		l.Logger.Errorf("failed to update activity status: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.PreheatActivityResp{Success: true}, nil

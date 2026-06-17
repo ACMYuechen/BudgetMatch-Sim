@@ -35,7 +35,7 @@ func (l *AdminOrderListLogic) AdminOrderList(req *types.AdminOrderListReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.AdminOrderResp, 0, len(rpcResp.List))

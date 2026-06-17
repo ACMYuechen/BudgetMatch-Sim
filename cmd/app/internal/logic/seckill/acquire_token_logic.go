@@ -31,7 +31,7 @@ func NewAcquireTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Acqu
 func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *types.AcquireTokenResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.SeckillClient.AcquireToken(l.ctx, &pb.AcquireTokenReq{
@@ -41,7 +41,7 @@ func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *type
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to acquire token: %v", err)
-		return nil, errors.ErrSeckillTokenInvalid
+		return nil, errors.SeckillTokenInvalid
 	}
 
 	return &types.AcquireTokenResp{

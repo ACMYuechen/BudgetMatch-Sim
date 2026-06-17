@@ -38,7 +38,7 @@ func (l *AdminUpdateProductLogic) AdminUpdateProduct(req *types.AdminUpdateProdu
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update product: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &types.AdminUpdateProductResp{Success: true}, nil

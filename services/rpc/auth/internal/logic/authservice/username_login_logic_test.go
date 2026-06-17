@@ -104,8 +104,8 @@ func TestUsernameLogin_UserNotFound(t *testing.T) {
 		Password: "any",
 	})
 
-	if err != errors.ErrUserNotFound {
-		t.Fatalf("期望 ErrUserNotFound，但得到: %v", err)
+	if err != errors.UserNotFound {
+		t.Fatalf("期望 UserNotFound，但得到: %v", err)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestUsernameLogin_InvalidPassword(t *testing.T) {
 		Password: "wrong-password",
 	})
 
-	if err != errors.ErrInvalidPassword {
-		t.Fatalf("期望 ErrInvalidPassword，但得到: %v", err)
+	if err != errors.InvalidPassword {
+		t.Fatalf("期望 InvalidPassword，但得到: %v", err)
 	}
 }

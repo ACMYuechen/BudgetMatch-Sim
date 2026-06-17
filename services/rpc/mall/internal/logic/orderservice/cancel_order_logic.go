@@ -32,25 +32,25 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if order == nil {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	if order.UserId != in.UserId {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	if order.Status != OrderStatusPending {
-		return nil, errors.ErrMallOrderCannotCancel
+		return nil, errors.MallOrderCannotCancel
 	}
 
 	items, err := l.svcCtx.OrderItemStore.FindByOrderId(l.ctx, order.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find order items: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if len(items) == 0 {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	item := items[0]
 
@@ -75,7 +75,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 
 	if err != nil {
 		l.Logger.Errorf("failed to cancel order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// send event

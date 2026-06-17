@@ -32,19 +32,19 @@ func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.Crea
 	if err != nil {
 		startTime, err = time.Parse("2006-01-02 15:04:05", in.StartTime)
 		if err != nil {
-			return nil, errors.ErrInternal
+			return nil, errors.Internal
 		}
 	}
 	endTime, err := time.Parse(time.RFC3339, in.EndTime)
 	if err != nil {
 		endTime, err = time.Parse("2006-01-02 15:04:05", in.EndTime)
 		if err != nil {
-			return nil, errors.ErrInternal
+			return nil, errors.Internal
 		}
 	}
 
 	if endTime.Before(startTime) || endTime.Equal(startTime) {
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	activity := &seckill_activity.SeckillActivities{
@@ -59,7 +59,7 @@ func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.Crea
 
 	if err := l.svcCtx.ActivityStore.InsertOne(l.ctx, activity); err != nil {
 		l.Logger.Errorf("failed to create activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.CreateActivityResp{Id: activity.Id}, nil

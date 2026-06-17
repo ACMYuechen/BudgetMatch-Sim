@@ -37,7 +37,7 @@ func (l *AdminUpdateSkuLogic) AdminUpdateSku(req *types.AdminUpdateSkuReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update sku: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &types.AdminUpdateSkuResp{Success: true}, nil

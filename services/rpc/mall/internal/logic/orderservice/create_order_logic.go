@@ -51,25 +51,25 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.SkuId)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if sku == nil {
-		return nil, errors.ErrMallSkuNotFound
+		return nil, errors.MallSkuNotFound
 	}
 	if sku.Status != 1 {
-		return nil, errors.ErrMallSkuNotFound
+		return nil, errors.MallSkuNotFound
 	}
 	if sku.Stock < in.Quantity {
-		return nil, errors.ErrMallStockNotEnough
+		return nil, errors.MallStockNotEnough
 	}
 
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, sku.ProductId)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if product == nil || product.Status != 1 {
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	// 3. create order in DB transaction
@@ -129,18 +129,18 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 			return result.Error
 		}
 		if result.RowsAffected == 0 {
-			return errors.ErrMallStockNotEnough
+			return errors.MallStockNotEnough
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		if err == errors.ErrMallStockNotEnough {
-			return nil, errors.ErrMallStockNotEnough
+		if err == errors.MallStockNotEnough {
+			return nil, errors.MallStockNotEnough
 		}
 		l.Logger.Errorf("failed to create order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// 4. record idempotency key

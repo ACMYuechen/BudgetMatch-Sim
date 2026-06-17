@@ -32,55 +32,55 @@ func (l *AcquireTokenLogic) AcquireToken(in *pb.AcquireTokenReq) (*pb.AcquireTok
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 	if activity.Status != 1 && activity.Status != 2 {
-		return nil, errors.ErrSeckillActivityNotStart
+		return nil, errors.SeckillActivityEnded
 	}
 	now := time.Now()
 	if now.Before(activity.StartTime) {
-		return nil, errors.ErrSeckillActivityNotStart
+		return nil, errors.SeckillActivityNotStart
 	}
 	if now.After(activity.EndTime) {
-		return nil, errors.ErrSeckillActivityEnded
+		return nil, errors.SeckillActivityEnded
 	}
 
 	// validate sku
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.SkuId)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if sku == nil {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 	if sku.Status != 1 {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 	if sku.ActivityId != in.ActivityId {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 
 	// rate limit: activity-level global sliding window (5s / 1000 requests per activity)
 	activityKey := fmt.Sprintf("seckill:limit:activity:%s", in.ActivityId)
 	if !l.svcCtx.ActivityRateLimiter.Allow(l.ctx, activityKey) {
-		return nil, errors.ErrTooManyRequests
+		return nil, errors.TooManyRequests
 	}
 
 	// rate limit: user-level token bucket (capacity 5, refill 1 per 60s per user)
 	userKey := fmt.Sprintf("seckill:limit:user:%s", in.UserId)
 	if !l.svcCtx.UserRateLimiter.Allow(l.ctx, userKey) {
-		return nil, errors.ErrTooManyRequests
+		return nil, errors.TooManyRequests
 	}
 
 	// generate token and store in Redis
 	token := uuid.New().String()
 	if err := l.svcCtx.StockManager.SetToken(token, in.SkuId, 60*time.Second); err != nil {
 		l.Logger.Errorf("failed to set token: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &pb.AcquireTokenResp{Token: token}, nil

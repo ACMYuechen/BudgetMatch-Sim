@@ -37,7 +37,7 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		// 从 metadata 取 Authorization
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
-			return nil, errors.ErrInvalidToken
+			return nil, errors.InvalidToken
 		}
 
 		var tokenString string
@@ -46,28 +46,28 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		}
 
 		if tokenString == "" {
-			return nil, errors.ErrInvalidToken
+			return nil, errors.InvalidToken
 		}
 
 		// 验证 token
 		_, err := auth.ValidateToken(tokenString, svcCtx.Config.JwtAuth.Secret)
 		if err != nil {
-			return nil, errors.ErrInvalidToken
+			return nil, errors.InvalidToken
 		}
 
 		// 获取用户 ID
 		userId, err := auth.GetUserIdFromToken(tokenString, svcCtx.Config.JwtAuth.Secret)
 		if err != nil {
-			return nil, errors.ErrInvalidToken
+			return nil, errors.InvalidToken
 		}
 
 		// 查库获取完整用户信息
 		u, err := svcCtx.UserStore.FindOne(ctx, userId)
 		if err != nil {
-			return nil, errors.ErrDatabase
+			return nil, errors.Database
 		}
 		if u == nil {
-			return nil, errors.ErrUserNotFound
+			return nil, errors.UserNotFound
 		}
 
 		// 注入完整用户到 context

@@ -36,7 +36,7 @@ func (m *SeckillRateLimitMiddleware) Handle(next http.HandlerFunc) http.HandlerF
 		key := "seckill:" + userID.(string) + ":" + path
 		if !m.limiter.Allow(r.Context(), key) {
 			logx.WithContext(r.Context()).Errorf("seckill rate limit exceeded: key=%s", key)
-			http.Error(w, errors.ErrTooManyRequests.Error(), http.StatusTooManyRequests)
+			http.Error(w, errors.TooManyRequests.Error(), http.StatusTooManyRequests)
 			return
 		}
 

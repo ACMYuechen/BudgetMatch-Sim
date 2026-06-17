@@ -29,10 +29,10 @@ func (l *UpdateProductLogic) UpdateProduct(in *pb.UpdateProductReq) (*pb.UpdateP
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if product == nil {
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	if in.Name != "" {
@@ -56,7 +56,7 @@ func (l *UpdateProductLogic) UpdateProduct(in *pb.UpdateProductReq) (*pb.UpdateP
 
 	if err := l.svcCtx.ProductStore.Update(l.ctx, product); err != nil {
 		l.Logger.Errorf("failed to update product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// invalidate cache

@@ -32,10 +32,10 @@ func (l *ProductDetailLogic) ProductDetail(req *types.MallProductDetailReq) (res
 	rpcResp, err := l.svcCtx.MallProductClient.GetProduct(l.ctx, &pb.GetProductReq{Id: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to get product: %v", err)
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 	if rpcResp.Product == nil {
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	p := rpcResp.Product

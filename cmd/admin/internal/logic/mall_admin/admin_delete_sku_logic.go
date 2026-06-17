@@ -30,7 +30,7 @@ func (l *AdminDeleteSkuLogic) AdminDeleteSku(req *types.AdminDeleteSkuReq) error
 	_, err := l.svcCtx.MallProductClient.DeleteSku(l.ctx, &pb.DeleteSkuReq{Id: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to delete sku: %v", err)
-		return errors.ErrInternal
+		return errors.Internal
 	}
 	return nil
 }

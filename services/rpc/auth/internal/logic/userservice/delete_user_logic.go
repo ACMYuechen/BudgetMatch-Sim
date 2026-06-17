@@ -28,7 +28,7 @@ func NewDeleteUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 func (l *DeleteUserLogic) DeleteUser(in *pb.DeleteUserReq) (*pb.DeleteUserResp, error) {
 	if err := l.svcCtx.UserStore.Delete(l.ctx, in.UserId); err != nil {
 		l.Logger.Errorf("failed to delete user: %v, error: %v", in.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.DeleteUserResp{Success: true}, nil

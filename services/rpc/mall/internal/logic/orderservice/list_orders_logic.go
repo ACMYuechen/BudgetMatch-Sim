@@ -39,7 +39,7 @@ func (l *ListOrdersLogic) ListOrders(in *pb.ListOrdersReq) (*pb.ListOrdersResp, 
 	list, total, err := l.svcCtx.OrderStore.List(l.ctx, req)
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]*pb.Order, 0, len(list))
@@ -47,7 +47,7 @@ func (l *ListOrdersLogic) ListOrders(in *pb.ListOrdersReq) (*pb.ListOrdersResp, 
 		orderItems, err := l.svcCtx.OrderItemStore.FindByOrderId(l.ctx, list[i].Id)
 		if err != nil {
 			l.Logger.Errorf("failed to find order items: %v", err)
-			return nil, errors.ErrDatabase
+			return nil, errors.Database
 		}
 		items = append(items, orderToPb(&list[i], orderItems))
 	}

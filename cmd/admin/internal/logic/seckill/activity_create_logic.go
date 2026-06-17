@@ -38,7 +38,7 @@ func (l *ActivityCreateLogic) ActivityCreate(req *types.ActivityCreateReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.ActivityCreateResp{

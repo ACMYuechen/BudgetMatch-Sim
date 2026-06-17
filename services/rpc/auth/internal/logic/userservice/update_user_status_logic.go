@@ -29,16 +29,16 @@ func (l *UpdateUserStatusLogic) UpdateUserStatus(in *pb.UpdateUserStatusReq) (*p
 	u, err := l.svcCtx.UserStore.FindOne(l.ctx, in.UserId)
 	if err != nil {
 		l.Logger.Errorf("failed to find user: %v, error: %v", in.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if u == nil {
-		return nil, errors.ErrUserNotFound
+		return nil, errors.UserNotFound
 	}
 
 	u.Status = int64(in.Status)
 	if err := l.svcCtx.UserStore.Update(l.ctx, u); err != nil {
 		l.Logger.Errorf("failed to update user status: %v, error: %v", in.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.UpdateUserStatusResp{Success: true}, nil

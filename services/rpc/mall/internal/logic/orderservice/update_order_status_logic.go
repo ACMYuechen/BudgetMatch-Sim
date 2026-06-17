@@ -30,18 +30,18 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if order == nil {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 	if in.UserId != "" && order.UserId != in.UserId {
-		return nil, errors.ErrMallOrderNotFound
+		return nil, errors.MallOrderNotFound
 	}
 
 	newStatus := int64(in.Status)
 	if !isValidOrderTransition(order.Status, newStatus) {
-		return nil, errors.ErrMallInvalidOrderTransition
+		return nil, errors.MallInvalidOrderTransition
 	}
 
 	order.Status = newStatus
@@ -52,7 +52,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 
 	if err := l.svcCtx.OrderStore.Update(l.ctx, order); err != nil {
 		l.Logger.Errorf("failed to update order status: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// send event for paid status

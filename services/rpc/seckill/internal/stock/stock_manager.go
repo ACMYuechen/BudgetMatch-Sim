@@ -72,10 +72,10 @@ func (sm *StockManager) Deduct(activityID, skuID string, quantity int64) (int64,
 	}
 	val := result.(int64)
 	if val == -1 {
-		return -1, errors.ErrSeckillStockNotEnough
+		return -1, errors.SeckillStockNotEnough
 	}
 	if val == -2 {
-		return -2, errors.ErrSeckillStockNotEnough
+		return -2, errors.SeckillStockNotEnough
 	}
 	return val, nil
 }

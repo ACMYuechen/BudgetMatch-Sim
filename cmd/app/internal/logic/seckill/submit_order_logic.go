@@ -31,7 +31,7 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.SubmitOrderResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.SeckillClient.SubmitOrder(l.ctx, &pb.SubmitOrderReq{
@@ -43,7 +43,7 @@ func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.S
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to submit order: %v", err)
-		return nil, errors.ErrSeckillSubmitFailed
+		return nil, errors.SeckillSubmitFailed
 	}
 
 	return &types.SubmitOrderResp{

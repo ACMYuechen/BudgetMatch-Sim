@@ -29,10 +29,10 @@ func (l *GetUserDetailLogic) GetUserDetail(in *pb.GetUserDetailReq) (*pb.GetUser
 	u, err := l.svcCtx.UserStore.FindOne(l.ctx, in.UserId)
 	if err != nil {
 		l.Logger.Errorf("failed to find user: %v, error: %v", in.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if u == nil {
-		return nil, errors.ErrUserNotFound
+		return nil, errors.UserNotFound
 	}
 
 	return &pb.GetUserDetailResp{

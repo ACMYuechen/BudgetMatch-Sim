@@ -28,10 +28,10 @@ func (l *UpdateSkuLogic) UpdateSku(in *pb.UpdateSkuReq) (*pb.UpdateSkuResp, erro
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if sku == nil {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 
 	if in.Title != "" {
@@ -61,7 +61,7 @@ func (l *UpdateSkuLogic) UpdateSku(in *pb.UpdateSkuReq) (*pb.UpdateSkuResp, erro
 
 	if err := l.svcCtx.SkuStore.Update(l.ctx, sku); err != nil {
 		l.Logger.Errorf("failed to update sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.UpdateSkuResp{Success: true}, nil

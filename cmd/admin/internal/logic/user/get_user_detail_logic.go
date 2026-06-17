@@ -31,7 +31,7 @@ func (l *GetUserDetailLogic) GetUserDetail(req *types.GetUserDetailReq) (resp *t
 	rpcResp, err := l.svcCtx.UserClient.GetUserDetail(l.ctx, &pb.GetUserDetailReq{UserId: req.UserId})
 	if err != nil {
 		l.Logger.Errorf("failed to get user detail via auth-rpc: %v, error: %v", req.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.GetUserDetailResp{

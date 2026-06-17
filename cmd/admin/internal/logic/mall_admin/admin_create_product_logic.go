@@ -37,7 +37,7 @@ func (l *AdminCreateProductLogic) AdminCreateProduct(req *types.AdminCreateProdu
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create product: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &types.AdminCreateProductResp{Id: rpcResp.Id}, nil

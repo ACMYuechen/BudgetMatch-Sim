@@ -31,7 +31,7 @@ func (l *GetUserInfoLogic) GetUserInfo(in *pb.GetUserInfoReq) (*pb.GetUserInfoRe
 	u, ok := l.ctx.Value(interceptor.ContextKeyUser).(*user.Users)
 	if !ok || u == nil {
 		l.Logger.Error("user not found in context")
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 
 	return &pb.GetUserInfoResp{
