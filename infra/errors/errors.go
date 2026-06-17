@@ -1,7 +1,5 @@
 package errors
 
-import "fmt"
-
 // 400xxx: 请求参数或用户可修正的输入错误。
 const (
 	ECInvalid = 400000 + iota
@@ -63,39 +61,6 @@ const (
 	ECEmailSendFailed
 	ECSeckillSubmitFailed
 )
-
-// AppError 是统一的应用错误。
-type AppError struct {
-	code           int64
-	msgId          string
-	data           interface{}
-	httpStatusCode int
-}
-
-func newAppError(code int64, msgId string) *AppError {
-	return newAppErrorData(code, msgId, nil)
-}
-
-func newAppErrorData(code int64, msgId string, data interface{}) *AppError {
-	return &AppError{
-		code:           code,
-		msgId:          msgId,
-		data:           data,
-		httpStatusCode: getStatusCode(code),
-	}
-}
-
-func getStatusCode(code int64) int {
-	return int(code / 1000)
-}
-
-func (e *AppError) Error() string {
-	if e == nil {
-		return ""
-	}
-
-	return fmt.Sprintf("%d:%s", e.code, e.msgId)
-}
 
 var (
 	Invalid                 = newAppError(ECInvalid, "invalid.default")
