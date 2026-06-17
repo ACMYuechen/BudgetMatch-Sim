@@ -37,7 +37,7 @@ func (l *AdminCreateSkuLogic) AdminCreateSku(req *types.AdminCreateSkuReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &types.AdminCreateSkuResp{Id: rpcResp.Id}, nil

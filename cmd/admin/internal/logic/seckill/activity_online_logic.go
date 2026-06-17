@@ -34,7 +34,7 @@ func (l *ActivityOnlineLogic) ActivityOnline(req *types.ActivityOnlineReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to online activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.ActivityOnlineResp{

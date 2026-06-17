@@ -28,15 +28,15 @@ func (l *DeleteSkuLogic) DeleteSku(in *pb.DeleteSkuReq) (*pb.DeleteSkuResp, erro
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if sku == nil {
-		return nil, errors.ErrSeckillSkuNotFound
+		return nil, errors.SeckillSkuNotFound
 	}
 
 	if err := l.svcCtx.SkuStore.Delete(l.ctx, in.Id); err != nil {
 		l.Logger.Errorf("failed to delete sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.DeleteSkuResp{Success: true}, nil

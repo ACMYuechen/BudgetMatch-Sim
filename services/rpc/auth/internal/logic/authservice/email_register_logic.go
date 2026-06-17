@@ -35,55 +35,55 @@ func NewEmailRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ema
 func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.RegisterResp, error) {
 	// 校验邮箱格式
 	if !emailRegex.MatchString(in.Email) {
-		return nil, errors.ErrInvalidEmail
+		return nil, errors.InvalidEmail
 	}
 
 	// 用户名是否存在
 	existingUser, err := l.svcCtx.UserStore.FindByUsername(l.ctx, in.Username)
 	if err != nil {
 		l.Logger.Errorf("failed to check existing user by username: %v, error: %v", in.Username, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if existingUser != nil {
-		return nil, errors.ErrUserExists
+		return nil, errors.UserExists
 	}
 
 	// 邮箱是否已注册
 	existingUserByEmail, err := l.svcCtx.UserStore.FindByEmail(l.ctx, in.Email)
 	if err != nil {
 		l.Logger.Errorf("failed to check existing user by email: %v, error: %v", in.Email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if existingUserByEmail != nil {
-		return nil, errors.ErrUserExists
+		return nil, errors.UserExists
 	}
 
 	// 验证码校验
 	codeKey := CodeRedisKeyPrefix + in.Email
 	storedCode, err := l.svcCtx.Redis.Get(l.ctx, codeKey).Result()
 	if err == redis.Nil {
-		return nil, errors.ErrCodeExpired
+		return nil, errors.CodeExpired
 	}
 	if err != nil {
 		l.Logger.Errorf("failed to get code from Redis for email: %v, error: %v", in.Email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if storedCode != in.Code {
-		return nil, errors.ErrCodeInvalid
+		return nil, errors.CodeInvalid
 	}
 
 	// 删除验证码，防止重复使用
 	err = l.svcCtx.Redis.Del(l.ctx, codeKey).Err()
 	if err != nil {
 		l.Logger.Errorf("failed to delete code from Redis for email: %v, error: %v", in.Email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// 哈希密码
 	hashPassword, err := auth.HashPassword(in.Password)
 	if err != nil {
 		l.Logger.Errorf("failed to hash password, error: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	// 生成用户 ID
@@ -102,7 +102,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create user with email: %v, error: %v", in.Email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.RegisterResp{

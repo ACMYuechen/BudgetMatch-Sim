@@ -34,7 +34,7 @@ func (l *SkuDeleteLogic) SkuDelete(req *types.SkuDeleteReq) (resp *types.SkuDele
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to delete sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.SkuDeleteResp{

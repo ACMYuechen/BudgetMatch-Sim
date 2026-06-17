@@ -31,11 +31,11 @@ func (l *CreateProductLogic) CreateProduct(in *pb.CreateProductReq) (*pb.CreateP
 	existing, err := l.svcCtx.ProductStore.FindBySpuCode(l.ctx, in.SpuCode)
 	if err != nil {
 		l.Logger.Errorf("failed to find product by spu_code: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if existing != nil {
 		l.Logger.Errorf("spu_code already exists: %s", in.SpuCode)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	product := &products.Products{
@@ -51,7 +51,7 @@ func (l *CreateProductLogic) CreateProduct(in *pb.CreateProductReq) (*pb.CreateP
 
 	if err := l.svcCtx.ProductStore.InsertOne(l.ctx, product); err != nil {
 		l.Logger.Errorf("failed to create product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.CreateProductResp{Id: product.Id}, nil

@@ -39,7 +39,7 @@ func (l *ListSkusByProductLogic) ListSkusByProduct(in *pb.ListSkusByProductReq) 
 	list, total, err := l.svcCtx.SkuStore.List(l.ctx, req)
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]*pb.Sku, 0, len(list))

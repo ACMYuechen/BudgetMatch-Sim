@@ -28,15 +28,15 @@ func (l *DeleteActivityLogic) DeleteActivity(in *pb.DeleteActivityReq) (*pb.Dele
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	if err := l.svcCtx.ActivityStore.Delete(l.ctx, in.Id); err != nil {
 		l.Logger.Errorf("failed to delete activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.DeleteActivityResp{Success: true}, nil

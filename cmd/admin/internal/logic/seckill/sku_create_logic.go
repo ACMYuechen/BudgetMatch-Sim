@@ -41,7 +41,7 @@ func (l *SkuCreateLogic) SkuCreate(req *types.SkuCreateReq) (resp *types.SkuCrea
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.SkuCreateResp{

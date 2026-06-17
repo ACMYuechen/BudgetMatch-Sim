@@ -29,10 +29,10 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	if in.Title != "" {
@@ -49,7 +49,7 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 		if err != nil {
 			startTime, err = time.Parse("2006-01-02 15:04:05", in.StartTime)
 			if err != nil {
-				return nil, errors.ErrInternal
+				return nil, errors.Internal
 			}
 		}
 		activity.StartTime = startTime
@@ -59,19 +59,19 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 		if err != nil {
 			endTime, err = time.Parse("2006-01-02 15:04:05", in.EndTime)
 			if err != nil {
-				return nil, errors.ErrInternal
+				return nil, errors.Internal
 			}
 		}
 		activity.EndTime = endTime
 	}
 
 	if activity.EndTime.Before(activity.StartTime) || activity.EndTime.Equal(activity.StartTime) {
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	if err := l.svcCtx.ActivityStore.Update(l.ctx, activity); err != nil {
 		l.Logger.Errorf("failed to update activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.UpdateActivityResp{Success: true}, nil

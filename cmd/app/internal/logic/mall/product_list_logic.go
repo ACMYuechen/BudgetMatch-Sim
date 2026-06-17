@@ -38,7 +38,7 @@ func (l *ProductListLogic) ProductList(req *types.MallProductListReq) (resp *typ
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list products: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.MallProductItem, 0, len(rpcResp.List))

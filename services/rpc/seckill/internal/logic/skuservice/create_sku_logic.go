@@ -31,14 +31,14 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	if in.Stock < 0 {
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	sku := &seckill_sku.SeckillSkus{
@@ -58,7 +58,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 
 	if err := l.svcCtx.SkuStore.InsertOne(l.ctx, sku); err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.CreateSkuResp{Id: sku.Id}, nil

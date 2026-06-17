@@ -37,7 +37,7 @@ func (l *ListUsersLogic) ListUsers(in *pb.ListUsersReq) (*pb.ListUsersResp, erro
 	list, total, err := l.svcCtx.UserStore.ListByFilter(l.ctx, req)
 	if err != nil {
 		l.Logger.Errorf("failed to list users: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]*pb.UserListItem, 0, len(list))

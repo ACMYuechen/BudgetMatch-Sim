@@ -36,7 +36,7 @@ func (l *ActivityListLogic) ActivityList(req *types.ActivityListReq) (resp *type
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list activities: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.ActivityItem, 0, len(rpcResp.List))

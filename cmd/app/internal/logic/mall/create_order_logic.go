@@ -31,7 +31,7 @@ func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *types.MallCreateOrderResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.CreateOrder(l.ctx, &pb.CreateOrderReq{
@@ -43,7 +43,7 @@ func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *typ
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create order: %v", err)
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	return &types.MallCreateOrderResp{

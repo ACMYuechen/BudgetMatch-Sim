@@ -29,10 +29,10 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if order == nil {
-		return nil, errors.ErrSeckillOrderNotFound
+		return nil, errors.SeckillOrderNotFound
 	}
 
 	return &pb.GetOrderResp{

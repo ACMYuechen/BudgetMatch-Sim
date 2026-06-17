@@ -40,7 +40,7 @@ func (l *ListProductsLogic) ListProducts(in *pb.ListProductsReq) (*pb.ListProduc
 	list, total, err := l.svcCtx.ProductStore.List(l.ctx, req)
 	if err != nil {
 		l.Logger.Errorf("failed to list products: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]*pb.Product, 0, len(list))

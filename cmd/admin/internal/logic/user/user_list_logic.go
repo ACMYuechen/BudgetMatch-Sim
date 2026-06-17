@@ -36,7 +36,7 @@ func (l *UserListLogic) UserList(req *types.UserListReq) (resp *types.UserListRe
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list users via auth-rpc: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.UserItem, 0, len(rpcResp.List))

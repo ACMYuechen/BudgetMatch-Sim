@@ -34,7 +34,7 @@ func (l *GetOrderLogic) GetOrder(req *types.GetOrderReq) (resp *types.GetOrderRe
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get order: %v", err)
-		return nil, errors.ErrSeckillOrderNotFound
+		return nil, errors.SeckillOrderNotFound
 	}
 
 	return &types.GetOrderResp{

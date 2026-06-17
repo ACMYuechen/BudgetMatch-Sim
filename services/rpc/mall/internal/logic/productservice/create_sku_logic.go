@@ -31,20 +31,20 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, in.ProductId)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if product == nil {
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	// check duplicate sku_code under product
 	existing, err := l.svcCtx.SkuStore.FindBySkuCode(l.ctx, in.ProductId, in.SkuCode)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku by code: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if existing != nil {
-		return nil, errors.ErrInternal
+		return nil, errors.Internal
 	}
 
 	sku := &product_skus.ProductSkus{
@@ -61,7 +61,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 
 	if err := l.svcCtx.SkuStore.InsertOne(l.ctx, sku); err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	_ = l.svcCtx.Redis.Del(l.ctx, productCacheKey(in.ProductId))

@@ -42,7 +42,7 @@ func (l *SkuUpdateLogic) SkuUpdate(req *types.SkuUpdateReq) (resp *types.SkuUpda
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update sku: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.SkuUpdateResp{

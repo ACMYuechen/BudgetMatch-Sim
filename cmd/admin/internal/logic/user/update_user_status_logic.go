@@ -34,7 +34,7 @@ func (l *UpdateUserStatusLogic) UpdateUserStatus(req *types.UpdateUserStatusReq)
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update user status via auth-rpc: %v, error: %v", req.UserId, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &types.UpdateUserStatusResp{Success: true}, nil

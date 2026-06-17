@@ -36,7 +36,7 @@ func (l *SkuListLogic) SkuList(req *types.SkuListReq) (resp *types.SkuListResp, 
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.SkuItem, 0, len(rpcResp.List))

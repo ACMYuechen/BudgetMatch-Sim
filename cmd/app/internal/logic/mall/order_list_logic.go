@@ -31,7 +31,7 @@ func NewOrderListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OrderLi
 func (l *OrderListLogic) OrderList(req *types.MallOrderListReq) (resp *types.MallOrderListResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
-		return nil, errors.ErrUnauthorized
+		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.ListOrders(l.ctx, &pb.ListOrdersReq{
@@ -42,7 +42,7 @@ func (l *OrderListLogic) OrderList(req *types.MallOrderListReq) (resp *types.Mal
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	items := make([]types.MallOrderResp, 0, len(rpcResp.List))

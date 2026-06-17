@@ -6,7 +6,7 @@
 
 ```
 infra/errors/
-├── errors.go        # 错误码常量 RCxxx 与 AppError 变量定义
+├── errors.go        # 错误码常量 ECxxx 与 AppError 变量定义
 ├── locale.zh.toml   # 中文错误文案
 ├── locale.en.toml   # 英文错误文案
 └── README.md        # 本文档
@@ -14,7 +14,7 @@ infra/errors/
 
 ## 错误码设计规则
 
-- 错误码以 `RC` 开头，类型为 `int64`。
+- 错误码以 `EC` 开头，类型为 `int64`。
 - 错误码共 6 位，**前三位对应 HTTP 状态码**，后三位为业务序号。
 - 按 HTTP 状态码分族：
   - `400xxx`：请求参数或用户可修正的输入错误
@@ -36,16 +36,16 @@ infra/errors/
 ```go
 // 400xxx: 请求参数或用户可修正的输入错误。
 const (
-	RCInvalid = 400000 + iota
-	RCInvalidEmail
-	RCCodeInvalid
-	RCCodeExpired
-	RCSeckillActivityNotStart
-	RCMyNewError  // 新增
+	ECInvalid = 400000 + iota
+	ECInvalidEmail
+	ECCodeInvalid
+	ECCodeExpired
+	ECSeckillActivityNotStart
+	ECMyNewError  // 新增
 )
 ```
 
-命名规范：`RC` + 驼峰描述，例如 `RCInvalidEmail`、`RCMallOrderNotFound`。
+命名规范：`EC` + 驼峰描述，例如 `ECInvalidEmail`、`ECMallOrderNotFound`。
 
 ### 2. 在 `errors.go` 中添加错误变量
 
@@ -53,10 +53,10 @@ const (
 
 ```go
 var (
-	Invalid              = newAppError(RCInvalid, "invalid.default")
-	InvalidEmail         = newAppError(RCInvalidEmail, "invalid.invalid_email")
+	Invalid              = newAppError(ECInvalid, "invalid.default")
+	InvalidEmail         = newAppError(ECInvalidEmail, "invalid.invalid_email")
 	// ...
-	MyNewError = newAppError(RCMyNewError, "mall.my_new_error")  // 新增
+	MyNewError = newAppError(ECMyNewError, "mall.my_new_error")  // 新增
 )
 ```
 
@@ -96,12 +96,12 @@ if err != nil {
 ```go
 // 400xxx
 const (
-    RCMyError = 400000 + iota
+    ECMyError = 400000 + iota
     // 在已有常量之后追加
 )
 
 var (
-    MyError = newAppError(RCMyError, "invalid.my_error")
+    MyError = newAppError(ECMyError, "invalid.my_error")
 )
 ```
 

@@ -33,7 +33,7 @@ func NewSendCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SendCode
 func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 	email := in.Email
 	if email == "" || !sendCodeEmailRegex.MatchString(email) {
-		return nil, errors.ErrInvalidEmail
+		return nil, errors.InvalidEmail
 	}
 
 	// 限流检查：原子性 SETNX，避免竞态条件
@@ -41,10 +41,10 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 	ok, err := l.svcCtx.Redis.SetNX(l.ctx, rateLimitKey, "1", RateLimitWindow*time.Second).Result()
 	if err != nil {
 		l.Logger.Errorf("failed to check rate limit for email: %v, error: %v", email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if !ok {
-		return nil, errors.ErrTooManyRequests
+		return nil, errors.TooManyRequests
 	}
 
 	// 生成验证码
@@ -55,7 +55,7 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 	err = l.svcCtx.Redis.Set(l.ctx, key, code, CodeExpireTime*time.Second).Err()
 	if err != nil {
 		l.Logger.Errorf("failed to set code for email: %v, error: %v", email, err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	// 发送邮件
@@ -64,7 +64,7 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 		l.Logger.Errorf("failed to send email to: %v, error: %v", email, err)
 		// 邮件发送失败，回滚已写入的验证码
 		_ = l.svcCtx.Redis.Del(l.ctx, key).Err()
-		return nil, errors.ErrEmailSendFailed
+		return nil, errors.EmailSendFailed
 	}
 
 	return &pb.SendCodeResp{

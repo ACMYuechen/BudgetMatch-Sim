@@ -44,12 +44,12 @@ func (l *GetProductLogic) GetProduct(in *pb.GetProductReq) (*pb.GetProductResp, 
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if product == nil {
 		// cache null object
 		_ = l.svcCtx.Redis.Set(l.ctx, key, "null", time.Minute).Err()
-		return nil, errors.ErrMallProductNotFound
+		return nil, errors.MallProductNotFound
 	}
 
 	// cache product

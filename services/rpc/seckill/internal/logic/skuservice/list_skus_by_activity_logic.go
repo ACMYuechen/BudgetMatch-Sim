@@ -37,7 +37,7 @@ func (l *ListSkusByActivityLogic) ListSkusByActivity(in *pb.ListSkusByActivityRe
 	skus, total, err := l.svcCtx.SkuStore.ListByActivity(l.ctx, in.ActivityId, page, pageSize)
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	list := make([]*pb.Sku, 0, len(skus))

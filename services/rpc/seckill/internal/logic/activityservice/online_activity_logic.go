@@ -28,16 +28,16 @@ func (l *OnlineActivityLogic) OnlineActivity(in *pb.OnlineActivityReq) (*pb.Onli
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.Id)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 	if activity == nil {
-		return nil, errors.ErrSeckillActivityNotFound
+		return nil, errors.SeckillActivityNotFound
 	}
 
 	activity.Status = 1
 	if err := l.svcCtx.ActivityStore.Update(l.ctx, activity); err != nil {
 		l.Logger.Errorf("failed to update activity status: %v", err)
-		return nil, errors.ErrDatabase
+		return nil, errors.Database
 	}
 
 	return &pb.OnlineActivityResp{Success: true}, nil
