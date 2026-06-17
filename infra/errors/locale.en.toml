@@ -1,0 +1,50 @@
+[invalid]
+default = "Invalid request"
+invalid_email = "Invalid email address"
+invalid_verify_code = "Invalid verification code"
+code_expired = "Verification code expired"
+
+[unauthorized]
+default = "Unauthorized"
+invalid_password = "Invalid username or password"
+invalid_token = "Invalid token, please log in again"
+
+[notfound]
+default = "Resource not found"
+user_not_exists = "User not found"
+
+[conflict]
+default = "Conflict with current resource state"
+user_already_exists = "User already exists"
+
+[gone]
+default = "Resource no longer available"
+
+[too_many_requests]
+default = "Too many requests, please try again later"
+limit_exceeded = "Request limit exceeded, please try again later"
+
+[internal]
+default = "Internal server error"
+database = "Service busy, please try again later"
+token_generation = "Service busy, please try again later"
+email_send_failed = "Failed to send email, please try again later"
+seckill_submit_failed = "Seckill order submission failed, please try again later"
+
+[seckill]
+activity_not_started = "Seckill activity has not started yet"
+activity_not_found = "Seckill activity not found"
+sku_not_found = "Seckill SKU not found"
+order_not_found = "Seckill order not found"
+stock_not_enough = "Seckill stock not enough"
+already_purchased = "You have already purchased this seckill item"
+activity_ended = "Seckill activity has ended"
+
+[mall]
+product_not_found = "Product not found"
+sku_not_found = "Product SKU not found"
+order_not_found = "Order not found"
+stock_not_enough = "Product stock not enough"
+invalid_order_transition = "Order status transition not allowed"
+order_cannot_cancel = "Order cannot be cancelled"
+duplicate_order = "Duplicate order request"
