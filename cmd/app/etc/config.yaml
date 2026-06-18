@@ -51,3 +51,13 @@ MallRpc:
   Endpoints:
     - 127.0.0.1:10005
   NonBlock: true
+
+# Agent 推荐服务 RPC
+AgentRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: agent.rpc
+  Endpoints:
+    - 127.0.0.1:10006
+  NonBlock: true

@@ -8,13 +8,14 @@ import (
 	"budgetmatch-sim/cmd/app/internal/config"
 	"budgetmatch-sim/cmd/app/internal/middleware"
 	"budgetmatch-sim/infra/limit"
+	"budgetmatch-sim/services/rpc/agent/client/recommendservice"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/client/userservice"
+	"budgetmatch-sim/services/rpc/mall/client/orderservice"
+	"budgetmatch-sim/services/rpc/mall/client/productservice"
 	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
 	"budgetmatch-sim/services/rpc/seckill/client/seckillservice"
 	"budgetmatch-sim/services/rpc/seckill/client/skuservice"
-	"budgetmatch-sim/services/rpc/mall/client/orderservice"
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -28,16 +29,17 @@ type ServiceContext struct {
 	Redis     redis.UniversalClient
 
 	// RPC 客户端
-	AuthClient     authservice.AuthService
-	UserClient     userservice.UserService
-	ActivityClient activityservice.ActivityService
-	SkuClient      skuservice.SkuService
-	SeckillClient   seckillservice.SeckillService
+	AuthClient        authservice.AuthService
+	UserClient        userservice.UserService
+	ActivityClient    activityservice.ActivityService
+	SkuClient         skuservice.SkuService
+	SeckillClient     seckillservice.SeckillService
 	MallProductClient productservice.ProductService
 	MallOrderClient   orderservice.OrderService
+	AgentClient       recommendservice.RecommendService
 
 	// 中间件配置
-	AuthMiddleware         rest.Middleware
+	AuthMiddleware             rest.Middleware
 	SeckillRateLimitMiddleware rest.Middleware
 }
 
@@ -53,6 +55,7 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 	mallclient := zrpc.MustNewClient(c.MallRpc)
 	mallProductClient := productservice.NewProductService(mallclient)
 	mallOrderClient := orderservice.NewOrderService(mallclient)
+	agentClient := recommendservice.NewRecommendService(zrpc.MustNewClient(c.AgentRpc))
 
 	// 创建秒杀限流中间件（仅对 /token 和 /orders 路径限流，60 秒窗口内最多 10 次请求）
 	var seckillRateMiddleware rest.Middleware
@@ -67,13 +70,14 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 		Redis:     redisClient,
 
 		// RPC 客户端
-		AuthClient:     authclient,
-		UserClient:     userclient,
-		ActivityClient: activityclient,
-		SkuClient:      skuclient,
-		SeckillClient:   seckillSvcClient,
+		AuthClient:        authclient,
+		UserClient:        userclient,
+		ActivityClient:    activityclient,
+		SkuClient:         skuclient,
+		SeckillClient:     seckillSvcClient,
 		MallProductClient: mallProductClient,
 		MallOrderClient:   mallOrderClient,
+		AgentClient:       agentClient,
 
 		// 中间件配置
 		AuthMiddleware:             middleware.NewAuthMiddleware(authclient).Handle,

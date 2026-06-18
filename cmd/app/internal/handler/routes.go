@@ -5,6 +5,7 @@ package handler
 import (
 	"net/http"
 
+	agent "budgetmatch-sim/cmd/app/internal/handler/agent"
 	health "budgetmatch-sim/cmd/app/internal/handler/health"
 	mall "budgetmatch-sim/cmd/app/internal/handler/mall"
 	seckill "budgetmatch-sim/cmd/app/internal/handler/seckill"
@@ -120,5 +121,17 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			}...,
 		),
 		rest.WithPrefix("/api/mall"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// Agent 推荐
+				Method:  http.MethodPost,
+				Path:    "/recommend",
+				Handler: agent.AgentRecommendHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/agent"),
 	)
 }
