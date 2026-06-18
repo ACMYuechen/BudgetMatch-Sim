@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func etcdEndpoints() []string {
-	env := os.Getenv("ETCD_ENDPOINTS")
+func etcdHosts() []string {
+	env := os.Getenv("ETCD_HOSTS")
 	if env == "" {
 		return nil
 	}
@@ -20,25 +20,24 @@ func etcdEndpoints() []string {
 }
 
 func TestConfigCenter_WatchAndGet(t *testing.T) {
-	endpoints := etcdEndpoints()
-	if len(endpoints) == 0 {
-		t.Skip("ETCD_ENDPOINTS not set, skip integration test")
-	}
+	hosts := etcdHosts()
+	require.NotEmpty(t, hosts, "ETCD_HOSTS is required")
 
-	cc, err := New(endpoints)
+	cc, err := New(hosts)
 	require.NoError(t, err)
 	defer cc.Close()
 
 	key := "/test/configcenter/watch"
 	var called atomic.Int32
-	loader := func(data []byte) {
+	loader := func(data []byte) error {
 		called.Add(1)
+		return nil
 	}
 
 	// clean up
 	cc.cli.Delete(cc.cli.Ctx(), key)
 
-	cc.Watch(key, loader)
+	require.NoError(t, cc.Watch(key, loader))
 	// wait for initial load callback
 	time.Sleep(200 * time.Millisecond)
 	assert.Equal(t, int32(1), called.Load())
@@ -57,6 +56,6 @@ func TestConfigCenter_WatchAndGet(t *testing.T) {
 
 func TestConfigCenter_NewWithEmptyEndpoints(t *testing.T) {
 	cc, err := New(nil)
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, ErrEmptyEndpoints)
 	assert.Nil(t, cc)
 }
