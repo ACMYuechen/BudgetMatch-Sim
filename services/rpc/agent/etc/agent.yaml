@@ -4,3 +4,18 @@ Etcd:
   Hosts:
     - ${ETCD_HOSTS}
   Key: agent.rpc
+
+Model:
+  Provider: ""
+  Model: ""
+  BaseURL: ""
+  APIKey: ""
+
+MCP:
+  Enabled: false
+  Command: npx
+  Args:
+    - -y
+    - @modelcontextprotocol/server-everything
+    - stdio
+  Timeout: 5000
