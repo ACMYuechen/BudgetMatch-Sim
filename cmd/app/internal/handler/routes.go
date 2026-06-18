@@ -131,6 +131,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/recommend",
 				Handler: agent.AgentRecommendHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/recommend/stream",
+				Handler: agent.AgentRecommendStreamHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/api/agent"),
 	)

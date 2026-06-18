@@ -47,4 +47,8 @@ service app {
 	@doc "Agent 推荐"
 	@handler AgentRecommend
 	post /recommend (AgentRecommendReq) returns (AgentRecommendResp)
+
+	@doc "Agent 推荐 SSE"
+	@handler AgentRecommendStream
+	post /recommend/stream (AgentRecommendReq)
 }
