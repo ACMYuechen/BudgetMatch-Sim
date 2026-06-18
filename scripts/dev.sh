@@ -20,7 +20,7 @@ for pidfile in $PID_DIR/*.pid; do
 done
 
 # 兜底：按端口清理可能残留的本地服务进程
-for port in 10000 10001 10002 10003 10004 10005 10006 2379; do
+for port in 10000 10001 10002 10003 10004 10005 10006 12379; do
     pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
     for pid in $pids; do
         kill -9 "$pid" 2>/dev/null || true
@@ -40,11 +40,11 @@ sleep 8
 # 初始化 etcd 默认动态配置（etcdctl 不存在时跳过）
 if command -v etcdctl &> /dev/null; then
     echo "🔧 初始化 etcd 动态配置..."
-    bash scripts/init-etcd-config.sh 127.0.0.1:2379 || true
+    bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
 fi
 
 # 设置 etcd 地址，供 conf.UseEnv() 替换配置中的 ${ETCD_HOSTS}
-export ETCD_HOSTS=127.0.0.1:2379
+export ETCD_HOSTS=127.0.0.1:12379
 
 # 启动各服务（cd 到对应目录后再 go run，否则找不到 etc/config.yaml）
 # 串行启动：auth-rpc 先启动并自动创建数据库表

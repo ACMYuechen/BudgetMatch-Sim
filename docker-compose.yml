@@ -15,7 +15,7 @@ services:
       - ETCD_INITIAL_CLUSTER=etcd-1=http://etcd:2380
       - ETCD_INITIAL_CLUSTER_STATE=new
     ports:
-      - "2379:2379"
+      - "12379:2379"
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
