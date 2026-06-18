@@ -4,28 +4,30 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 )
 
 func TestIsValidOrderTransition(t *testing.T) {
-	// pending -> paid / cancelled
-	assert.True(t, isValidOrderTransition(OrderStatusPending, OrderStatusPaid))
-	assert.True(t, isValidOrderTransition(OrderStatusPending, OrderStatusCancelled))
-	assert.False(t, isValidOrderTransition(OrderStatusPending, OrderStatusShipped))
+	// 待支付 -> 已支付 / 已取消
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusPending, mall_orders.OrderStatusPaid))
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusPending, mall_orders.OrderStatusCancelled))
+	assert.False(t, isValidOrderTransition(mall_orders.OrderStatusPending, mall_orders.OrderStatusShipped))
 
-	// paid -> shipped / cancelled
-	assert.True(t, isValidOrderTransition(OrderStatusPaid, OrderStatusShipped))
-	assert.True(t, isValidOrderTransition(OrderStatusPaid, OrderStatusCancelled))
-	assert.False(t, isValidOrderTransition(OrderStatusPaid, OrderStatusPaid))
+	// 已支付 -> 已发货 / 已取消
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusPaid, mall_orders.OrderStatusShipped))
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusPaid, mall_orders.OrderStatusCancelled))
+	assert.False(t, isValidOrderTransition(mall_orders.OrderStatusPaid, mall_orders.OrderStatusPaid))
 
-	// shipped -> completed / refunding
-	assert.True(t, isValidOrderTransition(OrderStatusShipped, OrderStatusCompleted))
-	assert.True(t, isValidOrderTransition(OrderStatusShipped, OrderStatusRefunding))
+	// 已发货 -> 已完成 / 退款中
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusShipped, mall_orders.OrderStatusCompleted))
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusShipped, mall_orders.OrderStatusRefunding))
 
-	// refunding -> refunded
-	assert.True(t, isValidOrderTransition(OrderStatusRefunding, OrderStatusRefunded))
+	// 退款中 -> 已退款
+	assert.True(t, isValidOrderTransition(mall_orders.OrderStatusRefunding, mall_orders.OrderStatusRefunded))
 
-	// terminal states
-	assert.False(t, isValidOrderTransition(OrderStatusCompleted, OrderStatusPaid))
-	assert.False(t, isValidOrderTransition(OrderStatusCancelled, OrderStatusPaid))
-	assert.False(t, isValidOrderTransition(OrderStatusRefunded, OrderStatusPaid))
+	// 终态
+	assert.False(t, isValidOrderTransition(mall_orders.OrderStatusCompleted, mall_orders.OrderStatusPaid))
+	assert.False(t, isValidOrderTransition(mall_orders.OrderStatusCancelled, mall_orders.OrderStatusPaid))
+	assert.False(t, isValidOrderTransition(mall_orders.OrderStatusRefunded, mall_orders.OrderStatusPaid))
 }

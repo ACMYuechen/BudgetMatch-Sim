@@ -10,17 +10,6 @@ import (
 
 const timeLayout = "2006-01-02T15:04:05Z07:00"
 
-// Order status constants
-const (
-	OrderStatusPending   int64 = 0
-	OrderStatusPaid      int64 = 1
-	OrderStatusShipped   int64 = 2
-	OrderStatusCompleted int64 = 3
-	OrderStatusCancelled int64 = 4
-	OrderStatusRefunding int64 = 5
-	OrderStatusRefunded  int64 = 6
-)
-
 func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItems) *pb.Order {
 	if o == nil {
 		return nil
