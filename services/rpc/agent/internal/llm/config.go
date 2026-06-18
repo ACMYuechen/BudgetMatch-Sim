@@ -16,3 +16,7 @@ func (c Config) ProviderName() string {
 	}
 	return provider
 }
+
+func (c Config) Enabled() bool {
+	return c.ProviderName() != "noop"
+}

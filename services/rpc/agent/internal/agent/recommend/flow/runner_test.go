@@ -56,11 +56,19 @@ func TestRunnerExecutesToolCallsUntilFinalText(t *testing.T) {
 		t.Fatalf("expected 2 model requests, got %d", len(model.requests))
 	}
 	lastRequest := model.requests[1]
-	if len(lastRequest.Messages) == 0 || lastRequest.Messages[len(lastRequest.Messages)-1].Role != "tool" {
-		t.Fatalf("expected tool message appended, got %+v", lastRequest.Messages)
+	if len(lastRequest.Messages) < 2 {
+		t.Fatalf("expected assistant and tool messages appended, got %+v", lastRequest.Messages)
 	}
-	if !strings.Contains(lastRequest.Messages[len(lastRequest.Messages)-1].Content, `"success":true`) {
-		t.Fatalf("expected successful tool message, got %s", lastRequest.Messages[len(lastRequest.Messages)-1].Content)
+	assistantMessage := lastRequest.Messages[len(lastRequest.Messages)-2]
+	if assistantMessage.Role != "assistant" || len(assistantMessage.ToolCalls) != 1 {
+		t.Fatalf("expected assistant tool_calls message, got %+v", assistantMessage)
+	}
+	toolMessage := lastRequest.Messages[len(lastRequest.Messages)-1]
+	if toolMessage.Role != "tool" || toolMessage.ToolCallID != "call_1" {
+		t.Fatalf("expected tool message with call id, got %+v", toolMessage)
+	}
+	if !strings.Contains(toolMessage.Content, `"success":true`) {
+		t.Fatalf("expected successful tool message, got %s", toolMessage.Content)
 	}
 }
 
@@ -90,6 +98,48 @@ func TestRunnerReturnsToolErrorsToModel(t *testing.T) {
 	lastRequest := model.requests[1]
 	if !strings.Contains(lastRequest.Messages[len(lastRequest.Messages)-1].Content, `"success":false`) {
 		t.Fatalf("expected failed tool message, got %s", lastRequest.Messages[len(lastRequest.Messages)-1].Content)
+	}
+}
+
+func TestRunnerUsesFreshExecutorPerRun(t *testing.T) {
+	model := &scriptedModel{
+		responses: []*llm.Response{
+			{
+				ToolCalls: []llm.ToolCall{{
+					ID:        "call_1",
+					Name:      toolkit.ToolSearchProducts,
+					Arguments: mustJSON(t, toolkit.SearchProductsArgs{Query: "study", Keywords: []string{"study"}}),
+				}},
+			},
+			{FinalText: "first"},
+			{
+				ToolCalls: []llm.ToolCall{{
+					ID:        "call_2",
+					Name:      toolkit.ToolSearchProducts,
+					Arguments: mustJSON(t, toolkit.SearchProductsArgs{Query: "computer", Keywords: []string{"computer"}}),
+				}},
+			},
+			{FinalText: "second"},
+		},
+	}
+
+	var created int
+	runner := NewRunnerWithFactory(model, func() *toolkit.Executor {
+		created++
+		return toolkit.NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
+	})
+
+	for _, query := range []string{"study bundle", "computer bundle"} {
+		if _, err := runner.Run(context.Background(), RunInput{
+			Messages: []prompt.Message{{Role: "user", Content: query}},
+			Tools:    prompt.NewBuilder().FunctionTools(),
+		}); err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+	}
+
+	if created != 2 {
+		t.Fatalf("expected fresh executor per run, got %d", created)
 	}
 }
 

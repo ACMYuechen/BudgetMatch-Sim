@@ -62,12 +62,15 @@ func TestBuilderReturnsFunctionToolSchemas(t *testing.T) {
 	if tools[0].Name != "search_products" || tools[1].Name != "select_bundle" || tools[2].Name != "mcp_call_tool" {
 		t.Fatalf("unexpected tool schemas: %+v", tools)
 	}
-	for _, tool := range tools {
+	for i, tool := range tools {
 		if tool.Type != "function" {
 			t.Fatalf("expected function tool, got %+v", tool)
 		}
-		if !tool.Strict {
+		if i < 2 && !tool.Strict {
 			t.Fatalf("expected strict schema for %s", tool.Name)
+		}
+		if tool.Name == "mcp_call_tool" && tool.Strict {
+			t.Fatalf("mcp_call_tool should allow dynamic MCP arguments")
 		}
 		if tool.Parameters["additionalProperties"] != false {
 			t.Fatalf("expected additionalProperties=false for %s", tool.Name)

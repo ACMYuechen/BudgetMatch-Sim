@@ -17,6 +17,8 @@ Rules:
 - Stay within the user's budget when a budget is available.
 - Prefer in-stock products with strong value, relevant category, and clear practical reasons.
 - Do not invent products, prices, stock, tools, or discounts.
+- Use search_products before selecting a bundle, then use select_bundle with real candidate IDs.
+- Use mcp_call_tool only when MCP is enabled and the user's goal benefits from an external MCP tool.
 - If the product list is insufficient, say what is missing and keep the recommendation conservative.
 - Return concise Chinese output for end users unless the user explicitly asks for another language.
 
@@ -28,8 +30,21 @@ Expected result:
 - Mention which tools or data sources were used.`
 
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string     `json:"role"`
+	Content    string     `json:"content,omitempty"`
+	ToolCallID string     `json:"tool_call_id,omitempty"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+}
+
+type ToolCall struct {
+	ID       string           `json:"id,omitempty"`
+	Type     string           `json:"type"`
+	Function ToolCallFunction `json:"function"`
+}
+
+type ToolCallFunction struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
 }
 
 type FunctionTool struct {
@@ -128,7 +143,6 @@ func (b *Builder) FunctionTools() []FunctionTool {
 			Type:        "function",
 			Name:        toolkit.ToolMCPCallTool,
 			Description: "Call an enabled MCP server tool by name with JSON arguments.",
-			Strict:      true,
 			Parameters: map[string]any{
 				"type":                 "object",
 				"additionalProperties": false,
@@ -162,7 +176,11 @@ func buildUserPrompt(input BuildInput) string {
 	}))
 
 	out.WriteString("\n\nAvailable product candidates:\n")
-	out.WriteString(mustJSON(input.Candidates))
+	if len(input.Candidates) == 0 {
+		out.WriteString("No inline candidates are provided. Call search_products before selecting a bundle.")
+	} else {
+		out.WriteString(mustJSON(input.Candidates))
+	}
 
 	out.WriteString("\n\nCurrent deterministic bundle draft:\n")
 	out.WriteString(mustJSON(map[string]any{

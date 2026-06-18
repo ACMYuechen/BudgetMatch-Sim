@@ -8,9 +8,9 @@ func NewClient(c Config) (Client, error) {
 		return NewNoopClient(), nil
 	case "openai":
 		if c.APIKey == "" {
-			return NewNoopClient(), nil
+			return nil, fmt.Errorf("openai api key is required when model provider is openai")
 		}
-		return nil, fmt.Errorf("openai llm provider is not implemented yet")
+		return NewOpenAIClient(c), nil
 	default:
 		return nil, fmt.Errorf("unsupported llm provider %q", c.Provider)
 	}

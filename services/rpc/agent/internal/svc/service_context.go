@@ -4,6 +4,7 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	recommendflow "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/flow"
+	recommendprompt "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/prompt"
 	recommendtoolkit "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/config"
 	"budgetmatch-sim/services/rpc/agent/internal/llm"
@@ -15,6 +16,7 @@ type ServiceContext struct {
 	Config        config.Config
 	Agents        *agent.Registry
 	ModelClient   llm.Client
+	PromptBuilder *recommendprompt.Builder
 	RecommendFlow *recommendflow.Runner
 }
 
@@ -26,7 +28,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	productProvider := tools.NewMockProductProvider()
 	bundleSelector := recommend.NewBundleSelector()
-	toolExecutor := recommendtoolkit.NewExecutor(productProvider, bundleSelector).WithMCP(c.MCP)
+	newToolExecutor := func() *recommendtoolkit.Executor {
+		return recommendtoolkit.NewExecutor(productProvider, bundleSelector).WithMCP(c.MCP)
+	}
 
 	registry := agent.NewRegistry()
 	registry.MustRegister(recommendagent.NewAgent(productProvider, bundleSelector, c.MCP))
@@ -35,6 +39,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:        c,
 		Agents:        registry,
 		ModelClient:   modelClient,
-		RecommendFlow: recommendflow.NewRunner(modelClient, toolExecutor),
+		PromptBuilder: recommendprompt.NewBuilder(),
+		RecommendFlow: recommendflow.NewRunnerWithFactory(modelClient, newToolExecutor),
 	}
+}
+
+func (s *ServiceContext) RecommendFlowEnabled() bool {
+	return s != nil && s.Config.Model.Enabled() && s.ModelClient != nil && s.ModelClient.Name() != "noop"
 }

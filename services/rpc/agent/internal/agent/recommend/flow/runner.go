@@ -14,9 +14,9 @@ import (
 const defaultMaxRounds = 3
 
 type Runner struct {
-	model    llm.Client
-	executor *toolkit.Executor
-	maxRound int
+	model       llm.Client
+	newExecutor func() *toolkit.Executor
+	maxRound    int
 }
 
 type RunInput struct {
@@ -39,10 +39,16 @@ type ToolResult struct {
 }
 
 func NewRunner(model llm.Client, executor *toolkit.Executor) *Runner {
+	return NewRunnerWithFactory(model, func() *toolkit.Executor {
+		return executor
+	})
+}
+
+func NewRunnerWithFactory(model llm.Client, newExecutor func() *toolkit.Executor) *Runner {
 	return &Runner{
-		model:    model,
-		executor: executor,
-		maxRound: defaultMaxRounds,
+		model:       model,
+		newExecutor: newExecutor,
+		maxRound:    defaultMaxRounds,
 	}
 }
 
@@ -57,7 +63,11 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (*RunResult, error) {
 	if r.model == nil {
 		return nil, errors.New("llm client is nil")
 	}
-	if r.executor == nil {
+	if r.newExecutor == nil {
+		return nil, errors.New("tool executor factory is nil")
+	}
+	executor := r.newExecutor()
+	if executor == nil {
 		return nil, errors.New("tool executor is nil")
 	}
 
@@ -84,12 +94,14 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (*RunResult, error) {
 			}, nil
 		}
 
+		messages = append(messages, assistantToolCallMessage(resp.ToolCalls))
 		for _, call := range resp.ToolCalls {
-			toolResult := r.executeTool(ctx, call)
+			toolResult := executeTool(ctx, executor, call)
 			toolResults = append(toolResults, toolResult)
 			messages = append(messages, prompt.Message{
-				Role:    "tool",
-				Content: toolMessageContent(toolResult),
+				Role:       "tool",
+				ToolCallID: toolResult.CallID,
+				Content:    toolMessageContent(toolResult),
 			})
 		}
 	}
@@ -97,8 +109,8 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (*RunResult, error) {
 	return nil, fmt.Errorf("function calling exceeded max rounds: %d", r.maxRound)
 }
 
-func (r *Runner) executeTool(ctx context.Context, call llm.ToolCall) ToolResult {
-	result, err := r.executor.Execute(ctx, call.Name, call.Arguments)
+func executeTool(ctx context.Context, executor *toolkit.Executor, call llm.ToolCall) ToolResult {
+	result, err := executor.Execute(ctx, call.Name, call.Arguments)
 	if err != nil {
 		return ToolResult{
 			CallID: call.ID,
@@ -111,6 +123,24 @@ func (r *Runner) executeTool(ctx context.Context, call llm.ToolCall) ToolResult 
 		Name:   call.Name,
 		JSON:   result.JSON,
 	}
+}
+
+func assistantToolCallMessage(calls []llm.ToolCall) prompt.Message {
+	message := prompt.Message{
+		Role:      "assistant",
+		ToolCalls: make([]prompt.ToolCall, 0, len(calls)),
+	}
+	for _, call := range calls {
+		message.ToolCalls = append(message.ToolCalls, prompt.ToolCall{
+			ID:   call.ID,
+			Type: "function",
+			Function: prompt.ToolCallFunction{
+				Name:      call.Name,
+				Arguments: string(call.Arguments),
+			},
+		})
+	}
+	return message
 }
 
 func toolMessageContent(result ToolResult) string {
