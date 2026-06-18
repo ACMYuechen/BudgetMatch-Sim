@@ -3,6 +3,8 @@ package svc
 import (
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
+	recommendflow "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/flow"
+	recommendtoolkit "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/config"
 	"budgetmatch-sim/services/rpc/agent/internal/llm"
 	"budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -10,9 +12,10 @@ import (
 )
 
 type ServiceContext struct {
-	Config      config.Config
-	Agents      *agent.Registry
-	ModelClient llm.Client
+	Config        config.Config
+	Agents        *agent.Registry
+	ModelClient   llm.Client
+	RecommendFlow *recommendflow.Runner
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -23,13 +26,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	productProvider := tools.NewMockProductProvider()
 	bundleSelector := recommend.NewBundleSelector()
+	toolExecutor := recommendtoolkit.NewExecutor(productProvider, bundleSelector)
 
 	registry := agent.NewRegistry()
 	registry.MustRegister(recommendagent.NewAgent(productProvider, bundleSelector, c.MCP))
 
 	return &ServiceContext{
-		Config:      c,
-		Agents:      registry,
-		ModelClient: modelClient,
+		Config:        c,
+		Agents:        registry,
+		ModelClient:   modelClient,
+		RecommendFlow: recommendflow.NewRunner(modelClient, toolExecutor),
 	}
 }
