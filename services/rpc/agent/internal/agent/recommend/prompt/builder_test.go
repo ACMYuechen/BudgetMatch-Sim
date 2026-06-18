@@ -56,10 +56,10 @@ func TestBuilderBuildsPromptMessages(t *testing.T) {
 func TestBuilderReturnsFunctionToolSchemas(t *testing.T) {
 	tools := NewBuilder().FunctionTools()
 
-	if len(tools) != 2 {
-		t.Fatalf("expected 2 tool schemas, got %d", len(tools))
+	if len(tools) != 3 {
+		t.Fatalf("expected 3 tool schemas, got %d", len(tools))
 	}
-	if tools[0].Name != "search_products" || tools[1].Name != "select_bundle" {
+	if tools[0].Name != "search_products" || tools[1].Name != "select_bundle" || tools[2].Name != "mcp_call_tool" {
 		t.Fatalf("unexpected tool schemas: %+v", tools)
 	}
 	for _, tool := range tools {

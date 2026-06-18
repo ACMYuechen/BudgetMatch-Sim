@@ -26,7 +26,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	productProvider := tools.NewMockProductProvider()
 	bundleSelector := recommend.NewBundleSelector()
-	toolExecutor := recommendtoolkit.NewExecutor(productProvider, bundleSelector)
+	toolExecutor := recommendtoolkit.NewExecutor(productProvider, bundleSelector).WithMCP(c.MCP)
 
 	registry := agent.NewRegistry()
 	registry.MustRegister(recommendagent.NewAgent(productProvider, bundleSelector, c.MCP))

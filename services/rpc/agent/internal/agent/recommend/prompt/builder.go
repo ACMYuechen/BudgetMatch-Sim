@@ -124,6 +124,28 @@ func (b *Builder) FunctionTools() []FunctionTool {
 				},
 			},
 		},
+		{
+			Type:        "function",
+			Name:        toolkit.ToolMCPCallTool,
+			Description: "Call an enabled MCP server tool by name with JSON arguments.",
+			Strict:      true,
+			Parameters: map[string]any{
+				"type":                 "object",
+				"additionalProperties": false,
+				"required":             []string{"name", "arguments"},
+				"properties": map[string]any{
+					"name": map[string]any{
+						"type":        "string",
+						"description": "The MCP tool name to call, for example echo.",
+					},
+					"arguments": map[string]any{
+						"type":                 "object",
+						"description":          "JSON arguments for the MCP tool.",
+						"additionalProperties": true,
+					},
+				},
+			},
+		},
 	}
 }
 

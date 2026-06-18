@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
@@ -14,11 +15,13 @@ import (
 const (
 	ToolSearchProducts = "search_products"
 	ToolSelectBundle   = "select_bundle"
+	ToolMCPCallTool    = "mcp_call_tool"
 )
 
 type Executor struct {
 	provider *candidateStore
 	selector *selector.BundleSelector
+	mcpCfg   mcp.Config
 }
 
 type SearchProductsArgs struct {
@@ -45,6 +48,17 @@ type SelectBundleResult struct {
 	TotalPriceCents int64                  `json:"total_price_cents"`
 }
 
+type MCPCallToolArgs struct {
+	Name      string         `json:"name"`
+	Arguments map[string]any `json:"arguments"`
+}
+
+type MCPCallToolResult struct {
+	Name    string            `json:"name"`
+	Content []mcp.ToolContent `json:"content"`
+	IsError bool              `json:"is_error"`
+}
+
 type Result struct {
 	Name   string          `json:"name"`
 	JSON   json.RawMessage `json:"json"`
@@ -58,12 +72,19 @@ func NewExecutor(provider tools.ProductProvider, selector *selector.BundleSelect
 	}
 }
 
+func (e *Executor) WithMCP(c mcp.Config) *Executor {
+	e.mcpCfg = c
+	return e
+}
+
 func (e *Executor) Execute(ctx context.Context, name string, rawArgs json.RawMessage) (*Result, error) {
 	switch name {
 	case ToolSearchProducts:
 		return e.searchProducts(ctx, rawArgs)
 	case ToolSelectBundle:
 		return e.selectBundle(ctx, rawArgs)
+	case ToolMCPCallTool:
+		return e.callMCPTool(ctx, rawArgs)
 	default:
 		return nil, fmt.Errorf("unknown recommend tool %q", name)
 	}
@@ -119,6 +140,40 @@ func (e *Executor) selectBundle(ctx context.Context, rawArgs json.RawMessage) (*
 	return newResult(ToolSelectBundle, SelectBundleResult{
 		Items:           items,
 		TotalPriceCents: total,
+	})
+}
+
+func (e *Executor) callMCPTool(ctx context.Context, rawArgs json.RawMessage) (*Result, error) {
+	if !e.mcpCfg.Ready() {
+		return nil, errors.New("mcp is not enabled")
+	}
+
+	var args MCPCallToolArgs
+	if err := decodeArgs(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Name == "" {
+		return nil, errors.New("mcp tool name is required")
+	}
+	if args.Arguments == nil {
+		args.Arguments = map[string]any{}
+	}
+
+	client := mcp.NewClient(e.mcpCfg)
+	if err := client.Start(ctx); err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	toolResult, err := client.CallTool(ctx, args.Name, args.Arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return newResult(ToolMCPCallTool, MCPCallToolResult{
+		Name:    args.Name,
+		Content: toolResult.Content,
+		IsError: toolResult.IsError,
 	})
 }
 

@@ -3,8 +3,12 @@ package toolkit
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
+	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
@@ -80,6 +84,41 @@ func TestExecutorRejectsUnknownTool(t *testing.T) {
 	}
 }
 
+func TestExecutorRejectsMCPWhenDisabled(t *testing.T) {
+	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
+
+	_, err := executor.Execute(context.Background(), ToolMCPCallTool, mustArgs(t, MCPCallToolArgs{
+		Name:      "echo",
+		Arguments: map[string]any{"message": "hello"},
+	}))
+	if err == nil || !strings.Contains(err.Error(), "mcp is not enabled") {
+		t.Fatalf("expected disabled mcp error, got %v", err)
+	}
+}
+
+func TestExecutorCallsMCPTool(t *testing.T) {
+	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector()).WithMCP(fakeMCPConfig(t))
+
+	result, err := executor.Execute(context.Background(), ToolMCPCallTool, mustArgs(t, MCPCallToolArgs{
+		Name:      "echo",
+		Arguments: map[string]any{"message": "hello mcp"},
+	}))
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	typed, ok := result.Result.(MCPCallToolResult)
+	if !ok {
+		t.Fatalf("unexpected result type %T", result.Result)
+	}
+	if typed.Name != "echo" || len(typed.Content) == 0 {
+		t.Fatalf("unexpected mcp result: %+v", typed)
+	}
+	if typed.Content[0].Text != "Echo: hello mcp" {
+		t.Fatalf("unexpected mcp content: %+v", typed.Content)
+	}
+}
+
 func mustArgs(t *testing.T, value any) json.RawMessage {
 	t.Helper()
 
@@ -88,4 +127,21 @@ func mustArgs(t *testing.T, value any) json.RawMessage {
 		t.Fatalf("Marshal() error = %v", err)
 	}
 	return data
+}
+
+func fakeMCPConfig(t *testing.T) mcp.Config {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	return mcp.Config{
+		Enabled: true,
+		Command: "python3",
+		Args: []string{
+			filepath.Join(filepath.Dir(file), "..", "..", "..", "mcp", "testdata", "fake_mcp_server.py"),
+		},
+		Timeout: 3000,
+	}
 }
