@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
 
@@ -65,7 +66,7 @@ func (b *Builder) FunctionTools() []FunctionTool {
 	return []FunctionTool{
 		{
 			Type:        "function",
-			Name:        "search_products",
+			Name:        toolkit.ToolSearchProducts,
 			Description: "Search product candidates by query, keywords, budget, and item limit.",
 			Strict:      true,
 			Parameters: map[string]any{
@@ -97,7 +98,7 @@ func (b *Builder) FunctionTools() []FunctionTool {
 		},
 		{
 			Type:        "function",
-			Name:        "select_bundle",
+			Name:        toolkit.ToolSelectBundle,
 			Description: "Select an MVP product bundle from candidate product IDs.",
 			Strict:      true,
 			Parameters: map[string]any{
