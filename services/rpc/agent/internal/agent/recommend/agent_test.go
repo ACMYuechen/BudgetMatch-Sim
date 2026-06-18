@@ -2,9 +2,13 @@ package recommend
 
 import (
 	"context"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
@@ -30,8 +34,50 @@ func TestAgent_RunReturnsBundle(t *testing.T) {
 	}
 }
 
+func TestAgent_RunProbesMCPWhenEnabled(t *testing.T) {
+	agent := NewAgent(tools.NewMockProductProvider(), selector.NewBundleSelector(), fakeMCPConfig(t))
+
+	result, err := agent.Run(context.Background(), structInput("study bundle under 3000"))
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	var found bool
+	for _, tool := range result.ToolsUsed {
+		if tool.Name == "mcp.echo" {
+			found = true
+			if !tool.Success {
+				t.Fatalf("expected successful mcp probe, got %+v", tool)
+			}
+			if !strings.Contains(tool.Detail, "Echo: budgetmatch agent mcp probe") {
+				t.Fatalf("unexpected mcp detail: %q", tool.Detail)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected mcp tool call in result, got %+v", result.ToolsUsed)
+	}
+}
+
 func structInput(query string) agentcore.Input {
 	return agentcore.Input{
 		Query: query,
+	}
+}
+
+func fakeMCPConfig(t *testing.T) mcp.Config {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	return mcp.Config{
+		Enabled: true,
+		Command: "python3",
+		Args: []string{
+			filepath.Join(filepath.Dir(file), "..", "..", "mcp", "testdata", "fake_mcp_server.py"),
+		},
+		Timeout: 3000,
 	}
 }

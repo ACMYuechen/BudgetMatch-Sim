@@ -18,7 +18,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	bundleSelector := recommend.NewBundleSelector()
 
 	registry := agent.NewRegistry()
-	registry.MustRegister(recommendagent.NewAgent(productProvider, bundleSelector))
+	registry.MustRegister(recommendagent.NewAgent(productProvider, bundleSelector, c.MCP))
 
 	return &ServiceContext{
 		Config: c,
