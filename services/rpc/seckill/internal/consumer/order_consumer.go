@@ -188,6 +188,7 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 			Quantity:    orderMsg.Quantity,
 			TotalAmount: orderMsg.TotalAmt,
 			Status:      1,
+			Snapshot:    "{}",
 		}
 		if err := tx.Create(order).Error; err != nil {
 			if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
