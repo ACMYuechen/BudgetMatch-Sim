@@ -6,8 +6,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
-	recommendflow "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/flow"
-	recommendprompt "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/prompt"
+	recommendeino "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/eino"
 	recommendtoolkit "budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
 	"budgetmatch-sim/services/rpc/agent/pb"
@@ -45,19 +44,19 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 		return nil, err
 	}
 
-	if l.svcCtx.RecommendFlowEnabled() {
-		result = l.runRecommendFlow(in, result)
+	if l.svcCtx.RecommendRuntimeEnabled() {
+		result = l.runRecommendRuntime(in, result)
 	}
 
 	return toPB(result), nil
 }
 
-func (l *RecommendLogic) runRecommendFlow(in *pb.RecommendReq, draft *agentcore.Result) *agentcore.Result {
-	flowResult, err := l.svcCtx.RecommendFlow.Run(l.ctx, recommendflowInput(in, draft, l.svcCtx))
+func (l *RecommendLogic) runRecommendRuntime(in *pb.RecommendReq, draft *agentcore.Result) *agentcore.Result {
+	flowResult, err := l.svcCtx.RecommendRunner.Run(l.ctx, recommendRuntimeInput(in, draft))
 	if err != nil {
-		l.Errorf("recommend flow failed, fallback to deterministic result: %v", err)
+		l.Errorf("recommend eino runtime failed, fallback to deterministic result: %v", err)
 		draft.ToolsUsed = append(draft.ToolsUsed, agentcore.ToolCall{
-			Name:    "llm." + l.svcCtx.ModelClient.Name(),
+			Name:    "llm." + l.svcCtx.RecommendRunner.Name(),
 			Success: false,
 			Detail:  err.Error(),
 		})
@@ -69,9 +68,9 @@ func (l *RecommendLogic) runRecommendFlow(in *pb.RecommendReq, draft *agentcore.
 		out.Summary = flowResult.FinalText
 	}
 	out.ToolsUsed = append(out.ToolsUsed, agentcore.ToolCall{
-		Name:    "llm." + l.svcCtx.ModelClient.Name(),
+		Name:    "llm." + l.svcCtx.RecommendRunner.Name(),
 		Success: true,
-		Detail:  "completed function calling flow",
+		Detail:  "completed eino function calling flow",
 	})
 	for _, tool := range flowResult.ToolResults {
 		out.ToolsUsed = append(out.ToolsUsed, agentcore.ToolCall{
@@ -86,16 +85,13 @@ func (l *RecommendLogic) runRecommendFlow(in *pb.RecommendReq, draft *agentcore.
 	return out
 }
 
-func recommendflowInput(in *pb.RecommendReq, draft *agentcore.Result, svcCtx *svc.ServiceContext) recommendflow.RunInput {
-	return recommendflow.RunInput{
-		Messages: svcCtx.PromptBuilder.Build(recommendprompt.BuildInput{
-			Query:           in.Query,
-			Intent:          draft.Intent,
-			SelectedItems:   draft.Items,
-			TotalPriceCents: draft.TotalPriceCents,
-			ToolsUsed:       draft.ToolsUsed,
-		}),
-		Tools: svcCtx.PromptBuilder.FunctionTools(),
+func recommendRuntimeInput(in *pb.RecommendReq, draft *agentcore.Result) recommendeino.RunInput {
+	return recommendeino.RunInput{
+		Query:           in.Query,
+		Intent:          draft.Intent,
+		SelectedItems:   draft.Items,
+		TotalPriceCents: draft.TotalPriceCents,
+		ToolsUsed:       draft.ToolsUsed,
 	}
 }
 
@@ -126,7 +122,7 @@ func applySelectedBundle(result *agentcore.Result, raw json.RawMessage) {
 	result.TotalPriceCents = selected.TotalPriceCents
 }
 
-func toolDetail(tool recommendflow.ToolResult) string {
+func toolDetail(tool recommendeino.ToolResult) string {
 	if tool.Error != "" {
 		return tool.Error
 	}

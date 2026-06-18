@@ -1,14 +1,14 @@
 package config
 
 import (
-	"budgetmatch-sim/services/rpc/agent/internal/llm"
 	"budgetmatch-sim/services/rpc/agent/internal/mcp"
+	"budgetmatch-sim/services/rpc/agent/internal/modelconfig"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	Model llm.Config `json:"model,optional"`
-	MCP   mcp.Config `json:"mcp,optional"`
+	Model modelconfig.Config `json:"model,optional"`
+	MCP   mcp.Config         `json:"mcp,optional"`
 }
