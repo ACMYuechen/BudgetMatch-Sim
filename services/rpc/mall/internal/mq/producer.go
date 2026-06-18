@@ -53,29 +53,14 @@ func (p *OrderEventProducer) publishAsync(topic, eventType string, event OrderEv
 	}()
 }
 
-// PublishCreated 发送订单创建事件
-func (p *OrderEventProducer) PublishCreated(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderCreated, EventTypeCreated, event)
-}
-
 // PublishCreatedAsync 异步发送订单创建事件，不阻塞主链路
 func (p *OrderEventProducer) PublishCreatedAsync(event OrderEvent) {
 	p.publishAsync(TopicOrderCreated, EventTypeCreated, event)
 }
 
-// PublishPaid 发送订单支付事件
-func (p *OrderEventProducer) PublishPaid(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderPaid, EventTypePaid, event)
-}
-
 // PublishPaidAsync 异步发送订单支付事件，不阻塞主链路
 func (p *OrderEventProducer) PublishPaidAsync(event OrderEvent) {
 	p.publishAsync(TopicOrderPaid, EventTypePaid, event)
-}
-
-// PublishCancelled 发送订单取消事件
-func (p *OrderEventProducer) PublishCancelled(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderCancelled, EventTypeCancelled, event)
 }
 
 // PublishCancelledAsync 异步发送订单取消事件，不阻塞主链路

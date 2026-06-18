@@ -37,17 +37,17 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		in.Quantity = 1
 	}
 
-	// 1. idempotency check
+	// 1. 幂等性检查
 	idempKey := idempotencyKey(in.IdempotencyKey)
 	cached, err := l.svcCtx.Redis.Get(l.ctx, idempKey).Result()
 	if err == nil && cached != "" {
-		// return existing order id
-		return &pb.CreateOrderResp{OrderId: cached, Status: int32(OrderStatusPending)}, nil
+		// 返回已存在的订单 ID
+		return &pb.CreateOrderResp{OrderId: cached, Status: int32(mall_orders.OrderStatusPending)}, nil
 	} else if err != redis.Nil && err != nil {
 		l.Logger.Errorf("failed to get idempotency key: %v", err)
 	}
 
-	// 2. validate SKU
+	// 2. 校验 SKU
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.SkuId)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
@@ -63,6 +63,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, errors.MallStockNotEnough
 	}
 
+	// 3. 校验商品
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, sku.ProductId)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
@@ -72,7 +73,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, errors.MallProductNotFound
 	}
 
-	// 3. create order in DB transaction
+	// 4. 在数据库事务中创建订单
 	orderID := uuid.New().String()
 	totalAmount := sku.Price * in.Quantity
 	now := time.Now()
@@ -88,53 +89,63 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 	snapshotJSON, _ := json.Marshal(snapshot)
 
+	order := &mall_orders.MallOrders{
+		Id:             orderID,
+		UserId:         in.UserId,
+		TotalAmount:    totalAmount,
+		Status:         mall_orders.OrderStatusPending,
+		Remark:         in.Remark,
+		Snapshot:       string(snapshotJSON),
+		IdempotencyKey: in.IdempotencyKey,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	item := &mall_order_items.MallOrderItems{
+		OrderId:     orderID,
+		ProductId:   product.Id,
+		SkuId:       sku.Id,
+		SkuName:     sku.Name,
+		Price:       sku.Price,
+		Quantity:    in.Quantity,
+		TotalAmount: totalAmount,
+		Snapshot:    string(snapshotJSON),
+	}
+
+	deductions := []struct {
+		SkuID    string
+		Quantity int64
+	}{{
+		SkuID:    sku.Id,
+		Quantity: in.Quantity,
+	}}
+
+	// 5. 在事务中创建订单、订单项并扣减库存
 	err = l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
-		// insert order
-		order := &mall_orders.MallOrders{
-			Id:             orderID,
-			UserId:         in.UserId,
-			TotalAmount:    totalAmount,
-			Status:         OrderStatusPending,
-			Remark:         in.Remark,
-			Snapshot:       string(snapshotJSON),
-			IdempotencyKey: in.IdempotencyKey,
-			CreatedAt:      now,
-			UpdatedAt:      now,
-		}
-		if err := tx.Create(order).Error; err != nil {
+		// 写入订单主表
+		if err := l.svcCtx.OrderStore.InsertTx(tx, order); err != nil {
 			return err
 		}
 
-		// insert order item
-		item := &mall_order_items.MallOrderItems{
-			OrderId:     orderID,
-			ProductId:   product.Id,
-			SkuId:       sku.Id,
-			SkuName:     sku.Name,
-			Price:       sku.Price,
-			Quantity:    in.Quantity,
-			TotalAmount: totalAmount,
-			Snapshot:    string(snapshotJSON),
-		}
-		if err := tx.Create(item).Error; err != nil {
+		// 写入订单项
+		if err := l.svcCtx.OrderItemStore.InsertBatchTx(tx, []*mall_order_items.MallOrderItems{item}); err != nil {
 			return err
 		}
 
-		// deduct stock with condition
-		result := tx.Exec(
-			"UPDATE product_skus SET stock = stock - ?, sold = sold + ?, updated_at = ? WHERE id = ? AND stock >= ?",
-			in.Quantity, in.Quantity, now, sku.Id, in.Quantity,
-		)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return errors.MallStockNotEnough
+		// 扣减 SKU 库存（乐观锁）
+		now := time.Now()
+		for _, d := range deductions {
+			ok, err := l.svcCtx.SkuStore.DeductStockTx(tx, d.SkuID, d.Quantity, now)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return errors.MallStockNotEnough
+			}
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		if err == errors.MallStockNotEnough {
 			return nil, errors.MallStockNotEnough
@@ -143,21 +154,21 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, errors.Database
 	}
 
-	// 4. record idempotency key
+	// 6. 记录幂等键
 	_ = l.svcCtx.Redis.Set(l.ctx, idempKey, orderID, 24*time.Hour).Err()
 
-	// 5. send RocketMQ event async
+	// 7. 异步发送 RocketMQ 事件
 	if l.svcCtx.OrderEventProducer != nil {
 		event := mq.OrderEvent{
 			OrderID:        orderID,
 			UserID:         in.UserId,
 			SkuID:          sku.Id,
 			Quantity:       in.Quantity,
-			Status:         int32(OrderStatusPending),
+			Status:         int32(mall_orders.OrderStatusPending),
 			IdempotencyKey: in.IdempotencyKey,
 		}
 		l.svcCtx.OrderEventProducer.PublishCreatedAsync(event)
 	}
 
-	return &pb.CreateOrderResp{OrderId: orderID, Status: int32(OrderStatusPending)}, nil
+	return &pb.CreateOrderResp{OrderId: orderID, Status: int32(mall_orders.OrderStatusPending)}, nil
 }

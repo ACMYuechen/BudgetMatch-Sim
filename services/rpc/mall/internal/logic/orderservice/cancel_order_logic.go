@@ -40,7 +40,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 	if order.UserId != in.UserId {
 		return nil, errors.MallOrderNotFound
 	}
-	if order.Status != OrderStatusPending {
+	if order.Status != mall_orders.OrderStatusPending {
 		return nil, errors.MallOrderCannotCancel
 	}
 
@@ -54,36 +54,30 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 	}
 	item := items[0]
 
-	err = l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
+	if err := l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 
-		result := tx.Model(&mall_orders.MallOrders{}).
-			Where("id = ? AND user_id = ? AND status = ?", order.Id, in.UserId, OrderStatusPending).
-			Updates(map[string]any{
-				"status":     OrderStatusCancelled,
-				"updated_at": now,
-			})
-		if result.Error != nil {
-			return result.Error
+		// 更新订单状态为已取消（乐观锁校验：待支付 + 指定用户）
+		ok, err := l.svcCtx.OrderStore.UpdateStatusTx(
+			tx, order.Id, in.UserId,
+			mall_orders.OrderStatusPending, mall_orders.OrderStatusCancelled, now,
+		)
+		if err != nil {
+			return err
 		}
-		if result.RowsAffected == 0 {
+		if !ok {
 			return errors.MallOrderCannotCancel
 		}
 
+		// 恢复各订单项对应的 SKU 库存
 		for _, it := range items {
-			result = tx.Exec(
-				"UPDATE product_skus SET stock = stock + ?, sold = sold - ?, updated_at = ? WHERE id = ?",
-				it.Quantity, it.Quantity, now, it.SkuId,
-			)
-			if result.Error != nil {
-				return result.Error
+			if err := l.svcCtx.SkuStore.RestoreStockTx(tx, it.SkuId, it.Quantity, now); err != nil {
+				return err
 			}
 		}
 
 		return nil
-	})
-
-	if err != nil {
+	}); err != nil {
 		if err == errors.MallOrderCannotCancel {
 			return nil, errors.MallOrderCannotCancel
 		}
@@ -91,14 +85,14 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		return nil, errors.Database
 	}
 
-	// send event
+	// 发送事件
 	if l.svcCtx.OrderEventProducer != nil {
 		event := mq.OrderEvent{
 			OrderID:  order.Id,
 			UserID:   order.UserId,
 			SkuID:    item.SkuId,
 			Quantity: item.Quantity,
-			Status:   int32(OrderStatusCancelled),
+			Status:   int32(mall_orders.OrderStatusCancelled),
 		}
 		l.svcCtx.OrderEventProducer.PublishCancelledAsync(event)
 	}

@@ -9,6 +9,7 @@ import (
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
+	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -45,7 +46,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 	}
 
 	order.Status = newStatus
-	if newStatus == OrderStatusPaid && order.PayTime == nil {
+	if newStatus == mall_orders.OrderStatusPaid && order.PayTime == nil {
 		now := time.Now()
 		order.PayTime = &now
 	}
@@ -55,12 +56,12 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		return nil, errors.Database
 	}
 
-	// send event for paid status
-	if l.svcCtx.OrderEventProducer != nil && newStatus == OrderStatusPaid {
+	// 针对已支付状态发送事件
+	if l.svcCtx.OrderEventProducer != nil && newStatus == mall_orders.OrderStatusPaid {
 		event := mq.OrderEvent{
 			OrderID: order.Id,
 			UserID:  order.UserId,
-			Status:  int32(OrderStatusPaid),
+			Status:  int32(mall_orders.OrderStatusPaid),
 		}
 		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
 	}
@@ -70,15 +71,15 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 
 func isValidOrderTransition(current, next int64) bool {
 	switch current {
-	case OrderStatusPending:
-		return next == OrderStatusPaid || next == OrderStatusCancelled
-	case OrderStatusPaid:
-		return next == OrderStatusShipped || next == OrderStatusCancelled
-	case OrderStatusShipped:
-		return next == OrderStatusCompleted || next == OrderStatusRefunding
-	case OrderStatusRefunding:
-		return next == OrderStatusRefunded
-	case OrderStatusCompleted, OrderStatusCancelled, OrderStatusRefunded:
+	case mall_orders.OrderStatusPending:
+		return next == mall_orders.OrderStatusPaid || next == mall_orders.OrderStatusCancelled
+	case mall_orders.OrderStatusPaid:
+		return next == mall_orders.OrderStatusShipped || next == mall_orders.OrderStatusCancelled
+	case mall_orders.OrderStatusShipped:
+		return next == mall_orders.OrderStatusCompleted || next == mall_orders.OrderStatusRefunding
+	case mall_orders.OrderStatusRefunding:
+		return next == mall_orders.OrderStatusRefunded
+	case mall_orders.OrderStatusCompleted, mall_orders.OrderStatusCancelled, mall_orders.OrderStatusRefunded:
 		return false
 	default:
 		return false
