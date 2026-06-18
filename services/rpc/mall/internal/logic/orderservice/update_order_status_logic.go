@@ -62,9 +62,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 			UserID:  order.UserId,
 			Status:  int32(OrderStatusPaid),
 		}
-		if err := l.svcCtx.OrderEventProducer.PublishPaid(l.ctx, event); err != nil {
-			l.Logger.Errorf("failed to send order paid event: %v", err)
-		}
+		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
 	}
 
 	return &pb.UpdateOrderStatusResp{Success: true}, nil

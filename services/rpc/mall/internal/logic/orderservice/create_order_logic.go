@@ -156,10 +156,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 			Status:         int32(OrderStatusPending),
 			IdempotencyKey: in.IdempotencyKey,
 		}
-		if err := l.svcCtx.OrderEventProducer.PublishCreated(l.ctx, event); err != nil {
-			l.Logger.Errorf("failed to send order created event: %v", err)
-			// do not fail order creation
-		}
+		l.svcCtx.OrderEventProducer.PublishCreatedAsync(event)
 	}
 
 	return &pb.CreateOrderResp{OrderId: orderID, Status: int32(OrderStatusPending)}, nil

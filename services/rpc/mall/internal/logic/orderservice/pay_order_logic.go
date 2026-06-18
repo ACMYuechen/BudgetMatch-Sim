@@ -60,9 +60,7 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 			UserID:  order.UserId,
 			Status:  int32(OrderStatusPaid),
 		}
-		if err := l.svcCtx.OrderEventProducer.PublishPaid(l.ctx, event); err != nil {
-			l.Logger.Errorf("failed to send order paid event: %v", err)
-		}
+		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
 	}
 
 	return &pb.PayOrderResp{

@@ -259,10 +259,10 @@ type AdminSkuItem struct {
 type AdminCreateProductReq struct {
 	SpuCode    string `json:"spu_code" validate:"required"`
 	Name       string `json:"name" validate:"required"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
+	CategoryId string `json:"category_id,optional"`
+	Brand      string `json:"brand,optional"`
+	MainImage  string `json:"main_image,optional"`
+	Detail     string `json:"detail,optional"`
 }
 
 type AdminCreateProductResp struct {
@@ -270,13 +270,13 @@ type AdminCreateProductResp struct {
 }
 
 type AdminUpdateProductReq struct {
-	Id         string `json:"id" path:"id"`
-	Name       string `json:"name"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	Status     int32  `json:"status"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
+	Id         string `json:"id,optional" path:"id"`
+	Name       string `json:"name,optional"`
+	CategoryId string `json:"category_id,optional"`
+	Brand      string `json:"brand,optional"`
+	Status     int32  `json:"status,optional"`
+	MainImage  string `json:"main_image,optional"`
+	Detail     string `json:"detail,optional"`
 }
 
 type AdminUpdateProductResp struct {
@@ -284,11 +284,11 @@ type AdminUpdateProductResp struct {
 }
 
 type AdminProductListReq struct {
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
-	CategoryId string `json:"category_id" form:"category_id"`
-	Keyword    string `json:"keyword" form:"keyword"`
-	Status     int32  `json:"status" form:"status,default=-1"`
+	Page       int    `json:"page,optional" form:"page,default=1"`
+	PageSize   int    `json:"page_size,optional" form:"page_size,default=10"`
+	CategoryId string `json:"category_id,optional" form:"category_id"`
+	Keyword    string `json:"keyword,optional" form:"keyword"`
+	Status     int32  `json:"status,optional" form:"status,default=-1"`
 }
 
 type AdminProductListResp struct {
@@ -299,7 +299,7 @@ type AdminProductListResp struct {
 }
 
 type AdminProductDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `json:"id,optional" path:"id"`
 }
 
 type AdminProductDetailResp struct {
@@ -320,12 +320,12 @@ type AdminCreateSkuResp struct {
 }
 
 type AdminUpdateSkuReq struct {
-	Id     string `json:"id" path:"id"`
-	Name   string `json:"name"`
-	Specs  string `json:"specs"`
-	Price  int64  `json:"price"`
-	Stock  int64  `json:"stock"`
-	Status int32  `json:"status"`
+	Id     string `json:"id,optional" path:"id"`
+	Name   string `json:"name,optional"`
+	Specs  string `json:"specs,optional"`
+	Price  int64  `json:"price,optional"`
+	Stock  int64  `json:"stock,optional"`
+	Status int32  `json:"status,optional"`
 }
 
 type AdminUpdateSkuResp struct {
@@ -333,10 +333,10 @@ type AdminUpdateSkuResp struct {
 }
 
 type AdminSkuListReq struct {
-	ProductId string `json:"product_id" form:"product_id,required"`
-	Page      int    `json:"page" form:"page,default=1"`
-	PageSize  int    `json:"page_size" form:"page_size,default=10"`
-	Status    int32  `json:"status" form:"status,default=-1"`
+	ProductId string `json:"product_id,optional" form:"product_id,required"`
+	Page      int    `json:"page,optional" form:"page,default=1"`
+	PageSize  int    `json:"page_size,optional" form:"page_size,default=10"`
+	Status    int32  `json:"status,optional" form:"status,default=-1"`
 }
 
 type AdminSkuListResp struct {
@@ -347,7 +347,7 @@ type AdminSkuListResp struct {
 }
 
 type AdminSkuDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `json:"id,optional" path:"id"`
 }
 
 type AdminSkuDetailResp struct {
@@ -380,10 +380,10 @@ type AdminOrderResp struct {
 }
 
 type AdminOrderListReq struct {
-	Page     int    `json:"page" form:"page,default=1"`
-	PageSize int    `json:"page_size" form:"page_size,default=10"`
-	Status   int32  `json:"status" form:"status,default=-1"`
-	UserId   string `json:"user_id" form:"user_id"`
+	Page     int    `json:"page,optional" form:"page,default=1"`
+	PageSize int    `json:"page_size,optional" form:"page_size,default=10"`
+	Status   int32  `json:"status,optional" form:"status,default=-1"`
+	UserId   string `json:"user_id,optional" form:"user_id"`
 }
 
 type AdminOrderListResp struct {
@@ -394,7 +394,7 @@ type AdminOrderListResp struct {
 }
 
 type AdminOrderDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `json:"id,optional" path:"id"`
 }
 
 type AdminOrderDetailResp struct {
@@ -402,7 +402,7 @@ type AdminOrderDetailResp struct {
 }
 
 type AdminUpdateOrderStatusReq struct {
-	Id     string `json:"id" path:"id"`
+	Id     string `json:"id,optional" path:"id"`
 	Status int32  `json:"status" validate:"required"`
 }
 
@@ -411,9 +411,9 @@ type AdminUpdateOrderStatusResp struct {
 }
 
 type AdminDeleteProductReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `json:"id,optional" path:"id"`
 }
 
 type AdminDeleteSkuReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `json:"id,optional" path:"id"`
 }

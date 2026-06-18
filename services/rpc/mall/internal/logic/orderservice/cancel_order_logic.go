@@ -10,7 +10,7 @@ import (
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
-	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
+	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -55,25 +55,38 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 	item := items[0]
 
 	err = l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
-		// rollback stock
 		now := time.Now()
-		result := tx.Exec(
-			"UPDATE product_skus SET stock = stock + ?, sold = sold - ?, updated_at = ? WHERE id = ?",
-			item.Quantity, item.Quantity, now, item.SkuId,
-		)
+
+		result := tx.Model(&mall_orders.MallOrders{}).
+			Where("id = ? AND user_id = ? AND status = ?", order.Id, in.UserId, OrderStatusPending).
+			Updates(map[string]any{
+				"status":     OrderStatusCancelled,
+				"updated_at": now,
+			})
 		if result.Error != nil {
 			return result.Error
 		}
+		if result.RowsAffected == 0 {
+			return errors.MallOrderCannotCancel
+		}
 
-		// update order status
-		if err := tx.Model(&mall_order_items.MallOrderItems{}).Where("id = ?", order.Id).Update("status", OrderStatusCancelled).Error; err != nil {
-			return err
+		for _, it := range items {
+			result = tx.Exec(
+				"UPDATE product_skus SET stock = stock + ?, sold = sold - ?, updated_at = ? WHERE id = ?",
+				it.Quantity, it.Quantity, now, it.SkuId,
+			)
+			if result.Error != nil {
+				return result.Error
+			}
 		}
 
 		return nil
 	})
 
 	if err != nil {
+		if err == errors.MallOrderCannotCancel {
+			return nil, errors.MallOrderCannotCancel
+		}
 		l.Logger.Errorf("failed to cancel order: %v", err)
 		return nil, errors.Database
 	}
@@ -87,9 +100,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 			Quantity: item.Quantity,
 			Status:   int32(OrderStatusCancelled),
 		}
-		if err := l.svcCtx.OrderEventProducer.PublishCancelled(l.ctx, event); err != nil {
-			l.Logger.Errorf("failed to send order cancelled event: %v", err)
-		}
+		l.svcCtx.OrderEventProducer.PublishCancelledAsync(event)
 	}
 
 	return &pb.CancelOrderResp{Success: true}, nil
