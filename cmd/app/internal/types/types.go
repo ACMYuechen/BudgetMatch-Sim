@@ -14,9 +14,9 @@ type ActivityItem struct {
 }
 
 type ActivityListReq struct {
-	Page     int `json:"page" form:"page,default=1"`
-	PageSize int `json:"page_size" form:"page_size,default=10"`
-	Status   int `json:"status" form:"status,default=0"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+	Status   int `form:"status,default=0"`
 }
 
 type ActivityListResp struct {
@@ -27,7 +27,7 @@ type ActivityListResp struct {
 }
 
 type ActivityDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityDetailResp struct {
@@ -49,9 +49,9 @@ type SkuItem struct {
 }
 
 type SkuListReq struct {
-	ActivityId string `json:"activity_id" form:"activity_id,required"`
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
+	ActivityId string `form:"activity_id,required"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
 }
 
 type SkuListResp struct {
@@ -83,7 +83,7 @@ type SubmitOrderResp struct {
 }
 
 type GetOrderReq struct {
-	OrderId string `json:"order_id" path:"order_id"`
+	OrderId string `path:"order_id"`
 }
 
 type GetOrderResp struct {
@@ -124,11 +124,11 @@ type MallSkuItem struct {
 }
 
 type MallProductListReq struct {
-	Page       int    `json:"page,optional" form:"page,default=1"`
-	PageSize   int    `json:"page_size,optional" form:"page_size,default=10"`
-	CategoryId string `json:"category_id,optional" form:"category_id"`
-	Keyword    string `json:"keyword,optional" form:"keyword"`
-	Status     int32  `json:"status,optional" form:"status,default=1"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	CategoryId string `form:"category_id"`
+	Keyword    string `form:"keyword"`
+	Status     int32  `form:"status,default=1"`
 }
 
 type MallProductListResp struct {
@@ -139,7 +139,7 @@ type MallProductListResp struct {
 }
 
 type MallProductDetailReq struct {
-	Id string `json:"id,optional" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallProductDetailResp struct {
@@ -147,10 +147,10 @@ type MallProductDetailResp struct {
 }
 
 type MallSkuListReq struct {
-	ProductId string `json:"product_id,optional" form:"product_id,required"`
-	Page      int    `json:"page,optional" form:"page,default=1"`
-	PageSize  int    `json:"page_size,optional" form:"page_size,default=10"`
-	Status    int32  `json:"status,optional" form:"status,default=1"`
+	ProductId string `form:"product_id,required"`
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	Status    int32  `form:"status,default=1"`
 }
 
 type MallSkuListResp struct {
@@ -198,9 +198,9 @@ type MallCreateOrderResp struct {
 }
 
 type MallOrderListReq struct {
-	Page     int   `json:"page,optional" form:"page,default=1"`
-	PageSize int   `json:"page_size,optional" form:"page_size,default=10"`
-	Status   int32 `json:"status,optional" form:"status,default=-1"`
+	Page     int   `form:"page,default=1"`
+	PageSize int   `form:"page_size,default=10"`
+	Status   int32 `form:"status,default=-1"`
 }
 
 type MallOrderListResp struct {
@@ -211,7 +211,7 @@ type MallOrderListResp struct {
 }
 
 type MallOrderDetailReq struct {
-	Id string `json:"id,optional" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallOrderDetailResp struct {
@@ -219,5 +219,5 @@ type MallOrderDetailResp struct {
 }
 
 type MallCancelOrderReq struct {
-	Id string `json:"id,optional" path:"id"`
+	Id string `path:"id"`
 }

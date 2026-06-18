@@ -2,10 +2,10 @@ syntax = "v1"
 
 // 用户列表请求
 type UserListReq {
-	Page     int `json:"page" form:"page,default=1"`
-	PageSize int `json:"page_size" form:"page_size,default=10"`
-	Status   int `json:"status" form:"status,default=0"`
-	Role     int `json:"role" form:"role,default=0"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+	Status   int `form:"status,default=0"`
+	Role     int `form:"role,default=0"`
 }
 
 // 用户列表项
@@ -31,7 +31,7 @@ type UserListResp {
 
 // 用户详情请求
 type GetUserDetailReq {
-	UserId string `json:"user_id" path:"user_id"`
+	UserId string `path:"user_id"`
 }
 
 // 用户详情响应
@@ -61,7 +61,7 @@ type UpdateUserStatusResp {
 
 // 删除用户请求
 type DeleteUserReq {
-	UserId string `json:"user_id" path:"user_id"`
+	UserId string `path:"user_id"`
 }
 
 // 删除用户响应
