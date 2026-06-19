@@ -2,6 +2,7 @@
 // goctl 1.9.2
 // Source: agent.proto
 
+// Package recommendservice 提供 RecommendService 的 gRPC 客户端封装。
 package recommendservice
 
 import (
@@ -14,27 +15,37 @@ import (
 )
 
 type (
-	BundleItem    = pb.BundleItem
-	Intent        = pb.Intent
-	RecommendReq  = pb.RecommendReq
+	// BundleItem 是 protobuf BundleItem 的别名，用于客户端类型安全。
+	BundleItem = pb.BundleItem
+	// Intent 是 protobuf Intent 的别名。
+	Intent = pb.Intent
+	// RecommendReq 是 protobuf RecommendReq 的别名。
+	RecommendReq = pb.RecommendReq
+	// RecommendResp 是 protobuf RecommendResp 的别名。
 	RecommendResp = pb.RecommendResp
-	ToolCall      = pb.ToolCall
+	// ToolCall 是 protobuf ToolCall 的别名。
+	ToolCall = pb.ToolCall
 
+	// RecommendService 定义推荐服务的客户端接口。
 	RecommendService interface {
+		// Recommend 向服务端发起推荐请求。
 		Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error)
 	}
 
+	// defaultRecommendService 是 RecommendService 的默认实现，基于 go-zero zrpc 客户端。
 	defaultRecommendService struct {
-		cli zrpc.Client
+		cli zrpc.Client // cli 底层 zrpc 客户端
 	}
 )
 
+// NewRecommendService 创建 RecommendService 客户端实例。
 func NewRecommendService(cli zrpc.Client) RecommendService {
 	return &defaultRecommendService{
 		cli: cli,
 	}
 }
 
+// Recommend 调用底层 gRPC 连接完成推荐请求。
 func (m *defaultRecommendService) Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error) {
 	client := pb.NewRecommendServiceClient(m.cli.Conn())
 	return client.Recommend(ctx, in, opts...)

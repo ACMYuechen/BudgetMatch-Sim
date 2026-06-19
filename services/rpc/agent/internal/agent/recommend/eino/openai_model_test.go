@@ -1,3 +1,4 @@
+// Package eino 提供基于 Eino 框架的 LLM 模型封装、Prompt 构建、工具定义与 ReAct Agent 运行器。
 package eino
 
 import (
@@ -14,6 +15,7 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/modelconfig"
 )
 
+// TestNewChatModelDefaultsToDisabled 验证当 Provider 为空（默认 noop）时，NewChatModel 返回 nil。
 func TestNewChatModelDefaultsToDisabled(t *testing.T) {
 	model, err := NewChatModel(modelconfig.Config{})
 	if err != nil {
@@ -24,12 +26,15 @@ func TestNewChatModelDefaultsToDisabled(t *testing.T) {
 	}
 }
 
+// TestNewChatModelOpenAIRequiresAPIKey 验证当 Provider 为 openai 但 APIKey 为空时，NewChatModel 返回错误。
 func TestNewChatModelOpenAIRequiresAPIKey(t *testing.T) {
 	if _, err := NewChatModel(modelconfig.Config{Provider: "openai"}); err == nil {
 		t.Fatal("expected missing api key error")
 	}
 }
 
+// TestOpenAIChatModelParsesToolCalls 验证 OpenAIChatModel 能正确解析工具调用响应，
+// 并检查请求路径、认证头、请求体中的模型名称是否正确。
 func TestOpenAIChatModelParsesToolCalls(t *testing.T) {
 	var gotPath string
 	var gotAuth string

@@ -15,55 +15,64 @@ import (
 
 const protocolVersion = "2025-03-26"
 
+// Client MCP（Model Context Protocol）客户端，通过 stdio 与子进程形式的 MCP Server 通信。
+// 使用 JSON-RPC 2.0 协议进行请求/响应交互，支持工具列表查询和工具调用。
 type Client struct {
-	command string
-	args    []string
-	timeout int64
+	command string   // MCP Server 启动命令
+	args    []string // MCP Server 启动参数
+	timeout int64    // 请求超时时间（毫秒）
 
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	reader *bufio.Reader
-	stderr *tailBuffer
+	cmd    *exec.Cmd      // 正在运行的子进程
+	stdin  io.WriteCloser // 子进程标准输入
+	reader *bufio.Reader  // 子进程标准输出读取器
+	stderr *tailBuffer    // 子进程标准错误尾缓冲区，用于故障排查
 
-	nextID int64
-	mu     sync.Mutex
+	nextID int64      // 下一个 JSON-RPC 请求 ID（原子递增）
+	mu     sync.Mutex // 保护写操作的互斥锁，确保请求/响应顺序一致
 }
 
+// Tool MCP Server 提供的工具定义。
 type Tool struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	InputSchema map[string]any `json:"inputSchema"`
+	Name        string         `json:"name"`        // 工具名称
+	Description string         `json:"description"` // 工具描述
+	InputSchema map[string]any `json:"inputSchema"` // 工具输入参数 JSON Schema
 }
 
+// ToolContent 工具调用返回的内容块。
 type ToolContent struct {
-	Type string `json:"type"`
-	Text string `json:"text,omitempty"`
+	Type string `json:"type"`           // 内容类型，如 "text"
+	Text string `json:"text,omitempty"` // 文本内容
 }
 
+// ToolResult 工具调用的返回结果。
 type ToolResult struct {
-	Content []ToolContent `json:"content"`
-	IsError bool          `json:"isError,omitempty"`
+	Content []ToolContent `json:"content"`           // 内容块列表
+	IsError bool          `json:"isError,omitempty"` // 是否表示错误
 }
 
+// rpcRequest JSON-RPC 2.0 请求结构。
 type rpcRequest struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      int64  `json:"id,omitempty"`
-	Method  string `json:"method"`
-	Params  any    `json:"params,omitempty"`
+	JSONRPC string `json:"jsonrpc"`          // JSON-RPC 版本，固定为 "2.0"
+	ID      int64  `json:"id,omitempty"`     // 请求标识，用于匹配响应
+	Method  string `json:"method"`           // 调用的方法名
+	Params  any    `json:"params,omitempty"` // 方法参数
 }
 
+// rpcResponse JSON-RPC 2.0 响应结构。
 type rpcResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      int64           `json:"id,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *rpcError       `json:"error,omitempty"`
+	JSONRPC string          `json:"jsonrpc"`          // JSON-RPC 版本
+	ID      int64           `json:"id,omitempty"`     // 对应的请求标识
+	Result  json.RawMessage `json:"result,omitempty"` // 成功时的结果数据
+	Error   *rpcError       `json:"error,omitempty"`  // 错误时的错误信息
 }
 
+// rpcError JSON-RPC 2.0 错误结构。
 type rpcError struct {
-	Code    int64  `json:"code"`
-	Message string `json:"message"`
+	Code    int64  `json:"code"`    // 错误码
+	Message string `json:"message"` // 错误描述
 }
 
+// NewClient 根据配置创建 MCP 客户端实例，但不启动子进程。
 func NewClient(c Config) *Client {
 	return &Client{
 		command: c.Command,
@@ -72,6 +81,8 @@ func NewClient(c Config) *Client {
 	}
 }
 
+// Start 启动 MCP Server 子进程并完成初始化握手。
+// 流程：启动子进程 -> 建立 stdin/stdout/stderr 管道 -> 执行 initialize 请求 -> 发送 initialized 通知。
 func (c *Client) Start(ctx context.Context) error {
 	if c.command == "" {
 		return errors.New("mcp command is empty")
@@ -112,6 +123,7 @@ func (c *Client) Start(ctx context.Context) error {
 	return nil
 }
 
+// Close 关闭 MCP 客户端，终止子进程并清理资源。
 func (c *Client) Close() error {
 	var err error
 	if c.stdin != nil {
@@ -128,6 +140,7 @@ func (c *Client) Close() error {
 	return err
 }
 
+// ListTools 向 MCP Server 请求可用工具列表。
 func (c *Client) ListTools(ctx context.Context) ([]Tool, error) {
 	var result struct {
 		Tools []Tool `json:"tools"`
@@ -138,6 +151,7 @@ func (c *Client) ListTools(ctx context.Context) ([]Tool, error) {
 	return result.Tools, nil
 }
 
+// CallTool 调用 MCP Server 上的指定工具，传入参数并返回结果。
 func (c *Client) CallTool(ctx context.Context, name string, args map[string]any) (*ToolResult, error) {
 	var result ToolResult
 	if err := c.call(ctx, "tools/call", map[string]any{
@@ -149,6 +163,7 @@ func (c *Client) CallTool(ctx context.Context, name string, args map[string]any)
 	return &result, nil
 }
 
+// initialize 执行 MCP 初始化握手：发送 initialize 请求，然后发送 initialized 通知。
 func (c *Client) initialize(ctx context.Context) error {
 	var result struct {
 		ProtocolVersion string `json:"protocolVersion"`
@@ -166,6 +181,8 @@ func (c *Client) initialize(ctx context.Context) error {
 	return c.notify("notifications/initialized")
 }
 
+// call 发送 JSON-RPC 请求并等待匹配的响应，支持上下文超时取消。
+// 通过 ID 匹配请求与响应，忽略非目标响应（如 Server 主动推送的通知）。
 func (c *Client) call(ctx context.Context, method string, params any, out any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -205,6 +222,7 @@ func (c *Client) call(ctx context.Context, method string, params any, out any) e
 	}
 }
 
+// notify 发送 JSON-RPC 通知（无 ID，不需要响应）。
 func (c *Client) notify(method string) error {
 	return c.write(map[string]any{
 		"jsonrpc": "2.0",
@@ -212,6 +230,7 @@ func (c *Client) notify(method string) error {
 	})
 }
 
+// write 将数据编码为 JSON 并写入子进程 stdin，末尾追加换行符。
 func (c *Client) write(v any) error {
 	if c.stdin == nil {
 		return errors.New("mcp client is not started")
@@ -227,6 +246,8 @@ func (c *Client) write(v any) error {
 	return nil
 }
 
+// read 从子进程 stdout 读取一行响应，支持上下文超时取消。
+// 超时或读取失败时，会附加 stderr 中的最近错误信息以便排查问题。
 func (c *Client) read(ctx context.Context) (*rpcResponse, error) {
 	if c.reader == nil {
 		return nil, errors.New("mcp client is not started")
@@ -263,6 +284,7 @@ func (c *Client) read(ctx context.Context) (*rpcResponse, error) {
 	}
 }
 
+// stderrText 返回子进程 stderr 中的最近输出内容，用于故障排查。
 func (c *Client) stderrText() string {
 	if c.stderr == nil {
 		return ""
@@ -270,16 +292,19 @@ func (c *Client) stderrText() string {
 	return c.stderr.String()
 }
 
+// tailBuffer 带大小限制的尾部缓冲区，用于保存子进程 stderr 的最后若干字节。
 type tailBuffer struct {
-	mu    sync.Mutex
-	limit int
+	mu    sync.Mutex // 保护 buf 的互斥锁
+	limit int        // 最大保留字节数
 	buf   bytes.Buffer
 }
 
+// newTailBuffer 创建指定容量限制的尾部缓冲区。
 func newTailBuffer(limit int) *tailBuffer {
 	return &tailBuffer{limit: limit}
 }
 
+// Write 实现 io.Writer 接口，写入数据并在超出限制时保留尾部内容。
 func (b *tailBuffer) Write(p []byte) (int, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -295,6 +320,7 @@ func (b *tailBuffer) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// String 返回缓冲区中保存的字符串内容。
 func (b *tailBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()

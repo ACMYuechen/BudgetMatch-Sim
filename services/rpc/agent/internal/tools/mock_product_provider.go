@@ -1,3 +1,4 @@
+// Package tools 提供推荐 Agent 所需的外部工具与数据提供者实现。
 package tools
 
 import (
@@ -5,10 +6,12 @@ import (
 	"strings"
 )
 
+// MockProductProvider 是 ProductProvider 的内存模拟实现，内置一组示例商品。
 type MockProductProvider struct {
-	products []ProductCandidate
+	products []ProductCandidate // products 模拟商品列表
 }
 
+// NewMockProductProvider 创建内置示例商品的 MockProductProvider 实例。
 func NewMockProductProvider() *MockProductProvider {
 	return &MockProductProvider{
 		products: []ProductCandidate{
@@ -23,10 +26,12 @@ func NewMockProductProvider() *MockProductProvider {
 	}
 }
 
+// Name 返回该提供者的标识名称。
 func (p *MockProductProvider) Name() string {
 	return "mock.product_provider"
 }
 
+// SearchProducts 根据查询、关键词和预算筛选候选商品；若无匹配则返回预算内全部商品。
 func (p *MockProductProvider) SearchProducts(ctx context.Context, req SearchProductsReq) ([]ProductCandidate, error) {
 	_ = ctx
 
@@ -60,6 +65,7 @@ func (p *MockProductProvider) SearchProducts(ctx context.Context, req SearchProd
 	return out, nil
 }
 
+// normalizeKeywords 将输入文本归一化为小写、去重后的关键词列表。
 func normalizeKeywords(values []string) []string {
 	seen := make(map[string]struct{})
 	var keywords []string
@@ -79,6 +85,7 @@ func normalizeKeywords(values []string) []string {
 	return keywords
 }
 
+// matchesAny 判断商品名称、分类或标签中是否包含任意关键词。
 func matchesAny(product ProductCandidate, keywords []string) bool {
 	target := strings.ToLower(product.Name + " " + product.Category + " " + strings.Join(product.Tags, " "))
 	for _, keyword := range keywords {

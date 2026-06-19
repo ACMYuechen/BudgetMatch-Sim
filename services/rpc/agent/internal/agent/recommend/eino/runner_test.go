@@ -1,3 +1,4 @@
+// Package eino 提供基于 Eino 框架的 LLM 模型封装、Prompt 构建、工具定义与 ReAct Agent 运行器。
 package eino
 
 import (
@@ -16,6 +17,8 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
 
+// TestRunnerExecutesEinoToolCalls 验证 Runner 能正确执行 search_products 和 select_bundle 工具调用，
+// 并返回预期的最终文本与工具结果。
 func TestRunnerExecutesEinoToolCalls(t *testing.T) {
 	model := &scriptedModel{
 		responses: []*schema.Message{
@@ -77,6 +80,8 @@ func TestRunnerExecutesEinoToolCalls(t *testing.T) {
 	}
 }
 
+// TestRunnerCollectsToolErrors 验证 Runner 在 MCP 工具调用失败时，
+// 能正确收集并返回错误信息（如 "mcp is not enabled"）。
 func TestRunnerCollectsToolErrors(t *testing.T) {
 	model := &scriptedModel{
 		responses: []*schema.Message{
@@ -106,12 +111,14 @@ func TestRunnerCollectsToolErrors(t *testing.T) {
 	}
 }
 
+// scriptedModel 是一个用于测试的模拟模型，按预设顺序返回响应，并记录收到的请求和绑定的工具。
 type scriptedModel struct {
-	responses  []*schema.Message
-	requests   [][]*schema.Message
-	boundTools []*schema.ToolInfo
+	responses  []*schema.Message   // 预设的响应消息队列
+	requests   [][]*schema.Message // 记录每次 Generate 收到的请求
+	boundTools []*schema.ToolInfo  // 记录 WithTools 绑定的工具
 }
 
+// Generate 模拟模型生成：检查上下文、记录请求并按顺序返回预设响应。
 func (m *scriptedModel) Generate(ctx context.Context, input []*schema.Message, opts ...einomodel.Option) (*schema.Message, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -125,6 +132,7 @@ func (m *scriptedModel) Generate(ctx context.Context, input []*schema.Message, o
 	return resp, nil
 }
 
+// Stream 将 Generate 结果包装为流式读取器（伪流式）。
 func (m *scriptedModel) Stream(ctx context.Context, input []*schema.Message, opts ...einomodel.Option) (*schema.StreamReader[*schema.Message], error) {
 	msg, err := m.Generate(ctx, input, opts...)
 	if err != nil {
@@ -133,12 +141,14 @@ func (m *scriptedModel) Stream(ctx context.Context, input []*schema.Message, opt
 	return schema.StreamReaderFromArray([]*schema.Message{msg}), nil
 }
 
+// WithTools 记录绑定的工具并返回模型的浅拷贝副本。
 func (m *scriptedModel) WithTools(tools []*schema.ToolInfo) (einomodel.ToolCallingChatModel, error) {
 	m.boundTools = append([]*schema.ToolInfo(nil), tools...)
 	clone := *m
 	return &clone, nil
 }
 
+// mustJSONString 将任意值序列化为 JSON 字符串，失败时终止测试。
 func mustJSONString(t *testing.T, value any) string {
 	t.Helper()
 
@@ -149,6 +159,7 @@ func mustJSONString(t *testing.T, value any) string {
 	return string(data)
 }
 
+// mcpDisabled 返回一个未启用 MCP 的配置（用于测试）。
 func mcpDisabled() mcp.Config {
 	return mcp.Config{}
 }

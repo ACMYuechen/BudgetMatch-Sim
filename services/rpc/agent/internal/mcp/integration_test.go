@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+// TestIntegrationEverythingServer 集成测试：连接真实的 @modelcontextprotocol/server-everything MCP Server 并进行探测。
+// 需设置环境变量 AGENT_MCP_INTEGRATION=1 才会执行，默认跳过以避免依赖外部服务。
 func TestIntegrationEverythingServer(t *testing.T) {
 	if os.Getenv("AGENT_MCP_INTEGRATION") != "1" {
 		t.Skip("set AGENT_MCP_INTEGRATION=1 to run against @modelcontextprotocol/server-everything")
@@ -31,6 +33,7 @@ func TestIntegrationEverythingServer(t *testing.T) {
 	}
 }
 
+// getenv 获取环境变量值，若不存在则返回默认值。
 func getenv(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -38,6 +41,7 @@ func getenv(key, fallback string) string {
 	return fallback
 }
 
+// splitArgs 将字符串按空白字符分割为参数列表；空字符串返回 nil。
 func splitArgs(value string) []string {
 	if strings.TrimSpace(value) == "" {
 		return nil

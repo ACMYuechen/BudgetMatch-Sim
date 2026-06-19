@@ -14,12 +14,15 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// RecommendLogic 推荐服务逻辑层，处理 Recommend RPC 请求。
+// 先调用确定性推荐 Agent 生成草稿结果，再根据运行时开关决定是否启用 Eino 运行时进行二次优化。
 type RecommendLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
+// NewRecommendLogic 创建 RecommendLogic 实例，绑定上下文与服务上下文。
 func NewRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RecommendLogic {
 	return &RecommendLogic{
 		ctx:    ctx,
@@ -28,6 +31,9 @@ func NewRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Recomme
 	}
 }
 
+// Recommend 处理推荐 RPC 请求。
+// 流程：1) 从服务上下文中获取推荐 Agent；2) 运行 Agent 生成草稿结果；
+// 3) 若运行时开关开启，则调用 Eino 运行时进行二次优化；4) 将结果转换为 protobuf 响应返回。
 func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, error) {
 	runner, ok := l.svcCtx.Agents.Get(recommendagent.AgentName)
 	if !ok {
@@ -44,6 +50,7 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 		return nil, err
 	}
 
+	// 若推荐运行时开关开启，则对草稿结果进行二次优化
 	if l.svcCtx.RecommendRuntimeEnabled() {
 		result = l.runRecommendRuntime(in, result)
 	}
@@ -51,6 +58,8 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 	return toPB(result), nil
 }
 
+// runRecommendRuntime 调用 Eino 运行时推荐流程，对确定性 Agent 生成的草稿结果进行优化。
+// 若运行时调用失败，则回退到草稿结果，并记录错误日志。
 func (l *RecommendLogic) runRecommendRuntime(in *pb.RecommendReq, draft *agentcore.Result) *agentcore.Result {
 	flowResult, err := l.svcCtx.RecommendRunner.Run(l.ctx, recommendRuntimeInput(in, draft))
 	if err != nil {
@@ -85,6 +94,7 @@ func (l *RecommendLogic) runRecommendRuntime(in *pb.RecommendReq, draft *agentco
 	return out
 }
 
+// recommendRuntimeInput 将 protobuf 请求与草稿结果组装为 Eino 运行时的输入参数。
 func recommendRuntimeInput(in *pb.RecommendReq, draft *agentcore.Result) recommendeino.RunInput {
 	return recommendeino.RunInput{
 		Query:           in.Query,
@@ -95,6 +105,7 @@ func recommendRuntimeInput(in *pb.RecommendReq, draft *agentcore.Result) recomme
 	}
 }
 
+// cloneAgentResult 深拷贝 agentcore.Result，避免运行时修改影响原始草稿结果。
 func cloneAgentResult(result *agentcore.Result) *agentcore.Result {
 	if result == nil {
 		return &agentcore.Result{}
@@ -113,6 +124,7 @@ func cloneAgentResult(result *agentcore.Result) *agentcore.Result {
 	}
 }
 
+// applySelectedBundle 从工具调用结果中解析选中的 bundle，并更新到结果中。
 func applySelectedBundle(result *agentcore.Result, raw json.RawMessage) {
 	var selected recommendtoolkit.SelectBundleResult
 	if err := json.Unmarshal(raw, &selected); err != nil || len(selected.Items) == 0 {
@@ -122,6 +134,7 @@ func applySelectedBundle(result *agentcore.Result, raw json.RawMessage) {
 	result.TotalPriceCents = selected.TotalPriceCents
 }
 
+// toolDetail 提取工具调用的详细结果信息，优先返回错误信息，其次返回 JSON 内容。
 func toolDetail(tool recommendeino.ToolResult) string {
 	if tool.Error != "" {
 		return tool.Error
@@ -132,6 +145,7 @@ func toolDetail(tool recommendeino.ToolResult) string {
 	return string(tool.JSON)
 }
 
+// toPB 将 agentcore.Result 转换为 protobuf 的 RecommendResp 响应。
 func toPB(result *agentcore.Result) *pb.RecommendResp {
 	resp := &pb.RecommendResp{
 		Intent: &pb.Intent{

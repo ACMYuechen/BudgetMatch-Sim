@@ -1,3 +1,4 @@
+// Package eino 提供基于 Eino 框架的 LLM 模型封装、Prompt 构建、工具定义与 ReAct Agent 运行器。
 package eino
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
+// systemPrompt 是 ReAct Agent 的系统提示词，定义了推荐代理的行为规则与输出格式。
 const systemPrompt = `You are recommend_agent for BudgetMatch-Sim.
 Your job is to understand the user's shopping goal, compare available products, and recommend a small MVP product bundle.
 
@@ -27,6 +29,7 @@ Expected result:
 - Mention total price in cents and yuan.
 - Mention which tools or data sources were used.`
 
+// BuildMessages 根据 RunInput 构建 Eino 对话消息列表，包含系统提示与用户输入。
 func BuildMessages(input RunInput) []*schema.Message {
 	return []*schema.Message{
 		schema.SystemMessage(systemPrompt),
@@ -34,6 +37,7 @@ func BuildMessages(input RunInput) []*schema.Message {
 	}
 }
 
+// buildUserPrompt 将 RunInput 中的查询、意图、已选商品及已用工具等信息拼接为结构化用户提示。
 func buildUserPrompt(input RunInput) string {
 	var out strings.Builder
 	out.WriteString("User request:\n")
@@ -63,6 +67,7 @@ func buildUserPrompt(input RunInput) string {
 	return out.String()
 }
 
+// mustJSON 将任意值序列化为 JSON 字符串；若失败则返回其 fmt.Sprintf 格式。
 func mustJSON(v any) string {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {

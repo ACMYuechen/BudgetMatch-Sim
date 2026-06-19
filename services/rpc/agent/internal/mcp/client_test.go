@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+// TestClientCallsTool 测试 MCP 客户端的完整调用流程：
+// 启动 fake MCP Server -> 列出工具 -> 调用 echo 工具 -> 验证返回结果。
 func TestClientCallsTool(t *testing.T) {
 	cfg := fakeServerConfig(t)
 	client := NewClient(cfg)
@@ -35,6 +37,7 @@ func TestClientCallsTool(t *testing.T) {
 	}
 }
 
+// TestProbe 测试 MCP 探测功能，验证 Probe 能正确连接 fake Server 并返回工具数量和 echo 调用结果。
 func TestProbe(t *testing.T) {
 	probe, err := Probe(context.Background(), fakeServerConfig(t))
 	if err != nil {
@@ -48,6 +51,8 @@ func TestProbe(t *testing.T) {
 	}
 }
 
+// fakeServerConfig 构造用于测试的 fake MCP Server 配置，
+// 命令为 python3，脚本位于 testdata/fake_mcp_server.py。
 func fakeServerConfig(t *testing.T) Config {
 	t.Helper()
 

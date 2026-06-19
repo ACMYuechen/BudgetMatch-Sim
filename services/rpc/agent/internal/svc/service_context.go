@@ -1,3 +1,4 @@
+// Package svc 封装 agent-rpc 的服务上下文与依赖组装。
 package svc
 
 import (
@@ -9,12 +10,14 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
 
+// ServiceContext 保存服务运行所需的全部依赖。
 type ServiceContext struct {
-	Config          config.Config
-	Agents          *agent.Registry
-	RecommendRunner *recommendeino.Runner
+	Config          config.Config         // Config 服务配置
+	Agents          *agent.Registry       // Agents Agent 注册表
+	RecommendRunner *recommendeino.Runner // RecommendRunner Eino 推荐运行时
 }
 
+// NewServiceContext 根据配置初始化服务上下文，包括模型、商品提供者、Agent 注册表与运行时。
 func NewServiceContext(c config.Config) *ServiceContext {
 	model, err := recommendeino.NewChatModel(c.Model)
 	if err != nil {
@@ -39,6 +42,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 }
 
+// RecommendRuntimeEnabled 判断 Eino 推荐运行时是否可用。
 func (s *ServiceContext) RecommendRuntimeEnabled() bool {
 	return s != nil && s.Config.Model.Enabled() && s.RecommendRunner != nil && s.RecommendRunner.Enabled()
 }

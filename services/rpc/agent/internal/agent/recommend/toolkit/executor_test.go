@@ -1,3 +1,4 @@
+// Package toolkit 提供推荐 Agent 的工具执行层，包括商品搜索、组合选择及 MCP 工具调用。
 package toolkit
 
 import (
@@ -13,6 +14,7 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
 
+// TestExecutorSearchProducts 验证 search_products 工具能正确搜索商品并返回候选列表。
 func TestExecutorSearchProducts(t *testing.T) {
 	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
 
@@ -38,6 +40,8 @@ func TestExecutorSearchProducts(t *testing.T) {
 	}
 }
 
+// TestExecutorSelectBundleFromStoredCandidates 验证 select_bundle 工具能从已缓存的候选中正确选择商品组合，
+// 并确保总价不超过预算。
 func TestExecutorSelectBundleFromStoredCandidates(t *testing.T) {
 	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
 	searchResult, err := executor.Execute(context.Background(), ToolSearchProducts, mustArgs(t, SearchProductsArgs{
@@ -76,6 +80,7 @@ func TestExecutorSelectBundleFromStoredCandidates(t *testing.T) {
 	}
 }
 
+// TestExecutorRejectsUnknownTool 验证 Executor 对未知工具名称返回错误。
 func TestExecutorRejectsUnknownTool(t *testing.T) {
 	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
 
@@ -84,6 +89,7 @@ func TestExecutorRejectsUnknownTool(t *testing.T) {
 	}
 }
 
+// TestExecutorRejectsMCPWhenDisabled 验证当 MCP 未启用时，mcp_call_tool 返回 "mcp is not enabled" 错误。
 func TestExecutorRejectsMCPWhenDisabled(t *testing.T) {
 	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector())
 
@@ -96,6 +102,7 @@ func TestExecutorRejectsMCPWhenDisabled(t *testing.T) {
 	}
 }
 
+// TestExecutorCallsMCPTool 验证 MCP 启用时，mcp_call_tool 能正确调用外部 MCP 工具并返回结果。
 func TestExecutorCallsMCPTool(t *testing.T) {
 	executor := NewExecutor(tools.NewMockProductProvider(), selector.NewBundleSelector()).WithMCP(fakeMCPConfig(t))
 
@@ -119,6 +126,7 @@ func TestExecutorCallsMCPTool(t *testing.T) {
 	}
 }
 
+// mustArgs 将任意参数值序列化为 JSON RawMessage，失败时终止测试。
 func mustArgs(t *testing.T, value any) json.RawMessage {
 	t.Helper()
 
@@ -129,6 +137,7 @@ func mustArgs(t *testing.T, value any) json.RawMessage {
 	return data
 }
 
+// fakeMCPConfig 构造一个用于测试的 MCP 配置，指向测试数据目录中的 fake_mcp_server.py。
 func fakeMCPConfig(t *testing.T) mcp.Config {
 	t.Helper()
 

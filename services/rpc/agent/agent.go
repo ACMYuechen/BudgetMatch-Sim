@@ -1,3 +1,4 @@
+// agent 是 Agent RPC 服务的主入口，负责加载配置并启动 gRPC 服务器。
 package main
 
 import (
@@ -16,6 +17,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+// configFile 指向配置文件路径，默认值为 "etc/agent.yaml"。
 var configFile = flag.String("f", "etc/agent.yaml", "the config file")
 
 func main() {
@@ -28,6 +30,7 @@ func main() {
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		pb.RegisterRecommendServiceServer(grpcServer, recommendserviceServer.NewRecommendServiceServer(ctx))
 
+		// 仅在开发或测试模式下注册 gRPC 反射服务，便于调试工具（如 grpcurl）发现接口。
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)
 		}

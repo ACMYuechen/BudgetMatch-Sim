@@ -1,3 +1,6 @@
+// Package eino 提供基于 Eino 框架的 LLM 模型封装、Prompt 构建、工具定义与 ReAct Agent 运行器。
+// 该包将 OpenAI 兼容的 Chat Completion API 接入 Eino 的 ToolCallingChatModel 接口，
+// 并组装 search_products、select_bundle、mcp_call_tool 等工具，实现商品推荐的 Agent 推理链路。
 package eino
 
 import (
@@ -17,20 +20,27 @@ import (
 )
 
 const (
+	// defaultOpenAIBaseURL 是 OpenAI API 的默认基础地址。
 	defaultOpenAIBaseURL = "https://api.openai.com"
-	defaultOpenAIModel   = "gpt-4.1-mini"
+	// defaultOpenAIModel 是默认使用的 OpenAI 模型名称。
+	defaultOpenAIModel = "gpt-4.1-mini"
 )
 
+// OpenAIChatModel 是一个基于 OpenAI Chat Completion API 的聊天模型实现，
+// 支持工具调用（Tool Calling），可作为 Eino 的 ToolCallingChatModel 使用。
 type OpenAIChatModel struct {
-	baseURL    string
-	apiKey     string
-	model      string
-	httpClient *http.Client
-	tools      []*schema.ToolInfo
+	baseURL    string             // 基础请求地址
+	apiKey     string             // API 密钥
+	model      string             // 模型名称
+	httpClient *http.Client       // HTTP 客户端
+	tools      []*schema.ToolInfo // 绑定的工具信息列表
 }
 
+// 确保 OpenAIChatModel 实现了 einomodel.ToolCallingChatModel 接口。
 var _ einomodel.ToolCallingChatModel = (*OpenAIChatModel)(nil)
 
+// NewChatModel 根据 modelconfig.Config 创建对应的聊天模型。
+// 当 Provider 为 "noop" 时返回 nil；当 Provider 为 "openai" 时创建 OpenAIChatModel。
 func NewChatModel(c modelconfig.Config) (einomodel.ToolCallingChatModel, error) {
 	switch c.ProviderName() {
 	case "noop":
@@ -45,6 +55,8 @@ func NewChatModel(c modelconfig.Config) (einomodel.ToolCallingChatModel, error) 
 	}
 }
 
+// NewOpenAIChatModel 使用配置创建一个新的 OpenAIChatModel 实例。
+// 若 BaseURL 或 Model 为空，则使用默认值；HTTP 超时固定为 60 秒。
 func NewOpenAIChatModel(c modelconfig.Config) *OpenAIChatModel {
 	baseURL := strings.TrimRight(strings.TrimSpace(c.BaseURL), "/")
 	if baseURL == "" {
@@ -66,16 +78,20 @@ func NewOpenAIChatModel(c modelconfig.Config) *OpenAIChatModel {
 	}
 }
 
+// Name 返回模型名称标识。
 func (m *OpenAIChatModel) Name() string {
 	return "openai"
 }
 
+// WithTools 为当前模型绑定工具信息，返回一个携带工具的新模型实例（原实例不变）。
 func (m *OpenAIChatModel) WithTools(tools []*schema.ToolInfo) (einomodel.ToolCallingChatModel, error) {
 	clone := *m
 	clone.tools = append([]*schema.ToolInfo(nil), tools...)
 	return &clone, nil
 }
 
+// Generate 向 OpenAI Chat Completion API 发起同步请求，返回模型生成的消息。
+// 支持通过 opts 覆盖模型名称、温度、工具选择等参数。
 func (m *OpenAIChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...einomodel.Option) (*schema.Message, error) {
 	options := einomodel.GetCommonOptions(&einomodel.Options{
 		Model: &m.model,
@@ -143,6 +159,7 @@ func (m *OpenAIChatModel) Generate(ctx context.Context, input []*schema.Message,
 	return schema.AssistantMessage(message.Content, toEinoToolCalls(message.ToolCalls)), nil
 }
 
+// Stream 将 Generate 的结果包装为流式读取器（当前实现为伪流式：一次性返回全部结果）。
 func (m *OpenAIChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...einomodel.Option) (*schema.StreamReader[*schema.Message], error) {
 	msg, err := m.Generate(ctx, input, opts...)
 	if err != nil {
@@ -151,6 +168,7 @@ func (m *OpenAIChatModel) Stream(ctx context.Context, input []*schema.Message, o
 	return schema.StreamReaderFromArray([]*schema.Message{msg}), nil
 }
 
+// chatCompletionRequest 表示 OpenAI Chat Completion API 的请求体结构。
 type chatCompletionRequest struct {
 	Model       string          `json:"model"`
 	Messages    []openAIMessage `json:"messages"`
@@ -162,6 +180,7 @@ type chatCompletionRequest struct {
 	Stop        []string        `json:"stop,omitempty"`
 }
 
+// openAIMessage 表示 OpenAI 消息格式中的单条消息。
 type openAIMessage struct {
 	Role       string           `json:"role"`
 	Content    string           `json:"content"`
@@ -169,34 +188,40 @@ type openAIMessage struct {
 	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
 }
 
+// openAITool 表示 OpenAI 工具定义中的工具结构。
 type openAITool struct {
 	Type     string         `json:"type"`
 	Function openAIFunction `json:"function"`
 }
 
+// openAIFunction 表示 OpenAI 工具中的函数定义。
 type openAIFunction struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	Parameters  any    `json:"parameters,omitempty"`
 }
 
+// openAIToolCall 表示 OpenAI 响应中的单次工具调用。
 type openAIToolCall struct {
 	ID       string                 `json:"id,omitempty"`
 	Type     string                 `json:"type,omitempty"`
 	Function openAIToolCallFunction `json:"function"`
 }
 
+// openAIToolCallFunction 表示工具调用中的函数信息。
 type openAIToolCallFunction struct {
 	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
 }
 
+// chatCompletionResponse 表示 OpenAI Chat Completion API 的响应体结构。
 type chatCompletionResponse struct {
 	Choices []struct {
 		Message openAIMessage `json:"message"`
 	} `json:"choices"`
 }
 
+// toOpenAIMessages 将 Eino 的 schema.Message 切片转换为 OpenAI 消息格式。
 func toOpenAIMessages(messages []*schema.Message) []openAIMessage {
 	out := make([]openAIMessage, 0, len(messages))
 	for _, message := range messages {
@@ -213,6 +238,7 @@ func toOpenAIMessages(messages []*schema.Message) []openAIMessage {
 	return out
 }
 
+// toOpenAITools 将 Eino 的 schema.ToolInfo 切片转换为 OpenAI 工具定义格式。
 func toOpenAITools(tools []*schema.ToolInfo) ([]openAITool, error) {
 	out := make([]openAITool, 0, len(tools))
 	for _, tool := range tools {
@@ -239,6 +265,7 @@ func toOpenAITools(tools []*schema.ToolInfo) ([]openAITool, error) {
 	return out, nil
 }
 
+// toOpenAIToolCalls 将 Eino 的 schema.ToolCall 切片转换为 OpenAI 工具调用格式。
 func toOpenAIToolCalls(calls []schema.ToolCall) []openAIToolCall {
 	out := make([]openAIToolCall, 0, len(calls))
 	for _, call := range calls {
@@ -258,6 +285,7 @@ func toOpenAIToolCalls(calls []schema.ToolCall) []openAIToolCall {
 	return out
 }
 
+// toEinoToolCalls 将 OpenAI 工具调用格式转换回 Eino 的 schema.ToolCall 切片。
 func toEinoToolCalls(calls []openAIToolCall) []schema.ToolCall {
 	out := make([]schema.ToolCall, 0, len(calls))
 	for _, call := range calls {
@@ -280,6 +308,7 @@ func toEinoToolCalls(calls []openAIToolCall) []schema.ToolCall {
 	return out
 }
 
+// openAIToolChoice 将 Eino 的 ToolChoice 枚举转换为 OpenAI 的 tool_choice 字符串值。
 func openAIToolChoice(choice *schema.ToolChoice) any {
 	if choice == nil {
 		return "auto"
