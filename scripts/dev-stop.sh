@@ -17,7 +17,7 @@ for pidfile in $PID_DIR/*.pid; do
 done
 
 # 兜底：清理可能残留的服务进程
-for port in 10000 10001 10002 10003 10004 10005; do
+for port in 10000 10001 10002 10003 10004 10005 10006; do
     pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
     for pid in $pids; do
         if kill -9 "$pid" 2>/dev/null; then
