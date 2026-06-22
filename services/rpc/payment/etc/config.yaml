@@ -1,0 +1,41 @@
+Name: payment.rpc
+ListenOn: 0.0.0.0:10007
+Timeout: 60000
+
+# 服务注册到 etcd
+Etcd:
+  Hosts:
+    - ${ETCD_HOSTS}
+  Key: payment.rpc
+
+Database:
+  LogLevel: 4
+  Driver: "Postgres"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  MaxOpenConns: 100
+  MaxIdleConns: 20
+  ConnMaxLifetime: 7200s
+  ConnMaxIdleTime: 300s
+  AutoMigrate: true
+  PrepareStmt: true
+
+CacheRedis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 5
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3
+
+# 支付宝沙箱配置（密钥统一通过环境变量注入，详见 docs/PAYMENT.md / .env.example）
+Alipay:
+  AppID: "${ALIPAY_APP_ID}"
+  PrivateKey: "${ALIPAY_PRIVATE_KEY}"
+  AlipayPublicKey: "${ALIPAY_PUBLIC_KEY}"
+  IsProduction: false
+  NotifyURL: "${ALIPAY_NOTIFY_URL}"
+  ReturnURL: "${ALIPAY_RETURN_URL}"

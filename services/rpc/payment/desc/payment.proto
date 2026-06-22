@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package payment;
+option go_package = "./pb";
+
+// ========== Payment ==========
+
+// 支付流水
+message Payment {
+  string id          = 1;  // 流水ID
+  string out_trade_no = 2; // 商户订单号（提交给支付宝）
+  string order_id    = 3;  // 关联的业务订单ID
+  string user_id     = 4;  // 用户ID
+  int64  amount      = 5;  // 金额，单位：分
+  string channel     = 6;  // 支付渠道，如 alipay
+  int32  status      = 7;  // 状态，0:pending 1:success 2:closed
+  string trade_no    = 8;  // 支付宝交易号
+  string buyer_id    = 9;  // 支付宝买家ID
+  string paid_at     = 10; // 支付完成时间
+  string created_at  = 11;
+  string updated_at  = 12;
+}
+
+// 发起支付：根据订单创建一笔支付并返回支付宝二维码。
+// 金额由网关从 mall 订单读取后传入（网关侧已校验订单归属与金额），payment-rpc 不直接依赖 mall。
+message CreatePaymentReq {
+  string order_id = 1;
+  string user_id  = 2;
+  int64  amount   = 3; // 金额，单位：分
+  string subject  = 4; // 可选，订单标题；为空时由服务端生成
+}
+
+message CreatePaymentResp {
+  string out_trade_no = 1;
+  string qr_code      = 2; // 支付宝二维码链接，前端据此渲染二维码
+  int32  status       = 3;
+}
+
+// 查询支付结果（主动向支付宝查询并同步本地流水，本地兜底确认用）
+message QueryPaymentReq {
+  string out_trade_no = 1; // 二选一
+  string order_id     = 2;
+}
+
+message QueryPaymentResp {
+  int32  status   = 1; // 0:pending 1:success 2:closed
+  string trade_no = 2;
+  Payment payment = 3;
+}
+
+// 处理支付宝异步通知（由 REST 网关验签前的原始表单参数透传进来，服务端负责验签 + 幂等确认）
+message HandleNotifyReq {
+  map<string, string> params = 1;
+}
+
+message HandleNotifyResp {
+  bool   ok      = 1;
+  string message = 2;
+}
+
+// ========== Service ==========
+
+service PaymentService {
+  // 发起支付，返回支付宝二维码
+  rpc CreatePayment(CreatePaymentReq) returns (CreatePaymentResp) {}
+  // 查询并同步支付结果
+  rpc QueryPayment(QueryPaymentReq) returns (QueryPaymentResp) {}
+  // 处理支付宝异步通知
+  rpc HandleNotify(HandleNotifyReq) returns (HandleNotifyResp) {}
+}
