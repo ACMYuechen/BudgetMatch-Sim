@@ -174,6 +174,39 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
+  # Payment RPC 服务（gRPC，port 10007）
+  payment-rpc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: ./services/rpc/payment
+        PORT: 10007
+    container_name: budgetmatch-sim-payment-rpc
+    environment:
+      - DATABASE_DSN=host=postgres user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=12345678
+      - ETCD_HOSTS=etcd:2379
+      # 支付宝沙箱密钥（从宿主 .env 注入，未配置时支付功能不可用但服务可启动）
+      - ALIPAY_APP_ID=${ALIPAY_APP_ID:-}
+      - ALIPAY_PRIVATE_KEY=${ALIPAY_PRIVATE_KEY:-}
+      - ALIPAY_PUBLIC_KEY=${ALIPAY_PUBLIC_KEY:-}
+      - ALIPAY_NOTIFY_URL=${ALIPAY_NOTIFY_URL:-}
+      - ALIPAY_RETURN_URL=${ALIPAY_RETURN_URL:-}
+    ports:
+      - "10007:10007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
   # App 服务（REST API，port 10002）
 
   app:
@@ -199,6 +232,8 @@ services:
       auth-rpc:
         condition: service_started
       seckill-rpc:
+        condition: service_started
+      payment-rpc:
         condition: service_started
       etcd:
         condition: service_started

@@ -13,6 +13,9 @@ seckillRpcDesc = $(seckillRpcPWD)/desc
 mallRpcPWD = services/rpc/mall
 mallRpcDesc = $(mallRpcPWD)/desc
 
+paymentRpcPWD = services/rpc/payment
+paymentRpcDesc = $(paymentRpcPWD)/desc
+
 # =============================================================================
 # 帮助
 # =============================================================================
@@ -55,6 +58,9 @@ api-all:
 	@goctl api format --dir $(mallRpcDesc)
 	@goctl rpc protoc $(mallRpcDesc)/mall.proto --go_out=$(mallRpcPWD) --go-grpc_out=$(mallRpcPWD) --zrpc_out=$(mallRpcPWD) --style=go_zero -m -I . -I $(mallRpcDesc)
 	@rm -f $(mallRpcPWD)/mall.go $(mallRpcPWD)/etc/mall.yaml
+	@echo "生成 payment RPC..."
+	@goctl rpc protoc $(paymentRpcDesc)/payment.proto --go_out=$(paymentRpcPWD) --go-grpc_out=$(paymentRpcPWD) --zrpc_out=$(paymentRpcPWD) --style=go_zero -m -I . -I $(paymentRpcDesc)
+	@rm -f $(paymentRpcPWD)/payment.go $(paymentRpcPWD)/etc/payment.yaml
 	@echo "所有代码生成完成"
 
 # =============================================================================

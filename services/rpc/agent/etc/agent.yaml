@@ -6,10 +6,10 @@ Etcd:
   Key: agent.rpc
 
 Model:
-  Provider: ""
-  Model: ""
-  BaseURL: ""
-  APIKey: ""
+  Provider: openai
+  Model: deepseek-chat
+  BaseURL: https://api.deepseek.com/v1
+  APIKey: ${DEEPSEEK_API_KEY}
 
 MCP:
   Enabled: false

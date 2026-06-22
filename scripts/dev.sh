@@ -20,7 +20,7 @@ for pidfile in $PID_DIR/*.pid; do
 done
 
 # 兜底：按端口清理可能残留的本地服务进程
-for port in 10000 10001 10002 10003 10004 10005 10006 12379; do
+for port in 10000 10001 10002 10003 10004 10005 10006 10007 12379; do
     pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
     for pid in $pids; do
         kill -9 "$pid" 2>/dev/null || true
@@ -68,6 +68,12 @@ echo $! > $PID_DIR/mall-rpc.pid
 
 sleep 3
 
+echo "  → payment-rpc (port 10007)"
+(cd services/rpc/payment && nohup go run . > ../../../$LOG_DIR/payment-rpc.log 2>&1 &)
+echo $! > $PID_DIR/payment-rpc.pid
+
+sleep 3
+
 echo "  → app (port 10002)"
 (cd cmd/app && nohup go run . > ../../$LOG_DIR/app.log 2>&1 &)
 echo $! > $PID_DIR/app.pid
@@ -85,6 +91,7 @@ echo "查看日志:"
 echo "  tail -f logs/auth-rpc.log     # auth RPC"
 echo "  tail -f logs/seckill-rpc.log  # seckill RPC"
 echo "  tail -f logs/mall-rpc.log     # mall RPC"
+echo "  tail -f logs/payment-rpc.log  # payment RPC"
 echo "  tail -f logs/app.log          # app 服务"
 echo "  tail -f logs/admin.log        # admin 服务"
 echo ""

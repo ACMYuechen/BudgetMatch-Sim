@@ -45,6 +45,7 @@
 | `services/rpc/auth` | 10003 (gRPC) | 认证与用户 RPC |
 | `services/rpc/seckill` | 10004 (gRPC) | 秒杀活动 RPC |
 | `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
+| `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
 | `postgres` | 5432 | 主数据库 |
 | `redis` | 6379 | 缓存与限流 |
 
@@ -129,7 +130,8 @@ make docker-down
 │   └── rpc/
 │       ├── auth/       # 认证与用户服务
 │       ├── seckill/    # 秒杀服务
-│       └── mall/       # 商城商品与订单服务
+│       ├── mall/       # 商城商品与订单服务
+│       └── payment/    # 支付服务（支付宝沙箱当面付）
 ├── infra/              # 基础设施封装（数据库、Redis、JWT、OSS、限流等）
 ├── docs/               # 文档与生成的 Swagger
 ├── scripts/            # 开发脚本
