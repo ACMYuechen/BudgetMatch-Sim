@@ -2,6 +2,87 @@
 
 package types
 
+type RegisterReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+	Username string `json:"username" validate:"required,min=2"`
+	Code     string `json:"code" validate:"required,len=6"`
+}
+
+type RegisterResp struct {
+	Success bool `json:"success"`
+}
+
+type UsernameLoginReq struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type EmailLoginReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type LoginResp struct {
+	Token  string `json:"token"`
+	UserId string `json:"user_id"`
+	Role   int32  `json:"role"`
+}
+
+type LoginByCodeReq struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required,len=6"`
+}
+
+type SendCodeReq struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type SendCodeResp struct {
+	Success bool `json:"success"`
+}
+
+type UserInfoReq struct {
+}
+
+type UserInfoResp struct {
+	UserId   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Avatar   string `json:"avatar"`
+	Phone    string `json:"phone"`
+}
+
+type UserProfileReq struct {
+}
+
+type UserProfileResp struct {
+	UserId           string `json:"user_id"`
+	RealName         string `json:"real_name"`
+	School           string `json:"school"`
+	Major            string `json:"major"`
+	Grade            string `json:"grade"`
+	Gender           int32  `json:"gender"`
+	ExpectedCity     string `json:"expected_city"`
+	ExpectedPosition string `json:"expected_position"`
+	SelfIntroduction string `json:"self_introduction"`
+}
+
+type UpdateUserProfileReq struct {
+	RealName         string `json:"real_name,optional"`
+	School           string `json:"school,optional"`
+	Major            string `json:"major,optional"`
+	Grade            string `json:"grade,optional"`
+	Gender           int32  `json:"gender,optional"`
+	ExpectedCity     string `json:"expected_city,optional"`
+	ExpectedPosition string `json:"expected_position,optional"`
+	SelfIntroduction string `json:"self_introduction,optional"`
+}
+
+type UpdateUserProfileResp struct {
+	Success bool `json:"success"`
+}
+
 type ActivityItem struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
