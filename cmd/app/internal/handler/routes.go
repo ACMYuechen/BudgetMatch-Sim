@@ -132,6 +132,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: agent.AgentRecommendHandler(serverCtx),
 			},
 			{
+				// Agent 推荐 SSE
 				Method:  http.MethodPost,
 				Path:    "/recommend/stream",
 				Handler: agent.AgentRecommendStreamHandler(serverCtx),
