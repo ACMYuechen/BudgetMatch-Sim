@@ -1,0 +1,23 @@
+Name: agent.rpc
+ListenOn: 0.0.0.0:10006
+Timeout: 60000
+
+Etcd:
+  Hosts:
+    - ${ETCD_HOSTS}
+  Key: agent.rpc
+
+Model:
+  Provider: "${LLM_PROVIDER}"      # 如 openai（OpenAI 兼容接口均可）
+  Model: "${LLM_MODEL}"            # 如 gpt-4.1-mini / deepseek-chat
+  BaseURL: "${LLM_BASE_URL}"       # 如 https://api.openai.com/v1 或 https://api.deepseek.com/v1
+  APIKey: "${LLM_API_KEY}"         # 模型服务 API 密钥
+
+MCP:
+  Enabled: false
+  Command: npx
+  Args:
+    - "-y"
+    - "@modelcontextprotocol/server-everything"
+    - "stdio"
+  Timeout: 5000

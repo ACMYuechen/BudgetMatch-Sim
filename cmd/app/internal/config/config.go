@@ -17,4 +17,5 @@ type Config struct {
 	AuthRpc    zrpc.RpcClientConf `json:"authRpc"`
 	SeckillRpc zrpc.RpcClientConf `json:"seckillRpc"`
 	MallRpc    zrpc.RpcClientConf `json:"mallRpc"`
+	AgentRpc   zrpc.RpcClientConf `json:"agentRpc"`
 }

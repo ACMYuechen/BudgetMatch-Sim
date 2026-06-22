@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package agent;
+option go_package = "./pb";
+
+message RecommendReq {
+  string query        = 1;
+  int64  budget_cents = 2;
+  int32  max_items    = 3;
+  string user_id      = 4;
+}
+
+message Intent {
+  int64           budget_cents = 1;
+  int32           max_items    = 2;
+  repeated string keywords     = 3;
+  repeated string preferences  = 4;
+}
+
+message BundleItem {
+  string id          = 1;
+  string name        = 2;
+  string category    = 3;
+  string source      = 4;
+  int64  price_cents = 5;
+  int64  stock       = 6;
+  double score       = 7;
+  string reason      = 8;
+}
+
+message ToolCall {
+  string name    = 1;
+  bool   success = 2;
+  string detail  = 3;
+}
+
+message RecommendResp {
+  Intent              intent            = 1;
+  repeated BundleItem items             = 2;
+  int64               total_price_cents = 3;
+  string              summary           = 4;
+  repeated ToolCall   tools_used        = 5;
+}
+
+service RecommendService {
+  rpc Recommend(RecommendReq) returns (RecommendResp) {}
+}

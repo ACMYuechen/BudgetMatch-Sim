@@ -302,3 +302,41 @@ type MallOrderDetailResp struct {
 type MallCancelOrderReq struct {
 	Id string `path:"id"`
 }
+
+type AgentRecommendReq struct {
+	Query       string `json:"query" validate:"required"`
+	BudgetCents int64  `json:"budget_cents,optional"`
+	MaxItems    int    `json:"max_items,optional"`
+}
+
+type AgentIntent struct {
+	BudgetCents int64    `json:"budget_cents"`
+	MaxItems    int32    `json:"max_items"`
+	Keywords    []string `json:"keywords"`
+	Preferences []string `json:"preferences"`
+}
+
+type AgentBundleItem struct {
+	Id         string  `json:"id"`
+	Name       string  `json:"name"`
+	Category   string  `json:"category"`
+	Source     string  `json:"source"`
+	PriceCents int64   `json:"price_cents"`
+	Stock      int64   `json:"stock"`
+	Score      float64 `json:"score"`
+	Reason     string  `json:"reason"`
+}
+
+type AgentToolCall struct {
+	Name    string `json:"name"`
+	Success bool   `json:"success"`
+	Detail  string `json:"detail"`
+}
+
+type AgentRecommendResp struct {
+	Intent          AgentIntent       `json:"intent"`
+	Items           []AgentBundleItem `json:"items"`
+	TotalPriceCents int64             `json:"total_price_cents"`
+	Summary         string            `json:"summary"`
+	ToolsUsed       []AgentToolCall   `json:"tools_used"`
+}

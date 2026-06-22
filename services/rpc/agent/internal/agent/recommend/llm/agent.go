@@ -1,0 +1,182 @@
+package llm
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
+	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
+	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/tools"
+
+	"github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/compose"
+	"github.com/cloudwego/eino/flow/agent/react"
+)
+
+// AgentName 是 LLM 推荐 Agent 的名称标识。
+const AgentName = "recommend_agent.llm"
+
+// defaultMaxStep 是 ReAct Agent 的默认最大步数。
+const defaultMaxStep = 8
+
+// Agent 是基于 Eino ReAct 的推荐 Agent，实现 agentcore.Agent 接口。
+//
+// 它是 LLM 链路的唯一编排入口：模型自己决定调用 search_products / select_bundle / MCP 工具的顺序，
+// 结构化商品结果由工具回填到 session，避免模型编造商品、价格与库存。
+// 模型未产出套装时回落到确定性选择，保证响应始终 grounded。
+type Agent struct {
+	model    model.ToolCallingChatModel
+	planner  *recommendagent.Planner
+	provider tools.ProductProvider
+	selector *selector.BundleSelector
+	mcpCfg   mcpconfig.Config
+	maxStep  int
+}
+
+// 确保 Agent 实现 agentcore.Agent。
+var _ agentcore.Agent = (*Agent)(nil)
+
+// NewAgent 创建基于 Eino ReAct 的推荐 Agent。
+func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector, mcpCfg mcpconfig.Config) *Agent {
+	return &Agent{
+		model:    m,
+		planner:  recommendagent.NewPlanner(),
+		provider: provider,
+		selector: sel,
+		mcpCfg:   mcpCfg,
+		maxStep:  defaultMaxStep,
+	}
+}
+
+// WithMaxStep 设置 ReAct 最大步数，仅接受正值。
+func (a *Agent) WithMaxStep(maxStep int) *Agent {
+	if maxStep > 0 {
+		a.maxStep = maxStep
+	}
+	return a
+}
+
+// Name 返回 Agent 名称。
+func (a *Agent) Name() string {
+	return AgentName
+}
+
+// Run 执行一次完整的 ReAct 推荐流程。
+func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if a == nil || a.model == nil {
+		return nil, errors.New("llm chat model is not configured")
+	}
+	if a.provider == nil || a.selector == nil {
+		return nil, errors.New("product provider and bundle selector are required")
+	}
+
+	intent := a.planner.Parse(input)
+	s := newSession(a.provider, a.selector, intent)
+
+	reactTools, err := businessTools(s)
+	if err != nil {
+		return nil, err
+	}
+	mcpToolList, cleanup, err := mcpTools(ctx, a.mcpCfg, s)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	reactTools = append(reactTools, mcpToolList...)
+
+	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
+		ToolCallingModel: a.model,
+		ToolsConfig:      compose.ToolsNodeConfig{Tools: reactTools},
+		MaxStep:          a.maxStep,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build react agent: %w", err)
+	}
+
+	final, err := reactAgent.Generate(ctx, buildMessages(input, intent))
+	if err != nil {
+		return nil, err
+	}
+
+	var finalText string
+	if final != nil {
+		finalText = final.Content
+	}
+	return a.assemble(ctx, input, intent, s, finalText), nil
+}
+
+// assemble 把 session 中累积的类型化结果组装为业务响应。
+func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session, finalText string) *agentcore.Result {
+	items, total, calls := s.snapshot()
+	if len(items) == 0 {
+		items, total = a.fallbackSelect(ctx, input, intent, s)
+		calls = append(calls, agentcore.ToolCall{
+			Name:    "selector.fallback",
+			Success: len(items) > 0,
+			Detail:  "model produced no bundle; used deterministic selection",
+		})
+	}
+
+	summaryText := strings.TrimSpace(finalText)
+	if summaryText == "" {
+		summaryText = deterministicSummary(len(items), total, intent.BudgetCents)
+	}
+
+	toolsUsed := make([]agentcore.ToolCall, 0, len(calls)+1)
+	toolsUsed = append(toolsUsed, agentcore.ToolCall{
+		Name:    "llm." + a.modelLabel(),
+		Success: true,
+		Detail:  "eino react orchestration",
+	})
+	toolsUsed = append(toolsUsed, calls...)
+
+	return &agentcore.Result{
+		Intent:          intent,
+		Items:           items,
+		TotalPriceCents: total,
+		Summary:         summaryText,
+		ToolsUsed:       toolsUsed,
+	}
+}
+
+// fallbackSelect 在模型未给出套装时做确定性兜底：必要时先检索候选，再用选择器挑选。
+func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) ([]agentcore.BundleItem, int64) {
+	if !s.hasCandidates() {
+		products, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
+			Query:       input.Query,
+			Keywords:    intent.Keywords,
+			BudgetCents: intent.BudgetCents,
+			MaxItems:    intent.MaxItems,
+		})
+		if err != nil {
+			return nil, 0
+		}
+		s.storeCandidates(products)
+	}
+	return a.selector.Select(s.filterCandidates(nil), intent)
+}
+
+// modelLabel 返回模型类型标识，用于工具记录；模型未实现 GetType 时回落到 "model"。
+func (a *Agent) modelLabel() string {
+	if typed, ok := a.model.(interface{ GetType() string }); ok {
+		if name := strings.TrimSpace(typed.GetType()); name != "" {
+			return strings.ToLower(name)
+		}
+	}
+	return "model"
+}
+
+// deterministicSummary 生成无模型文本时的兜底摘要。
+func deterministicSummary(count int, total, budget int64) string {
+	if count == 0 {
+		return "No bundle was found within the current budget."
+	}
+	if budget <= 0 {
+		return fmt.Sprintf("Selected %d items with total price %.2f.", count, float64(total)/100)
+	}
+	return fmt.Sprintf("Selected %d items with total price %.2f, within budget %.2f.", count, float64(total)/100, float64(budget)/100)
+}

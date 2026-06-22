@@ -41,6 +41,8 @@ services/rpc/<service>/
         └── B_service.go
 ```
 
+> 已落地服务：`auth-rpc`、`seckill-rpc`、`mall-rpc`、`agent-rpc` 均遵循上述目录规范。
+
 ## 新增 RPC 服务步骤
 
 ```bash
@@ -60,6 +62,8 @@ goctl rpc protoc services/rpc/<service>/desc/<service>.proto \
 
 # Step 5: 更新 main.go 注册服务
 ```
+
+参考实现：`services/rpc/agent/` 完整遵循上述步骤，可作为新增 RPC 服务的模板。
 
 ## gRPC 拦截器规范
 
