@@ -66,11 +66,11 @@ HTTP POST /api/agent/recommend
 | `internal/agent/recommend/llm/mcp.go` | 用 eino-ext `mcp.GetTools` 把 MCP 工具转成一等 Eino 工具 |
 | `internal/agent/recommend/llm/prompt.go` | 推荐 Agent system prompt 与用户上下文 prompt |
 | `internal/mcp/config.go` | MCP 配置结构 |
-| `internal/modelconfig/` | 模型配置结构 |
+| `internal/model/config.go` | LLM 模型配置结构（Provider / Model / BaseURL / APIKey） |
 
 ## 配置说明
 
-配置文件位于 `services/rpc/agent/etc/agent.yaml`。
+配置文件位于 `services/rpc/agent/etc/config.yaml`。`
 
 ### 默认本地模式
 
@@ -151,7 +151,7 @@ MCP:
 
 ```bash
 cd services/rpc/agent
-go run agent.go -f etc/agent.yaml
+go run . -f etc/config.yaml
 ```
 
 如果需要通过 app 网关访问，还需要启动 `cmd/app`，并确保 app 配置里的 agent RPC client 指向 `agent.rpc`。
