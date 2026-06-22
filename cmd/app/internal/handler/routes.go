@@ -5,9 +5,11 @@ package handler
 import (
 	"net/http"
 
+	auth "budgetmatch-sim/cmd/app/internal/handler/auth"
 	health "budgetmatch-sim/cmd/app/internal/handler/health"
 	mall "budgetmatch-sim/cmd/app/internal/handler/mall"
 	seckill "budgetmatch-sim/cmd/app/internal/handler/seckill"
+	user "budgetmatch-sim/cmd/app/internal/handler/user"
 	"budgetmatch-sim/cmd/app/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -24,6 +26,69 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 		},
 		rest.WithPrefix("/api"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// 邮箱注册
+				Method:  http.MethodPost,
+				Path:    "/register",
+				Handler: auth.RegisterHandler(serverCtx),
+			},
+			{
+				// 用户名登录
+				Method:  http.MethodPost,
+				Path:    "/login/username",
+				Handler: auth.UsernameLoginHandler(serverCtx),
+			},
+			{
+				// 邮箱登录
+				Method:  http.MethodPost,
+				Path:    "/login/email",
+				Handler: auth.EmailLoginHandler(serverCtx),
+			},
+			{
+				// 验证码登录
+				Method:  http.MethodPost,
+				Path:    "/login/code",
+				Handler: auth.LoginByCodeHandler(serverCtx),
+			},
+			{
+				// 发送验证码
+				Method:  http.MethodPost,
+				Path:    "/code/send",
+				Handler: auth.SendCodeHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/auth"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.AuthMiddleware},
+			[]rest.Route{
+				{
+					// 获取当前用户信息
+					Method:  http.MethodGet,
+					Path:    "/info",
+					Handler: user.UserInfoHandler(serverCtx),
+				},
+				{
+					// 获取当前用户资料
+					Method:  http.MethodGet,
+					Path:    "/profile",
+					Handler: user.UserProfileHandler(serverCtx),
+				},
+				{
+					// 更新当前用户资料
+					Method:  http.MethodPut,
+					Path:    "/profile",
+					Handler: user.UpdateUserProfileHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/user"),
 	)
 
 	server.AddRoutes(
