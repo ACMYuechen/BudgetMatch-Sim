@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -22,37 +23,26 @@ import (
 // defaultMaxStep 是 ReAct Agent 的默认最大步数。
 const defaultMaxStep = 8
 
-// Runner 是 Eino ReAct Agent 的运行器，封装了模型调用、工具执行与结果收集的完整流程。
+// Runner 是基于 Eino ReAct 的推荐精修器。
+// 它实现 recommend.Refiner 接口，对规则推荐草稿进行 LLM function calling 精修。
 type Runner struct {
-	model    einomodel.ToolCallingChatModel // 底层工具调用聊天模型
-	provider tools.ProductProvider          // 商品数据源
-	selector *selector.BundleSelector       // 商品组合选择器
-	mcpCfg   mcp.Config                     // MCP 配置
-	maxStep  int                            // ReAct 最大步数
-}
-
-// RunInput 是 Runner 的输入参数，包含用户查询、解析意图、确定性草稿及已用工具信息。
-type RunInput struct {
-	Query           string
-	Intent          agentcore.Intent
-	SelectedItems   []agentcore.BundleItem
-	TotalPriceCents int64
-	ToolsUsed       []agentcore.ToolCall
-}
-
-// RunResult 是 Runner 的输出结果，包含 LLM 最终文本与所有工具调用结果。
-type RunResult struct {
-	FinalText   string
-	ToolResults []ToolResult
+	model    einomodel.ToolCallingChatModel // model 底层工具调用聊天模型
+	provider tools.ProductProvider          // provider 商品数据源
+	selector *selector.BundleSelector       // selector 商品组合选择器
+	mcpCfg   mcp.Config                     // mcpCfg MCP 配置
+	maxStep  int                            // maxStep ReAct 最大步数
 }
 
 // ToolResult 记录单次工具调用的结果，包含调用 ID、工具名、JSON 输出及可能的错误信息。
 type ToolResult struct {
-	CallID string
-	Name   string
-	JSON   json.RawMessage
-	Error  string
+	CallID string          // CallID 模型生成的工具调用 ID
+	Name   string          // Name 工具名称
+	JSON   json.RawMessage // JSON 工具返回的 JSON 内容
+	Error  string          // Error 工具执行错误信息
 }
+
+// 确保 Runner 实现推荐精修接口。
+var _ recommendagent.Refiner = (*Runner)(nil)
 
 // NewRunner 创建一个新的 Runner 实例，使用默认最大步数。
 func NewRunner(model einomodel.ToolCallingChatModel, provider tools.ProductProvider, selector *selector.BundleSelector, mcpCfg mcp.Config) *Runner {
@@ -89,8 +79,9 @@ func (r *Runner) Name() string {
 	return "eino"
 }
 
-// Run 执行完整的 ReAct Agent 推理流程：构建消息、运行 Agent、收集工具结果并返回最终输出。
-func (r *Runner) Run(ctx context.Context, input RunInput) (*RunResult, error) {
+// Refine 执行完整的 Eino ReAct 精修流程。
+// 返回值是业务态的 RefineResult，调用方无需解析 Eino 消息或工具 JSON。
+func (r *Runner) Refine(ctx context.Context, input recommendagent.RefineInput) (*recommendagent.RefineResult, error) {
 	if r.model == nil {
 		return nil, errors.New("eino chat model is nil")
 	}
@@ -114,10 +105,7 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (*RunResult, error) {
 		return nil, errors.New("eino agent returned nil message")
 	}
 
-	return &RunResult{
-		FinalText:   final.Content,
-		ToolResults: collectToolResults(future),
-	}, nil
+	return refineResultFromTools(final.Content, collectToolResults(future)), nil
 }
 
 // newAgent 创建 ReAct Agent 实例，将 toolkit 中的工具注册到 Eino 工具节点中，
@@ -202,4 +190,48 @@ func toolResultFromMessage(name string, msg *schema.Message) ToolResult {
 		result.Error = errorPayload.Error
 	}
 	return result
+}
+
+// refineResultFromTools 将 Eino 工具调用结果转换为推荐业务精修结果。
+func refineResultFromTools(finalText string, tools []ToolResult) *recommendagent.RefineResult {
+	result := &recommendagent.RefineResult{
+		Summary: finalText,
+	}
+	for _, tool := range tools {
+		result.ToolsUsed = append(result.ToolsUsed, toolCallFromResult(tool))
+		if tool.Name == toolkit.ToolSelectBundle && tool.Error == "" {
+			applySelectedBundle(result, tool.JSON)
+		}
+	}
+	return result
+}
+
+// toolCallFromResult 将 Eino 工具结果转换为通用工具调用记录。
+func toolCallFromResult(tool ToolResult) agentcore.ToolCall {
+	return agentcore.ToolCall{
+		Name:    "tool." + tool.Name,
+		Success: tool.Error == "",
+		Detail:  toolDetail(tool),
+	}
+}
+
+// toolDetail 提取工具调用详情，优先返回错误信息，其次返回原始 JSON 结果。
+func toolDetail(tool ToolResult) string {
+	if tool.Error != "" {
+		return tool.Error
+	}
+	if len(tool.JSON) == 0 {
+		return "completed"
+	}
+	return string(tool.JSON)
+}
+
+// applySelectedBundle 从 select_bundle 工具结果中回填最终商品组合。
+func applySelectedBundle(result *recommendagent.RefineResult, raw json.RawMessage) {
+	var selected toolkit.SelectBundleResult
+	if err := json.Unmarshal(raw, &selected); err != nil || len(selected.Items) == 0 {
+		return
+	}
+	result.Items = selected.Items
+	result.TotalPriceCents = selected.TotalPriceCents
 }

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
+
 	"github.com/cloudwego/eino/schema"
 )
 
@@ -29,16 +31,16 @@ Expected result:
 - Mention total price in cents and yuan.
 - Mention which tools or data sources were used.`
 
-// BuildMessages 根据 RunInput 构建 Eino 对话消息列表，包含系统提示与用户输入。
-func BuildMessages(input RunInput) []*schema.Message {
+// BuildMessages 根据 RefineInput 构建 Eino 对话消息列表，包含系统提示与用户输入。
+func BuildMessages(input recommendagent.RefineInput) []*schema.Message {
 	return []*schema.Message{
 		schema.SystemMessage(systemPrompt),
 		schema.UserMessage(buildUserPrompt(input)),
 	}
 }
 
-// buildUserPrompt 将 RunInput 中的查询、意图、已选商品及已用工具等信息拼接为结构化用户提示。
-func buildUserPrompt(input RunInput) string {
+// buildUserPrompt 将 RefineInput 中的查询、意图、草稿商品及已用工具等信息拼接为结构化用户提示。
+func buildUserPrompt(input recommendagent.RefineInput) string {
 	var out strings.Builder
 	out.WriteString("User request:\n")
 	out.WriteString(input.Query)

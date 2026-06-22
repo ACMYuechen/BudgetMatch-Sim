@@ -11,6 +11,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/agent/recommend/toolkit"
 	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -18,7 +19,7 @@ import (
 )
 
 // TestRunnerExecutesEinoToolCalls 验证 Runner 能正确执行 search_products 和 select_bundle 工具调用，
-// 并返回预期的最终文本与工具结果。
+// 并返回业务态的精修文本、工具记录与最终商品组合。
 func TestRunnerExecutesEinoToolCalls(t *testing.T) {
 	model := &scriptedModel{
 		responses: []*schema.Message{
@@ -51,7 +52,7 @@ func TestRunnerExecutesEinoToolCalls(t *testing.T) {
 	}
 	runner := NewRunner(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpDisabled()).WithMaxStep(6)
 
-	result, err := runner.Run(context.Background(), RunInput{
+	result, err := runner.Refine(context.Background(), recommendagent.RefineInput{
 		Query: "study bundle",
 		Intent: agentcore.Intent{
 			BudgetCents: 300000,
@@ -60,20 +61,20 @@ func TestRunnerExecutesEinoToolCalls(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("Run() error = %v", err)
+		t.Fatalf("Refine() error = %v", err)
 	}
 
-	if result.FinalText != "最终推荐结果" {
-		t.Fatalf("unexpected final text %q", result.FinalText)
+	if result.Summary != "最终推荐结果" {
+		t.Fatalf("unexpected summary %q", result.Summary)
 	}
-	if len(result.ToolResults) != 2 {
-		t.Fatalf("expected 2 tool results, got %+v", result.ToolResults)
+	if len(result.ToolsUsed) != 2 {
+		t.Fatalf("expected 2 tool records, got %+v", result.ToolsUsed)
 	}
-	if result.ToolResults[0].Name != toolkit.ToolSearchProducts || len(result.ToolResults[0].JSON) == 0 {
-		t.Fatalf("unexpected search tool result: %+v", result.ToolResults[0])
+	if result.ToolsUsed[0].Name != "tool."+toolkit.ToolSearchProducts {
+		t.Fatalf("unexpected search tool record: %+v", result.ToolsUsed[0])
 	}
-	if result.ToolResults[1].Name != toolkit.ToolSelectBundle || len(result.ToolResults[1].JSON) == 0 {
-		t.Fatalf("unexpected select tool result: %+v", result.ToolResults[1])
+	if len(result.Items) == 0 {
+		t.Fatalf("expected selected bundle items, got %+v", result)
 	}
 	if len(model.boundTools) != 3 {
 		t.Fatalf("expected model to receive 3 tools, got %d", len(model.boundTools))
@@ -98,24 +99,24 @@ func TestRunnerCollectsToolErrors(t *testing.T) {
 	}
 	runner := NewRunner(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpDisabled()).WithMaxStep(4)
 
-	result, err := runner.Run(context.Background(), RunInput{Query: "call mcp"})
+	result, err := runner.Refine(context.Background(), recommendagent.RefineInput{Query: "call mcp"})
 	if err != nil {
-		t.Fatalf("Run() error = %v", err)
+		t.Fatalf("Refine() error = %v", err)
 	}
 
-	if len(result.ToolResults) != 1 || result.ToolResults[0].Error == "" {
-		t.Fatalf("expected collected tool error, got %+v", result.ToolResults)
+	if len(result.ToolsUsed) != 1 || result.ToolsUsed[0].Success {
+		t.Fatalf("expected failed tool record, got %+v", result.ToolsUsed)
 	}
-	if !strings.Contains(result.ToolResults[0].Error, "mcp is not enabled") {
-		t.Fatalf("unexpected tool error %q", result.ToolResults[0].Error)
+	if !strings.Contains(result.ToolsUsed[0].Detail, "mcp is not enabled") {
+		t.Fatalf("unexpected tool error %q", result.ToolsUsed[0].Detail)
 	}
 }
 
 // scriptedModel 是一个用于测试的模拟模型，按预设顺序返回响应，并记录收到的请求和绑定的工具。
 type scriptedModel struct {
-	responses  []*schema.Message   // 预设的响应消息队列
-	requests   [][]*schema.Message // 记录每次 Generate 收到的请求
-	boundTools []*schema.ToolInfo  // 记录 WithTools 绑定的工具
+	responses  []*schema.Message   // responses 预设的响应消息队列
+	requests   [][]*schema.Message // requests 记录每次 Generate 收到的请求
+	boundTools []*schema.ToolInfo  // boundTools 记录 WithTools 绑定的工具
 }
 
 // Generate 模拟模型生成：检查上下文、记录请求并按顺序返回预设响应。
