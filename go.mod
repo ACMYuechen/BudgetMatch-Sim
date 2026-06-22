@@ -15,6 +15,7 @@ require (
 	github.com/mark3labs/mcp-go v0.43.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/redis/go-redis/v9 v9.17.3
+	github.com/smartwalle/alipay/v3 v3.2.29
 	github.com/stretchr/testify v1.11.1
 	github.com/zeromicro/go-zero v1.10.0
 	go.etcd.io/etcd/client/v3 v3.5.15
@@ -94,6 +95,9 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
+	github.com/smartwalle/ncrypto v1.0.4 // indirect
+	github.com/smartwalle/ngx v1.1.0 // indirect
+	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/tidwall/gjson v1.13.0 // indirect
