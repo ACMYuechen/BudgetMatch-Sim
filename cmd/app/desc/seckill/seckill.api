@@ -14,9 +14,9 @@ type ActivityItem {
 }
 
 type ActivityListReq {
-	Page     int `json:"page" form:"page,default=1"`
-	PageSize int `json:"page_size" form:"page_size,default=10"`
-	Status   int `json:"status" form:"status,default=0"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+	Status   int `form:"status,default=0"`
 }
 
 type ActivityListResp {
@@ -27,7 +27,7 @@ type ActivityListResp {
 }
 
 type ActivityDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityDetailResp {
@@ -51,9 +51,9 @@ type SkuItem {
 }
 
 type SkuListReq {
-	ActivityId string `json:"activity_id" form:"activity_id,required"`
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
+	ActivityId string `form:"activity_id,required"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
 }
 
 type SkuListResp {
@@ -87,7 +87,7 @@ type SubmitOrderResp {
 }
 
 type GetOrderReq {
-	OrderId string `json:"order_id" path:"order_id"`
+	OrderId string `path:"order_id"`
 }
 
 type GetOrderResp {

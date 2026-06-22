@@ -25,20 +25,3 @@ type TokenBucketConfig struct {
 type Features struct {
 	EnableNewOrderFlow bool `json:"enableNewOrderFlow"`
 }
-
-// DefaultDynamicConfig 提供默认配置，etcd 不可用时使用。
-var DefaultDynamicConfig = DynamicConfig{
-	ActivityRateLimit: RateLimitConfig{
-		WindowSeconds: 5,
-		Max:           1000,
-	},
-	UserRateLimit: TokenBucketConfig{
-		Capacity:        5,
-		Rate:            1,
-		IntervalSeconds: 60,
-	},
-	Features: Features{
-		EnableNewOrderFlow: false,
-	},
-	LowStockThreshold: 100,
-}

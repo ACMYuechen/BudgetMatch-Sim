@@ -32,10 +32,10 @@ type AdminSkuItem {
 type AdminCreateProductReq {
 	SpuCode    string `json:"spu_code" validate:"required"`
 	Name       string `json:"name" validate:"required"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
+	CategoryId string `json:"category_id,optional"`
+	Brand      string `json:"brand,optional"`
+	MainImage  string `json:"main_image,optional"`
+	Detail     string `json:"detail,optional"`
 }
 
 type AdminCreateProductResp {
@@ -43,13 +43,13 @@ type AdminCreateProductResp {
 }
 
 type AdminUpdateProductReq {
-	Id         string `json:"id" path:"id"`
-	Name       string `json:"name"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	Status     int32  `json:"status"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
+	Id         string `path:"id"`
+	Name       string `json:"name,optional"`
+	CategoryId string `json:"category_id,optional"`
+	Brand      string `json:"brand,optional"`
+	Status     int32  `json:"status,optional"`
+	MainImage  string `json:"main_image,optional"`
+	Detail     string `json:"detail,optional"`
 }
 
 type AdminUpdateProductResp {
@@ -57,11 +57,11 @@ type AdminUpdateProductResp {
 }
 
 type AdminProductListReq {
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
-	CategoryId string `json:"category_id" form:"category_id"`
-	Keyword    string `json:"keyword" form:"keyword"`
-	Status     int32  `json:"status" form:"status,default=-1"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	CategoryId string `form:"category_id"`
+	Keyword    string `form:"keyword"`
+	Status     int32  `form:"status,default=-1"`
 }
 
 type AdminProductListResp {
@@ -72,7 +72,7 @@ type AdminProductListResp {
 }
 
 type AdminProductDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type AdminProductDetailResp {
@@ -93,12 +93,12 @@ type AdminCreateSkuResp {
 }
 
 type AdminUpdateSkuReq {
-	Id     string `json:"id" path:"id"`
-	Name   string `json:"name"`
-	Specs  string `json:"specs"`
-	Price  int64  `json:"price"`
-	Stock  int64  `json:"stock"`
-	Status int32  `json:"status"`
+	Id     string `path:"id"`
+	Name   string `json:"name,optional"`
+	Specs  string `json:"specs,optional"`
+	Price  int64  `json:"price,optional"`
+	Stock  int64  `json:"stock,optional"`
+	Status int32  `json:"status,optional"`
 }
 
 type AdminUpdateSkuResp {
@@ -106,10 +106,10 @@ type AdminUpdateSkuResp {
 }
 
 type AdminSkuListReq {
-	ProductId string `json:"product_id" form:"product_id,required"`
-	Page      int    `json:"page" form:"page,default=1"`
-	PageSize  int    `json:"page_size" form:"page_size,default=10"`
-	Status    int32  `json:"status" form:"status,default=-1"`
+	ProductId string `form:"product_id,required"`
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	Status    int32  `form:"status,default=-1"`
 }
 
 type AdminSkuListResp {
@@ -120,7 +120,7 @@ type AdminSkuListResp {
 }
 
 type AdminSkuDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type AdminSkuDetailResp {
@@ -155,10 +155,10 @@ type AdminOrderResp {
 }
 
 type AdminOrderListReq {
-	Page     int    `json:"page" form:"page,default=1"`
-	PageSize int    `json:"page_size" form:"page_size,default=10"`
-	Status   int32  `json:"status" form:"status,default=-1"`
-	UserId   string `json:"user_id" form:"user_id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   int32  `form:"status,default=-1"`
+	UserId   string `form:"user_id"`
 }
 
 type AdminOrderListResp {
@@ -169,7 +169,7 @@ type AdminOrderListResp {
 }
 
 type AdminOrderDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type AdminOrderDetailResp {
@@ -177,7 +177,7 @@ type AdminOrderDetailResp {
 }
 
 type AdminUpdateOrderStatusReq {
-	Id     string `json:"id" path:"id"`
+	Id     string `path:"id"`
 	Status int32  `json:"status" validate:"required"`
 }
 
@@ -186,11 +186,11 @@ type AdminUpdateOrderStatusResp {
 }
 
 type AdminDeleteProductReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type AdminDeleteSkuReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 // ========== Service ==========

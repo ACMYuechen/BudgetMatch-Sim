@@ -33,7 +33,7 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 	if order == nil {
 		return nil, errors.MallOrderNotFound
 	}
-	if order.UserId != in.UserId {
+	if in.UserId != "" && order.UserId != in.UserId {
 		return nil, errors.MallOrderNotFound
 	}
 

@@ -2,6 +2,87 @@
 
 package types
 
+type RegisterReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+	Username string `json:"username" validate:"required,min=2"`
+	Code     string `json:"code" validate:"required,len=6"`
+}
+
+type RegisterResp struct {
+	Success bool `json:"success"`
+}
+
+type UsernameLoginReq struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type EmailLoginReq struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type LoginResp struct {
+	Token  string `json:"token"`
+	UserId string `json:"user_id"`
+	Role   int32  `json:"role"`
+}
+
+type LoginByCodeReq struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required,len=6"`
+}
+
+type SendCodeReq struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type SendCodeResp struct {
+	Success bool `json:"success"`
+}
+
+type UserInfoReq struct {
+}
+
+type UserInfoResp struct {
+	UserId   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Avatar   string `json:"avatar"`
+	Phone    string `json:"phone"`
+}
+
+type UserProfileReq struct {
+}
+
+type UserProfileResp struct {
+	UserId           string `json:"user_id"`
+	RealName         string `json:"real_name"`
+	School           string `json:"school"`
+	Major            string `json:"major"`
+	Grade            string `json:"grade"`
+	Gender           int32  `json:"gender"`
+	ExpectedCity     string `json:"expected_city"`
+	ExpectedPosition string `json:"expected_position"`
+	SelfIntroduction string `json:"self_introduction"`
+}
+
+type UpdateUserProfileReq struct {
+	RealName         string `json:"real_name,optional"`
+	School           string `json:"school,optional"`
+	Major            string `json:"major,optional"`
+	Grade            string `json:"grade,optional"`
+	Gender           int32  `json:"gender,optional"`
+	ExpectedCity     string `json:"expected_city,optional"`
+	ExpectedPosition string `json:"expected_position,optional"`
+	SelfIntroduction string `json:"self_introduction,optional"`
+}
+
+type UpdateUserProfileResp struct {
+	Success bool `json:"success"`
+}
+
 type ActivityItem struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
@@ -14,9 +95,9 @@ type ActivityItem struct {
 }
 
 type ActivityListReq struct {
-	Page     int `json:"page" form:"page,default=1"`
-	PageSize int `json:"page_size" form:"page_size,default=10"`
-	Status   int `json:"status" form:"status,default=0"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+	Status   int `form:"status,default=0"`
 }
 
 type ActivityListResp struct {
@@ -27,7 +108,7 @@ type ActivityListResp struct {
 }
 
 type ActivityDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityDetailResp struct {
@@ -49,9 +130,9 @@ type SkuItem struct {
 }
 
 type SkuListReq struct {
-	ActivityId string `json:"activity_id" form:"activity_id,required"`
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
+	ActivityId string `form:"activity_id,required"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
 }
 
 type SkuListResp struct {
@@ -83,7 +164,7 @@ type SubmitOrderResp struct {
 }
 
 type GetOrderReq struct {
-	OrderId string `json:"order_id" path:"order_id"`
+	OrderId string `path:"order_id"`
 }
 
 type GetOrderResp struct {
@@ -124,11 +205,11 @@ type MallSkuItem struct {
 }
 
 type MallProductListReq struct {
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
-	CategoryId string `json:"category_id" form:"category_id"`
-	Keyword    string `json:"keyword" form:"keyword"`
-	Status     int32  `json:"status" form:"status,default=1"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	CategoryId string `form:"category_id"`
+	Keyword    string `form:"keyword"`
+	Status     int32  `form:"status,default=1"`
 }
 
 type MallProductListResp struct {
@@ -139,7 +220,7 @@ type MallProductListResp struct {
 }
 
 type MallProductDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallProductDetailResp struct {
@@ -147,10 +228,10 @@ type MallProductDetailResp struct {
 }
 
 type MallSkuListReq struct {
-	ProductId string `json:"product_id" form:"product_id,required"`
-	Page      int    `json:"page" form:"page,default=1"`
-	PageSize  int    `json:"page_size" form:"page_size,default=10"`
-	Status    int32  `json:"status" form:"status,default=1"`
+	ProductId string `form:"product_id,required"`
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	Status    int32  `form:"status,default=1"`
 }
 
 type MallSkuListResp struct {
@@ -188,7 +269,7 @@ type MallOrderResp struct {
 type MallCreateOrderReq struct {
 	SkuId          string `json:"sku_id" validate:"required"`
 	Quantity       int64  `json:"quantity" validate:"required,min=1,max=99"`
-	Remark         string `json:"remark"`
+	Remark         string `json:"remark,optional"`
 	IdempotencyKey string `json:"idempotency_key" validate:"required"`
 }
 
@@ -198,9 +279,9 @@ type MallCreateOrderResp struct {
 }
 
 type MallOrderListReq struct {
-	Page     int   `json:"page" form:"page,default=1"`
-	PageSize int   `json:"page_size" form:"page_size,default=10"`
-	Status   int32 `json:"status" form:"status,default=-1"`
+	Page     int   `form:"page,default=1"`
+	PageSize int   `form:"page_size,default=10"`
+	Status   int32 `form:"status,default=-1"`
 }
 
 type MallOrderListResp struct {
@@ -211,7 +292,7 @@ type MallOrderListResp struct {
 }
 
 type MallOrderDetailReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallOrderDetailResp struct {
@@ -219,7 +300,7 @@ type MallOrderDetailResp struct {
 }
 
 type MallCancelOrderReq struct {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type AgentRecommendReq struct {

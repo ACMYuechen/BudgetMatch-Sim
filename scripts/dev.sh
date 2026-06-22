@@ -37,11 +37,9 @@ docker compose up postgres redis rocketmq-namesrv rocketmq-broker etcd -d
 echo "⏳ 等待基础设施就绪..."
 sleep 8
 
-# 初始化 etcd 默认动态配置（etcdctl 不存在时跳过）
-if command -v etcdctl &> /dev/null; then
-    echo "🔧 初始化 etcd 动态配置..."
-    bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
-fi
+# 初始化 etcd 默认动态配置（seckill 等服务启动前必须存在）
+echo "🔧 初始化 etcd 动态配置..."
+bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
 
 # 设置 etcd 地址，供 conf.UseEnv() 替换配置中的 ${ETCD_HOSTS}
 export ETCD_HOSTS=127.0.0.1:12379

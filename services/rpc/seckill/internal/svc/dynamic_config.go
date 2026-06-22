@@ -2,6 +2,7 @@ package svc
 
 import (
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -11,6 +12,15 @@ import (
 
 const seckillConfigKey = "/config/seckill.rpc"
 
+// DynamicConfig 相关错误。
+var (
+	ErrEmptyDynamicConfig       = errors.New("seckill dynamic config is empty")
+	ErrInvalidDynamicConfigJSON = errors.New("seckill dynamic config is not valid JSON")
+	ErrInvalidActivityRateLimit = errors.New("activity rate limit config is invalid")
+	ErrInvalidUserRateLimit     = errors.New("user rate limit config is invalid")
+	ErrInvalidLowStockThreshold = errors.New("low stock threshold must be greater than 0")
+)
+
 // dynamicState 封装动态配置的并发读写保护。
 type dynamicState struct {
 	mu  sync.RWMutex
@@ -18,7 +28,7 @@ type dynamicState struct {
 }
 
 func newDynamicState() *dynamicState {
-	return &dynamicState{cfg: config.DefaultDynamicConfig}
+	return &dynamicState{}
 }
 
 func (d *dynamicState) apply(cfg config.DynamicConfig) {
@@ -41,46 +51,51 @@ func (d *dynamicState) featureEnabled(name string) bool {
 func (d *dynamicState) lowStockThreshold() int64 {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	if d.cfg.LowStockThreshold <= 0 {
-		return 100
-	}
 	return d.cfg.LowStockThreshold
 }
 
 // loadDynamicConfig 把 etcd 中的 JSON 配置解析并应用到 ServiceContext。
-func (s *ServiceContext) loadDynamicConfig(data []byte) {
+// 空数据或解析失败时返回 error，不会回退到任何默认值。
+func (s *ServiceContext) loadDynamicConfig(data []byte) error {
 	if len(data) == 0 {
-		s.applyDynamicConfig(config.DefaultDynamicConfig)
-		return
+		return ErrEmptyDynamicConfig
 	}
 
 	var cfg config.DynamicConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		logx.Errorf("failed to unmarshal dynamic config: %v, fallback to default", err)
-		s.applyDynamicConfig(config.DefaultDynamicConfig)
-		return
+		logx.Errorf("failed to unmarshal dynamic config: %v", err)
+		return ErrInvalidDynamicConfigJSON
 	}
-	s.applyDynamicConfig(cfg)
+
+	return s.applyDynamicConfig(cfg)
 }
 
-func (s *ServiceContext) applyDynamicConfig(cfg config.DynamicConfig) {
-	// 应用活动级滑动窗口限流参数
-	if cfg.ActivityRateLimit.WindowSeconds > 0 && cfg.ActivityRateLimit.Max > 0 {
-		s.ActivityRateLimiter.SetWindow(time.Duration(cfg.ActivityRateLimit.WindowSeconds) * time.Second)
-		s.ActivityRateLimiter.SetMax(cfg.ActivityRateLimit.Max)
+// applyDynamicConfig 校验并应用动态配置。任何字段不合法都返回 error。
+func (s *ServiceContext) applyDynamicConfig(cfg config.DynamicConfig) error {
+	if cfg.ActivityRateLimit.WindowSeconds <= 0 || cfg.ActivityRateLimit.Max <= 0 {
+		return ErrInvalidActivityRateLimit
+	}
+	if cfg.UserRateLimit.Capacity <= 0 || cfg.UserRateLimit.Rate <= 0 || cfg.UserRateLimit.IntervalSeconds <= 0 {
+		return ErrInvalidUserRateLimit
+	}
+	if cfg.LowStockThreshold <= 0 {
+		return ErrInvalidLowStockThreshold
 	}
 
+	// 应用活动级滑动窗口限流参数
+	s.ActivityRateLimiter.SetWindow(time.Duration(cfg.ActivityRateLimit.WindowSeconds) * time.Second)
+	s.ActivityRateLimiter.SetMax(cfg.ActivityRateLimit.Max)
+
 	// 应用用户级令牌桶限流参数
-	if cfg.UserRateLimit.Capacity > 0 && cfg.UserRateLimit.IntervalSeconds > 0 {
-		s.UserRateLimiter.SetCapacity(cfg.UserRateLimit.Capacity)
-		s.UserRateLimiter.SetRate(cfg.UserRateLimit.Rate)
-		s.UserRateLimiter.SetInterval(time.Duration(cfg.UserRateLimit.IntervalSeconds) * time.Second)
-	}
+	s.UserRateLimiter.SetCapacity(cfg.UserRateLimit.Capacity)
+	s.UserRateLimiter.SetRate(cfg.UserRateLimit.Rate)
+	s.UserRateLimiter.SetInterval(time.Duration(cfg.UserRateLimit.IntervalSeconds) * time.Second)
 
 	// 记录功能开关状态，业务逻辑中读取
 	s.DynamicState.apply(cfg)
 
 	logx.Infof("dynamic config applied: %+v", cfg)
+	return nil
 }
 
 // IsFeatureEnabled 读取功能开关当前状态。

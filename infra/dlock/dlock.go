@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	ErrLockNotHeld = errors.New("lock not held")
-	ErrNilManager  = errors.New("etcd lock manager is nil")
+	ErrLockNotHeld     = errors.New("lock not held")
+	ErrNilManager      = errors.New("etcd lock manager is nil")
+	ErrEmptyEndpoints  = errors.New("etcd endpoints are required for distributed lock")
 )
 
 // Manager 管理一组共享同一个 etcd 连接的分布式锁。
@@ -21,10 +22,10 @@ type Manager struct {
 }
 
 // NewManager 创建一个基于 etcd 的分布式锁管理器。
-// endpoints 为空时返回 nil，调用方可以按未启用分布式锁处理。
+// endpoints 为空时返回错误，调用方必须保证 etcd 已配置。
 func NewManager(endpoints []string) (*Manager, error) {
 	if len(endpoints) == 0 {
-		return nil, nil
+		return nil, ErrEmptyEndpoints
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
@@ -63,7 +64,7 @@ func (m *Manager) NewLock(key string, ttl int) (*EtcdLock, error) {
 // Close 关闭 etcd 客户端。
 func (m *Manager) Close() error {
 	if m == nil || m.cli == nil {
-		return nil
+		return ErrNilManager
 	}
 	return m.cli.Close()
 }
@@ -101,15 +102,16 @@ func (l *EtcdLock) Unlock(ctx context.Context) error {
 // Close 关闭锁会话。
 func (l *EtcdLock) Close() error {
 	if l == nil || l.s == nil {
-		return nil
+		return ErrNilManager
 	}
 	return l.s.Close()
 }
 
 // WithLock 在持有锁期间执行 fn，自动加锁/解锁并处理错误。
+// lock 为 nil 时返回 ErrNilManager，不会无保护执行 fn。
 func WithLock(ctx context.Context, lock *EtcdLock, fn func() error) error {
 	if lock == nil {
-		return fn()
+		return ErrNilManager
 	}
 	if err := lock.Lock(ctx); err != nil {
 		logx.Errorf("etcd lock acquire failed: %v", err)

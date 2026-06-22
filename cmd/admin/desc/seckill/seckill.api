@@ -15,9 +15,9 @@ type ActivityItem {
 }
 
 type ActivityListReq {
-	Page     int `json:"page" form:"page,default=1"`
-	PageSize int `json:"page_size" form:"page_size,default=10"`
-	Status   int `json:"status" form:"status,default=0"`
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+	Status   int `form:"status,default=0"`
 }
 
 type ActivityListResp {
@@ -40,7 +40,7 @@ type ActivityCreateResp {
 }
 
 type ActivityDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityDetailResp {
@@ -48,7 +48,7 @@ type ActivityDetailResp {
 }
 
 type ActivityUpdateReq {
-	Id          string `json:"id" path:"id"`
+	Id          string `path:"id"`
 	Title       string `json:"title" validate:"max=128"`
 	Description string `json:"description" validate:"max=512"`
 	BannerUrl   string `json:"banner_url" validate:"max=512"`
@@ -61,7 +61,7 @@ type ActivityUpdateResp {
 }
 
 type ActivityDeleteReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityDeleteResp {
@@ -69,7 +69,7 @@ type ActivityDeleteResp {
 }
 
 type ActivityPreheatReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityPreheatResp {
@@ -77,7 +77,7 @@ type ActivityPreheatResp {
 }
 
 type ActivityOnlineReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityOnlineResp {
@@ -85,7 +85,7 @@ type ActivityOnlineResp {
 }
 
 type ActivityOfflineReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type ActivityOfflineResp {
@@ -112,9 +112,9 @@ type SkuItem {
 }
 
 type SkuListReq {
-	ActivityId string `json:"activity_id" form:"activity_id"`
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
+	ActivityId string `form:"activity_id"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
 }
 
 type SkuListResp {
@@ -140,7 +140,7 @@ type SkuCreateResp {
 }
 
 type SkuDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type SkuDetailResp {
@@ -148,7 +148,7 @@ type SkuDetailResp {
 }
 
 type SkuUpdateReq {
-	Id            string `json:"id" path:"id"`
+	Id            string `path:"id"`
 	Title         string `json:"title" validate:"max=128"`
 	Subtitle      string `json:"subtitle" validate:"max=256"`
 	Pic           string `json:"pic" validate:"max=512"`
@@ -164,7 +164,7 @@ type SkuUpdateResp {
 }
 
 type SkuDeleteReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type SkuDeleteResp {

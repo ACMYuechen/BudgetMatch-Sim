@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func etcdEndpoints() []string {
-	env := os.Getenv("ETCD_ENDPOINTS")
+func etcdHosts() []string {
+	env := os.Getenv("ETCD_HOSTS")
 	if env == "" {
 		return nil
 	}
@@ -22,12 +22,10 @@ func etcdEndpoints() []string {
 }
 
 func TestEtcdLock_Concurrent(t *testing.T) {
-	endpoints := etcdEndpoints()
-	if len(endpoints) == 0 {
-		t.Skip("ETCD_ENDPOINTS not set, skip integration test")
-	}
+	hosts := etcdHosts()
+	require.NotEmpty(t, hosts, "ETCD_HOSTS is required")
 
-	mgr, err := NewManager(endpoints)
+	mgr, err := NewManager(hosts)
 	require.NoError(t, err)
 	defer mgr.Close()
 
@@ -74,12 +72,10 @@ func TestEtcdLock_Concurrent(t *testing.T) {
 }
 
 func TestEtcdLock_TryLockTimeout(t *testing.T) {
-	endpoints := etcdEndpoints()
-	if len(endpoints) == 0 {
-		t.Skip("ETCD_ENDPOINTS not set, skip integration test")
-	}
+	hosts := etcdHosts()
+	require.NotEmpty(t, hosts, "ETCD_HOSTS is required")
 
-	mgr, err := NewManager(endpoints)
+	mgr, err := NewManager(hosts)
 	require.NoError(t, err)
 	defer mgr.Close()
 
@@ -102,7 +98,7 @@ func TestEtcdLock_TryLockTimeout(t *testing.T) {
 
 func TestNewManager_WithEmptyEndpoints(t *testing.T) {
 	mgr, err := NewManager(nil)
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, ErrEmptyEndpoints)
 	assert.Nil(t, mgr)
 }
 
@@ -110,5 +106,5 @@ func TestWithLock_NilLock(t *testing.T) {
 	err := WithLock(context.Background(), nil, func() error {
 		return nil
 	})
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, ErrNilManager)
 }

@@ -90,7 +90,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// init etcd lock manager
 	lockManager, err := dlock.NewManager(c.Etcd.Hosts)
 	if err != nil {
-		logx.Errorf("dlock manager init failed: %v, continue without distributed lock", err)
+		logx.Must(err)
 	}
 
 	svc := &ServiceContext{
@@ -113,10 +113,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// 启动 etcd 动态配置监听
 	svc.ConfigCenter, err = configcenter.New(c.Etcd.Hosts)
 	if err != nil {
-		logx.Errorf("configcenter init failed: %v, use default config", err)
-		svc.applyDynamicConfig(config.DefaultDynamicConfig)
-	} else {
-		svc.ConfigCenter.Watch(seckillConfigKey, svc.loadDynamicConfig)
+		logx.Must(err)
+	}
+	if err := svc.ConfigCenter.Watch(seckillConfigKey, svc.loadDynamicConfig); err != nil {
+		logx.Must(err)
 	}
 
 	return svc
