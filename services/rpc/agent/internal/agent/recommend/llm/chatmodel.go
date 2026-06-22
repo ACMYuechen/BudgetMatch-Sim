@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"budgetmatch-sim/services/rpc/agent/internal/modelconfig"
+	modelconfig "budgetmatch-sim/services/rpc/agent/internal/model"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"

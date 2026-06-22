@@ -1,4 +1,4 @@
-package modelconfig
+package model
 
 import "strings"
 
