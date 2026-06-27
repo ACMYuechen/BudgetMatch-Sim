@@ -304,6 +304,23 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
+  # Web UI（前端 Nginx，port 8080）
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    container_name: budgetmatch-sim-web-ui
+    ports:
+      - "8080:80"
+    depends_on:
+      app:
+        condition: service_started
+      admin:
+        condition: service_started
+    networks:
+      - budgetmatch-sim-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
