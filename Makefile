@@ -13,6 +13,9 @@ seckillRpcDesc = $(seckillRpcPWD)/desc
 mallRpcPWD = services/rpc/mall
 mallRpcDesc = $(mallRpcPWD)/desc
 
+agentRpcPWD = services/rpc/agent
+agentRpcDesc = $(agentRpcPWD)/desc
+
 paymentRpcPWD = services/rpc/payment
 paymentRpcDesc = $(paymentRpcPWD)/desc
 
@@ -58,6 +61,9 @@ api-all:
 	@goctl api format --dir $(mallRpcDesc)
 	@goctl rpc protoc $(mallRpcDesc)/mall.proto --go_out=$(mallRpcPWD) --go-grpc_out=$(mallRpcPWD) --zrpc_out=$(mallRpcPWD) --style=go_zero -m -I . -I $(mallRpcDesc)
 	@rm -f $(mallRpcPWD)/mall.go $(mallRpcPWD)/etc/mall.yaml
+	@echo "生成 agent RPC..."
+	@goctl rpc protoc $(agentRpcDesc)/agent.proto --go_out=$(agentRpcPWD) --go-grpc_out=$(agentRpcPWD) --zrpc_out=$(agentRpcPWD) --style=go_zero -m -I . -I $(agentRpcDesc)
+	@rm -f $(agentRpcPWD)/agent.go $(agentRpcPWD)/etc/agent.yaml
 	@echo "生成 payment RPC..."
 	@goctl rpc protoc $(paymentRpcDesc)/payment.proto --go_out=$(paymentRpcPWD) --go-grpc_out=$(paymentRpcPWD) --zrpc_out=$(paymentRpcPWD) --style=go_zero -m -I . -I $(paymentRpcDesc)
 	@rm -f $(paymentRpcPWD)/payment.go $(paymentRpcPWD)/etc/payment.yaml
@@ -100,22 +106,28 @@ test:
 smoke-test:
 	@echo "🔥 冒烟测试..."
 	@echo ""
-	@echo "1. Auth RPC 端口检查"
-	@ss -ltnp 2>/dev/null | grep -q ":10003 " && echo "   ✅ 正常" || echo "   ❌ 异常"
+	@echo "1. Admin 服务健康检查"
+	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10001/api/health || echo "   ❌ 连接失败"
 	@echo ""
 	@echo "2. App 服务健康检查"
 	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10002/api/health || echo "   ❌ 连接失败"
 	@echo ""
-	@echo "3. Admin 服务健康检查"
-	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10001/api/health || echo "   ❌ 连接失败"
+	@echo "3. Auth RPC 端口检查"
+	@ss -ltnp 2>/dev/null | grep -q ":10003 " && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
-	@echo "4.5. Mall RPC 端口检查"
+	@echo "4. Seckill RPC 端口检查"
+	@ss -ltnp 2>/dev/null | grep -q ":10004 " && echo "   ✅ 正常" || echo "   ❌ 异常"
+	@echo ""
+	@echo "5. Mall RPC 端口检查"
 	@ss -ltnp 2>/dev/null | grep -q ":10005 " && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
-	@echo "4. PostgreSQL 连通性"
+	@echo "6. Agent RPC 端口检查"
+	@ss -ltnp 2>/dev/null | grep -q ":10006 " && echo "   ✅ 正常" || echo "   ❌ 异常"
+	@echo ""
+	@echo "7. PostgreSQL 连通性"
 	@docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
-	@echo "5. Redis 连通性"
+	@echo "8. Redis 连通性"
 	@docker compose exec -T redis redis-cli -a 12345678 ping >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"
 	@echo ""
 	@echo "✅ 冒烟测试完成"

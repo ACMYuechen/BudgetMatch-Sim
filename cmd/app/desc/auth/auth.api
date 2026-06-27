@@ -1,0 +1,133 @@
+syntax = "v1"
+
+// ========== Auth Types ==========
+
+type RegisterReq {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+	Username string `json:"username" validate:"required,min=2"`
+	Code     string `json:"code" validate:"required,len=6"`
+}
+
+type RegisterResp {
+	Success bool `json:"success"`
+}
+
+type UsernameLoginReq {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type EmailLoginReq {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type LoginResp {
+	Token  string `json:"token"`
+	UserId string `json:"user_id"`
+	Role   int32  `json:"role"`
+}
+
+type LoginByCodeReq {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required,len=6"`
+}
+
+type SendCodeReq {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type SendCodeResp {
+	Success bool `json:"success"`
+}
+
+// ========== User Types ==========
+
+type UserInfoReq {}
+
+type UserInfoResp {
+	UserId   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Avatar   string `json:"avatar"`
+	Phone    string `json:"phone"`
+}
+
+type UserProfileReq {}
+
+type UserProfileResp {
+	UserId           string `json:"user_id"`
+	RealName         string `json:"real_name"`
+	School           string `json:"school"`
+	Major            string `json:"major"`
+	Grade            string `json:"grade"`
+	Gender           int32  `json:"gender"`
+	ExpectedCity     string `json:"expected_city"`
+	ExpectedPosition string `json:"expected_position"`
+	SelfIntroduction string `json:"self_introduction"`
+}
+
+type UpdateUserProfileReq {
+	RealName         string `json:"real_name,optional"`
+	School           string `json:"school,optional"`
+	Major            string `json:"major,optional"`
+	Grade            string `json:"grade,optional"`
+	Gender           int32  `json:"gender,optional"`
+	ExpectedCity     string `json:"expected_city,optional"`
+	ExpectedPosition string `json:"expected_position,optional"`
+	SelfIntroduction string `json:"self_introduction,optional"`
+}
+
+type UpdateUserProfileResp {
+	Success bool `json:"success"`
+}
+
+//////////////////////////////// 认证接口（公开） /////////////////////////////////////////////
+@server (
+	prefix: /api/auth
+	group:  auth
+	tags:   auth
+)
+service app {
+	@doc "邮箱注册"
+	@handler Register
+	post /register (RegisterReq) returns (RegisterResp)
+
+	@doc "用户名登录"
+	@handler UsernameLogin
+	post /login/username (UsernameLoginReq) returns (LoginResp)
+
+	@doc "邮箱登录"
+	@handler EmailLogin
+	post /login/email (EmailLoginReq) returns (LoginResp)
+
+	@doc "验证码登录"
+	@handler LoginByCode
+	post /login/code (LoginByCodeReq) returns (LoginResp)
+
+	@doc "发送验证码"
+	@handler SendCode
+	post /code/send (SendCodeReq) returns (SendCodeResp)
+}
+
+//////////////////////////////// 用户接口（需登录） ///////////////////////////////////////////
+@server (
+	prefix: /api/user
+	group:  user
+	tags:   user
+	middleware: AuthMiddleware
+)
+service app {
+	@doc "获取当前用户信息"
+	@handler UserInfo
+	get /info (UserInfoReq) returns (UserInfoResp)
+
+	@doc "获取当前用户资料"
+	@handler UserProfile
+	get /profile (UserProfileReq) returns (UserProfileResp)
+
+	@doc "更新当前用户资料"
+	@handler UpdateUserProfile
+	put /profile (UpdateUserProfileReq) returns (UpdateUserProfileResp)
+}

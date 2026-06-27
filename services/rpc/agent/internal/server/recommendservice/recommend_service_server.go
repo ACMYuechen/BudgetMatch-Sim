@@ -2,7 +2,6 @@
 // goctl 1.9.2
 // Source: agent.proto
 
-// Package server 提供 RecommendService 的 gRPC 服务端实现。
 package server
 
 import (
@@ -13,20 +12,17 @@ import (
 	"budgetmatch-sim/services/rpc/agent/pb"
 )
 
-// RecommendServiceServer 实现了 pb.RecommendServiceServer 接口。
 type RecommendServiceServer struct {
 	svcCtx *svc.ServiceContext
 	pb.UnimplementedRecommendServiceServer
 }
 
-// NewRecommendServiceServer 创建 RecommendServiceServer 实例。
 func NewRecommendServiceServer(svcCtx *svc.ServiceContext) *RecommendServiceServer {
 	return &RecommendServiceServer{
 		svcCtx: svcCtx,
 	}
 }
 
-// Recommend 处理推荐 RPC 请求，委托给 RecommendLogic 执行。
 func (s *RecommendServiceServer) Recommend(ctx context.Context, in *pb.RecommendReq) (*pb.RecommendResp, error) {
 	l := recommendservicelogic.NewRecommendLogic(ctx, s.svcCtx)
 	return l.Recommend(in)

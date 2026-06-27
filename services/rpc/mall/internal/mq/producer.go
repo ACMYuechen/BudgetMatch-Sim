@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"budgetmatch-sim/infra/rocketmq"
+
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // OrderEventProducer 订单事件生产者
@@ -40,17 +42,28 @@ func (p *OrderEventProducer) publish(ctx context.Context, topic, eventType strin
 	return err
 }
 
-// PublishCreated 发送订单创建事件
-func (p *OrderEventProducer) PublishCreated(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderCreated, EventTypeCreated, event)
+func (p *OrderEventProducer) publishAsync(topic, eventType string, event OrderEvent) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		if err := p.publish(ctx, topic, eventType, event); err != nil {
+			logx.WithContext(ctx).Errorf("failed to publish mall order event asynchronously: topic=%s event_type=%s order_id=%s error=%v", topic, eventType, event.OrderID, err)
+		}
+	}()
 }
 
-// PublishPaid 发送订单支付事件
-func (p *OrderEventProducer) PublishPaid(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderPaid, EventTypePaid, event)
+// PublishCreatedAsync 异步发送订单创建事件，不阻塞主链路
+func (p *OrderEventProducer) PublishCreatedAsync(event OrderEvent) {
+	p.publishAsync(TopicOrderCreated, EventTypeCreated, event)
 }
 
-// PublishCancelled 发送订单取消事件
-func (p *OrderEventProducer) PublishCancelled(ctx context.Context, event OrderEvent) error {
-	return p.publish(ctx, TopicOrderCancelled, EventTypeCancelled, event)
+// PublishPaidAsync 异步发送订单支付事件，不阻塞主链路
+func (p *OrderEventProducer) PublishPaidAsync(event OrderEvent) {
+	p.publishAsync(TopicOrderPaid, EventTypePaid, event)
+}
+
+// PublishCancelledAsync 异步发送订单取消事件，不阻塞主链路
+func (p *OrderEventProducer) PublishCancelledAsync(event OrderEvent) {
+	p.publishAsync(TopicOrderCancelled, EventTypeCancelled, event)
 }

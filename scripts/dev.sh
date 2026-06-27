@@ -37,11 +37,9 @@ docker compose up postgres redis rocketmq-namesrv rocketmq-broker etcd -d
 echo "⏳ 等待基础设施就绪..."
 sleep 8
 
-# 初始化 etcd 默认动态配置（etcdctl 不存在时跳过）
-if command -v etcdctl &> /dev/null; then
-    echo "🔧 初始化 etcd 动态配置..."
-    bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
-fi
+# 初始化 etcd 默认动态配置（seckill 等服务启动前必须存在）
+echo "🔧 初始化 etcd 动态配置..."
+bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
 
 # 设置 etcd 地址，供 conf.UseEnv() 替换配置中的 ${ETCD_HOSTS}
 export ETCD_HOSTS=127.0.0.1:12379
@@ -50,11 +48,11 @@ export ETCD_HOSTS=127.0.0.1:12379
 # 串行启动：auth-rpc 先启动并自动创建数据库表
 echo "🚀 启动服务..."
 
-echo "  → auth-rpc (port 10003) — 先启动创建数据库表"
+echo "  → auth-rpc (port 10003)"
 (cd services/rpc/auth && nohup go run . > ../../../$LOG_DIR/auth-rpc.log 2>&1 &)
 echo $! > $PID_DIR/auth-rpc.pid
 
-sleep 5
+sleep 3
 
 echo "  → seckill-rpc (port 10004)"
 (cd services/rpc/seckill && nohup go run . > ../../../$LOG_DIR/seckill-rpc.log 2>&1 &)
@@ -65,6 +63,12 @@ sleep 3
 echo "  → mall-rpc (port 10005)"
 (cd services/rpc/mall && nohup go run . > ../../../$LOG_DIR/mall-rpc.log 2>&1 &)
 echo $! > $PID_DIR/mall-rpc.pid
+
+sleep 3
+
+echo "  → agent-rpc (port 10006)"
+(cd services/rpc/agent && nohup go run . > ../../../$LOG_DIR/agent-rpc.log 2>&1 &)
+echo $! > $PID_DIR/agent-rpc.pid
 
 sleep 3
 
@@ -91,6 +95,7 @@ echo "查看日志:"
 echo "  tail -f logs/auth-rpc.log     # auth RPC"
 echo "  tail -f logs/seckill-rpc.log  # seckill RPC"
 echo "  tail -f logs/mall-rpc.log     # mall RPC"
+echo "  tail -f logs/agent-rpc.log    # agent RPC"
 echo "  tail -f logs/payment-rpc.log  # payment RPC"
 echo "  tail -f logs/app.log          # app 服务"
 echo "  tail -f logs/admin.log        # admin 服务"

@@ -30,11 +30,11 @@ type MallSkuItem {
 }
 
 type MallProductListReq {
-	Page       int    `json:"page" form:"page,default=1"`
-	PageSize   int    `json:"page_size" form:"page_size,default=10"`
-	CategoryId string `json:"category_id" form:"category_id"`
-	Keyword    string `json:"keyword" form:"keyword"`
-	Status     int32  `json:"status" form:"status,default=1"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	CategoryId string `form:"category_id"`
+	Keyword    string `form:"keyword"`
+	Status     int32  `form:"status,default=1"`
 }
 
 type MallProductListResp {
@@ -45,7 +45,7 @@ type MallProductListResp {
 }
 
 type MallProductDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallProductDetailResp {
@@ -53,10 +53,10 @@ type MallProductDetailResp {
 }
 
 type MallSkuListReq {
-	ProductId string `json:"product_id" form:"product_id,required"`
-	Page      int    `json:"page" form:"page,default=1"`
-	PageSize  int    `json:"page_size" form:"page_size,default=10"`
-	Status    int32  `json:"status" form:"status,default=1"`
+	ProductId string `form:"product_id,required"`
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	Status    int32  `form:"status,default=1"`
 }
 
 type MallSkuListResp {
@@ -96,7 +96,7 @@ type MallOrderResp {
 type MallCreateOrderReq {
 	SkuId          string `json:"sku_id" validate:"required"`
 	Quantity       int64  `json:"quantity" validate:"required,min=1,max=99"`
-	Remark         string `json:"remark"`
+	Remark         string `json:"remark,optional"`
 	IdempotencyKey string `json:"idempotency_key" validate:"required"`
 }
 
@@ -106,9 +106,9 @@ type MallCreateOrderResp {
 }
 
 type MallOrderListReq {
-	Page     int   `json:"page" form:"page,default=1"`
-	PageSize int   `json:"page_size" form:"page_size,default=10"`
-	Status   int32 `json:"status" form:"status,default=-1"`
+	Page     int   `form:"page,default=1"`
+	PageSize int   `form:"page_size,default=10"`
+	Status   int32 `form:"status,default=-1"`
 }
 
 type MallOrderListResp {
@@ -119,7 +119,7 @@ type MallOrderListResp {
 }
 
 type MallOrderDetailReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 type MallOrderDetailResp {
@@ -127,7 +127,7 @@ type MallOrderDetailResp {
 }
 
 type MallCancelOrderReq {
-	Id string `json:"id" path:"id"`
+	Id string `path:"id"`
 }
 
 // ========== Service ==========

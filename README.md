@@ -15,27 +15,27 @@
 ## 服务架构
 
 ```
-┌─────────────┐      ┌─────────────┐
-│  Admin API  │      │   App API   │   REST Gateway (cmd/)
-│   :10001    │      │   :10002    │
-└──────┬──────┘      └──────┬──────┘
-       │                      │
-       └──────────┬───────────┘
-                  │ gRPC
-       ┌──────────┼──────────┐
-       │          │          │
-┌──────┴──────┐ ┌──┴────┐ ┌──┴──────┐
-│   auth-rpc  │ │seckill│ │ mall-rpc│   RPC Services (services/rpc/)
-│  :10003     │ │:10004 │ │ :10005  │
-└─────────────┘ └───────┘ └─────────┘
-       │                      │
-       └──────────┬───────────┘
-                  │
-         ┌────────┴────────┐
-         │  PostgreSQL     │
-         │    :5432        │
-         │  Redis :6379    │
-         └─────────────────┘
+            ┌─────────────┐      ┌─────────────┐
+            │  Admin API  │      │   App API   │   REST Gateway (cmd/)
+            │   :10001    │      │   :10002    │
+            └──────┬──────┘      └──────┬──────┘
+                   │                    │
+                   └──────────┬─────────┘
+                              │ gRPC
+       ┌──────────┬───────────┼─────────────┬──────────────┐
+       │          │           │             │              │
+┌──────┴─────┐ ┌──┴────┐ ┌────┴────┐ ┌──────┴─────┐ ┌──────┴──────┐
+│   auth-rpc │ │seckill│ │ mall-rpc│ │  agent-rpc │ │ payment-rpc │       RPC Services (services/rpc/)
+│  :10003    │ │:10004 │ │ :10005  │ │  :10006    │ │   :10007    │
+└────────────┘ └───────┘ └─────────┘ └────────────┘ └─────────────┘
+       │          │           │             │              │
+       └──────────┴───────────┴─────────────┴──────────────┘
+                              │
+                     ┌────────┴────────┐
+                     │  PostgreSQL     │
+                     │    :5432        │
+                     │  Redis :6379    │
+                     └─────────────────┘
 ```
 
 | 服务 | 端口 | 说明 |
@@ -45,6 +45,7 @@
 | `services/rpc/auth` | 10003 (gRPC) | 认证与用户 RPC |
 | `services/rpc/seckill` | 10004 (gRPC) | 秒杀活动 RPC |
 | `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
+| `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
 | `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
 | `postgres` | 5432 | 主数据库 |
 | `redis` | 6379 | 缓存与限流 |
@@ -82,7 +83,7 @@ make dev
 该命令会：
 1. 加载 `.env` 环境变量
 2. 启动 PostgreSQL 和 Redis
-3. 启动 auth-rpc、seckill-rpc、app、admin 四个服务
+3. 启动 auth-rpc、seckill-rpc、mall-rpc、agent-rpc、app、admin 六个服务
 
 ### 4. 验证
 
@@ -111,6 +112,8 @@ make test
 # 查看服务日志
 tail -f logs/auth-rpc.log
 tail -f logs/seckill-rpc.log
+tail -f logs/mall-rpc.log
+tail -f logs/agent-rpc.log
 tail -f logs/app.log
 tail -f logs/admin.log
 
@@ -131,6 +134,7 @@ make docker-down
 │       ├── auth/       # 认证与用户服务
 │       ├── seckill/    # 秒杀服务
 │       ├── mall/       # 商城商品与订单服务
+│       ├── agent/      # 推荐 Agent 服务
 │       └── payment/    # 支付服务（支付宝沙箱当面付）
 ├── infra/              # 基础设施封装（数据库、Redis、JWT、OSS、限流等）
 ├── docs/               # 文档与生成的 Swagger

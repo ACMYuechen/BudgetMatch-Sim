@@ -9,6 +9,7 @@ import (
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
+	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -38,13 +39,13 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 	if order.UserId != in.UserId {
 		return nil, errors.MallOrderNotFound
 	}
-	if order.Status != OrderStatusPending {
+	if order.Status != mall_orders.OrderStatusPending {
 		return nil, errors.MallInvalidOrderTransition
 	}
 
-	// mock payment: directly mark as paid
+	// 模拟支付：直接标记为已支付
 	now := time.Now()
-	order.Status = OrderStatusPaid
+	order.Status = mall_orders.OrderStatusPaid
 	order.PayType = in.PayType
 	order.PayTime = &now
 
@@ -53,21 +54,19 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 		return nil, errors.Database
 	}
 
-	// send event
+	// 发送事件
 	if l.svcCtx.OrderEventProducer != nil {
 		event := mq.OrderEvent{
 			OrderID: order.Id,
 			UserID:  order.UserId,
-			Status:  int32(OrderStatusPaid),
+			Status:  int32(mall_orders.OrderStatusPaid),
 		}
-		if err := l.svcCtx.OrderEventProducer.PublishPaid(l.ctx, event); err != nil {
-			l.Logger.Errorf("failed to send order paid event: %v", err)
-		}
+		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
 	}
 
 	return &pb.PayOrderResp{
 		OrderId: order.Id,
-		Status:  int32(OrderStatusPaid),
+		Status:  int32(mall_orders.OrderStatusPaid),
 		PayUrl:  "https://example.com/mock-pay?order_id=" + order.Id,
 		Message: "mock payment success",
 	}, nil

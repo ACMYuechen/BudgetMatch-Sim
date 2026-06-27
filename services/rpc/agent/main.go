@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// configFile 指向配置文件路径，默认值为 "etc/agent.yaml"。
-var configFile = flag.String("f", "etc/agent.yaml", "the config file")
+// configFile 指向配置文件路径，默认值为 "etc/config.yaml"。
+var configFile = flag.String("f", "etc/config.yaml", "the config file")
 
 func main() {
 	flag.Parse()

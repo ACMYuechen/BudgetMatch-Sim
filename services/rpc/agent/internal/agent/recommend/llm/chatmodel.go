@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"budgetmatch-sim/services/rpc/agent/internal/modelconfig"
+	modelconfig "budgetmatch-sim/services/rpc/agent/internal/model"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
@@ -58,13 +58,15 @@ func modelName(name string) string {
 
 // normalizeBaseURL 归一化自定义 BaseURL：底层 go-openai 客户端期望地址包含 /v1 后缀。
 // 留空时交给组件使用 OpenAI 官方默认地址。
+// 若用户已填写 /v1/chat/completions 等完整路径，则不再追加 /v1，避免重复。
 func normalizeBaseURL(raw string) string {
 	base := strings.TrimRight(strings.TrimSpace(raw), "/")
 	if base == "" {
 		return ""
 	}
-	if !strings.HasSuffix(base, "/v1") {
-		base += "/v1"
+	// 已包含 /v1 路径时直接返回，避免把 chat/completions 等路径重复拼接
+	if strings.Contains(base, "/v1") {
+		return base
 	}
-	return base
+	return base + "/v1"
 }
