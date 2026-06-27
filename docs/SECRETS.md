@@ -19,6 +19,11 @@
 | `OSS_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret | 同上，创建时只显示一次 |
 | `OSS_BUCKET_NAME` | OSS Bucket 名称 | 阿里云 OSS 控制台 |
 | `OSS_DOMAIN` | OSS 自定义域名或外网域名 | Bucket 概览页面 |
+| `ALIPAY_APP_ID` | 支付宝沙箱应用 AppID | 详见 [docs/PAYMENT.md](PAYMENT.md) |
+| `ALIPAY_PRIVATE_KEY` | 应用私钥 | 详见 [docs/PAYMENT.md](PAYMENT.md) |
+| `ALIPAY_PUBLIC_KEY` | 支付宝公钥（验签用） | 详见 [docs/PAYMENT.md](PAYMENT.md) |
+| `ALIPAY_NOTIFY_URL` | 异步通知地址（公网可达，可留空） | 部署后填网关通知地址 |
+| `ALIPAY_RETURN_URL` | 同步跳转地址（当面付可留空） | — |
 
 ## 快速配置
 

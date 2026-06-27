@@ -16,6 +16,9 @@ mallRpcDesc = $(mallRpcPWD)/desc
 agentRpcPWD = services/rpc/agent
 agentRpcDesc = $(agentRpcPWD)/desc
 
+paymentRpcPWD = services/rpc/payment
+paymentRpcDesc = $(paymentRpcPWD)/desc
+
 # =============================================================================
 # 帮助
 # =============================================================================
@@ -61,6 +64,9 @@ api-all:
 	@echo "生成 agent RPC..."
 	@goctl rpc protoc $(agentRpcDesc)/agent.proto --go_out=$(agentRpcPWD) --go-grpc_out=$(agentRpcPWD) --zrpc_out=$(agentRpcPWD) --style=go_zero -m -I . -I $(agentRpcDesc)
 	@rm -f $(agentRpcPWD)/agent.go $(agentRpcPWD)/etc/agent.yaml
+	@echo "生成 payment RPC..."
+	@goctl rpc protoc $(paymentRpcDesc)/payment.proto --go_out=$(paymentRpcPWD) --go-grpc_out=$(paymentRpcPWD) --zrpc_out=$(paymentRpcPWD) --style=go_zero -m -I . -I $(paymentRpcDesc)
+	@rm -f $(paymentRpcPWD)/payment.go $(paymentRpcPWD)/etc/payment.yaml
 	@echo "所有代码生成完成"
 
 # =============================================================================
