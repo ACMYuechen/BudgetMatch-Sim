@@ -61,6 +61,12 @@ temp/
 web/node_modules/
 web/dist/
 web/.vite/
+web-ui/node_modules/
+web-ui/dist/
+web-ui/.vite/
+web-ui/.env.local
+web-ui/.env.*.local
+web-ui/coverage/
 
 # Air hot reload
 .air.toml

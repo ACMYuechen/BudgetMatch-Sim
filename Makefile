@@ -30,6 +30,8 @@ help:
 	@echo "  make docker-up      docker-compose 启动全部服务"
 	@echo "  make docker-down    docker-compose 停止"
 	@echo "  make api-all        生成所有服务的代码"
+	@echo "  make web            启动前端开发服务器"
+	@echo "  make web-stop       停止前端开发服务器"
 
 # =============================================================================
 # API / RPC 代码生成
@@ -94,6 +96,26 @@ docker-down:
 .PHONY: docker-logs
 docker-logs:
 	@docker compose logs -f
+
+# =============================================================================
+# Web UI 前端
+# =============================================================================
+.PHONY: web
+web:
+	@mkdir -p .pids logs
+	@cd web-ui && nohup npm run dev > ../logs/web-ui.log 2>&1 &
+	@echo $! > .pids/web-ui.pid
+	@echo "🚀 Web UI 运行在 http://localhost:5173"
+
+.PHONY: web-stop
+web-stop:
+	@if [ -f .pids/web-ui.pid ]; then \
+		kill $$(cat .pids/web-ui.pid) 2>/dev/null || true; \
+		rm -f .pids/web-ui.pid; \
+		echo "🛑 Web UI 已停止"; \
+	else \
+		echo "Web UI 未运行"; \
+	fi
 
 # =============================================================================
 # 开发工具
