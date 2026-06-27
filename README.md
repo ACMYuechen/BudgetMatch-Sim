@@ -7,8 +7,12 @@
 - **语言**: Go 1.22+
 - **Web 框架**: [go-zero](https://github.com/zeromicro/go-zero)
 - **RPC**: gRPC + Protocol Buffers
+- **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
+- **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)（通过 `mark3labs/mcp-go` 接入）
 - **数据库**: PostgreSQL 16
 - **缓存**: Redis 7
+- **服务注册**: etcd
+- **消息队列**: RocketMQ
 - **部署**: Docker & Docker Compose
 - **代码生成**: goctl
 
@@ -31,11 +35,13 @@
        │          │           │             │              │
        └──────────┴───────────┴─────────────┴──────────────┘
                               │
-                     ┌────────┴────────┐
-                     │  PostgreSQL     │
-                     │    :5432        │
-                     │  Redis :6379    │
-                     └─────────────────┘
+              ┌───────────────┼───────────────┐
+              │               │               │
+     ┌────────┴────────┐ ┌───┴────┐ ┌────────┴─────────┐
+     │  PostgreSQL     │ │  etcd  │ │    RocketMQ      │
+     │    :5432        │ │ :12379 │ │ :9876 / :10911   │
+     │  Redis :6379    │ │        │ │                  │
+     └─────────────────┘ └────────┘ └──────────────────┘
 ```
 
 | 服务 | 端口 | 说明 |
@@ -49,6 +55,8 @@
 | `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
 | `postgres` | 5432 | 主数据库 |
 | `redis` | 6379 | 缓存与限流 |
+| `etcd` | 12379 | 服务注册与动态配置 |
+| `rocketmq` | 9876 / 10911 | 消息队列 |
 
 ## 快速开始
 
@@ -71,6 +79,10 @@ cp .env.example .env
 | `JWT_SECRET` | JWT 签名密钥，建议 ≥ 32 位随机字符串 |
 | `EMAIL_FROM` | 发件邮箱（如 QQ 邮箱） |
 | `EMAIL_PASSWORD` | 邮箱 SMTP 授权码 |
+| `LLM_PROVIDER` | LLM 服务商（如 `openai`），留空则走本地规则推荐 |
+| `LLM_MODEL` | 模型名称（如 `gpt-4.1-mini` / `deepseek-chat`） |
+| `LLM_BASE_URL` | 模型 API 地址（如 `https://api.openai.com/v1`） |
+| `LLM_API_KEY` | 模型 API 密钥 |
 
 > 完整密钥说明见 [docs/SECRETS.md](docs/SECRETS.md)。`.env` 已加入 `.gitignore`，不会提交到仓库。
 
@@ -82,8 +94,8 @@ make dev
 
 该命令会：
 1. 加载 `.env` 环境变量
-2. 启动 PostgreSQL 和 Redis
-3. 启动 auth-rpc、seckill-rpc、mall-rpc、agent-rpc、app、admin 六个服务
+2. 启动 PostgreSQL、Redis、etcd、RocketMQ 等基础设施
+3. 启动 auth-rpc、seckill-rpc、mall-rpc、agent-rpc、payment-rpc、app、admin 七个服务
 
 ### 4. 验证
 
@@ -114,8 +126,14 @@ tail -f logs/auth-rpc.log
 tail -f logs/seckill-rpc.log
 tail -f logs/mall-rpc.log
 tail -f logs/agent-rpc.log
+tail -f logs/payment-rpc.log
 tail -f logs/app.log
 tail -f logs/admin.log
+
+# 测试推荐接口
+curl -X POST http://localhost:10002/api/agent/recommend \
+  -H "Content-Type: application/json" \
+  -d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3}'
 
 # Docker 全量部署
 make docker-up
@@ -162,4 +180,6 @@ go-zero API 定义生成 Swagger 后存放于 `docs/`：
 ## 开发注意
 
 - 服务本地启动时会自动建表（`AutoMigrate: true`）。
-- `cmd/admin` 和 `cmd/app` 不直连数据库，数据操作通过 `auth-rpc` / `seckill-rpc`。
+- `cmd/admin` 和 `cmd/app` 不直连数据库，数据操作通过对应 RPC 服务完成。
+- `agent-rpc` 不配置 LLM 时自动走确定性规则推荐；配置后由 Eino ReAct Agent 编排 LLM 工具调用，失败时自动降级到规则推荐。
+
