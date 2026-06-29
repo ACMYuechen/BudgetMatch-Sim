@@ -34,7 +34,7 @@ type (
 		Phone     string         `json:"phone" gorm:"type:varchar(20);index;default:'';comment:手机号"`
 		Email     string         `json:"email" gorm:"type:varchar(100);index;default:'';comment:邮箱"`
 		Password  string         `json:"password" gorm:"type:varchar(255);not null;comment:密码"`
-		Role      int64          `json:"role" gorm:"type:int;default:1;comment:角色，1:普通用户 2:管理员"`
+		Role      int64          `json:"role" gorm:"type:int;default:100;comment:角色, 100为普通用户, 详情见infra/role"`
 		Status    int64          `json:"status" gorm:"type:int;default:1;comment:状态，1:启用 2:禁用 3:待注销 4:已注销"`
 		Remark    string         `json:"remark" gorm:"type:varchar(255);comment:备注"`
 		CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`

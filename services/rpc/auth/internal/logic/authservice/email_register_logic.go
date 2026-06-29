@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/rand"
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
 	"budgetmatch-sim/services/rpc/auth/model/user"
 	"budgetmatch-sim/services/rpc/auth/pb"
@@ -95,7 +96,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 		Username:  in.Username,
 		Email:     in.Email,
 		Password:  hashPassword,
-		Role:      user.RoleUser,
+		Role:      role.RoleUser,
 		Status:    user.StatusNormal,
 		UpdatedAt: time.Now(),
 		CreatedAt: time.Now(),
