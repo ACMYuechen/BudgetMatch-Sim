@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/infra/dlock"
 	"budgetmatch-sim/infra/limit"
 	iredis "budgetmatch-sim/infra/redis"
+	"budgetmatch-sim/services/rpc/mall/client/productservice"
 	"budgetmatch-sim/services/rpc/seckill/internal/config"
 	"budgetmatch-sim/services/rpc/seckill/internal/consumer"
 	"budgetmatch-sim/services/rpc/seckill/internal/stock"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/zrpc"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +31,9 @@ type ServiceContext struct {
 	OrderStore    seckill_order.SeckillOrdersModel
 	StockManager  *stock.StockManager
 	OrderConsumer *consumer.OrderConsumer
+
+	// 商城商品 RPC 客户端（创建秒杀 SKU 时预加载商品快照）
+	MallProductClient productservice.ProductService
 
 	// etcd 分布式锁管理器
 	LockManager *dlock.Manager
@@ -93,6 +98,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(err)
 	}
 
+	// init mall product client（NonBlock：mall 启动晚于 seckill 时不阻塞，调用时再解析连接）
+	mallProductClient := productservice.NewProductService(zrpc.MustNewClient(c.MallRpc))
+
 	svc := &ServiceContext{
 		Config:        c,
 		DB:            db.DB(),
@@ -101,10 +109,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SkuStore:      skuStore,
 		OrderStore:    orderStore,
 
-		StockManager:  stockManager,
-		OrderConsumer: orderConsumer,
-		LockManager:   lockManager,
-		DynamicState:  newDynamicState(),
+		StockManager:      stockManager,
+		OrderConsumer:     orderConsumer,
+		MallProductClient: mallProductClient,
+		LockManager:       lockManager,
+		DynamicState:      newDynamicState(),
 
 		ActivityRateLimiter: activityRateLimiter,
 		UserRateLimiter:     userRateLimiter,

@@ -184,13 +184,14 @@ type SkuListResp struct {
 
 type SkuCreateReq struct {
 	ActivityId    string `json:"activity_id" validate:"required"`
-	Title         string `json:"title" validate:"required,max=128"`
+	Title         string `json:"title" validate:"max=128"`
 	Subtitle      string `json:"subtitle" validate:"max=256"`
 	Pic           string `json:"pic" validate:"max=512"`
-	OriginalPrice int64  `json:"original_price" validate:"required,min=0"`
+	OriginalPrice int64  `json:"original_price" validate:"min=0"`
 	SeckillPrice  int64  `json:"seckill_price" validate:"required,min=0"`
-	Stock         int64  `json:"stock" validate:"required,min=1"`
+	Stock         int64  `json:"stock" validate:"min=0"`
 	Sort          int64  `json:"sort"`
+	MallSkuId     string `json:"mall_sku_id" validate:"max=36"`
 }
 
 type SkuCreateResp struct {

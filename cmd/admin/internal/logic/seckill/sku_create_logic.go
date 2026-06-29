@@ -38,6 +38,7 @@ func (l *SkuCreateLogic) SkuCreate(req *types.SkuCreateReq) (resp *types.SkuCrea
 		SeckillPrice:  req.SeckillPrice,
 		Stock:         req.Stock,
 		Sort:          req.Sort,
+		MallSkuId:     req.MallSkuId,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)
