@@ -43,18 +43,19 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 		return nil, errors.MallInvalidOrderTransition
 	}
 
-	// 模拟支付：直接标记为已支付
+	// 模拟支付：以乐观锁条件更新（WHERE status=pending），避免并发重复支付与重复发事件
 	now := time.Now()
-	order.Status = mall_orders.OrderStatusPaid
-	order.PayType = in.PayType
-	order.PayTime = &now
-
-	if err := l.svcCtx.OrderStore.Update(l.ctx, order); err != nil {
+	ok, err := l.svcCtx.OrderStore.MarkPaidTx(l.svcCtx.DB, order.Id, in.UserId, mall_orders.OrderStatusPending, in.PayType, now)
+	if err != nil {
 		l.Logger.Errorf("failed to update order payment: %v", err)
 		return nil, errors.Database
 	}
+	if !ok {
+		// 订单已被并发请求处理或状态已变更
+		return nil, errors.MallInvalidOrderTransition
+	}
 
-	// 发送事件
+	// 发送事件（仅本次真正完成状态流转时发送一次）
 	if l.svcCtx.OrderEventProducer != nil {
 		event := mq.OrderEvent{
 			OrderID: order.Id,

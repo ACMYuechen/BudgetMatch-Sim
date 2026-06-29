@@ -30,21 +30,17 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 }
 
 func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderResp, error) {
-	// 1. validate token
-	skuIDFromToken, err := l.svcCtx.StockManager.GetToken(in.Token)
+	// 1. 原子校验并消费 token（GETDEL），保证一次性使用，避免并发复用
+	skuIDFromToken, err := l.svcCtx.StockManager.ConsumeToken(in.Token)
 	if err == redis.Nil {
 		return nil, errors.SeckillTokenInvalid
 	}
 	if err != nil {
-		l.Logger.Errorf("failed to get token: %v", err)
+		l.Logger.Errorf("failed to consume token: %v", err)
 		return nil, errors.Internal
 	}
 	if skuIDFromToken != in.SkuId {
 		return nil, errors.SeckillTokenInvalid
-	}
-	// delete token after use (one-time)
-	if err := l.svcCtx.StockManager.DelToken(in.Token); err != nil {
-		l.Logger.Info("failed to delete token: " + err.Error())
 	}
 
 	// 2. validate activity time and status

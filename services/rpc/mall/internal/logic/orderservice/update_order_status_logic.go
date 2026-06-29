@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"gorm.io/gorm"
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
@@ -45,13 +46,27 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		return nil, errors.MallInvalidOrderTransition
 	}
 
-	order.Status = newStatus
-	if newStatus == mall_orders.OrderStatusPaid && order.PayTime == nil {
-		now := time.Now()
-		order.PayTime = &now
-	}
-
-	if err := l.svcCtx.OrderStore.Update(l.ctx, order); err != nil {
+	now := time.Now()
+	if err := l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
+		// 乐观锁条件更新：仅当订单仍为读取时的状态、且归属同一用户时才流转，避免并发绕过状态机
+		ok, err := l.svcCtx.OrderStore.UpdateStatusTx(tx, order.Id, order.UserId, order.Status, newStatus, now)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.MallInvalidOrderTransition
+		}
+		// 首次转为已支付时补充支付时间
+		if newStatus == mall_orders.OrderStatusPaid && order.PayTime == nil {
+			if err := tx.Model(&mall_orders.MallOrders{}).Where("id = ?", order.Id).Update("pay_time", now).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		if err == errors.MallInvalidOrderTransition {
+			return nil, errors.MallInvalidOrderTransition
+		}
 		l.Logger.Errorf("failed to update order status: %v", err)
 		return nil, errors.Database
 	}

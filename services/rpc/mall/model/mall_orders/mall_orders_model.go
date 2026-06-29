@@ -19,6 +19,8 @@ type (
 		InsertTx(tx *gorm.DB, data *MallOrders) error
 		// UpdateStatusTx 使用乐观锁条件更新订单状态，返回是否实际更新成功。
 		UpdateStatusTx(tx *gorm.DB, id, userID string, fromStatus, toStatus int64, now time.Time) (bool, error)
+		// MarkPaidTx 使用乐观锁将订单从 fromStatus 标记为已支付，并写入支付方式与支付时间，返回是否实际更新成功。
+		MarkPaidTx(tx *gorm.DB, id, userID string, fromStatus int64, payType string, now time.Time) (bool, error)
 	}
 
 	customMallOrdersModel struct {
@@ -51,6 +53,22 @@ func (m *customMallOrdersModel) UpdateStatusTx(tx *gorm.DB, id, userID string, f
 		Where("id = ? AND user_id = ? AND status = ?", id, userID, fromStatus).
 		Updates(map[string]any{
 			"status":     toStatus,
+			"updated_at": now,
+		})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+
+// MarkPaidTx 使用乐观锁将订单从 fromStatus 标记为已支付，并写入支付方式与支付时间，返回是否实际更新成功。
+func (m *customMallOrdersModel) MarkPaidTx(tx *gorm.DB, id, userID string, fromStatus int64, payType string, now time.Time) (bool, error) {
+	result := tx.Model(&MallOrders{}).
+		Where("id = ? AND user_id = ? AND status = ?", id, userID, fromStatus).
+		Updates(map[string]any{
+			"status":     OrderStatusPaid,
+			"pay_type":   payType,
+			"pay_time":   now,
 			"updated_at": now,
 		})
 	if result.Error != nil {

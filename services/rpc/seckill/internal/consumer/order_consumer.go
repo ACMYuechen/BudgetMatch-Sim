@@ -170,6 +170,8 @@ func (c *OrderConsumer) claimPending() {
 func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 	orderMsg := parseMessage(msg)
 	if orderMsg == nil {
+		// 无法解析的脏消息：直接 ack 丢弃，避免无限重投
+		logx.Errorf("drop unparseable order message: %s", msg.ID)
 		c.ack(msg.ID)
 		return
 	}
@@ -192,8 +194,9 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 		}
 		if err := tx.Create(order).Error; err != nil {
 			if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
-				// unique violation -> order already exists, rollback redis stock and ack
-				c.stockManager.Rollback(orderMsg.ActivityID, orderMsg.SkuID, orderMsg.Quantity)
+				// 订单已存在：说明该消息此前已被成功处理过（重复投递）。
+				// 库存已在首次处理时结算，这里绝不能再回滚，否则会把已扣库存凭空加回导致超卖。
+				logx.Infof("duplicate order, already processed, skip: %s", orderMsg.OrderID)
 				return nil // ack
 			}
 			return err
@@ -229,7 +232,10 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 }
 
 func (c *OrderConsumer) ack(msgID string) {
-	c.redis.XAck(context.Background(), streamKey, consumerGroup, msgID)
+	if err := c.redis.XAck(context.Background(), streamKey, consumerGroup, msgID).Err(); err != nil {
+		// ack 失败会导致消息后续被重新投递；依赖订单唯一键幂等避免重复落单
+		logx.Errorf("failed to ack message %s: %v", msgID, err)
+	}
 }
 
 func parseMessage(msg redis.XMessage) *OrderMessage {
@@ -245,12 +251,26 @@ func parseMessage(msg redis.XMessage) *OrderMessage {
 		case "user_id":
 			m.UserID = fmt.Sprintf("%v", v)
 		case "quantity":
-			m.Quantity, _ = strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			n, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			if err != nil {
+				logx.Errorf("invalid quantity in order message: %v", v)
+				return nil
+			}
+			m.Quantity = n
 		case "total_amount":
-			m.TotalAmt, _ = strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			n, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
+			if err != nil {
+				logx.Errorf("invalid total_amount in order message: %v", v)
+				return nil
+			}
+			m.TotalAmt = n
 		}
 	}
 	if m.OrderID == "" || m.ActivityID == "" || m.SkuID == "" || m.UserID == "" {
+		return nil
+	}
+	if m.Quantity <= 0 {
+		logx.Errorf("invalid order message, non-positive quantity: order=%s qty=%d", m.OrderID, m.Quantity)
 		return nil
 	}
 	return m
