@@ -20,9 +20,10 @@ services:
       - budgetmatch-sim-network
     restart: unless-stopped
 
-  # PostgreSQL 数据库
+  # PostgreSQL 数据库（pgvector 版：官方 postgres:16 + vector 扩展，供 agent-rpc 商品语义检索）
+  # 注意：从 postgres:16-alpine 切换后建议 docker compose down -v 重建数据卷（musl→glibc 排序规则差异）
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: budgetmatch-sim-postgres
     environment:
       POSTGRES_USER: root
@@ -189,6 +190,15 @@ services:
       - REDIS_ADDRESS=redis:6379
       - REDIS_PASSWORD=12345678
       - ETCD_HOSTS=etcd:2379
+      # LLM 与 Embedding 密钥来自宿主 .env；留空时分别降级为规则推荐 / 关键词检索
+      - LLM_PROVIDER=${LLM_PROVIDER:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
     ports:
       - "10006:10006"
     depends_on:

@@ -40,7 +40,7 @@ func NewChatModel(ctx context.Context, c modelconfig.Config) (model.ToolCallingC
 		return openai.NewChatModel(ctx, &openai.ChatModelConfig{
 			APIKey:  c.APIKey,
 			Model:   modelName(c.Model),
-			BaseURL: normalizeBaseURL(c.BaseURL),
+			BaseURL: modelconfig.NormalizeBaseURL(c.BaseURL),
 			Timeout: requestTimeout,
 		})
 	default:
@@ -56,17 +56,3 @@ func modelName(name string) string {
 	return defaultModel
 }
 
-// normalizeBaseURL 归一化自定义 BaseURL：底层 go-openai 客户端期望地址包含 /v1 后缀。
-// 留空时交给组件使用 OpenAI 官方默认地址。
-// 若用户已填写 /v1/chat/completions 等完整路径，则不再追加 /v1，避免重复。
-func normalizeBaseURL(raw string) string {
-	base := strings.TrimRight(strings.TrimSpace(raw), "/")
-	if base == "" {
-		return ""
-	}
-	// 已包含 /v1 路径时直接返回，避免把 chat/completions 等路径重复拼接
-	if strings.Contains(base, "/v1") {
-		return base
-	}
-	return base + "/v1"
-}

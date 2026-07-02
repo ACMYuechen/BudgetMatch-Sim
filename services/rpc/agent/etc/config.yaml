@@ -13,6 +13,31 @@ Model:
   BaseURL: "${LLM_BASE_URL}"       # 如 https://api.openai.com/v1 或 https://api.deepseek.com/v1
   APIKey: "${LLM_API_KEY}"         # 模型服务 API 密钥
 
+# Embedding 模型（RAG 商品语义检索）。与 LLM 独立配置：DeepSeek 等无 embeddings 接口。
+# Provider 留空则 RAG 关闭，商品检索走关键词模式。
+Embedding:
+  Provider: "${EMBEDDING_PROVIDER}"  # 如 openai（OpenAI 兼容接口均可）
+  Model: "${EMBEDDING_MODEL}"        # 如 text-embedding-3-small
+  BaseURL: "${EMBEDDING_BASE_URL}"
+  APIKey: "${EMBEDDING_API_KEY}"
+  Dimensions: 1536                   # 向量维度；改动会触发向量表重建与全量重嵌入
+
+# 商品向量表所在库（复用主库）。DSN 留空则 RAG 关闭。
+Database:
+  Driver: "Postgres"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  MaxOpenConns: 20
+  MaxIdleConns: 5
+  AutoMigrate: true
+
+# RAG 检索与商品向量同步
+RAG:
+  TopK: 10                  # 向量检索召回上限
+  ScoreThreshold: 0         # 余弦相似度下限[0,1]，0 不过滤
+  SyncIntervalSeconds: 600  # 商品向量定时同步间隔；负数=仅启动同步一次
+  SyncPageSize: 100
+  VerifySku: false          # true 时检索结果逐条经 mall GetSku 实时校验
+
 MCP:
   Enabled: false
   Command: npx

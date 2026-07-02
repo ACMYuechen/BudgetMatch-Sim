@@ -101,6 +101,11 @@ func (s *session) selectBundle(ctx context.Context, args selectArgs) (*selectRes
 	if args.MaxItems <= 0 {
 		args.MaxItems = s.intent.MaxItems
 	}
+	// 与 MaxItems 同等回落：模型按 schema 提示传 0 时用解析意图的预算兜底，
+	// 否则预算约束会被静默绕过。
+	if args.BudgetCents <= 0 {
+		args.BudgetCents = s.intent.BudgetCents
+	}
 	candidates := s.filterCandidates(args.CandidateIDs)
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no product candidates available; call %s first", toolSearchProducts)

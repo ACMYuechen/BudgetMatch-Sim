@@ -149,11 +149,16 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session, finalText string) *agentcore.Result {
 	items, total, calls := s.snapshot()
 	if len(items) == 0 {
-		items, total = a.fallbackSelect(ctx, input, intent, s)
+		var items2Err error
+		items, total, items2Err = a.fallbackSelect(ctx, input, intent, s)
+		detail := "model produced no bundle; used deterministic selection"
+		if items2Err != nil {
+			detail = "deterministic fallback failed: " + items2Err.Error()
+		}
 		calls = append(calls, agentcore.ToolCall{
 			Name:    "selector.fallback",
 			Success: len(items) > 0,
-			Detail:  "model produced no bundle; used deterministic selection",
+			Detail:  detail,
 		})
 	}
 
@@ -180,7 +185,8 @@ func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agen
 }
 
 // fallbackSelect 在模型未给出套装时做确定性兜底：必要时先检索候选，再用选择器挑选。
-func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) ([]agentcore.BundleItem, int64) {
+// 检索失败时返回错误详情，由调用方记入工具记录，便于排查"为什么没选出商品"。
+func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) ([]agentcore.BundleItem, int64, error) {
 	if !s.hasCandidates() {
 		products, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
 			Query:       input.Query,
@@ -189,11 +195,12 @@ func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, inten
 			MaxItems:    intent.MaxItems,
 		})
 		if err != nil {
-			return nil, 0
+			return nil, 0, err
 		}
 		s.storeCandidates(products)
 	}
-	return a.selector.Select(s.filterCandidates(nil), intent)
+	items, total := a.selector.Select(s.filterCandidates(nil), intent)
+	return items, total, nil
 }
 
 // modelLabel 返回模型类型标识，用于工具记录；模型未实现 GetType 时回落到 "model"。

@@ -39,14 +39,23 @@ func newSession(provider tools.ProductProvider, sel *selector.BundleSelector, in
 	}
 }
 
-// storeCandidates 覆盖式缓存候选商品，并重建按 ID 的索引。
+// storeCandidates 合并式缓存候选商品：同 ID 更新，新 ID 追加。
+// 模型可能换关键词多次调用 search_products，合并保证先前搜索的候选 ID 依然可选。
 func (s *session) storeCandidates(products []tools.ProductCandidate) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.candidates = append([]tools.ProductCandidate(nil), products...)
-	s.byID = make(map[string]tools.ProductCandidate, len(products))
 	for _, product := range products {
+		if _, ok := s.byID[product.ID]; ok {
+			for i := range s.candidates {
+				if s.candidates[i].ID == product.ID {
+					s.candidates[i] = product
+					break
+				}
+			}
+		} else {
+			s.candidates = append(s.candidates, product)
+		}
 		s.byID[product.ID] = product
 	}
 }
