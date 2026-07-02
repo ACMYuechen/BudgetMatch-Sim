@@ -8,6 +8,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/einolog"
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -15,10 +16,15 @@ import (
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/compose"
+	einoagent "github.com/cloudwego/eino/flow/agent"
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/logx"
 )
+
+// logCallbacks 是全局复用的 Eino 组件日志回调：
+// 挂在每次 Generate 上，模型/工具以及工具内部触发的检索、嵌入组件都会被同一 handler 记录。
+var logCallbacks = einolog.NewHandler()
 
 // AgentName 是 LLM 推荐 Agent 的名称标识。
 const AgentName = "recommend_agent.llm"
@@ -109,7 +115,8 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
 
-	final, err := reactAgent.Generate(ctx, buildMessages(input, intent, a.loadHistory(ctx, input)))
+	final, err := reactAgent.Generate(ctx, buildMessages(input, intent, a.loadHistory(ctx, input)),
+		einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
 	if err != nil {
 		return nil, err
 	}
