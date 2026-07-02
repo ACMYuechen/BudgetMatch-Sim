@@ -31,10 +31,11 @@ func NewRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Recomme
 // 流程：将 protobuf 请求转换为业务输入，调用推荐业务服务，再将业务结果转换为 protobuf 响应。
 func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, error) {
 	result, err := l.svcCtx.RecommendService.Recommend(l.ctx, agentcore.Input{
-		Query:       in.Query,
-		BudgetCents: in.BudgetCents,
-		MaxItems:    in.MaxItems,
-		UserID:      in.UserId,
+		Query:          in.Query,
+		BudgetCents:    in.BudgetCents,
+		MaxItems:       in.MaxItems,
+		UserID:         in.UserId,
+		ConversationID: in.ConversationId,
 	})
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func toPB(result *agentcore.Result) *pb.RecommendResp {
 		TotalPriceCents: result.TotalPriceCents,
 		Summary:         result.Summary,
 		ToolsUsed:       make([]*pb.ToolCall, 0, len(result.ToolsUsed)),
+		ConversationId:  result.ConversationID,
 	}
 
 	for _, item := range result.Items {

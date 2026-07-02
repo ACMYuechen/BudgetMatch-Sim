@@ -21,6 +21,7 @@ Rules:
 - Use search_products before selecting a bundle, then use select_bundle with real candidate IDs.
 - Use external MCP tools only when the user's goal clearly benefits from them.
 - If the product list is insufficient, say what is missing and keep the recommendation conservative.
+- In multi-turn conversations, interpret follow-up requests (budget changes, item swaps, "the previous one") relative to the conversation history.
 - Return concise Chinese output for end users unless the user explicitly asks for another language.
 
 Expected result:
@@ -30,12 +31,15 @@ Expected result:
 - Mention total price in cents and yuan.
 - Mention which tools or data sources were used.`
 
-// buildMessages 根据用户输入与解析意图构建 Eino 对话消息列表。
-func buildMessages(input agentcore.Input, intent agentcore.Intent) []*schema.Message {
-	return []*schema.Message{
-		schema.SystemMessage(systemPrompt),
-		schema.UserMessage(buildUserPrompt(input, intent)),
-	}
+// buildMessages 根据用户输入、解析意图与会话历史构建 Eino 对话消息列表。
+// 结构为 [system, ...history, currentUser]：历史消息是既往轮次的裸问答对，
+// 意图脚手架只拼在当前轮的 user 消息里，不会随历史逐轮累积。
+func buildMessages(input agentcore.Input, intent agentcore.Intent, history []*schema.Message) []*schema.Message {
+	messages := make([]*schema.Message, 0, len(history)+2)
+	messages = append(messages, schema.SystemMessage(systemPrompt))
+	messages = append(messages, history...)
+	messages = append(messages, schema.UserMessage(buildUserPrompt(input, intent)))
+	return messages
 }
 
 // buildUserPrompt 将用户请求与解析意图拼接为结构化用户提示，引导模型调用工具。

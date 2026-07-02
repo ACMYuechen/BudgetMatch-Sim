@@ -14,6 +14,11 @@ type Conf struct {
 	TTL        time.Duration `json:"ttl,optional"`        // 会话空闲过期时间，每次写入刷新，默认 24h
 }
 
+// Window 返回归一化后的记忆窗口大小，供读取方决定拉取的历史条数。
+func (c Conf) Window() int {
+	return c.normalize().MaxHistory
+}
+
 // normalize 返回归一化后的配置：
 // 窗口最小为 2 且取偶数，保证截断永远切在 user/assistant 问答对边界上；TTL 非正时回落默认值。
 func (c Conf) normalize() Conf {

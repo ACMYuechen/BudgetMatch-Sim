@@ -5,10 +5,11 @@ import "context"
 
 // Input 表示用户向 Agent 发起一次推荐请求时的输入参数。
 type Input struct {
-	Query       string // Query 用户原始查询文本
-	BudgetCents int64  // BudgetCents 用户预算，单位为分
-	MaxItems    int32  // MaxItems 期望返回的最大商品数量
-	UserID      string // UserID 用户唯一标识
+	Query          string // Query 用户原始查询文本
+	BudgetCents    int64  // BudgetCents 用户预算，单位为分
+	MaxItems       int32  // MaxItems 期望返回的最大商品数量
+	UserID         string // UserID 用户唯一标识
+	ConversationID string // ConversationID 多轮对话会话标识，为空表示新会话
 }
 
 // Intent 表示从用户输入中解析出的意图，用于指导后续推荐逻辑。
@@ -45,6 +46,7 @@ type Result struct {
 	TotalPriceCents int64        // TotalPriceCents 推荐商品总价，单位为分
 	Summary         string       // Summary 推荐结果摘要
 	ToolsUsed       []ToolCall   // ToolsUsed 执行过程中使用的工具记录
+	ConversationID  string       // ConversationID 本次对话的会话标识，客户端携带它发起下一轮
 }
 
 // Agent 是推荐 Agent 的抽象接口，每个实现代表一种推荐策略。

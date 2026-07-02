@@ -21,3 +21,21 @@ MCP:
     - "@modelcontextprotocol/server-everything"
     - "stdio"
   Timeout: 5000
+
+# 会话记忆存储；注释掉整个块则退回进程内记忆（仅限本地单实例）
+CacheRedis:
+  Address: "127.0.0.1:6379"
+  Password: "12345678"
+  DB: 6            # 2=auth 3=seckill 4=mall 5=payment 已占用
+  PoolSize: 10
+  MinIdleConns: 5
+  DialTimeout: 5s
+  ReadTimeout: 3s
+  WriteTimeout: 3s
+  PoolTimeout: 4s
+  MaxRetries: 3
+
+# 会话记忆行为
+Memory:
+  MaxHistory: 20   # 记忆窗口内保留的最大消息条数（10 轮问答），奇数向下取偶
+  TTL: 24h         # 会话空闲过期时间，每次写入刷新

@@ -3,11 +3,13 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
+	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
@@ -87,16 +89,98 @@ func TestAgentFallsBackWhenModelSkipsSelect(t *testing.T) {
 	}
 }
 
-// scriptedModel 是测试用模型，按预设顺序返回响应，并记录绑定的工具。
+// TestAgentInjectsHistoryIntoPrompt 验证多轮对话时模型收到 [system, ...history, currentUser]，
+// 且历史中的 user 消息是裸 Query（意图脚手架只出现在当前轮）。
+func TestAgentInjectsHistoryIntoPrompt(t *testing.T) {
+	ctx := context.Background()
+	var received [][]*schema.Message
+	model := &scriptedModel{
+		responses: []*schema.Message{schema.AssistantMessage("第二轮推荐", nil)},
+		received:  &received,
+	}
+
+	mem := memory.NewInMemory(memory.Conf{})
+	if err := mem.Append(ctx, "c1",
+		schema.UserMessage("预算3000买键盘"),
+		schema.AssistantMessage("已推荐入门机械键盘", nil)); err != nil {
+		t.Fatalf("seed memory error = %v", err)
+	}
+
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}).
+		WithMemory(mem, 20)
+
+	if _, err := agent.Run(ctx, agentcore.Input{Query: "预算加到5000", ConversationID: "c1"}); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if len(received) == 0 {
+		t.Fatal("model received no messages")
+	}
+	first := received[0]
+	if len(first) != 4 {
+		t.Fatalf("expected [system, user, assistant, user], got %d messages", len(first))
+	}
+	if first[0].Role != schema.System {
+		t.Fatalf("expected system message first, got %+v", first[0])
+	}
+	if first[1].Role != schema.User || first[1].Content != "预算3000买键盘" {
+		t.Fatalf("expected raw historical query without scaffolding, got %+v", first[1])
+	}
+	if first[2].Role != schema.Assistant || first[2].Content != "已推荐入门机械键盘" {
+		t.Fatalf("unexpected historical assistant message: %+v", first[2])
+	}
+	if first[3].Role != schema.User ||
+		!strings.Contains(first[3].Content, "预算加到5000") ||
+		!strings.Contains(first[3].Content, "Parsed intent") {
+		t.Fatalf("expected current user message with intent scaffolding, got %+v", first[3])
+	}
+}
+
+// TestAgentToleratesHistoryFailure 验证记忆读取失败时降级为单轮推荐，不阻断请求。
+func TestAgentToleratesHistoryFailure(t *testing.T) {
+	model := &scriptedModel{responses: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}).
+		WithMemory(&failingMemory{}, 20)
+
+	result, err := agent.Run(context.Background(), agentcore.Input{Query: "预算3000 学习用品", ConversationID: "c1"})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if result.Summary != "ok" {
+		t.Fatalf("expected run to succeed without history, got %+v", result)
+	}
+}
+
+// failingMemory 是恒定报错的记忆实现，用于容错测试。
+type failingMemory struct{}
+
+func (f *failingMemory) Append(ctx context.Context, conversationID string, msgs ...*schema.Message) error {
+	return errors.New("memory down")
+}
+
+func (f *failingMemory) History(ctx context.Context, conversationID string, limit int) ([]*schema.Message, error) {
+	return nil, errors.New("memory down")
+}
+
+func (f *failingMemory) Clear(ctx context.Context, conversationID string) error {
+	return errors.New("memory down")
+}
+
+// scriptedModel 是测试用模型，按预设顺序返回响应，并记录绑定的工具与收到的消息。
+// received 用指针共享：ReAct 内部通过 WithTools 的克隆调用 Generate，记录需要跨克隆可见。
 type scriptedModel struct {
 	responses  []*schema.Message
 	boundTools []*schema.ToolInfo
+	received   *[][]*schema.Message
 }
 
-// Generate 按顺序返回预设响应。
+// Generate 按顺序返回预设响应，并记录本次收到的完整消息列表。
 func (m *scriptedModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if m.received != nil {
+		*m.received = append(*m.received, input)
 	}
 	if len(m.responses) == 0 {
 		return schema.AssistantMessage("default final", nil), nil

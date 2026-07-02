@@ -9,12 +9,15 @@ import (
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
+	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
+	"github.com/cloudwego/eino/schema"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // AgentName 是 LLM 推荐 Agent 的名称标识。
@@ -29,12 +32,14 @@ const defaultMaxStep = 8
 // 结构化商品结果由工具回填到 session，避免模型编造商品、价格与库存。
 // 模型未产出套装时回落到确定性选择，保证响应始终 grounded。
 type Agent struct {
-	model    model.ToolCallingChatModel
-	planner  *recommendagent.Planner
-	provider tools.ProductProvider
-	selector *selector.BundleSelector
-	mcpCfg   mcpconfig.Config
-	maxStep  int
+	model      model.ToolCallingChatModel
+	planner    *recommendagent.Planner
+	provider   tools.ProductProvider
+	selector   *selector.BundleSelector
+	mcpCfg     mcpconfig.Config
+	maxStep    int
+	memory     memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
+	maxHistory int            // maxHistory 单次读取的最大历史条数
 }
 
 // 确保 Agent 实现 agentcore.Agent。
@@ -57,6 +62,13 @@ func (a *Agent) WithMaxStep(maxStep int) *Agent {
 	if maxStep > 0 {
 		a.maxStep = maxStep
 	}
+	return a
+}
+
+// WithMemory 启用会话记忆读取：每次 Run 前拉取最近 maxHistory 条历史注入模型输入。
+func (a *Agent) WithMemory(mem memory.Manager, maxHistory int) *Agent {
+	a.memory = mem
+	a.maxHistory = maxHistory
 	return a
 }
 
@@ -97,7 +109,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
 
-	final, err := reactAgent.Generate(ctx, buildMessages(input, intent))
+	final, err := reactAgent.Generate(ctx, buildMessages(input, intent, a.loadHistory(ctx, input)))
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +119,23 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		finalText = final.Content
 	}
 	return a.assemble(ctx, input, intent, s, finalText), nil
+}
+
+// loadHistory 读取会话历史。记忆未启用或读取失败时返回空——
+// 历史是增强信息而非必需输入，读取失败降级为单轮推荐，不阻断请求。
+func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schema.Message {
+	if a.memory == nil || input.ConversationID == "" {
+		return nil
+	}
+	history, err := a.memory.History(ctx, input.ConversationID, a.maxHistory)
+	if err != nil {
+		logx.WithContext(ctx).Errorw("load conversation history failed",
+			logx.Field("conversation_id", input.ConversationID),
+			logx.Field("error", err.Error()),
+		)
+		return nil
+	}
+	return history
 }
 
 // assemble 把 session 中累积的类型化结果组装为业务响应。
