@@ -304,9 +304,10 @@ type MallCancelOrderReq struct {
 }
 
 type AgentRecommendReq struct {
-	Query       string `json:"query" validate:"required"`
-	BudgetCents int64  `json:"budget_cents,optional"`
-	MaxItems    int    `json:"max_items,optional"`
+	Query          string `json:"query" validate:"required"`
+	BudgetCents    int64  `json:"budget_cents,optional"`
+	MaxItems       int    `json:"max_items,optional"`
+	ConversationId string `json:"conversation_id,optional"`
 }
 
 type AgentIntent struct {
@@ -339,4 +340,5 @@ type AgentRecommendResp struct {
 	TotalPriceCents int64             `json:"total_price_cents"`
 	Summary         string            `json:"summary"`
 	ToolsUsed       []AgentToolCall   `json:"tools_used"`
+	ConversationId  string            `json:"conversation_id"`
 }

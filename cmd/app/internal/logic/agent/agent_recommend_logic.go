@@ -29,9 +29,10 @@ func NewAgentRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ag
 
 func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp *types.AgentRecommendResp, err error) {
 	rpcResp, err := l.svcCtx.AgentClient.Recommend(l.ctx, &recommendservice.RecommendReq{
-		Query:       req.Query,
-		BudgetCents: req.BudgetCents,
-		MaxItems:    int32(req.MaxItems),
+		Query:          req.Query,
+		BudgetCents:    req.BudgetCents,
+		MaxItems:       int32(req.MaxItems),
+		ConversationId: req.ConversationId,
 	})
 	if err != nil {
 		return nil, err
@@ -80,5 +81,6 @@ func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommen
 		TotalPriceCents: resp.GetTotalPriceCents(),
 		Summary:         resp.GetSummary(),
 		ToolsUsed:       toolsUsed,
+		ConversationId:  resp.GetConversationId(),
 	}
 }

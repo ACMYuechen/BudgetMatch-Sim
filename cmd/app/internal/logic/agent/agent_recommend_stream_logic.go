@@ -33,9 +33,10 @@ func NewAgentRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContex
 
 func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecommendReq, emit func(StreamEvent) error) error {
 	if err := emit(StreamEvent{Event: "request.accepted", Data: map[string]any{
-		"query":        req.Query,
-		"budget_cents": req.BudgetCents,
-		"max_items":    req.MaxItems,
+		"query":           req.Query,
+		"budget_cents":    req.BudgetCents,
+		"max_items":       req.MaxItems,
+		"conversation_id": req.ConversationId,
 	}}); err != nil {
 		return err
 	}
@@ -48,9 +49,10 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 	}
 
 	rpcResp, err := l.svcCtx.AgentClient.Recommend(l.ctx, &recommendservice.RecommendReq{
-		Query:       req.Query,
-		BudgetCents: req.BudgetCents,
-		MaxItems:    int32(req.MaxItems),
+		Query:          req.Query,
+		BudgetCents:    req.BudgetCents,
+		MaxItems:       int32(req.MaxItems),
+		ConversationId: req.ConversationId,
 	})
 	if err != nil {
 		_ = emit(StreamEvent{Event: "error", Data: map[string]any{

@@ -4,10 +4,11 @@ package agent;
 option go_package = "./pb";
 
 message RecommendReq {
-  string query        = 1;
-  int64  budget_cents = 2;
-  int32  max_items    = 3;
-  string user_id      = 4;
+  string query           = 1;
+  int64  budget_cents    = 2;
+  int32  max_items       = 3;
+  string user_id         = 4;
+  string conversation_id = 5; // 多轮对话会话 ID，为空时由服务端生成并在响应中回传
 }
 
 message Intent {
@@ -40,6 +41,7 @@ message RecommendResp {
   int64               total_price_cents = 3;
   string              summary           = 4;
   repeated ToolCall   tools_used        = 5;
+  string              conversation_id   = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
 }
 
 service RecommendService {
