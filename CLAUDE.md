@@ -50,8 +50,9 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 - **RPC**: gRPC + Protocol Buffers
 - **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
 - **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)，通过 `mark3labs/mcp-go` 接入
-- **数据库**: PostgreSQL 16
-- **缓存**: Redis 7
+- **数据库**: PostgreSQL 16（pgvector 镜像，含向量扩展）
+- **向量检索**: pgvector + HNSW 余弦索引（agent-rpc 商品语义检索）
+- **缓存**: Redis 7（含 agent-rpc 会话记忆，DB 6）
 - **部署**: Docker & Docker Compose
 - **代码生成**: goctl
 
@@ -83,8 +84,15 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 | `services/rpc/agent/internal/agent/recommend/llm/session.go` | 单次请求状态管理 |
 | `services/rpc/agent/internal/agent/recommend/planner.go` | 意图解析器 |
 | `services/rpc/agent/internal/recommend/bundle_selector.go` | 商品套装选择器 |
+| `services/rpc/agent/internal/memory/` | 会话记忆（Manager 接口 + InMemory/Redis 实现，多轮对话） |
+| `services/rpc/agent/internal/einolog/` | Eino 组件统一日志回调（模型/工具/检索/嵌入观测） |
+| `services/rpc/agent/internal/rag/` | RAG：Loader/Indexer/Retriever（Eino 官方组件接口）+ 同步流水线 |
+| `services/rpc/agent/model/product_vectors/` | 商品向量表（pgvector，派生数据可安全重建） |
 | `services/rpc/agent/internal/tools/product_provider.go` | 商品数据提供者接口 |
+| `services/rpc/agent/internal/tools/mall_product_provider.go` | mall-rpc 关键词检索 provider |
+| `services/rpc/agent/internal/tools/rag_product_provider.go` | 语义检索 provider（向量优先，关键词回退） |
 | `services/rpc/agent/internal/model/config.go` | LLM 模型配置 |
+| `services/rpc/agent/internal/model/embedding.go` | Embedding 模型配置 |
 | `services/rpc/agent/internal/mcp/config.go` | MCP 客户端配置 |
 | `services/rpc/agent/etc/config.yaml` | agent-rpc 服务配置 |
 
@@ -159,6 +167,21 @@ Model:
 - Provider 为 `openai` 时使用 eino-ext 官方 OpenAI ChatModel，兼容 DeepSeek、Azure 等 OpenAI 兼容接口。
 - `BaseURL` 支持以 `/v1` 结尾的基地址，也支持 `/v1/chat/completions` 等完整路径（会自动识别 `/v1` 前缀，避免重复拼接）。
 
+### agent-rpc 依赖降级矩阵
+
+agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
+
+| 配置缺失 | 行为 |
+|------|------|
+| `Model`（LLM） | 推荐走确定性规则，不请求外部模型 |
+| `Embedding` 或 `Database` | RAG 关闭，商品检索走关键词模式 |
+| `MallRpc` | 商品数据用内存 mock（配置了 mall 则绝不混用 mock） |
+| `CacheRedis` | 会话记忆退回进程内实现（仅限本地单实例） |
+
+- **Embedding 与 LLM 是两套独立配置**（`EMBEDDING_*` 环境变量）：DeepSeek 无 embeddings 接口，RAG 需要 OpenAI / DashScope 等兼容服务。
+- **商品向量表是派生数据**：`product_vectors` 表可随时删除，同步器会自动回填；换 embedding 模型或维度会触发删表重建 + 全量重嵌入（有 token 成本）。
+- **多轮对话**：请求带 `conversation_id`（首轮留空由服务端生成并回传），历史存 Redis DB 6，窗口/TTL 见 `Memory` 配置。
+
 ### MCP 配置
 
 ```yaml
@@ -199,10 +222,15 @@ tail -f logs/agent-rpc.log
 ### 如何测试推荐接口
 
 ```bash
-# 同步推荐
+# 同步推荐（响应中的 conversation_id 用于发起下一轮）
 curl -X POST http://localhost:10002/api/agent/recommend \
   -H "Content-Type: application/json" \
   -d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3}'
+
+# 多轮对话：携带上一轮返回的 conversation_id
+curl -X POST http://localhost:10002/api/agent/recommend \
+  -H "Content-Type: application/json" \
+  -d '{"query":"预算加到8000，换个屏幕好点的","conversation_id":"<上一轮返回的ID>"}'
 
 # SSE 阶段事件流
 curl -X POST http://localhost:10002/api/agent/recommend/stream \
@@ -213,9 +241,10 @@ curl -X POST http://localhost:10002/api/agent/recommend/stream \
 ## 注意事项
 
 - **Gateway 层不直连数据库**：`cmd/admin` 和 `cmd/app` 的数据操作必须通过对应 RPC 服务完成。
-- **auth-rpc 先启动**：本地 `make dev` 中 auth-rpc 最先启动，负责自动建表。
-- **agent-rpc 当前使用 mock 商品数据**：`internal/tools/mock_product_provider.go` 提供候选商品，尚未对接 mall-rpc。
+- **auth-rpc 先启动**：本地 `make dev` 中 auth-rpc 最先启动，负责自动建表（agent-rpc 的向量表由自己建）。
+- **agent-rpc 商品数据来自 mall-rpc**：语义检索（RAG）优先，关键词回退；未配置 `MallRpc` 时才使用 `mock_product_provider.go`（详见"依赖降级矩阵"）。RAG 演示前需先给 mall 造商品数据。
 - **agent-rpc 无模型时自动降级**：未配置 LLM 时，走确定性规则推荐；配置 LLM 后，失败也会降级到规则推荐。
+- **RAG 首轮同步有延迟**：服务启动后商品向量在后台异步索引，完成前检索回退关键词模式，日志出现 `rag sync completed` 即就绪。
 - **SSE 是阶段事件流**：`POST /api/agent/recommend/stream` 目前是网关侧包装的阶段事件流，底层 agent-rpc 仍是 unary RPC，不是 token 级或工具调用级真实流式。
 - **不要编辑生成代码**：`pb/`、`client/`、`types.go`、`routes.go` 等由 goctl 生成，修改会被 `make api-all` 覆盖。
 - **MCP client 尚未复用**：当前每次请求启动新的 stdio MCP 子进程，高并发场景需引入连接池。
