@@ -77,5 +77,5 @@ func score(candidate tools.ProductCandidate, budget int64) float64 {
 
 // reason 生成选中商品的推荐理由说明。
 func reason(candidate tools.ProductCandidate, score float64) string {
-	return fmt.Sprintf("mock candidate with stock %d, sold %d, score %.2f", candidate.Stock, candidate.Sold, score)
+	return fmt.Sprintf("%s candidate with stock %d, sold %d, score %.2f", candidate.Source, candidate.Stock, candidate.Sold, score)
 }

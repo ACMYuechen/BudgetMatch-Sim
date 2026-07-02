@@ -24,11 +24,15 @@ Embedding:
 
 # 商品向量表所在库（复用主库）。DSN 留空则 RAG 关闭。
 Database:
+  LogLevel: 4
   Driver: "Postgres"
   DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
   MaxOpenConns: 20
   MaxIdleConns: 5
+  ConnMaxLifetime: 7200s
+  ConnMaxIdleTime: 300s
   AutoMigrate: true
+  PrepareStmt: true
 
 # RAG 检索与商品向量同步
 RAG:

@@ -55,7 +55,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 
 	items, total := a.selector.Select(candidates, intent)
 	toolsUsed := []agentcore.ToolCall{
-		{Name: a.provider.Name(), Success: true, Detail: fmt.Sprintf("loaded %d mock candidates", len(candidates))},
+		{Name: a.provider.Name(), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
 	}
 
 	return &agentcore.Result{
