@@ -12,8 +12,10 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
+	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 // ServiceContext 保存服务运行所需的全部依赖。
@@ -25,7 +27,7 @@ type ServiceContext struct {
 // NewServiceContext 根据配置初始化服务上下文。
 // 组装确定性规则推荐 Agent（兜底）、可选的 Eino ReAct LLM Agent（首选编排器）与会话记忆。
 func NewServiceContext(c config.Config) *ServiceContext {
-	productProvider := tools.NewMockProductProvider()
+	productProvider := newProductProvider(c)
 	bundleSelector := recommend.NewBundleSelector()
 	mem := newMemoryManager(c)
 
@@ -36,6 +38,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:           c,
 		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem),
 	}
+}
+
+// newProductProvider 按配置选择商品数据源：配置了 mall-rpc 用真实商品，否则用内存 mock。
+// 配置了 mall 就不再混用 mock——mock 的商品 ID 在 mall 不存在，混入会推荐出不可下单的商品。
+func newProductProvider(c config.Config) tools.ProductProvider {
+	if !c.MallConfigured() {
+		logx.Info("mallRpc not configured, product data falls back to in-memory mock")
+		return tools.NewMockProductProvider()
+	}
+	return tools.NewMallProductProvider(productservice.NewProductService(zrpc.MustNewClient(c.MallRpc)))
 }
 
 // newMemoryManager 根据配置创建会话记忆：
