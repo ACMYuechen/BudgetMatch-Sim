@@ -34,3 +34,13 @@ CacheRedis:
   WriteTimeout: 3s
   PoolTimeout: 4s
   MaxRetries: 3
+
+# 商城服务 RPC（创建秒杀 SKU 时从商城预加载商品信息做快照）
+MallRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: mall.rpc
+  Endpoints:
+    - 127.0.0.1:10005
+  NonBlock: true

@@ -26,5 +26,6 @@ func skuToPb(s *seckill_sku.SeckillSkus) *pb.Sku {
 		Sort:           s.Sort,
 		CreatedAt:      s.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      s.UpdatedAt.Format(time.RFC3339),
+		MallSkuId:      s.MallSkuId,
 	}
 }

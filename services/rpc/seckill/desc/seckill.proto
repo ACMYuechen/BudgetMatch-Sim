@@ -112,6 +112,7 @@ message Sku {
   int64  sort           = 12;
   string created_at     = 13;
   string updated_at     = 14;
+  string mall_sku_id    = 15;
 }
 
 message CreateSkuReq {
@@ -123,6 +124,7 @@ message CreateSkuReq {
   int64  seckill_price  = 6;
   int64  stock          = 7;
   int64  sort           = 8;
+  string mall_sku_id    = 9; // 关联的商城 SKU，用于预加载商品信息做快照
 }
 
 message CreateSkuResp {

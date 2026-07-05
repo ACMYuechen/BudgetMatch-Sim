@@ -40,6 +40,8 @@ type (
 		LockStock      int64          `json:"lock_stock" gorm:"type:int;default:0;comment:锁定库存"`
 		Status         int64          `json:"status" gorm:"type:smallint;default:1;comment:状态，0:禁用 1:启用"`
 		Sort           int64          `json:"sort" gorm:"type:int;default:0;comment:排序"`
+		MallSkuId      string         `json:"mall_sku_id" gorm:"type:varchar(36);index;default:'';comment:关联商城SKU ID"`
+		MallProductId  string         `json:"mall_product_id" gorm:"type:varchar(36);default:'';comment:关联商城商品ID"`
 		CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
 		UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
 		DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"index"`
