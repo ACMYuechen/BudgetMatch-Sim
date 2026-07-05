@@ -29,25 +29,28 @@ type (
 	}
 
 	MallOrders struct {
-		Id             string         `json:"id" gorm:"type:varchar(36);primaryKey;comment:订单ID"`
-		UserId         string         `json:"user_id" gorm:"type:varchar(36);not null;index;comment:用户ID"`
-		TotalAmount    int64          `json:"total_amount" gorm:"type:bigint;not null;comment:总金额，单位：分"`
-		Status         int64          `json:"status" gorm:"type:smallint;default:0;comment:状态，0:pending 1:paid 2:shipped 3:completed 4:cancelled 5:refunding 6:refunded"`
-		PayType        string         `json:"pay_type" gorm:"type:varchar(50);comment:支付方式"`
-		PayTime        *time.Time     `json:"pay_time" gorm:"type:timestamptz;comment:支付时间"`
-		Remark         string         `json:"remark" gorm:"type:varchar(500);comment:用户备注"`
-		Snapshot       string         `json:"snapshot" gorm:"type:jsonb;comment:订单快照"`
-		IdempotencyKey string         `json:"idempotency_key" gorm:"type:varchar(64);not null;uniqueIndex;comment:幂等键"`
-		CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
-		UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
-		DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+		Id             string    `json:"id" gorm:"type:text;primaryKey;comment:订单ID"`
+		UserId         string    `json:"user_id" gorm:"type:text;not null;index;comment:用户ID"`
+		OriginalAmount int64     `json:"original_amount" gorm:"type:bigint;not null;comment:原始金额，单位：分"`
+		DiscountAmount int64     `json:"discount_amount" gorm:"type:bigint;not null;comment:优惠金额，单位：分"`
+		PayAmount      int64     `json:"pay_amount" gorm:"type:bigint;not null;comment:实付金额，单位：分"`
+		PayType        string    `json:"pay_type" gorm:"type:varchar(50);comment:支付方式"`
+		PayTime        time.Time `json:"pay_time" gorm:"type:timestamptz;comment:支付时间"`
+		Remark         string    `json:"remark" gorm:"type:varchar(500);comment:用户备注"`
+		Snapshot       string    `json:"snapshot" gorm:"type:jsonb;comment:订单快照"`
+		Status         int       `json:"status" gorm:"type:smallint;default:1;comment:状态，1:待支付 2:已支付 3:已发货 4:已完成 5:已取消 6:退款中 7:已退款"`
+		IdempotencyKey string    `json:"idempotency_key" gorm:"type:varchar(64);not null;uniqueIndex;comment:幂等键"`
+
+		CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
+		UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
+		DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	}
 
 	MallOrdersListReq struct {
-		Page     int
-		Size     int
-		UserId   string
-		Status   int64
+		Page   int
+		Size   int
+		UserId string
+		Status int
 	}
 )
 

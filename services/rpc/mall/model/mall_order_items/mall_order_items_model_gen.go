@@ -26,16 +26,18 @@ type (
 	}
 
 	MallOrderItems struct {
-		Id          int64     `json:"id" gorm:"type:bigserial;primaryKey;comment:自增ID"`
-		OrderId     string    `json:"order_id" gorm:"type:varchar(36);not null;index;comment:订单ID"`
-		ProductId   string    `json:"product_id" gorm:"type:varchar(36);not null;comment:SPU ID"`
-		SkuId       string    `json:"sku_id" gorm:"type:varchar(36);not null;comment:SKU ID"`
-		SkuName     string    `json:"sku_name" gorm:"type:varchar(255);not null;comment:SKU快照名称"`
-		Price       int64     `json:"price" gorm:"type:bigint;not null;comment:单价，单位：分"`
-		Quantity    int64     `json:"quantity" gorm:"type:int;not null;comment:数量"`
-		TotalAmount int64     `json:"total_amount" gorm:"type:bigint;not null;comment:小计，单位：分"`
-		Snapshot    string    `json:"snapshot" gorm:"type:jsonb;comment:商品快照"`
-		CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
+		Id             string `json:"id" gorm:"type:text;primaryKey;comment:订单项ID"`
+		OrderId        string `json:"order_id" gorm:"type:text;not null;index;comment:订单ID"`
+		ProductId      string `json:"product_id" gorm:"type:text;not null;comment:SPU ID"`
+		SkuId          string `json:"sku_id" gorm:"type:text;not null;comment:SKU ID"`
+		SkuName        string `json:"sku_name" gorm:"type:varchar(255);not null;comment:SKU快照名称"`
+		Price          int64  `json:"price" gorm:"type:bigint;not null;comment:单价，单位：分"`
+		Quantity       int64  `json:"quantity" gorm:"type:int;not null;comment:数量"`
+		DiscountAmount int64  `json:"discount_amount" gorm:"type:bigint;not null;comment:优惠金额，单位：分"`
+		TotalAmount    int64  `json:"total_amount" gorm:"type:bigint;not null;comment:小计，单位：分"`
+		Snapshot       string `json:"snapshot" gorm:"type:jsonb;comment:商品快照"`
+
+		CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
 	}
 )
 
@@ -68,7 +70,7 @@ func (m *defaultMallOrderItemsModel) Update(ctx context.Context, data *MallOrder
 	return m.conn.WithContext(ctx).Model(&MallOrderItems{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
-func (m *defaultMallOrderItemsModel) Delete(ctx context.Context, id int64) error {
+func (m *defaultMallOrderItemsModel) Delete(ctx context.Context, id string) error {
 	return m.conn.WithContext(ctx).Where("id = ?", id).Delete(&MallOrderItems{}).Error
 }
 
