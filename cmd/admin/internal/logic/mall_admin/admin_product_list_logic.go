@@ -28,11 +28,11 @@ func NewAdminProductListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 
 func (l *AdminProductListLogic) AdminProductList(req *types.AdminProductListReq) (resp *types.AdminProductListResp, err error) {
 	rpcResp, err := l.svcCtx.MallProductClient.ListProducts(l.ctx, &pb.ListProductsReq{
-		Page:       int32(req.Page),
-		PageSize:   int32(req.PageSize),
-		CategoryId: req.CategoryId,
-		Keyword:    req.Keyword,
-		Status:     int32(req.Status),
+		Page:     int32(req.Page),
+		PageSize: int32(req.PageSize),
+		Keyword:  req.Keyword,
+		Status:   int32(req.Status),
+		UserId:   req.UserId,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list products: %v", err)

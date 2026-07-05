@@ -191,7 +191,7 @@ type SkuCreateReq struct {
 	SeckillPrice  int64  `json:"seckill_price" validate:"required,min=0"`
 	Stock         int64  `json:"stock" validate:"min=0"`
 	Sort          int64  `json:"sort"`
-	MallSkuId     string `json:"mall_sku_id" validate:"max=36"`
+	MallSkuId     string `json:"mall_sku_id" validate:"max=36"` // 关联商城 SKU，传入则预加载商品信息做快照
 }
 
 type SkuCreateResp struct {
@@ -231,39 +231,39 @@ type SkuDeleteResp struct {
 }
 
 type AdminProductItem struct {
-	Id         string `json:"id"`
-	SpuCode    string `json:"spu_code"`
-	Name       string `json:"name"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	Status     int32  `json:"status"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	Id           string `json:"id"`
+	UserId       string `json:"user_id"`
+	Name         string `json:"name"`
+	Content      string `json:"content"`
+	Image        string `json:"image"`
+	Providor     string `json:"providor"`
+	Status       int32  `json:"status"`
+	AgentComment string `json:"agent_comment"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 type AdminSkuItem struct {
-	Id        string `json:"id"`
-	ProductId string `json:"product_id"`
-	SkuCode   string `json:"sku_code"`
-	Name      string `json:"name"`
-	Specs     string `json:"specs"`
-	Price     int64  `json:"price"`
-	Stock     int64  `json:"stock"`
-	Sold      int64  `json:"sold"`
-	Status    int32  `json:"status"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Id           string `json:"id"`
+	ProductId    string `json:"product_id"`
+	Name         string `json:"name"`
+	Specs        string `json:"specs"`
+	Price        int64  `json:"price"`
+	Stock        int64  `json:"stock"`
+	Sold         int64  `json:"sold"`
+	Status       int32  `json:"status"`
+	AgentComment string `json:"agent_comment"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 type AdminCreateProductReq struct {
-	SpuCode    string `json:"spu_code" validate:"required"`
-	Name       string `json:"name" validate:"required"`
-	CategoryId string `json:"category_id,optional"`
-	Brand      string `json:"brand,optional"`
-	MainImage  string `json:"main_image,optional"`
-	Detail     string `json:"detail,optional"`
+	Name         string `json:"name" validate:"required"`
+	Content      string `json:"content,optional"`
+	Image        string `json:"image,optional"`
+	Providor     string `json:"providor,optional"`
+	AgentComment string `json:"agent_comment,optional"`
+	UserId       string `json:"user_id,optional"`
 }
 
 type AdminCreateProductResp struct {
@@ -271,13 +271,13 @@ type AdminCreateProductResp struct {
 }
 
 type AdminUpdateProductReq struct {
-	Id         string `path:"id"`
-	Name       string `json:"name,optional"`
-	CategoryId string `json:"category_id,optional"`
-	Brand      string `json:"brand,optional"`
-	Status     int32  `json:"status,optional"`
-	MainImage  string `json:"main_image,optional"`
-	Detail     string `json:"detail,optional"`
+	Id           string `path:"id"`
+	Name         string `json:"name,optional"`
+	Content      string `json:"content,optional"`
+	Status       int32  `json:"status,optional"`
+	Image        string `json:"image,optional"`
+	Providor     string `json:"providor,optional"`
+	AgentComment string `json:"agent_comment,optional"`
 }
 
 type AdminUpdateProductResp struct {
@@ -285,11 +285,11 @@ type AdminUpdateProductResp struct {
 }
 
 type AdminProductListReq struct {
-	Page       int    `form:"page,default=1"`
-	PageSize   int    `form:"page_size,default=10"`
-	CategoryId string `form:"category_id"`
-	Keyword    string `form:"keyword"`
-	Status     int32  `form:"status,default=-1"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Keyword  string `form:"keyword"`
+	Status   int32  `form:"status,default=-1"`
+	UserId   string `form:"user_id,optional"`
 }
 
 type AdminProductListResp struct {
@@ -308,12 +308,12 @@ type AdminProductDetailResp struct {
 }
 
 type AdminCreateSkuReq struct {
-	ProductId string `json:"product_id" validate:"required"`
-	SkuCode   string `json:"sku_code" validate:"required"`
-	Name      string `json:"name" validate:"required"`
-	Specs     string `json:"specs"`
-	Price     int64  `json:"price" validate:"required,min=1"`
-	Stock     int64  `json:"stock" validate:"required,min=0"`
+	ProductId    string `json:"product_id" validate:"required"`
+	Name         string `json:"name" validate:"required"`
+	Specs        string `json:"specs"`
+	Price        int64  `json:"price" validate:"required,min=1"`
+	Stock        int64  `json:"stock" validate:"required,min=0"`
+	AgentComment string `json:"agent_comment,optional"`
 }
 
 type AdminCreateSkuResp struct {
@@ -321,12 +321,13 @@ type AdminCreateSkuResp struct {
 }
 
 type AdminUpdateSkuReq struct {
-	Id     string `path:"id"`
-	Name   string `json:"name,optional"`
-	Specs  string `json:"specs,optional"`
-	Price  int64  `json:"price,optional"`
-	Stock  int64  `json:"stock,optional"`
-	Status int32  `json:"status,optional"`
+	Id           string `path:"id"`
+	Name         string `json:"name,optional"`
+	Specs        string `json:"specs,optional"`
+	Price        int64  `json:"price,optional"`
+	Stock        int64  `json:"stock,optional"`
+	Status       int32  `json:"status,optional"`
+	AgentComment string `json:"agent_comment,optional"`
 }
 
 type AdminUpdateSkuResp struct {
@@ -356,19 +357,22 @@ type AdminSkuDetailResp struct {
 }
 
 type AdminOrderItem struct {
-	ProductId   string `json:"product_id"`
-	SkuId       string `json:"sku_id"`
-	SkuName     string `json:"sku_name"`
-	Price       int64  `json:"price"`
-	Quantity    int64  `json:"quantity"`
-	TotalAmount int64  `json:"total_amount"`
-	Snapshot    string `json:"snapshot"`
+	ProductId      string `json:"product_id"`
+	SkuId          string `json:"sku_id"`
+	SkuName        string `json:"sku_name"`
+	Price          int64  `json:"price"`
+	Quantity       int64  `json:"quantity"`
+	DiscountAmount int64  `json:"discount_amount"`
+	TotalAmount    int64  `json:"total_amount"`
+	Snapshot       string `json:"snapshot"`
 }
 
 type AdminOrderResp struct {
 	Id             string           `json:"id"`
 	UserId         string           `json:"user_id"`
-	TotalAmount    int64            `json:"total_amount"`
+	OriginalAmount int64            `json:"original_amount"`
+	DiscountAmount int64            `json:"discount_amount"`
+	PayAmount      int64            `json:"pay_amount"`
 	Status         int32            `json:"status"`
 	PayType        string           `json:"pay_type"`
 	PayTime        string           `json:"pay_time"`

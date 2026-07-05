@@ -120,13 +120,12 @@ func buildSkuDocument(product *productservice.Product, sku *productservice.Sku) 
 	meta := CandidateMetadata{
 		ProductID:  product.Id,
 		Name:       name,
-		Category:   product.CategoryId,
-		Brand:      product.Brand,
+		Brand:      product.Providor,
 		PriceCents: sku.Price,
 		Stock:      sku.Stock,
 		Sold:       sku.Sold,
 		Source:     "mall",
-		Tags:       loaderTags(product.Brand, sku.Specs),
+		Tags:       loaderTags(product.Providor, sku.Specs),
 	}
 	return NewCandidateDocument(sku.Id, content, meta)
 }
@@ -137,21 +136,17 @@ func buildContent(product *productservice.Product, sku *productservice.Sku, name
 	var b strings.Builder
 	b.WriteString("商品: ")
 	b.WriteString(name)
-	if brand := strings.TrimSpace(product.Brand); brand != "" {
-		b.WriteString("\n品牌: ")
-		b.WriteString(brand)
-	}
-	if category := strings.TrimSpace(product.CategoryId); category != "" {
-		b.WriteString("\n分类: ")
-		b.WriteString(category)
+	if providor := strings.TrimSpace(product.Providor); providor != "" {
+		b.WriteString("\n供应商: ")
+		b.WriteString(providor)
 	}
 	if specs := strings.TrimSpace(sku.Specs); specs != "" {
 		b.WriteString("\n规格: ")
 		b.WriteString(specs)
 	}
-	if detail := strings.TrimSpace(product.Detail); detail != "" {
+	if content := strings.TrimSpace(product.Content); content != "" {
 		b.WriteString("\n简介: ")
-		b.WriteString(truncateRunes(detail, detailLimit))
+		b.WriteString(truncateRunes(content, detailLimit))
 	}
 	return b.String()
 }
@@ -182,11 +177,11 @@ func joinNonEmpty(sep string, parts ...string) string {
 	return strings.Join(out, sep)
 }
 
-// loaderTags 组装候选标签：品牌 + 规格原文。
-func loaderTags(brand, specs string) []string {
+// loaderTags 组装候选标签：供应商 + 规格原文。
+func loaderTags(providor, specs string) []string {
 	var tags []string
-	if brand = strings.TrimSpace(brand); brand != "" {
-		tags = append(tags, brand)
+	if providor = strings.TrimSpace(providor); providor != "" {
+		tags = append(tags, providor)
 	}
 	if specs = strings.TrimSpace(specs); specs != "" {
 		tags = append(tags, specs)

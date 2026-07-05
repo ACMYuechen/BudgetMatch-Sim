@@ -38,20 +38,20 @@ func (l *UpdateProductLogic) UpdateProduct(in *pb.UpdateProductReq) (*pb.UpdateP
 	if in.Name != "" {
 		product.Name = in.Name
 	}
-	if in.CategoryId != "" {
-		product.CategoryId = in.CategoryId
+	if in.Content != "" {
+		product.Content = in.Content
 	}
-	if in.Brand != "" {
-		product.Brand = in.Brand
+	if in.Providor != "" {
+		product.Providor = in.Providor
 	}
 	if in.Status >= 0 {
-		product.Status = int64(in.Status)
+		product.Status = in.Status
 	}
-	if in.MainImage != "" {
-		product.MainImage = in.MainImage
+	if in.Image != "" {
+		product.Image = in.Image
 	}
-	if in.Detail != "" {
-		product.Detail = in.Detail
+	if in.AgentComment != "" {
+		product.AgentComment = in.AgentComment
 	}
 
 	if err := l.svcCtx.ProductStore.Update(l.ctx, product); err != nil {

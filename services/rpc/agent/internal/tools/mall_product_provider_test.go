@@ -49,7 +49,7 @@ func (s *stubProductService) ListSkusByProduct(ctx context.Context, in *products
 func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 	stub := &stubProductService{
 		productsByKeyword: map[string][]*productservice.Product{
-			"键盘": {{Id: "p1", Name: "静音机械键盘", CategoryId: "cat-office", Brand: "Keychron"}},
+			"键盘": {{Id: "p1", Name: "静音机械键盘", Providor: "Keychron"}},
 		},
 		skusByProduct: map[string][]*productservice.Sku{
 			"p1": {
@@ -74,7 +74,7 @@ func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 	}
 
 	c := got[0]
-	if c.ID != "s1" || c.Name != "静音机械键盘 红轴" || c.Category != "cat-office" || c.Source != "mall" {
+	if c.ID != "s1" || c.Name != "静音机械键盘 红轴" || c.Category != "" || c.Source != "mall" {
 		t.Fatalf("unexpected candidate mapping: %+v", c)
 	}
 	if c.PriceCents != 29900 || c.Stock != 10 || c.Sold != 200 {

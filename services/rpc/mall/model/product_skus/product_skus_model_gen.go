@@ -18,7 +18,6 @@ type (
 		InsertOne(ctx context.Context, data *ProductSkus) error
 		List(ctx context.Context, req ProductSkusListReq) ([]ProductSkus, int64, error)
 		FindOne(ctx context.Context, id string) (*ProductSkus, error)
-		FindBySkuCode(ctx context.Context, productId, skuCode string) (*ProductSkus, error)
 		Update(ctx context.Context, data *ProductSkus) error
 		Delete(ctx context.Context, id string) error
 	}
@@ -74,22 +73,6 @@ func (m *defaultProductSkusModel) InsertOne(ctx context.Context, data *ProductSk
 func (m *defaultProductSkusModel) FindOne(ctx context.Context, id string) (*ProductSkus, error) {
 	model := &ProductSkus{}
 	err := m.conn.WithContext(ctx).Where("id = ?", id).First(model).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return model, nil
-}
-
-func (m *defaultProductSkusModel) FindBySkuCode(ctx context.Context, productId, skuCode string) (*ProductSkus, error) {
-	model := &ProductSkus{}
-	session := m.conn.WithContext(ctx).Where("sku_code = ?", skuCode)
-	if productId != "" {
-		session = session.Where("product_id = ?", productId)
-	}
-	err := session.First(model).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

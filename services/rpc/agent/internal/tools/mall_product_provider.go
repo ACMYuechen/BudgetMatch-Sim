@@ -159,17 +159,16 @@ func (p *MallProductProvider) collectSkus(ctx context.Context, productID string)
 	return skus, nil
 }
 
-// candidateFromSku 把商品与 SKU 映射为候选：名称拼接 SPU+SKU，标签取品牌与规格值。
+// candidateFromSku 把商品与 SKU 映射为候选：名称拼接 SPU+SKU，标签取供应商与规格值。
 func candidateFromSku(product *productservice.Product, sku *productservice.Sku) ProductCandidate {
 	return ProductCandidate{
 		ID:         sku.Id,
 		Name:       joinName(product.Name, sku.Name),
-		Category:   product.CategoryId,
 		Source:     "mall",
 		PriceCents: sku.Price,
 		Stock:      sku.Stock,
 		Sold:       sku.Sold,
-		Tags:       skuTags(product.Brand, sku.Specs),
+		Tags:       skuTags(product.Providor, sku.Specs),
 	}
 }
 
@@ -186,11 +185,11 @@ func joinName(productName, skuName string) string {
 	return productName + " " + skuName
 }
 
-// skuTags 组装候选标签：品牌 + 规格 JSON 中的字符串值（解析失败则忽略规格）。
-func skuTags(brand, specs string) []string {
+// skuTags 组装候选标签：供应商 + 规格 JSON 中的字符串值（解析失败则忽略规格）。
+func skuTags(providor, specs string) []string {
 	var tags []string
-	if brand = strings.TrimSpace(brand); brand != "" {
-		tags = append(tags, brand)
+	if providor = strings.TrimSpace(providor); providor != "" {
+		tags = append(tags, providor)
 	}
 	if specs = strings.TrimSpace(specs); specs != "" {
 		var kv map[string]any

@@ -43,17 +43,17 @@ func (l *SkuListLogic) SkuList(req *types.MallSkuListReq) (resp *types.MallSkuLi
 	items := make([]types.MallSkuItem, 0, len(rpcResp.List))
 	for _, s := range rpcResp.List {
 		items = append(items, types.MallSkuItem{
-			Id:        s.Id,
-			ProductId: s.ProductId,
-			SkuCode:   s.SkuCode,
-			Name:      s.Name,
-			Specs:     s.Specs,
-			Price:     s.Price,
-			Stock:     s.Stock,
-			Sold:      s.Sold,
-			Status:    s.Status,
-			CreatedAt: s.CreatedAt,
-			UpdatedAt: s.UpdatedAt,
+			Id:           s.Id,
+			ProductId:    s.ProductId,
+			Name:         s.Name,
+			Specs:        s.Specs,
+			Price:        s.Price,
+			Stock:        s.Stock,
+			Sold:         s.Sold,
+			Status:       s.Status,
+			AgentComment: s.AgentComment,
+			CreatedAt:    s.CreatedAt,
+			UpdatedAt:    s.UpdatedAt,
 		})
 	}
 

@@ -17,7 +17,9 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 	resp := &pb.Order{
 		Id:             o.Id,
 		UserId:         o.UserId,
-		TotalAmount:    o.TotalAmount,
+		OriginalAmount: o.OriginalAmount,
+		DiscountAmount: o.DiscountAmount,
+		PayAmount:      o.PayAmount,
 		Status:         int32(o.Status),
 		PayType:        o.PayType,
 		Remark:         o.Remark,
@@ -26,18 +28,19 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 		CreatedAt:      o.CreatedAt.Format(timeLayout),
 		UpdatedAt:      o.UpdatedAt.Format(timeLayout),
 	}
-	if o.PayTime != nil {
+	if !o.PayTime.IsZero() {
 		resp.PayTime = o.PayTime.Format(timeLayout)
 	}
 	for _, it := range items {
 		resp.Items = append(resp.Items, &pb.OrderItem{
-			ProductId:   it.ProductId,
-			SkuId:       it.SkuId,
-			SkuName:     it.SkuName,
-			Price:       it.Price,
-			Quantity:    it.Quantity,
-			TotalAmount: it.TotalAmount,
-			Snapshot:    it.Snapshot,
+			ProductId:      it.ProductId,
+			SkuId:          it.SkuId,
+			SkuName:        it.SkuName,
+			Price:          it.Price,
+			Quantity:       it.Quantity,
+			DiscountAmount: it.DiscountAmount,
+			TotalAmount:    it.TotalAmount,
+			Snapshot:       it.Snapshot,
 		})
 	}
 	return resp

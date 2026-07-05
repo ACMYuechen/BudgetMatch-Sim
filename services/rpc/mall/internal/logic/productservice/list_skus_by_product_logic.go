@@ -30,7 +30,7 @@ func (l *ListSkusByProductLogic) ListSkusByProduct(in *pb.ListSkusByProductReq) 
 		Page:      int(in.Page),
 		Size:      int(in.PageSize),
 		ProductId: in.ProductId,
-		Status:    int64(in.Status),
+		Status:    int(in.Status),
 	}
 	if req.Status < 0 {
 		req.Status = -1

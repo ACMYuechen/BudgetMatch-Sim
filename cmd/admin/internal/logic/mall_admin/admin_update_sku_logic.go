@@ -28,12 +28,13 @@ func NewAdminUpdateSkuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 
 func (l *AdminUpdateSkuLogic) AdminUpdateSku(req *types.AdminUpdateSkuReq) (resp *types.AdminUpdateSkuResp, err error) {
 	_, err = l.svcCtx.MallProductClient.UpdateSku(l.ctx, &pb.UpdateSkuReq{
-		Id:     req.Id,
-		Name:   req.Name,
-		Specs:  req.Specs,
-		Price:  req.Price,
-		Stock:  req.Stock,
-		Status: req.Status,
+		Id:           req.Id,
+		Name:         req.Name,
+		Specs:        req.Specs,
+		Price:        req.Price,
+		Stock:        req.Stock,
+		Status:       req.Status,
+		AgentComment: req.AgentComment,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update sku: %v", err)

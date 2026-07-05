@@ -37,26 +37,16 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 		return nil, errors.MallProductNotFound
 	}
 
-	// check duplicate sku_code under product
-	existing, err := l.svcCtx.SkuStore.FindBySkuCode(l.ctx, in.ProductId, in.SkuCode)
-	if err != nil {
-		l.Logger.Errorf("failed to find sku by code: %v", err)
-		return nil, errors.Database
-	}
-	if existing != nil {
-		return nil, errors.Internal
-	}
-
 	sku := &product_skus.ProductSkus{
-		Id:        uuid.New().String(),
-		ProductId: in.ProductId,
-		SkuCode:   in.SkuCode,
-		Name:      in.Name,
-		Specs:     in.Specs,
-		Price:     in.Price,
-		Stock:     in.Stock,
-		Sold:      0,
-		Status:    1,
+		Id:           uuid.New().String(),
+		ProductId:    in.ProductId,
+		Name:         in.Name,
+		Specs:        in.Specs,
+		Price:        in.Price,
+		Stock:        int(in.Stock),
+		Sold:         0,
+		Status:       1,
+		AgentComment: in.AgentComment,
 	}
 
 	if err := l.svcCtx.SkuStore.InsertOne(l.ctx, sku); err != nil {

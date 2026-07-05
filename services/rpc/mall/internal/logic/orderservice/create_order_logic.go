@@ -59,7 +59,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	if sku.Status != 1 {
 		return nil, errors.MallSkuNotFound
 	}
-	if sku.Stock < in.Quantity {
+	if int64(sku.Stock) < in.Quantity {
 		return nil, errors.MallStockNotEnough
 	}
 
@@ -75,7 +75,9 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 
 	// 4. 在数据库事务中创建订单
 	orderID := uuid.New().String()
-	totalAmount := sku.Price * in.Quantity
+	originalAmount := sku.Price * in.Quantity
+	discountAmount := int64(0)
+	payAmount := originalAmount - discountAmount
 	now := time.Now()
 
 	snapshot := map[string]any{
@@ -83,7 +85,6 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		"product_name": product.Name,
 		"sku_id":       sku.Id,
 		"sku_name":     sku.Name,
-		"sku_code":     sku.SkuCode,
 		"price":        sku.Price,
 		"quantity":     in.Quantity,
 	}
@@ -92,7 +93,9 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	order := &mall_orders.MallOrders{
 		Id:             orderID,
 		UserId:         in.UserId,
-		TotalAmount:    totalAmount,
+		OriginalAmount: originalAmount,
+		DiscountAmount: discountAmount,
+		PayAmount:      payAmount,
 		Status:         mall_orders.OrderStatusPending,
 		Remark:         in.Remark,
 		Snapshot:       string(snapshotJSON),
@@ -102,14 +105,16 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	item := &mall_order_items.MallOrderItems{
-		OrderId:     orderID,
-		ProductId:   product.Id,
-		SkuId:       sku.Id,
-		SkuName:     sku.Name,
-		Price:       sku.Price,
-		Quantity:    in.Quantity,
-		TotalAmount: totalAmount,
-		Snapshot:    string(snapshotJSON),
+		Id:             uuid.New().String(),
+		OrderId:        orderID,
+		ProductId:      product.Id,
+		SkuId:          sku.Id,
+		SkuName:        sku.Name,
+		Price:          sku.Price,
+		Quantity:       in.Quantity,
+		DiscountAmount: discountAmount,
+		TotalAmount:    payAmount,
+		Snapshot:       string(snapshotJSON),
 	}
 
 	deductions := []struct {

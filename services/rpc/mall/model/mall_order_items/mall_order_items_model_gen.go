@@ -17,7 +17,7 @@ type (
 		InsertOne(ctx context.Context, data *MallOrderItems) error
 		FindByOrderId(ctx context.Context, orderId string) ([]MallOrderItems, error)
 		Update(ctx context.Context, data *MallOrderItems) error
-		Delete(ctx context.Context, id int64) error
+		Delete(ctx context.Context, id string) error
 	}
 
 	defaultMallOrderItemsModel struct {

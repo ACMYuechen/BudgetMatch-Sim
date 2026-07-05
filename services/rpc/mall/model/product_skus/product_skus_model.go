@@ -32,18 +32,10 @@ func NewProductSkusModel(conn *gorm.DB) ProductSkusModel {
 	}
 }
 
-// CreateTable 若表不存在则创建，并确保唯一索引存在。
+// CreateTable 若表不存在则创建。
 func (m *customProductSkusModel) CreateTable() error {
 	if !m.conn.Migrator().HasTable(&ProductSkus{}) {
-		if err := m.conn.Migrator().CreateTable(&ProductSkus{}); err != nil {
-			return err
-		}
-	}
-	// 确保唯一索引存在
-	if !m.conn.Migrator().HasIndex(&ProductSkus{}, "idx_product_skus_product_sku") {
-		return m.conn.Exec(
-			`CREATE UNIQUE INDEX IF NOT EXISTS idx_product_skus_product_sku ON product_skus(product_id, sku_code) WHERE deleted_at IS NULL`,
-		).Error
+		return m.conn.Migrator().CreateTable(&ProductSkus{})
 	}
 	return nil
 }

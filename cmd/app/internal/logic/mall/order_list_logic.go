@@ -62,19 +62,22 @@ func orderToType(o *pb.Order) types.MallOrderResp {
 	items := make([]types.MallOrderItem, 0, len(o.Items))
 	for _, it := range o.Items {
 		items = append(items, types.MallOrderItem{
-			ProductId:   it.ProductId,
-			SkuId:       it.SkuId,
-			SkuName:     it.SkuName,
-			Price:       it.Price,
-			Quantity:    it.Quantity,
-			TotalAmount: it.TotalAmount,
-			Snapshot:    it.Snapshot,
+			ProductId:      it.ProductId,
+			SkuId:          it.SkuId,
+			SkuName:        it.SkuName,
+			Price:          it.Price,
+			Quantity:       it.Quantity,
+			DiscountAmount: it.DiscountAmount,
+			TotalAmount:    it.TotalAmount,
+			Snapshot:       it.Snapshot,
 		})
 	}
 	return types.MallOrderResp{
 		Id:             o.Id,
 		UserId:         o.UserId,
-		TotalAmount:    o.TotalAmount,
+		OriginalAmount: o.OriginalAmount,
+		DiscountAmount: o.DiscountAmount,
+		PayAmount:      o.PayAmount,
 		Status:         o.Status,
 		PayType:        o.PayType,
 		PayTime:        o.PayTime,

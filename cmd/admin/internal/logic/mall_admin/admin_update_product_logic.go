@@ -28,13 +28,13 @@ func NewAdminUpdateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 
 func (l *AdminUpdateProductLogic) AdminUpdateProduct(req *types.AdminUpdateProductReq) (resp *types.AdminUpdateProductResp, err error) {
 	_, err = l.svcCtx.MallProductClient.UpdateProduct(l.ctx, &pb.UpdateProductReq{
-		Id:         req.Id,
-		Name:       req.Name,
-		CategoryId: req.CategoryId,
-		Brand:      req.Brand,
-		Status:     req.Status,
-		MainImage:  req.MainImage,
-		Detail:     req.Detail,
+		Id:           req.Id,
+		Name:         req.Name,
+		Content:      req.Content,
+		Status:       req.Status,
+		Image:        req.Image,
+		Providor:     req.Providor,
+		AgentComment: req.AgentComment,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update product: %v", err)

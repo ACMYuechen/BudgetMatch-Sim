@@ -3,38 +3,38 @@ syntax = "v1"
 // ========== Product Types ==========
 
 type MallProductItem {
-	Id         string `json:"id"`
-	SpuCode    string `json:"spu_code"`
-	Name       string `json:"name"`
-	CategoryId string `json:"category_id"`
-	Brand      string `json:"brand"`
-	Status     int32  `json:"status"`
-	MainImage  string `json:"main_image"`
-	Detail     string `json:"detail"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	Id           string `json:"id"`
+	UserId       string `json:"user_id"`
+	Name         string `json:"name"`
+	Content      string `json:"content"`
+	Image        string `json:"image"`
+	Providor     string `json:"providor"`
+	Status       int32  `json:"status"`
+	AgentComment string `json:"agent_comment"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 type MallSkuItem {
-	Id        string `json:"id"`
-	ProductId string `json:"product_id"`
-	SkuCode   string `json:"sku_code"`
-	Name      string `json:"name"`
-	Specs     string `json:"specs"`
-	Price     int64  `json:"price"`
-	Stock     int64  `json:"stock"`
-	Sold      int64  `json:"sold"`
-	Status    int32  `json:"status"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Id           string `json:"id"`
+	ProductId    string `json:"product_id"`
+	Name         string `json:"name"`
+	Specs        string `json:"specs"`
+	Price        int64  `json:"price"`
+	Stock        int64  `json:"stock"`
+	Sold         int64  `json:"sold"`
+	Status       int32  `json:"status"`
+	AgentComment string `json:"agent_comment"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 }
 
 type MallProductListReq {
-	Page       int    `form:"page,default=1"`
-	PageSize   int    `form:"page_size,default=10"`
-	CategoryId string `form:"category_id"`
-	Keyword    string `form:"keyword"`
-	Status     int32  `form:"status,default=1"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Keyword  string `form:"keyword"`
+	Status   int32  `form:"status,default=1"`
+	UserId   string `form:"user_id,optional"`
 }
 
 type MallProductListResp {
@@ -69,19 +69,22 @@ type MallSkuListResp {
 // ========== Order Types ==========
 
 type MallOrderItem {
-	ProductId   string `json:"product_id"`
-	SkuId       string `json:"sku_id"`
-	SkuName     string `json:"sku_name"`
-	Price       int64  `json:"price"`
-	Quantity    int64  `json:"quantity"`
-	TotalAmount int64  `json:"total_amount"`
-	Snapshot    string `json:"snapshot"`
+	ProductId      string `json:"product_id"`
+	SkuId          string `json:"sku_id"`
+	SkuName        string `json:"sku_name"`
+	Price          int64  `json:"price"`
+	Quantity       int64  `json:"quantity"`
+	DiscountAmount int64  `json:"discount_amount"`
+	TotalAmount    int64  `json:"total_amount"`
+	Snapshot       string `json:"snapshot"`
 }
 
 type MallOrderResp {
 	Id             string          `json:"id"`
 	UserId         string          `json:"user_id"`
-	TotalAmount    int64           `json:"total_amount"`
+	OriginalAmount int64           `json:"original_amount"`
+	DiscountAmount int64           `json:"discount_amount"`
+	PayAmount      int64           `json:"pay_amount"`
 	Status         int32           `json:"status"`
 	PayType        string          `json:"pay_type"`
 	PayTime        string          `json:"pay_time"`

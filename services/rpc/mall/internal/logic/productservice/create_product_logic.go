@@ -27,26 +27,15 @@ func NewCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 }
 
 func (l *CreateProductLogic) CreateProduct(in *pb.CreateProductReq) (*pb.CreateProductResp, error) {
-	// check duplicate spu_code
-	existing, err := l.svcCtx.ProductStore.FindBySpuCode(l.ctx, in.SpuCode)
-	if err != nil {
-		l.Logger.Errorf("failed to find product by spu_code: %v", err)
-		return nil, errors.Database
-	}
-	if existing != nil {
-		l.Logger.Errorf("spu_code already exists: %s", in.SpuCode)
-		return nil, errors.Internal
-	}
-
 	product := &products.Products{
-		Id:         uuid.New().String(),
-		SpuCode:    in.SpuCode,
-		Name:       in.Name,
-		CategoryId: in.CategoryId,
-		Brand:      in.Brand,
-		Status:     1,
-		MainImage:  in.MainImage,
-		Detail:     in.Detail,
+		Id:           uuid.New().String(),
+		UserId:       in.UserId,
+		Name:         in.Name,
+		Content:      in.Content,
+		Image:        in.Image,
+		Providor:     in.Providor,
+		Status:       1,
+		AgentComment: in.AgentComment,
 	}
 
 	if err := l.svcCtx.ProductStore.InsertOne(l.ctx, product); err != nil {

@@ -27,11 +27,11 @@ func NewListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *List
 
 func (l *ListProductsLogic) ListProducts(in *pb.ListProductsReq) (*pb.ListProductsResp, error) {
 	req := products.ProductsListReq{
-		Page:       int(in.Page),
-		Size:       int(in.PageSize),
-		CategoryId: in.CategoryId,
-		Keyword:    in.Keyword,
-		Status:     int64(in.Status),
+		Page:    int(in.Page),
+		Size:    int(in.PageSize),
+		UserId:  in.UserId,
+		Keyword: in.Keyword,
+		Status:  in.Status,
 	}
 	if req.Status < 0 {
 		req.Status = -1

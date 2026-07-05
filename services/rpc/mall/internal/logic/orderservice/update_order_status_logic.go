@@ -41,7 +41,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		return nil, errors.MallOrderNotFound
 	}
 
-	newStatus := int64(in.Status)
+	newStatus := int(in.Status)
 	if !isValidOrderTransition(order.Status, newStatus) {
 		return nil, errors.MallInvalidOrderTransition
 	}
@@ -57,7 +57,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 			return errors.MallInvalidOrderTransition
 		}
 		// 首次转为已支付时补充支付时间
-		if newStatus == mall_orders.OrderStatusPaid && order.PayTime == nil {
+		if newStatus == mall_orders.OrderStatusPaid && order.PayTime.IsZero() {
 			if err := tx.Model(&mall_orders.MallOrders{}).Where("id = ?", order.Id).Update("pay_time", now).Error; err != nil {
 				return err
 			}
@@ -84,7 +84,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 	return &pb.UpdateOrderStatusResp{Success: true}, nil
 }
 
-func isValidOrderTransition(current, next int64) bool {
+func isValidOrderTransition(current, next int) bool {
 	switch current {
 	case mall_orders.OrderStatusPending:
 		return next == mall_orders.OrderStatusPaid || next == mall_orders.OrderStatusCancelled

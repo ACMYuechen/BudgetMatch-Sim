@@ -18,7 +18,6 @@ type (
 		InsertOne(ctx context.Context, data *Products) error
 		List(ctx context.Context, req ProductsListReq) ([]Products, int64, error)
 		FindOne(ctx context.Context, id string) (*Products, error)
-		FindBySpuCode(ctx context.Context, spuCode string) (*Products, error)
 		Update(ctx context.Context, data *Products) error
 		Delete(ctx context.Context, id string) error
 	}
@@ -44,11 +43,11 @@ type (
 	}
 
 	ProductsListReq struct {
-		Page       int
-		Size       int
-		CategoryId string
-		Keyword    string
-		Status     int32
+		Page    int
+		Size    int
+		UserId  string
+		Keyword string
+		Status  int32
 	}
 )
 
@@ -83,18 +82,6 @@ func (m *defaultProductsModel) FindOne(ctx context.Context, id string) (*Product
 	return model, nil
 }
 
-func (m *defaultProductsModel) FindBySpuCode(ctx context.Context, spuCode string) (*Products, error) {
-	model := &Products{}
-	err := m.conn.WithContext(ctx).Where("spu_code = ?", spuCode).First(model).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return model, nil
-}
-
 func (m *defaultProductsModel) Update(ctx context.Context, data *Products) error {
 	return m.conn.WithContext(ctx).Model(&Products{}).Where("id = ?", data.Id).Updates(data).Error
 }
@@ -115,8 +102,8 @@ func (m *defaultProductsModel) List(ctx context.Context, req ProductsListReq) ([
 	list := make([]Products, 0)
 	session := m.conn.WithContext(ctx).Model(&Products{})
 
-	if req.CategoryId != "" {
-		session = session.Where("category_id = ?", req.CategoryId)
+	if req.UserId != "" {
+		session = session.Where("user_id = ?", req.UserId)
 	}
 	if req.Keyword != "" {
 		session = session.Where("name ILIKE ?", "%"+req.Keyword+"%")

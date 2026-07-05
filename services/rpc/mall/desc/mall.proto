@@ -6,25 +6,25 @@ option go_package = "./pb";
 // ========== Product (SPU) ==========
 
 message Product {
-  string id          = 1;
-  string spu_code    = 2;
-  string name        = 3;
-  string category_id = 4;
-  string brand       = 5;
-  int32  status      = 6;
-  string main_image  = 7;
-  string detail      = 8;
-  string created_at  = 9;
-  string updated_at  = 10;
+  string id            = 1;
+  string user_id       = 2;
+  string name          = 3;
+  string content       = 4;
+  string image         = 5;
+  string providor      = 6;
+  int32  status        = 7;
+  string agent_comment = 8;
+  string created_at    = 9;
+  string updated_at    = 10;
 }
 
 message CreateProductReq {
-  string spu_code    = 1;
-  string name        = 2;
-  string category_id = 3;
-  string brand       = 4;
-  string main_image  = 5;
-  string detail      = 6;
+  string user_id       = 1;
+  string name          = 2;
+  string content       = 3;
+  string image         = 4;
+  string providor      = 5;
+  string agent_comment = 6;
 }
 
 message CreateProductResp {
@@ -32,13 +32,13 @@ message CreateProductResp {
 }
 
 message UpdateProductReq {
-  string id          = 1;
-  string name        = 2;
-  string category_id = 3;
-  string brand       = 4;
-  int32  status      = 5;
-  string main_image  = 6;
-  string detail      = 7;
+  string id            = 1;
+  string name          = 2;
+  string content       = 3;
+  int32  status        = 4;
+  string image         = 5;
+  string providor      = 6;
+  string agent_comment = 7;
 }
 
 message UpdateProductResp {
@@ -64,9 +64,9 @@ message GetProductResp {
 message ListProductsReq {
   int32  page      = 1;
   int32  page_size = 2;
-  string category_id = 3;
-  string keyword     = 4;
-  int32  status      = 5;
+  string keyword   = 3;
+  int32  status    = 4;
+  string user_id   = 5;
 }
 
 message ListProductsResp {
@@ -79,26 +79,26 @@ message ListProductsResp {
 // ========== SKU ==========
 
 message Sku {
-  string id         = 1;
-  string product_id = 2;
-  string sku_code   = 3;
-  string name       = 4;
-  string specs      = 5;
-  int64  price      = 6;
-  int64  stock      = 7;
-  int64  sold       = 8;
-  int32  status     = 9;
-  string created_at = 10;
-  string updated_at = 11;
+  string id            = 1;
+  string product_id    = 2;
+  string name          = 3;
+  string specs         = 4;
+  int64  price         = 5;
+  int64  stock         = 6;
+  int64  sold          = 7;
+  int32  status        = 8;
+  string agent_comment = 9;
+  string created_at    = 10;
+  string updated_at    = 11;
 }
 
 message CreateSkuReq {
-  string product_id = 1;
-  string sku_code   = 2;
-  string name       = 3;
-  string specs      = 4;
-  int64  price      = 5;
-  int64  stock      = 6;
+  string product_id    = 1;
+  string name          = 2;
+  string specs         = 3;
+  int64  price         = 4;
+  int64  stock         = 5;
+  string agent_comment = 6;
 }
 
 message CreateSkuResp {
@@ -106,12 +106,13 @@ message CreateSkuResp {
 }
 
 message UpdateSkuReq {
-  string id       = 1;
-  string name     = 2;
-  string specs    = 3;
-  int64  price    = 4;
-  int64  stock    = 5;
-  int32  status   = 6;
+  string id            = 1;
+  string name          = 2;
+  string specs         = 3;
+  int64  price         = 4;
+  int64  stock         = 5;
+  int32  status        = 6;
+  string agent_comment = 7;
 }
 
 message UpdateSkuResp {
@@ -151,28 +152,31 @@ message ListSkusByProductResp {
 // ========== Order ==========
 
 message OrderItem {
-  string product_id  = 1;
-  string sku_id      = 2;
-  string sku_name    = 3;
-  int64  price       = 4;
-  int64  quantity    = 5;
-  int64  total_amount = 6;
-  string snapshot    = 7;
+  string product_id      = 1;
+  string sku_id          = 2;
+  string sku_name        = 3;
+  int64  price           = 4;
+  int64  quantity        = 5;
+  int64  discount_amount = 6;
+  int64  total_amount    = 7;
+  string snapshot        = 8;
 }
 
 message Order {
   string          id              = 1;
   string          user_id         = 2;
-  int64           total_amount    = 3;
-  int32           status          = 4;
-  string          pay_type        = 5;
-  string          pay_time        = 6;
-  string          remark          = 7;
-  string          snapshot        = 8;
-  string          idempotency_key = 9;
-  repeated OrderItem items        = 10;
-  string          created_at      = 11;
-  string          updated_at      = 12;
+  int64           original_amount = 3;
+  int64           discount_amount = 4;
+  int64           pay_amount      = 5;
+  int32           status          = 6;
+  string          pay_type        = 7;
+  string          pay_time        = 8;
+  string          remark          = 9;
+  string          snapshot        = 10;
+  string          idempotency_key = 11;
+  repeated OrderItem items        = 12;
+  string          created_at      = 13;
+  string          updated_at      = 14;
 }
 
 message CreateOrderReq {

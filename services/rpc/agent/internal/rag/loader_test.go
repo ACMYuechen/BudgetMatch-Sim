@@ -48,9 +48,9 @@ func paginate[T any](all []T, page, pageSize int32) []T {
 func TestLoaderLoadsAllPages(t *testing.T) {
 	catalog := &stubCatalog{
 		products: []*productservice.Product{
-			{Id: "p1", Name: "键盘", Brand: "K", CategoryId: "office", Detail: "适合办公"},
-			{Id: "p2", Name: "台灯", CategoryId: "study"},
-			{Id: "p3", Name: "显示器", CategoryId: "computer"},
+			{Id: "p1", Name: "键盘", Providor: "K", Content: "适合办公"},
+			{Id: "p2", Name: "台灯"},
+			{Id: "p3", Name: "显示器"},
 		},
 		skus: map[string][]*productservice.Sku{
 			"p1": {{Id: "s1", Name: "红轴", Specs: `{"switch":"red"}`, Price: 29900, Stock: 10, Sold: 5}},
@@ -73,7 +73,7 @@ func TestLoaderLoadsAllPages(t *testing.T) {
 		t.Fatalf("unexpected first doc: %+v", first)
 	}
 	if !strings.Contains(first.Content, "键盘 红轴") ||
-		!strings.Contains(first.Content, "品牌: K") ||
+		!strings.Contains(first.Content, "供应商: K") ||
 		!strings.Contains(first.Content, "简介: 适合办公") {
 		t.Fatalf("unexpected content: %q", first.Content)
 	}

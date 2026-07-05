@@ -10,16 +10,16 @@ func productToType(p *pb.Product) types.AdminProductItem {
 		return types.AdminProductItem{}
 	}
 	return types.AdminProductItem{
-		Id:         p.Id,
-		SpuCode:    p.SpuCode,
-		Name:       p.Name,
-		CategoryId: p.CategoryId,
-		Brand:      p.Brand,
-		Status:     p.Status,
-		MainImage:  p.MainImage,
-		Detail:     p.Detail,
-		CreatedAt:  p.CreatedAt,
-		UpdatedAt:  p.UpdatedAt,
+		Id:           p.Id,
+		UserId:       p.UserId,
+		Name:         p.Name,
+		Content:      p.Content,
+		Image:        p.Image,
+		Providor:     p.Providor,
+		Status:       p.Status,
+		AgentComment: p.AgentComment,
+		CreatedAt:    p.CreatedAt,
+		UpdatedAt:    p.UpdatedAt,
 	}
 }
 
@@ -28,17 +28,17 @@ func skuToType(s *pb.Sku) types.AdminSkuItem {
 		return types.AdminSkuItem{}
 	}
 	return types.AdminSkuItem{
-		Id:        s.Id,
-		ProductId: s.ProductId,
-		SkuCode:   s.SkuCode,
-		Name:      s.Name,
-		Specs:     s.Specs,
-		Price:     s.Price,
-		Stock:     s.Stock,
-		Sold:      s.Sold,
-		Status:    s.Status,
-		CreatedAt: s.CreatedAt,
-		UpdatedAt: s.UpdatedAt,
+		Id:           s.Id,
+		ProductId:    s.ProductId,
+		Name:         s.Name,
+		Specs:        s.Specs,
+		Price:        s.Price,
+		Stock:        s.Stock,
+		Sold:         s.Sold,
+		Status:       s.Status,
+		AgentComment: s.AgentComment,
+		CreatedAt:    s.CreatedAt,
+		UpdatedAt:    s.UpdatedAt,
 	}
 }
 
@@ -46,19 +46,22 @@ func orderToType(o *pb.Order) types.AdminOrderResp {
 	items := make([]types.AdminOrderItem, 0, len(o.Items))
 	for _, it := range o.Items {
 		items = append(items, types.AdminOrderItem{
-			ProductId:   it.ProductId,
-			SkuId:       it.SkuId,
-			SkuName:     it.SkuName,
-			Price:       it.Price,
-			Quantity:    it.Quantity,
-			TotalAmount: it.TotalAmount,
-			Snapshot:    it.Snapshot,
+			ProductId:      it.ProductId,
+			SkuId:          it.SkuId,
+			SkuName:        it.SkuName,
+			Price:          it.Price,
+			Quantity:       it.Quantity,
+			DiscountAmount: it.DiscountAmount,
+			TotalAmount:    it.TotalAmount,
+			Snapshot:       it.Snapshot,
 		})
 	}
 	return types.AdminOrderResp{
 		Id:             o.Id,
 		UserId:         o.UserId,
-		TotalAmount:    o.TotalAmount,
+		OriginalAmount: o.OriginalAmount,
+		DiscountAmount: o.DiscountAmount,
+		PayAmount:      o.PayAmount,
 		Status:         o.Status,
 		PayType:        o.PayType,
 		PayTime:        o.PayTime,

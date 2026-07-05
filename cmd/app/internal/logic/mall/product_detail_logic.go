@@ -41,16 +41,16 @@ func (l *ProductDetailLogic) ProductDetail(req *types.MallProductDetailReq) (res
 	p := rpcResp.Product
 	return &types.MallProductDetailResp{
 		Product: types.MallProductItem{
-			Id:         p.Id,
-			SpuCode:    p.SpuCode,
-			Name:       p.Name,
-			CategoryId: p.CategoryId,
-			Brand:      p.Brand,
-			Status:     p.Status,
-			MainImage:  p.MainImage,
-			Detail:     p.Detail,
-			CreatedAt:  p.CreatedAt,
-			UpdatedAt:  p.UpdatedAt,
+			Id:           p.Id,
+			UserId:       p.UserId,
+			Name:         p.Name,
+			Content:      p.Content,
+			Image:        p.Image,
+			Providor:     p.Providor,
+			Status:       p.Status,
+			AgentComment: p.AgentComment,
+			CreatedAt:    p.CreatedAt,
+			UpdatedAt:    p.UpdatedAt,
 		},
 	}, nil
 }

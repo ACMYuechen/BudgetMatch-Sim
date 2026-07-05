@@ -28,12 +28,12 @@ func NewAdminCreateSkuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 
 func (l *AdminCreateSkuLogic) AdminCreateSku(req *types.AdminCreateSkuReq) (resp *types.AdminCreateSkuResp, err error) {
 	rpcResp, err := l.svcCtx.MallProductClient.CreateSku(l.ctx, &pb.CreateSkuReq{
-		ProductId: req.ProductId,
-		SkuCode:   req.SkuCode,
-		Name:      req.Name,
-		Specs:     req.Specs,
-		Price:     req.Price,
-		Stock:     req.Stock,
+		ProductId:    req.ProductId,
+		Name:         req.Name,
+		Specs:        req.Specs,
+		Price:        req.Price,
+		Stock:        req.Stock,
+		AgentComment: req.AgentComment,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create sku: %v", err)

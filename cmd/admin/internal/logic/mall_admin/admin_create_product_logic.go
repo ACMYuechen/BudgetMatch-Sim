@@ -28,12 +28,12 @@ func NewAdminCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 
 func (l *AdminCreateProductLogic) AdminCreateProduct(req *types.AdminCreateProductReq) (resp *types.AdminCreateProductResp, err error) {
 	rpcResp, err := l.svcCtx.MallProductClient.CreateProduct(l.ctx, &pb.CreateProductReq{
-		SpuCode:    req.SpuCode,
-		Name:       req.Name,
-		CategoryId: req.CategoryId,
-		Brand:      req.Brand,
-		MainImage:  req.MainImage,
-		Detail:     req.Detail,
+		UserId:       req.UserId,
+		Name:         req.Name,
+		Content:      req.Content,
+		Image:        req.Image,
+		Providor:     req.Providor,
+		AgentComment: req.AgentComment,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create product: %v", err)
