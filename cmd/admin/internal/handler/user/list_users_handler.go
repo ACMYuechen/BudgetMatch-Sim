@@ -7,17 +7,17 @@ import (
 
 	"net/http"
 
-	"budgetmatch-sim/cmd/app/internal/logic/user"
-	"budgetmatch-sim/cmd/app/internal/svc"
-	"budgetmatch-sim/cmd/app/internal/types"
+	"budgetmatch-sim/cmd/admin/internal/logic/user"
+	"budgetmatch-sim/cmd/admin/internal/svc"
+	"budgetmatch-sim/cmd/admin/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// 获取当前用户信息
-func UserInfoHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+// 用户列表
+func ListUsersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			in  = new(types.UserInfoReq)
+			in  = new(types.ListUsersReq)
 			ctx = r.Context()
 		)
 
@@ -33,8 +33,8 @@ func UserInfoHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewUserInfoLogic(ctx, svcCtx)
-		resp, err := l.UserInfo(in)
+		l := user.NewListUsersLogic(ctx, svcCtx)
+		resp, err := l.ListUsers(in)
 		if err != nil {
 			httpx.Error(w, err)
 		} else {

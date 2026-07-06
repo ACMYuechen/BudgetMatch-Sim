@@ -26,7 +26,7 @@ func NewLoginByCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Login
 	}
 }
 
-func (l *LoginByCodeLogic) LoginByCode(in *pb.LoginByCodeReq) (*pb.LoginByCodeResp, error) {
+func (l *LoginByCodeLogic) LoginByCode(in *pb.LoginByCodeReq) (*pb.LoginResp, error) {
 	if in.Email == "" || in.Code == "" {
 		l.Logger.Infof("invalid email or code: email=%v, code=%v", in.Email, in.Code)
 		return nil, errors.InvalidEmail
@@ -69,7 +69,7 @@ func (l *LoginByCodeLogic) LoginByCode(in *pb.LoginByCodeReq) (*pb.LoginByCodeRe
 		return nil, errors.TokenGeneration
 	}
 
-	return &pb.LoginByCodeResp{
+	return &pb.LoginResp{
 		UserId: u.Id,
 		Token:  token,
 		Role:   int32(u.Role),

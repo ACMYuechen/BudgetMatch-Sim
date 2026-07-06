@@ -73,19 +73,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					// 获取当前用户信息
 					Method:  http.MethodGet,
 					Path:    "/info",
-					Handler: user.UserInfoHandler(serverCtx),
-				},
-				{
-					// 获取当前用户资料
-					Method:  http.MethodGet,
-					Path:    "/profile",
-					Handler: user.UserProfileHandler(serverCtx),
-				},
-				{
-					// 更新当前用户资料
-					Method:  http.MethodPut,
-					Path:    "/profile",
-					Handler: user.UpdateUserProfileHandler(serverCtx),
+					Handler: user.GetUserInfoHandler(serverCtx),
 				},
 			}...,
 		),

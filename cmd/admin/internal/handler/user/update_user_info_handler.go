@@ -7,17 +7,17 @@ import (
 
 	"net/http"
 
-	"budgetmatch-sim/cmd/app/internal/logic/user"
-	"budgetmatch-sim/cmd/app/internal/svc"
-	"budgetmatch-sim/cmd/app/internal/types"
+	"budgetmatch-sim/cmd/admin/internal/logic/user"
+	"budgetmatch-sim/cmd/admin/internal/svc"
+	"budgetmatch-sim/cmd/admin/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// 更新当前用户资料
-func UpdateUserProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+// 更新用户信息
+func UpdateUserInfoHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			in  = new(types.UpdateUserProfileReq)
+			in  = new(types.UpdateUserInfoReq)
 			ctx = r.Context()
 		)
 
@@ -33,8 +33,8 @@ func UpdateUserProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewUpdateUserProfileLogic(ctx, svcCtx)
-		resp, err := l.UpdateUserProfile(in)
+		l := user.NewUpdateUserInfoLogic(ctx, svcCtx)
+		resp, err := l.UpdateUserInfo(in)
 		if err != nil {
 			httpx.Error(w, err)
 		} else {

@@ -41,6 +41,6 @@ func (l *LoginByCodeLogic) LoginByCode(req *types.LoginByCodeReq) (resp *types.L
 	return &types.LoginResp{
 		Token:  rpcResp.Token,
 		UserId: rpcResp.UserId,
-		Role:   rpcResp.Role,
+		Role:   int(rpcResp.Role),
 	}, nil
 }

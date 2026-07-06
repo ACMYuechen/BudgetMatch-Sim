@@ -40,24 +40,10 @@ func (l *ListUsersLogic) ListUsers(in *pb.ListUsersReq) (*pb.ListUsersResp, erro
 		return nil, errors.Database
 	}
 
-	items := make([]*pb.UserListItem, 0, len(list))
+	items := make([]*pb.UserInfo, 0, len(list))
 	for _, u := range list {
-		items = append(items, &pb.UserListItem{
-			UserId:    u.Id,
-			Username:  u.Username,
-			Email:     u.Email,
-			Phone:     u.Phone,
-			Role:      int32(u.Role),
-			Status:    int32(u.Status),
-			Avatar:    u.Avatar,
-			CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
-		})
+		items = append(items, userToInfo(&u))
 	}
 
-	return &pb.ListUsersResp{
-		List:     items,
-		Total:    total,
-		Page:     in.Page,
-		PageSize: in.PageSize,
-	}, nil
+	return &pb.ListUsersResp{Total: int32(total), List: items}, nil
 }

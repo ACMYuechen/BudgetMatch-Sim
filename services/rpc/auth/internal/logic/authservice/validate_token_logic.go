@@ -64,14 +64,6 @@ func (l *ValidateTokenLogic) ValidateToken(in *pb.ValidateTokenReq) (*pb.Validat
 	}
 
 	return &pb.ValidateTokenResp{
-		User: &pb.User{
-			Id:       u.Id,
-			Username: u.Username,
-			Email:    u.Email,
-			Avatar:   u.Avatar,
-			Phone:    u.Phone,
-			Role:     int32(u.Role),
-			Status:   int32(u.Status),
-		},
+		User: userToInfo(u),
 	}, nil
 }

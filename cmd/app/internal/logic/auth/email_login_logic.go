@@ -41,6 +41,6 @@ func (l *EmailLoginLogic) EmailLogin(req *types.EmailLoginReq) (resp *types.Logi
 	return &types.LoginResp{
 		Token:  rpcResp.Token,
 		UserId: rpcResp.UserId,
-		Role:   rpcResp.Role,
+		Role:   int(rpcResp.Role),
 	}, nil
 }

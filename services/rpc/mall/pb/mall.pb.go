@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.1
-// source: services/rpc/mall/desc/mall.proto
+// source: services/rpc/mall/proto/mall.proto
 
 package pb
 
@@ -39,7 +39,7 @@ type Product struct {
 
 func (x *Product) Reset() {
 	*x = Product{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[0]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -51,7 +51,7 @@ func (x *Product) String() string {
 func (*Product) ProtoMessage() {}
 
 func (x *Product) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[0]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -64,7 +64,7 @@ func (x *Product) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Product.ProtoReflect.Descriptor instead.
 func (*Product) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{0}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Product) GetId() string {
@@ -151,7 +151,7 @@ type CreateProductReq struct {
 
 func (x *CreateProductReq) Reset() {
 	*x = CreateProductReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[1]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +163,7 @@ func (x *CreateProductReq) String() string {
 func (*CreateProductReq) ProtoMessage() {}
 
 func (x *CreateProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[1]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +176,7 @@ func (x *CreateProductReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProductReq.ProtoReflect.Descriptor instead.
 func (*CreateProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{1}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateProductReq) GetUserId() string {
@@ -230,7 +230,7 @@ type CreateProductResp struct {
 
 func (x *CreateProductResp) Reset() {
 	*x = CreateProductResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[2]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -242,7 +242,7 @@ func (x *CreateProductResp) String() string {
 func (*CreateProductResp) ProtoMessage() {}
 
 func (x *CreateProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[2]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -255,7 +255,7 @@ func (x *CreateProductResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProductResp.ProtoReflect.Descriptor instead.
 func (*CreateProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{2}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateProductResp) GetId() string {
@@ -280,7 +280,7 @@ type UpdateProductReq struct {
 
 func (x *UpdateProductReq) Reset() {
 	*x = UpdateProductReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[3]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +292,7 @@ func (x *UpdateProductReq) String() string {
 func (*UpdateProductReq) ProtoMessage() {}
 
 func (x *UpdateProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[3]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +305,7 @@ func (x *UpdateProductReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProductReq.ProtoReflect.Descriptor instead.
 func (*UpdateProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{3}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateProductReq) GetId() string {
@@ -366,7 +366,7 @@ type UpdateProductResp struct {
 
 func (x *UpdateProductResp) Reset() {
 	*x = UpdateProductResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[4]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -378,7 +378,7 @@ func (x *UpdateProductResp) String() string {
 func (*UpdateProductResp) ProtoMessage() {}
 
 func (x *UpdateProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[4]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -391,7 +391,7 @@ func (x *UpdateProductResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProductResp.ProtoReflect.Descriptor instead.
 func (*UpdateProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{4}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateProductResp) GetSuccess() bool {
@@ -410,7 +410,7 @@ type DeleteProductReq struct {
 
 func (x *DeleteProductReq) Reset() {
 	*x = DeleteProductReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[5]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +422,7 @@ func (x *DeleteProductReq) String() string {
 func (*DeleteProductReq) ProtoMessage() {}
 
 func (x *DeleteProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[5]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +435,7 @@ func (x *DeleteProductReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProductReq.ProtoReflect.Descriptor instead.
 func (*DeleteProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{5}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeleteProductReq) GetId() string {
@@ -454,7 +454,7 @@ type DeleteProductResp struct {
 
 func (x *DeleteProductResp) Reset() {
 	*x = DeleteProductResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[6]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -466,7 +466,7 @@ func (x *DeleteProductResp) String() string {
 func (*DeleteProductResp) ProtoMessage() {}
 
 func (x *DeleteProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[6]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -479,7 +479,7 @@ func (x *DeleteProductResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProductResp.ProtoReflect.Descriptor instead.
 func (*DeleteProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{6}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteProductResp) GetSuccess() bool {
@@ -498,7 +498,7 @@ type GetProductReq struct {
 
 func (x *GetProductReq) Reset() {
 	*x = GetProductReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[7]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +510,7 @@ func (x *GetProductReq) String() string {
 func (*GetProductReq) ProtoMessage() {}
 
 func (x *GetProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[7]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +523,7 @@ func (x *GetProductReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProductReq.ProtoReflect.Descriptor instead.
 func (*GetProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{7}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetProductReq) GetId() string {
@@ -542,7 +542,7 @@ type GetProductResp struct {
 
 func (x *GetProductResp) Reset() {
 	*x = GetProductResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[8]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +554,7 @@ func (x *GetProductResp) String() string {
 func (*GetProductResp) ProtoMessage() {}
 
 func (x *GetProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[8]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +567,7 @@ func (x *GetProductResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProductResp.ProtoReflect.Descriptor instead.
 func (*GetProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{8}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetProductResp) GetProduct() *Product {
@@ -590,7 +590,7 @@ type ListProductsReq struct {
 
 func (x *ListProductsReq) Reset() {
 	*x = ListProductsReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[9]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -602,7 +602,7 @@ func (x *ListProductsReq) String() string {
 func (*ListProductsReq) ProtoMessage() {}
 
 func (x *ListProductsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[9]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -615,7 +615,7 @@ func (x *ListProductsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProductsReq.ProtoReflect.Descriptor instead.
 func (*ListProductsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{9}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListProductsReq) GetPage() int32 {
@@ -665,7 +665,7 @@ type ListProductsResp struct {
 
 func (x *ListProductsResp) Reset() {
 	*x = ListProductsResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[10]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -677,7 +677,7 @@ func (x *ListProductsResp) String() string {
 func (*ListProductsResp) ProtoMessage() {}
 
 func (x *ListProductsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[10]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -690,7 +690,7 @@ func (x *ListProductsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProductsResp.ProtoReflect.Descriptor instead.
 func (*ListProductsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{10}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListProductsResp) GetList() []*Product {
@@ -740,7 +740,7 @@ type Sku struct {
 
 func (x *Sku) Reset() {
 	*x = Sku{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[11]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -752,7 +752,7 @@ func (x *Sku) String() string {
 func (*Sku) ProtoMessage() {}
 
 func (x *Sku) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[11]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -765,7 +765,7 @@ func (x *Sku) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sku.ProtoReflect.Descriptor instead.
 func (*Sku) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{11}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Sku) GetId() string {
@@ -859,7 +859,7 @@ type CreateSkuReq struct {
 
 func (x *CreateSkuReq) Reset() {
 	*x = CreateSkuReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[12]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -871,7 +871,7 @@ func (x *CreateSkuReq) String() string {
 func (*CreateSkuReq) ProtoMessage() {}
 
 func (x *CreateSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[12]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -884,7 +884,7 @@ func (x *CreateSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkuReq.ProtoReflect.Descriptor instead.
 func (*CreateSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{12}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateSkuReq) GetProductId() string {
@@ -938,7 +938,7 @@ type CreateSkuResp struct {
 
 func (x *CreateSkuResp) Reset() {
 	*x = CreateSkuResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[13]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -950,7 +950,7 @@ func (x *CreateSkuResp) String() string {
 func (*CreateSkuResp) ProtoMessage() {}
 
 func (x *CreateSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[13]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -963,7 +963,7 @@ func (x *CreateSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkuResp.ProtoReflect.Descriptor instead.
 func (*CreateSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{13}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateSkuResp) GetId() string {
@@ -988,7 +988,7 @@ type UpdateSkuReq struct {
 
 func (x *UpdateSkuReq) Reset() {
 	*x = UpdateSkuReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[14]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1000,7 +1000,7 @@ func (x *UpdateSkuReq) String() string {
 func (*UpdateSkuReq) ProtoMessage() {}
 
 func (x *UpdateSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[14]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1013,7 +1013,7 @@ func (x *UpdateSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSkuReq.ProtoReflect.Descriptor instead.
 func (*UpdateSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{14}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateSkuReq) GetId() string {
@@ -1074,7 +1074,7 @@ type UpdateSkuResp struct {
 
 func (x *UpdateSkuResp) Reset() {
 	*x = UpdateSkuResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[15]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1086,7 +1086,7 @@ func (x *UpdateSkuResp) String() string {
 func (*UpdateSkuResp) ProtoMessage() {}
 
 func (x *UpdateSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[15]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1099,7 +1099,7 @@ func (x *UpdateSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSkuResp.ProtoReflect.Descriptor instead.
 func (*UpdateSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{15}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpdateSkuResp) GetSuccess() bool {
@@ -1118,7 +1118,7 @@ type DeleteSkuReq struct {
 
 func (x *DeleteSkuReq) Reset() {
 	*x = DeleteSkuReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[16]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1130,7 +1130,7 @@ func (x *DeleteSkuReq) String() string {
 func (*DeleteSkuReq) ProtoMessage() {}
 
 func (x *DeleteSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[16]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1143,7 +1143,7 @@ func (x *DeleteSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSkuReq.ProtoReflect.Descriptor instead.
 func (*DeleteSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{16}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteSkuReq) GetId() string {
@@ -1162,7 +1162,7 @@ type DeleteSkuResp struct {
 
 func (x *DeleteSkuResp) Reset() {
 	*x = DeleteSkuResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[17]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1174,7 +1174,7 @@ func (x *DeleteSkuResp) String() string {
 func (*DeleteSkuResp) ProtoMessage() {}
 
 func (x *DeleteSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[17]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1187,7 +1187,7 @@ func (x *DeleteSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSkuResp.ProtoReflect.Descriptor instead.
 func (*DeleteSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{17}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteSkuResp) GetSuccess() bool {
@@ -1206,7 +1206,7 @@ type GetSkuReq struct {
 
 func (x *GetSkuReq) Reset() {
 	*x = GetSkuReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[18]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1218,7 +1218,7 @@ func (x *GetSkuReq) String() string {
 func (*GetSkuReq) ProtoMessage() {}
 
 func (x *GetSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[18]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,7 +1231,7 @@ func (x *GetSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkuReq.ProtoReflect.Descriptor instead.
 func (*GetSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{18}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetSkuReq) GetId() string {
@@ -1250,7 +1250,7 @@ type GetSkuResp struct {
 
 func (x *GetSkuResp) Reset() {
 	*x = GetSkuResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[19]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1262,7 @@ func (x *GetSkuResp) String() string {
 func (*GetSkuResp) ProtoMessage() {}
 
 func (x *GetSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[19]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1275,7 +1275,7 @@ func (x *GetSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkuResp.ProtoReflect.Descriptor instead.
 func (*GetSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{19}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetSkuResp) GetSku() *Sku {
@@ -1297,7 +1297,7 @@ type ListSkusByProductReq struct {
 
 func (x *ListSkusByProductReq) Reset() {
 	*x = ListSkusByProductReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[20]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1309,7 +1309,7 @@ func (x *ListSkusByProductReq) String() string {
 func (*ListSkusByProductReq) ProtoMessage() {}
 
 func (x *ListSkusByProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[20]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1322,7 +1322,7 @@ func (x *ListSkusByProductReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSkusByProductReq.ProtoReflect.Descriptor instead.
 func (*ListSkusByProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{20}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListSkusByProductReq) GetProductId() string {
@@ -1365,7 +1365,7 @@ type ListSkusByProductResp struct {
 
 func (x *ListSkusByProductResp) Reset() {
 	*x = ListSkusByProductResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[21]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1377,7 +1377,7 @@ func (x *ListSkusByProductResp) String() string {
 func (*ListSkusByProductResp) ProtoMessage() {}
 
 func (x *ListSkusByProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[21]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1390,7 +1390,7 @@ func (x *ListSkusByProductResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSkusByProductResp.ProtoReflect.Descriptor instead.
 func (*ListSkusByProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{21}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListSkusByProductResp) GetList() []*Sku {
@@ -1437,7 +1437,7 @@ type OrderItem struct {
 
 func (x *OrderItem) Reset() {
 	*x = OrderItem{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[22]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1449,7 +1449,7 @@ func (x *OrderItem) String() string {
 func (*OrderItem) ProtoMessage() {}
 
 func (x *OrderItem) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[22]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1462,7 +1462,7 @@ func (x *OrderItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OrderItem.ProtoReflect.Descriptor instead.
 func (*OrderItem) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{22}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *OrderItem) GetProductId() string {
@@ -1543,7 +1543,7 @@ type Order struct {
 
 func (x *Order) Reset() {
 	*x = Order{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[23]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1555,7 +1555,7 @@ func (x *Order) String() string {
 func (*Order) ProtoMessage() {}
 
 func (x *Order) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[23]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1568,7 +1568,7 @@ func (x *Order) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Order.ProtoReflect.Descriptor instead.
 func (*Order) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{23}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Order) GetId() string {
@@ -1682,7 +1682,7 @@ type CreateOrderReq struct {
 
 func (x *CreateOrderReq) Reset() {
 	*x = CreateOrderReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[24]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1694,7 +1694,7 @@ func (x *CreateOrderReq) String() string {
 func (*CreateOrderReq) ProtoMessage() {}
 
 func (x *CreateOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[24]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1707,7 +1707,7 @@ func (x *CreateOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateOrderReq.ProtoReflect.Descriptor instead.
 func (*CreateOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{24}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateOrderReq) GetUserId() string {
@@ -1755,7 +1755,7 @@ type CreateOrderResp struct {
 
 func (x *CreateOrderResp) Reset() {
 	*x = CreateOrderResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[25]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1767,7 +1767,7 @@ func (x *CreateOrderResp) String() string {
 func (*CreateOrderResp) ProtoMessage() {}
 
 func (x *CreateOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[25]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1780,7 +1780,7 @@ func (x *CreateOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateOrderResp.ProtoReflect.Descriptor instead.
 func (*CreateOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{25}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateOrderResp) GetOrderId() string {
@@ -1807,7 +1807,7 @@ type GetOrderReq struct {
 
 func (x *GetOrderReq) Reset() {
 	*x = GetOrderReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[26]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1819,7 +1819,7 @@ func (x *GetOrderReq) String() string {
 func (*GetOrderReq) ProtoMessage() {}
 
 func (x *GetOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[26]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1832,7 +1832,7 @@ func (x *GetOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderReq.ProtoReflect.Descriptor instead.
 func (*GetOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{26}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetOrderReq) GetOrderId() string {
@@ -1858,7 +1858,7 @@ type GetOrderResp struct {
 
 func (x *GetOrderResp) Reset() {
 	*x = GetOrderResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[27]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1870,7 +1870,7 @@ func (x *GetOrderResp) String() string {
 func (*GetOrderResp) ProtoMessage() {}
 
 func (x *GetOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[27]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1883,7 +1883,7 @@ func (x *GetOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderResp.ProtoReflect.Descriptor instead.
 func (*GetOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{27}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetOrderResp) GetOrder() *Order {
@@ -1905,7 +1905,7 @@ type ListOrdersReq struct {
 
 func (x *ListOrdersReq) Reset() {
 	*x = ListOrdersReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[28]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1917,7 +1917,7 @@ func (x *ListOrdersReq) String() string {
 func (*ListOrdersReq) ProtoMessage() {}
 
 func (x *ListOrdersReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[28]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1930,7 +1930,7 @@ func (x *ListOrdersReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrdersReq.ProtoReflect.Descriptor instead.
 func (*ListOrdersReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{28}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListOrdersReq) GetUserId() string {
@@ -1973,7 +1973,7 @@ type ListOrdersResp struct {
 
 func (x *ListOrdersResp) Reset() {
 	*x = ListOrdersResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[29]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1985,7 +1985,7 @@ func (x *ListOrdersResp) String() string {
 func (*ListOrdersResp) ProtoMessage() {}
 
 func (x *ListOrdersResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[29]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1998,7 +1998,7 @@ func (x *ListOrdersResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrdersResp.ProtoReflect.Descriptor instead.
 func (*ListOrdersResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{29}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListOrdersResp) GetList() []*Order {
@@ -2039,7 +2039,7 @@ type CancelOrderReq struct {
 
 func (x *CancelOrderReq) Reset() {
 	*x = CancelOrderReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[30]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2051,7 +2051,7 @@ func (x *CancelOrderReq) String() string {
 func (*CancelOrderReq) ProtoMessage() {}
 
 func (x *CancelOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[30]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2064,7 +2064,7 @@ func (x *CancelOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderReq.ProtoReflect.Descriptor instead.
 func (*CancelOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{30}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CancelOrderReq) GetOrderId() string {
@@ -2090,7 +2090,7 @@ type CancelOrderResp struct {
 
 func (x *CancelOrderResp) Reset() {
 	*x = CancelOrderResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[31]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2102,7 +2102,7 @@ func (x *CancelOrderResp) String() string {
 func (*CancelOrderResp) ProtoMessage() {}
 
 func (x *CancelOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[31]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2115,7 +2115,7 @@ func (x *CancelOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelOrderResp.ProtoReflect.Descriptor instead.
 func (*CancelOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{31}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CancelOrderResp) GetSuccess() bool {
@@ -2136,7 +2136,7 @@ type UpdateOrderStatusReq struct {
 
 func (x *UpdateOrderStatusReq) Reset() {
 	*x = UpdateOrderStatusReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[32]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2148,7 +2148,7 @@ func (x *UpdateOrderStatusReq) String() string {
 func (*UpdateOrderStatusReq) ProtoMessage() {}
 
 func (x *UpdateOrderStatusReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[32]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2161,7 +2161,7 @@ func (x *UpdateOrderStatusReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateOrderStatusReq.ProtoReflect.Descriptor instead.
 func (*UpdateOrderStatusReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{32}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UpdateOrderStatusReq) GetOrderId() string {
@@ -2194,7 +2194,7 @@ type UpdateOrderStatusResp struct {
 
 func (x *UpdateOrderStatusResp) Reset() {
 	*x = UpdateOrderStatusResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[33]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2206,7 +2206,7 @@ func (x *UpdateOrderStatusResp) String() string {
 func (*UpdateOrderStatusResp) ProtoMessage() {}
 
 func (x *UpdateOrderStatusResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[33]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2219,7 +2219,7 @@ func (x *UpdateOrderStatusResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateOrderStatusResp.ProtoReflect.Descriptor instead.
 func (*UpdateOrderStatusResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{33}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdateOrderStatusResp) GetSuccess() bool {
@@ -2240,7 +2240,7 @@ type PayOrderReq struct {
 
 func (x *PayOrderReq) Reset() {
 	*x = PayOrderReq{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[34]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2252,7 +2252,7 @@ func (x *PayOrderReq) String() string {
 func (*PayOrderReq) ProtoMessage() {}
 
 func (x *PayOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[34]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2265,7 +2265,7 @@ func (x *PayOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayOrderReq.ProtoReflect.Descriptor instead.
 func (*PayOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{34}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *PayOrderReq) GetOrderId() string {
@@ -2301,7 +2301,7 @@ type PayOrderResp struct {
 
 func (x *PayOrderResp) Reset() {
 	*x = PayOrderResp{}
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[35]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2313,7 +2313,7 @@ func (x *PayOrderResp) String() string {
 func (*PayOrderResp) ProtoMessage() {}
 
 func (x *PayOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_desc_mall_proto_msgTypes[35]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2326,7 +2326,7 @@ func (x *PayOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PayOrderResp.ProtoReflect.Descriptor instead.
 func (*PayOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_desc_mall_proto_rawDescGZIP(), []int{35}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *PayOrderResp) GetOrderId() string {
@@ -2357,11 +2357,11 @@ func (x *PayOrderResp) GetMessage() string {
 	return ""
 }
 
-var File_services_rpc_mall_desc_mall_proto protoreflect.FileDescriptor
+var File_services_rpc_mall_proto_mall_proto protoreflect.FileDescriptor
 
-const file_services_rpc_mall_desc_mall_proto_rawDesc = "" +
+const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\n" +
-	"!services/rpc/mall/desc/mall.proto\x12\x04mall\"\x8d\x02\n" +
+	"\"services/rpc/mall/proto/mall.proto\x12\x04mall\"\x8d\x02\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -2565,19 +2565,19 @@ const file_services_rpc_mall_desc_mall_proto_rawDesc = "" +
 	"\bPayOrder\x12\x11.mall.PayOrderReq\x1a\x12.mall.PayOrderResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
-	file_services_rpc_mall_desc_mall_proto_rawDescOnce sync.Once
-	file_services_rpc_mall_desc_mall_proto_rawDescData []byte
+	file_services_rpc_mall_proto_mall_proto_rawDescOnce sync.Once
+	file_services_rpc_mall_proto_mall_proto_rawDescData []byte
 )
 
-func file_services_rpc_mall_desc_mall_proto_rawDescGZIP() []byte {
-	file_services_rpc_mall_desc_mall_proto_rawDescOnce.Do(func() {
-		file_services_rpc_mall_desc_mall_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_services_rpc_mall_desc_mall_proto_rawDesc), len(file_services_rpc_mall_desc_mall_proto_rawDesc)))
+func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
+	file_services_rpc_mall_proto_mall_proto_rawDescOnce.Do(func() {
+		file_services_rpc_mall_proto_mall_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)))
 	})
-	return file_services_rpc_mall_desc_mall_proto_rawDescData
+	return file_services_rpc_mall_proto_mall_proto_rawDescData
 }
 
-var file_services_rpc_mall_desc_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
-var file_services_rpc_mall_desc_mall_proto_goTypes = []any{
+var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(*Product)(nil),               // 0: mall.Product
 	(*CreateProductReq)(nil),      // 1: mall.CreateProductReq
 	(*CreateProductResp)(nil),     // 2: mall.CreateProductResp
@@ -2615,7 +2615,7 @@ var file_services_rpc_mall_desc_mall_proto_goTypes = []any{
 	(*PayOrderReq)(nil),           // 34: mall.PayOrderReq
 	(*PayOrderResp)(nil),          // 35: mall.PayOrderResp
 }
-var file_services_rpc_mall_desc_mall_proto_depIdxs = []int32{
+var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	0,  // 0: mall.GetProductResp.product:type_name -> mall.Product
 	0,  // 1: mall.ListProductsResp.list:type_name -> mall.Product
 	11, // 2: mall.GetSkuResp.sku:type_name -> mall.Sku
@@ -2662,26 +2662,26 @@ var file_services_rpc_mall_desc_mall_proto_depIdxs = []int32{
 	0,  // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_services_rpc_mall_desc_mall_proto_init() }
-func file_services_rpc_mall_desc_mall_proto_init() {
-	if File_services_rpc_mall_desc_mall_proto != nil {
+func init() { file_services_rpc_mall_proto_mall_proto_init() }
+func file_services_rpc_mall_proto_mall_proto_init() {
+	if File_services_rpc_mall_proto_mall_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_desc_mall_proto_rawDesc), len(file_services_rpc_mall_desc_mall_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_services_rpc_mall_desc_mall_proto_goTypes,
-		DependencyIndexes: file_services_rpc_mall_desc_mall_proto_depIdxs,
-		MessageInfos:      file_services_rpc_mall_desc_mall_proto_msgTypes,
+		GoTypes:           file_services_rpc_mall_proto_mall_proto_goTypes,
+		DependencyIndexes: file_services_rpc_mall_proto_mall_proto_depIdxs,
+		MessageInfos:      file_services_rpc_mall_proto_mall_proto_msgTypes,
 	}.Build()
-	File_services_rpc_mall_desc_mall_proto = out.File
-	file_services_rpc_mall_desc_mall_proto_goTypes = nil
-	file_services_rpc_mall_desc_mall_proto_depIdxs = nil
+	File_services_rpc_mall_proto_mall_proto = out.File
+	file_services_rpc_mall_proto_mall_proto_goTypes = nil
+	file_services_rpc_mall_proto_mall_proto_depIdxs = nil
 }

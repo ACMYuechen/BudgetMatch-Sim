@@ -35,10 +35,6 @@ func (l *GetUserInfoLogic) GetUserInfo(in *pb.GetUserInfoReq) (*pb.GetUserInfoRe
 	}
 
 	return &pb.GetUserInfoResp{
-		UserId:   u.Id,
-		Username: u.Username,
-		Email:    u.Email,
-		Avatar:   u.Avatar,
-		Phone:    u.Phone,
+		User: userToInfo(u),
 	}, nil
 }

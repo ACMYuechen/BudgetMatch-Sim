@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package auth;
+option go_package = "./pb";
+
+////////////////////////////////////// 基础信息定义 //////////////////////////////////////
+// 用户基础信息
+message UserInfo {
+  string id       = 1;
+  string username = 2;
+  string avatar   = 3;
+  string phone    = 4;
+  string email    = 5;
+  int32  role     = 6;
+  int32  status   = 7;
+  string remark   = 8;
+}
+
+//////////////////////////////////////// 登录注册相关 //////////////////////////////////////
+// 用户名登录
+message UsernameLoginReq {
+  string username = 1;
+  string password = 2;
+}
+// 邮箱登录
+message EmailLoginReq {
+  string email    = 1;
+  string password = 2;
+}
+// 验证码登录
+message LoginByCodeReq {
+  string email = 1;
+  string code  = 2;
+}
+message LoginResp {
+  string token  = 1;
+  string user_id = 2;
+  int32  role   = 3;
+}
+
+// 邮箱注册
+message EmailRegisterReq {
+  string email    = 1;
+  string password = 2;
+  string username = 3;
+  string code     = 4;
+}
+message RegisterResp {
+  bool success = 1;
+}
+
+// 验证 token
+message ValidateTokenReq {
+  string token = 1;
+}
+message ValidateTokenResp {
+  UserInfo user = 1;
+}
+
+// 发送验证码
+message SendCodeReq {
+  string email = 1;
+}
+message SendCodeResp {
+  bool success = 1;
+}
+
+//////////////////////////////////////// 用户信息相关 //////////////////////////////////////
+// 获取用户信息
+message GetUserInfoReq {
+  string user_id = 1;
+}
+message GetUserInfoResp {
+  UserInfo user = 1;
+}
+
+// 按 ID 获取用户（管理后台，按 user_id 查任意用户）
+message GetUserByIdReq {
+  string user_id = 1;
+}
+message GetUserByIdResp {
+  UserInfo user = 1;
+}
+
+// 用户列表请求
+message ListUsersReq {
+  int32  page      = 1;
+  int32  page_size = 2;
+  int32  status    = 3;
+  int32  role      = 4;
+}
+message ListUsersResp {
+  int32 total     = 1;
+  repeated UserInfo list = 2;
+}
+
+// 更新用户信息
+message UpdateUserInfoReq {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string avatar = 4;
+  string phone = 5;
+  int32  role = 6;
+  int32  status = 7;
+  string remark = 8;
+}
+message UpdateUserInfoResp {
+  UserInfo user = 1;
+}
+
+// 软删除用户
+message DeleteUserReq {
+  string user_id = 1;
+}
+message DeleteUserResp {
+  bool success = 1;
+}
+
+service AuthService {
+  rpc EmailRegister(EmailRegisterReq) returns (RegisterResp) {}
+  rpc UsernameLogin(UsernameLoginReq) returns (LoginResp) {}
+  rpc EmailLogin(EmailLoginReq) returns (LoginResp) {}
+  rpc LoginByCode(LoginByCodeReq) returns (LoginResp) {}
+  rpc SendCode(SendCodeReq) returns (SendCodeResp) {}
+  rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenResp) {}
+}
+
+service UserService {
+  rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoResp) {}
+  rpc GetUserById(GetUserByIdReq) returns (GetUserByIdResp) {}
+  rpc ListUsers(ListUsersReq) returns (ListUsersResp) {}
+  rpc UpdateUserInfo(UpdateUserInfoReq) returns (UpdateUserInfoResp) {}
+  rpc DeleteUser(DeleteUserReq) returns (DeleteUserResp) {}
+}

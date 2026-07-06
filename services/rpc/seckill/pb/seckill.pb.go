@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.1
-// source: services/rpc/seckill/desc/seckill.proto
+// source: services/rpc/seckill/proto/seckill.proto
 
 package pb
 
@@ -38,7 +38,7 @@ type Activity struct {
 
 func (x *Activity) Reset() {
 	*x = Activity{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[0]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *Activity) String() string {
 func (*Activity) ProtoMessage() {}
 
 func (x *Activity) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[0]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *Activity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Activity.ProtoReflect.Descriptor instead.
 func (*Activity) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{0}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Activity) GetId() string {
@@ -142,7 +142,7 @@ type CreateActivityReq struct {
 
 func (x *CreateActivityReq) Reset() {
 	*x = CreateActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[1]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +154,7 @@ func (x *CreateActivityReq) String() string {
 func (*CreateActivityReq) ProtoMessage() {}
 
 func (x *CreateActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[1]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +167,7 @@ func (x *CreateActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateActivityReq.ProtoReflect.Descriptor instead.
 func (*CreateActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{1}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateActivityReq) GetTitle() string {
@@ -214,7 +214,7 @@ type CreateActivityResp struct {
 
 func (x *CreateActivityResp) Reset() {
 	*x = CreateActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[2]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -226,7 +226,7 @@ func (x *CreateActivityResp) String() string {
 func (*CreateActivityResp) ProtoMessage() {}
 
 func (x *CreateActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[2]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -239,7 +239,7 @@ func (x *CreateActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateActivityResp.ProtoReflect.Descriptor instead.
 func (*CreateActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{2}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateActivityResp) GetId() string {
@@ -263,7 +263,7 @@ type UpdateActivityReq struct {
 
 func (x *UpdateActivityReq) Reset() {
 	*x = UpdateActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[3]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -275,7 +275,7 @@ func (x *UpdateActivityReq) String() string {
 func (*UpdateActivityReq) ProtoMessage() {}
 
 func (x *UpdateActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[3]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -288,7 +288,7 @@ func (x *UpdateActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateActivityReq.ProtoReflect.Descriptor instead.
 func (*UpdateActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{3}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateActivityReq) GetId() string {
@@ -342,7 +342,7 @@ type UpdateActivityResp struct {
 
 func (x *UpdateActivityResp) Reset() {
 	*x = UpdateActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[4]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +354,7 @@ func (x *UpdateActivityResp) String() string {
 func (*UpdateActivityResp) ProtoMessage() {}
 
 func (x *UpdateActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[4]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +367,7 @@ func (x *UpdateActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateActivityResp.ProtoReflect.Descriptor instead.
 func (*UpdateActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{4}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateActivityResp) GetSuccess() bool {
@@ -386,7 +386,7 @@ type GetActivityReq struct {
 
 func (x *GetActivityReq) Reset() {
 	*x = GetActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[5]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +398,7 @@ func (x *GetActivityReq) String() string {
 func (*GetActivityReq) ProtoMessage() {}
 
 func (x *GetActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[5]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +411,7 @@ func (x *GetActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActivityReq.ProtoReflect.Descriptor instead.
 func (*GetActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{5}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetActivityReq) GetId() string {
@@ -430,7 +430,7 @@ type GetActivityResp struct {
 
 func (x *GetActivityResp) Reset() {
 	*x = GetActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[6]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +442,7 @@ func (x *GetActivityResp) String() string {
 func (*GetActivityResp) ProtoMessage() {}
 
 func (x *GetActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[6]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +455,7 @@ func (x *GetActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActivityResp.ProtoReflect.Descriptor instead.
 func (*GetActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{6}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetActivityResp) GetActivity() *Activity {
@@ -476,7 +476,7 @@ type ListActivitiesReq struct {
 
 func (x *ListActivitiesReq) Reset() {
 	*x = ListActivitiesReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[7]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +488,7 @@ func (x *ListActivitiesReq) String() string {
 func (*ListActivitiesReq) ProtoMessage() {}
 
 func (x *ListActivitiesReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[7]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +501,7 @@ func (x *ListActivitiesReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivitiesReq.ProtoReflect.Descriptor instead.
 func (*ListActivitiesReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{7}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListActivitiesReq) GetPage() int32 {
@@ -537,7 +537,7 @@ type ListActivitiesResp struct {
 
 func (x *ListActivitiesResp) Reset() {
 	*x = ListActivitiesResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[8]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +549,7 @@ func (x *ListActivitiesResp) String() string {
 func (*ListActivitiesResp) ProtoMessage() {}
 
 func (x *ListActivitiesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[8]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +562,7 @@ func (x *ListActivitiesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivitiesResp.ProtoReflect.Descriptor instead.
 func (*ListActivitiesResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{8}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListActivitiesResp) GetList() []*Activity {
@@ -602,7 +602,7 @@ type DeleteActivityReq struct {
 
 func (x *DeleteActivityReq) Reset() {
 	*x = DeleteActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[9]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -614,7 +614,7 @@ func (x *DeleteActivityReq) String() string {
 func (*DeleteActivityReq) ProtoMessage() {}
 
 func (x *DeleteActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[9]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -627,7 +627,7 @@ func (x *DeleteActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteActivityReq.ProtoReflect.Descriptor instead.
 func (*DeleteActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{9}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteActivityReq) GetId() string {
@@ -646,7 +646,7 @@ type DeleteActivityResp struct {
 
 func (x *DeleteActivityResp) Reset() {
 	*x = DeleteActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[10]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -658,7 +658,7 @@ func (x *DeleteActivityResp) String() string {
 func (*DeleteActivityResp) ProtoMessage() {}
 
 func (x *DeleteActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[10]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -671,7 +671,7 @@ func (x *DeleteActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteActivityResp.ProtoReflect.Descriptor instead.
 func (*DeleteActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{10}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteActivityResp) GetSuccess() bool {
@@ -690,7 +690,7 @@ type PreheatActivityReq struct {
 
 func (x *PreheatActivityReq) Reset() {
 	*x = PreheatActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[11]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +702,7 @@ func (x *PreheatActivityReq) String() string {
 func (*PreheatActivityReq) ProtoMessage() {}
 
 func (x *PreheatActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[11]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +715,7 @@ func (x *PreheatActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreheatActivityReq.ProtoReflect.Descriptor instead.
 func (*PreheatActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{11}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *PreheatActivityReq) GetId() string {
@@ -734,7 +734,7 @@ type PreheatActivityResp struct {
 
 func (x *PreheatActivityResp) Reset() {
 	*x = PreheatActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[12]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +746,7 @@ func (x *PreheatActivityResp) String() string {
 func (*PreheatActivityResp) ProtoMessage() {}
 
 func (x *PreheatActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[12]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +759,7 @@ func (x *PreheatActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreheatActivityResp.ProtoReflect.Descriptor instead.
 func (*PreheatActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{12}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PreheatActivityResp) GetSuccess() bool {
@@ -778,7 +778,7 @@ type OnlineActivityReq struct {
 
 func (x *OnlineActivityReq) Reset() {
 	*x = OnlineActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[13]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -790,7 +790,7 @@ func (x *OnlineActivityReq) String() string {
 func (*OnlineActivityReq) ProtoMessage() {}
 
 func (x *OnlineActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[13]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -803,7 +803,7 @@ func (x *OnlineActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnlineActivityReq.ProtoReflect.Descriptor instead.
 func (*OnlineActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{13}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *OnlineActivityReq) GetId() string {
@@ -822,7 +822,7 @@ type OnlineActivityResp struct {
 
 func (x *OnlineActivityResp) Reset() {
 	*x = OnlineActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[14]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -834,7 +834,7 @@ func (x *OnlineActivityResp) String() string {
 func (*OnlineActivityResp) ProtoMessage() {}
 
 func (x *OnlineActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[14]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -847,7 +847,7 @@ func (x *OnlineActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnlineActivityResp.ProtoReflect.Descriptor instead.
 func (*OnlineActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{14}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *OnlineActivityResp) GetSuccess() bool {
@@ -866,7 +866,7 @@ type OfflineActivityReq struct {
 
 func (x *OfflineActivityReq) Reset() {
 	*x = OfflineActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[15]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +878,7 @@ func (x *OfflineActivityReq) String() string {
 func (*OfflineActivityReq) ProtoMessage() {}
 
 func (x *OfflineActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[15]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +891,7 @@ func (x *OfflineActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineActivityReq.ProtoReflect.Descriptor instead.
 func (*OfflineActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{15}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *OfflineActivityReq) GetId() string {
@@ -910,7 +910,7 @@ type OfflineActivityResp struct {
 
 func (x *OfflineActivityResp) Reset() {
 	*x = OfflineActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[16]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -922,7 +922,7 @@ func (x *OfflineActivityResp) String() string {
 func (*OfflineActivityResp) ProtoMessage() {}
 
 func (x *OfflineActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[16]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -935,7 +935,7 @@ func (x *OfflineActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OfflineActivityResp.ProtoReflect.Descriptor instead.
 func (*OfflineActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{16}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *OfflineActivityResp) GetSuccess() bool {
@@ -968,7 +968,7 @@ type Sku struct {
 
 func (x *Sku) Reset() {
 	*x = Sku{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[17]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +980,7 @@ func (x *Sku) String() string {
 func (*Sku) ProtoMessage() {}
 
 func (x *Sku) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[17]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +993,7 @@ func (x *Sku) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sku.ProtoReflect.Descriptor instead.
 func (*Sku) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{17}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Sku) GetId() string {
@@ -1118,7 +1118,7 @@ type CreateSkuReq struct {
 
 func (x *CreateSkuReq) Reset() {
 	*x = CreateSkuReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[18]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1130,7 +1130,7 @@ func (x *CreateSkuReq) String() string {
 func (*CreateSkuReq) ProtoMessage() {}
 
 func (x *CreateSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[18]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1143,7 +1143,7 @@ func (x *CreateSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkuReq.ProtoReflect.Descriptor instead.
 func (*CreateSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{18}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateSkuReq) GetActivityId() string {
@@ -1218,7 +1218,7 @@ type CreateSkuResp struct {
 
 func (x *CreateSkuResp) Reset() {
 	*x = CreateSkuResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[19]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1230,7 +1230,7 @@ func (x *CreateSkuResp) String() string {
 func (*CreateSkuResp) ProtoMessage() {}
 
 func (x *CreateSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[19]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1243,7 @@ func (x *CreateSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkuResp.ProtoReflect.Descriptor instead.
 func (*CreateSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{19}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreateSkuResp) GetId() string {
@@ -1270,7 +1270,7 @@ type UpdateSkuReq struct {
 
 func (x *UpdateSkuReq) Reset() {
 	*x = UpdateSkuReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[20]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1282,7 +1282,7 @@ func (x *UpdateSkuReq) String() string {
 func (*UpdateSkuReq) ProtoMessage() {}
 
 func (x *UpdateSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[20]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1295,7 +1295,7 @@ func (x *UpdateSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSkuReq.ProtoReflect.Descriptor instead.
 func (*UpdateSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{20}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *UpdateSkuReq) GetId() string {
@@ -1370,7 +1370,7 @@ type UpdateSkuResp struct {
 
 func (x *UpdateSkuResp) Reset() {
 	*x = UpdateSkuResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[21]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1382,7 +1382,7 @@ func (x *UpdateSkuResp) String() string {
 func (*UpdateSkuResp) ProtoMessage() {}
 
 func (x *UpdateSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[21]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1395,7 +1395,7 @@ func (x *UpdateSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSkuResp.ProtoReflect.Descriptor instead.
 func (*UpdateSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{21}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *UpdateSkuResp) GetSuccess() bool {
@@ -1414,7 +1414,7 @@ type GetSkuReq struct {
 
 func (x *GetSkuReq) Reset() {
 	*x = GetSkuReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[22]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1426,7 +1426,7 @@ func (x *GetSkuReq) String() string {
 func (*GetSkuReq) ProtoMessage() {}
 
 func (x *GetSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[22]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1439,7 +1439,7 @@ func (x *GetSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkuReq.ProtoReflect.Descriptor instead.
 func (*GetSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{22}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetSkuReq) GetId() string {
@@ -1458,7 +1458,7 @@ type GetSkuResp struct {
 
 func (x *GetSkuResp) Reset() {
 	*x = GetSkuResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[23]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1470,7 +1470,7 @@ func (x *GetSkuResp) String() string {
 func (*GetSkuResp) ProtoMessage() {}
 
 func (x *GetSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[23]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1483,7 +1483,7 @@ func (x *GetSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSkuResp.ProtoReflect.Descriptor instead.
 func (*GetSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{23}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetSkuResp) GetSku() *Sku {
@@ -1504,7 +1504,7 @@ type ListSkusByActivityReq struct {
 
 func (x *ListSkusByActivityReq) Reset() {
 	*x = ListSkusByActivityReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[24]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1516,7 +1516,7 @@ func (x *ListSkusByActivityReq) String() string {
 func (*ListSkusByActivityReq) ProtoMessage() {}
 
 func (x *ListSkusByActivityReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[24]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1529,7 +1529,7 @@ func (x *ListSkusByActivityReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSkusByActivityReq.ProtoReflect.Descriptor instead.
 func (*ListSkusByActivityReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{24}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListSkusByActivityReq) GetActivityId() string {
@@ -1565,7 +1565,7 @@ type ListSkusByActivityResp struct {
 
 func (x *ListSkusByActivityResp) Reset() {
 	*x = ListSkusByActivityResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[25]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1577,7 +1577,7 @@ func (x *ListSkusByActivityResp) String() string {
 func (*ListSkusByActivityResp) ProtoMessage() {}
 
 func (x *ListSkusByActivityResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[25]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1590,7 +1590,7 @@ func (x *ListSkusByActivityResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSkusByActivityResp.ProtoReflect.Descriptor instead.
 func (*ListSkusByActivityResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{25}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListSkusByActivityResp) GetList() []*Sku {
@@ -1630,7 +1630,7 @@ type DeleteSkuReq struct {
 
 func (x *DeleteSkuReq) Reset() {
 	*x = DeleteSkuReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[26]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1642,7 +1642,7 @@ func (x *DeleteSkuReq) String() string {
 func (*DeleteSkuReq) ProtoMessage() {}
 
 func (x *DeleteSkuReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[26]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1655,7 +1655,7 @@ func (x *DeleteSkuReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSkuReq.ProtoReflect.Descriptor instead.
 func (*DeleteSkuReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{26}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DeleteSkuReq) GetId() string {
@@ -1674,7 +1674,7 @@ type DeleteSkuResp struct {
 
 func (x *DeleteSkuResp) Reset() {
 	*x = DeleteSkuResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[27]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1686,7 +1686,7 @@ func (x *DeleteSkuResp) String() string {
 func (*DeleteSkuResp) ProtoMessage() {}
 
 func (x *DeleteSkuResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[27]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1699,7 +1699,7 @@ func (x *DeleteSkuResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSkuResp.ProtoReflect.Descriptor instead.
 func (*DeleteSkuResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{27}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DeleteSkuResp) GetSuccess() bool {
@@ -1720,7 +1720,7 @@ type AcquireTokenReq struct {
 
 func (x *AcquireTokenReq) Reset() {
 	*x = AcquireTokenReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[28]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1732,7 +1732,7 @@ func (x *AcquireTokenReq) String() string {
 func (*AcquireTokenReq) ProtoMessage() {}
 
 func (x *AcquireTokenReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[28]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1745,7 +1745,7 @@ func (x *AcquireTokenReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireTokenReq.ProtoReflect.Descriptor instead.
 func (*AcquireTokenReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{28}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AcquireTokenReq) GetActivityId() string {
@@ -1778,7 +1778,7 @@ type AcquireTokenResp struct {
 
 func (x *AcquireTokenResp) Reset() {
 	*x = AcquireTokenResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[29]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +1790,7 @@ func (x *AcquireTokenResp) String() string {
 func (*AcquireTokenResp) ProtoMessage() {}
 
 func (x *AcquireTokenResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[29]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +1803,7 @@ func (x *AcquireTokenResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcquireTokenResp.ProtoReflect.Descriptor instead.
 func (*AcquireTokenResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{29}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AcquireTokenResp) GetToken() string {
@@ -1826,7 +1826,7 @@ type SubmitOrderReq struct {
 
 func (x *SubmitOrderReq) Reset() {
 	*x = SubmitOrderReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[30]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1838,7 +1838,7 @@ func (x *SubmitOrderReq) String() string {
 func (*SubmitOrderReq) ProtoMessage() {}
 
 func (x *SubmitOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[30]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1851,7 +1851,7 @@ func (x *SubmitOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitOrderReq.ProtoReflect.Descriptor instead.
 func (*SubmitOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{30}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SubmitOrderReq) GetActivityId() string {
@@ -1899,7 +1899,7 @@ type SubmitOrderResp struct {
 
 func (x *SubmitOrderResp) Reset() {
 	*x = SubmitOrderResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[31]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1911,7 +1911,7 @@ func (x *SubmitOrderResp) String() string {
 func (*SubmitOrderResp) ProtoMessage() {}
 
 func (x *SubmitOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[31]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1924,7 +1924,7 @@ func (x *SubmitOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitOrderResp.ProtoReflect.Descriptor instead.
 func (*SubmitOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{31}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SubmitOrderResp) GetOrderId() string {
@@ -1950,7 +1950,7 @@ type GetOrderReq struct {
 
 func (x *GetOrderReq) Reset() {
 	*x = GetOrderReq{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[32]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1962,7 +1962,7 @@ func (x *GetOrderReq) String() string {
 func (*GetOrderReq) ProtoMessage() {}
 
 func (x *GetOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[32]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1975,7 +1975,7 @@ func (x *GetOrderReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderReq.ProtoReflect.Descriptor instead.
 func (*GetOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{32}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetOrderReq) GetOrderId() string {
@@ -2001,7 +2001,7 @@ type GetOrderResp struct {
 
 func (x *GetOrderResp) Reset() {
 	*x = GetOrderResp{}
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[33]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2013,7 +2013,7 @@ func (x *GetOrderResp) String() string {
 func (*GetOrderResp) ProtoMessage() {}
 
 func (x *GetOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_seckill_desc_seckill_proto_msgTypes[33]
+	mi := &file_services_rpc_seckill_proto_seckill_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2026,7 +2026,7 @@ func (x *GetOrderResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrderResp.ProtoReflect.Descriptor instead.
 func (*GetOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP(), []int{33}
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetOrderResp) GetOrderId() string {
@@ -2085,11 +2085,11 @@ func (x *GetOrderResp) GetCreatedAt() string {
 	return ""
 }
 
-var File_services_rpc_seckill_desc_seckill_proto protoreflect.FileDescriptor
+var File_services_rpc_seckill_proto_seckill_proto protoreflect.FileDescriptor
 
-const file_services_rpc_seckill_desc_seckill_proto_rawDesc = "" +
+const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\n" +
-	"'services/rpc/seckill/desc/seckill.proto\x12\aseckill\"\x81\x02\n" +
+	"(services/rpc/seckill/proto/seckill.proto\x12\aseckill\"\x81\x02\n" +
 	"\bActivity\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -2271,19 +2271,19 @@ const file_services_rpc_seckill_desc_seckill_proto_rawDesc = "" +
 	"\bGetOrder\x12\x14.seckill.GetOrderReq\x1a\x15.seckill.GetOrderResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
-	file_services_rpc_seckill_desc_seckill_proto_rawDescOnce sync.Once
-	file_services_rpc_seckill_desc_seckill_proto_rawDescData []byte
+	file_services_rpc_seckill_proto_seckill_proto_rawDescOnce sync.Once
+	file_services_rpc_seckill_proto_seckill_proto_rawDescData []byte
 )
 
-func file_services_rpc_seckill_desc_seckill_proto_rawDescGZIP() []byte {
-	file_services_rpc_seckill_desc_seckill_proto_rawDescOnce.Do(func() {
-		file_services_rpc_seckill_desc_seckill_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_services_rpc_seckill_desc_seckill_proto_rawDesc), len(file_services_rpc_seckill_desc_seckill_proto_rawDesc)))
+func file_services_rpc_seckill_proto_seckill_proto_rawDescGZIP() []byte {
+	file_services_rpc_seckill_proto_seckill_proto_rawDescOnce.Do(func() {
+		file_services_rpc_seckill_proto_seckill_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_services_rpc_seckill_proto_seckill_proto_rawDesc), len(file_services_rpc_seckill_proto_seckill_proto_rawDesc)))
 	})
-	return file_services_rpc_seckill_desc_seckill_proto_rawDescData
+	return file_services_rpc_seckill_proto_seckill_proto_rawDescData
 }
 
-var file_services_rpc_seckill_desc_seckill_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
-var file_services_rpc_seckill_desc_seckill_proto_goTypes = []any{
+var file_services_rpc_seckill_proto_seckill_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_services_rpc_seckill_proto_seckill_proto_goTypes = []any{
 	(*Activity)(nil),               // 0: seckill.Activity
 	(*CreateActivityReq)(nil),      // 1: seckill.CreateActivityReq
 	(*CreateActivityResp)(nil),     // 2: seckill.CreateActivityResp
@@ -2319,7 +2319,7 @@ var file_services_rpc_seckill_desc_seckill_proto_goTypes = []any{
 	(*GetOrderReq)(nil),            // 32: seckill.GetOrderReq
 	(*GetOrderResp)(nil),           // 33: seckill.GetOrderResp
 }
-var file_services_rpc_seckill_desc_seckill_proto_depIdxs = []int32{
+var file_services_rpc_seckill_proto_seckill_proto_depIdxs = []int32{
 	0,  // 0: seckill.GetActivityResp.activity:type_name -> seckill.Activity
 	0,  // 1: seckill.ListActivitiesResp.list:type_name -> seckill.Activity
 	17, // 2: seckill.GetSkuResp.sku:type_name -> seckill.Sku
@@ -2363,26 +2363,26 @@ var file_services_rpc_seckill_desc_seckill_proto_depIdxs = []int32{
 	0,  // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_services_rpc_seckill_desc_seckill_proto_init() }
-func file_services_rpc_seckill_desc_seckill_proto_init() {
-	if File_services_rpc_seckill_desc_seckill_proto != nil {
+func init() { file_services_rpc_seckill_proto_seckill_proto_init() }
+func file_services_rpc_seckill_proto_seckill_proto_init() {
+	if File_services_rpc_seckill_proto_seckill_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_seckill_desc_seckill_proto_rawDesc), len(file_services_rpc_seckill_desc_seckill_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_seckill_proto_seckill_proto_rawDesc), len(file_services_rpc_seckill_proto_seckill_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
-		GoTypes:           file_services_rpc_seckill_desc_seckill_proto_goTypes,
-		DependencyIndexes: file_services_rpc_seckill_desc_seckill_proto_depIdxs,
-		MessageInfos:      file_services_rpc_seckill_desc_seckill_proto_msgTypes,
+		GoTypes:           file_services_rpc_seckill_proto_seckill_proto_goTypes,
+		DependencyIndexes: file_services_rpc_seckill_proto_seckill_proto_depIdxs,
+		MessageInfos:      file_services_rpc_seckill_proto_seckill_proto_msgTypes,
 	}.Build()
-	File_services_rpc_seckill_desc_seckill_proto = out.File
-	file_services_rpc_seckill_desc_seckill_proto_goTypes = nil
-	file_services_rpc_seckill_desc_seckill_proto_depIdxs = nil
+	File_services_rpc_seckill_proto_seckill_proto = out.File
+	file_services_rpc_seckill_proto_seckill_proto_goTypes = nil
+	file_services_rpc_seckill_proto_seckill_proto_depIdxs = nil
 }

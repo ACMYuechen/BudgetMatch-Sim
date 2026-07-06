@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.1
-// source: services/rpc/seckill/desc/seckill.proto
+// source: services/rpc/seckill/proto/seckill.proto
 
 package pb
 
@@ -383,7 +383,7 @@ var ActivityService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/seckill/desc/seckill.proto",
+	Metadata: "services/rpc/seckill/proto/seckill.proto",
 }
 
 const (
@@ -637,7 +637,7 @@ var SkuService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/seckill/desc/seckill.proto",
+	Metadata: "services/rpc/seckill/proto/seckill.proto",
 }
 
 const (
@@ -815,5 +815,5 @@ var SeckillService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/seckill/desc/seckill.proto",
+	Metadata: "services/rpc/seckill/proto/seckill.proto",
 }

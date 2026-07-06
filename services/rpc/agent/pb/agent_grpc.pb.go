@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.1
-// source: services/rpc/agent/desc/agent.proto
+// source: services/rpc/agent/proto/agent.proto
 
 package pb
 
@@ -117,5 +117,5 @@ var RecommendService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/agent/desc/agent.proto",
+	Metadata: "services/rpc/agent/proto/agent.proto",
 }

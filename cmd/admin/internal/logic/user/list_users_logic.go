@@ -1,4 +1,4 @@
-// Code scaffolded by goctl. Safe to edit.
+// Code scaffolded by goctl. No recover, Safe to edit.
 
 package user
 
@@ -13,21 +13,22 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type UserListLogic struct {
+type ListUsersLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListLogic {
-	return &UserListLogic{
+// 用户列表
+func NewListUsersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListUsersLogic {
+	return &ListUsersLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserListLogic) UserList(req *types.UserListReq) (resp *types.UserListResp, err error) {
+func (l *ListUsersLogic) ListUsers(req *types.ListUsersReq) (resp *types.ListUsersResp, err error) {
 	rpcResp, err := l.svcCtx.UserClient.ListUsers(l.ctx, &pb.ListUsersReq{
 		Page:     int32(req.Page),
 		PageSize: int32(req.PageSize),
@@ -39,24 +40,10 @@ func (l *UserListLogic) UserList(req *types.UserListReq) (resp *types.UserListRe
 		return nil, errors.Database
 	}
 
-	items := make([]types.UserItem, 0, len(rpcResp.List))
+	list := make([]types.UserInfo, 0, len(rpcResp.List))
 	for _, u := range rpcResp.List {
-		items = append(items, types.UserItem{
-			UserId:    u.UserId,
-			Username:  u.Username,
-			Email:     u.Email,
-			Phone:     u.Phone,
-			Role:      int64(u.Role),
-			Status:    int64(u.Status),
-			Avatar:    u.Avatar,
-			CreatedAt: u.CreatedAt,
-		})
+		list = append(list, userToInfo(u))
 	}
 
-	return &types.UserListResp{
-		List:     items,
-		Total:    rpcResp.Total,
-		Page:     req.Page,
-		PageSize: req.PageSize,
-	}, nil
+	return &types.ListUsersResp{Total: int(rpcResp.Total), List: list}, nil
 }

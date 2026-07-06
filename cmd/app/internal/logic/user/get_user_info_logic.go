@@ -13,22 +13,22 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type UserInfoLogic struct {
+type GetUserInfoLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
 // 获取当前用户信息
-func NewUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserInfoLogic {
-	return &UserInfoLogic{
+func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserInfoLogic {
+	return &GetUserInfoLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserInfoLogic) UserInfo(req *types.UserInfoReq) (resp *types.UserInfoResp, err error) {
+func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.GetUserInfoResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
 		return nil, errors.Unauthorized
@@ -41,12 +41,21 @@ func (l *UserInfoLogic) UserInfo(req *types.UserInfoReq) (resp *types.UserInfoRe
 		l.Logger.Errorf("failed to get user info: %v", err)
 		return nil, errors.Internal
 	}
+	if rpcResp.User == nil {
+		return nil, errors.Internal
+	}
 
-	return &types.UserInfoResp{
-		UserId:   rpcResp.UserId,
-		Username: rpcResp.Username,
-		Email:    rpcResp.Email,
-		Avatar:   rpcResp.Avatar,
-		Phone:    rpcResp.Phone,
+	u := rpcResp.User
+	return &types.GetUserInfoResp{
+		User: types.UserInfo{
+			Id:       u.Id,
+			Username: u.Username,
+			Avatar:   u.Avatar,
+			Phone:    u.Phone,
+			Email:    u.Email,
+			Role:     int(u.Role),
+			Status:   int(u.Status),
+			Remark:   u.Remark,
+		},
 	}, nil
 }

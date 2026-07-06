@@ -10,22 +10,26 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type UpdateUserStatusLogic struct {
+type GetUserByIdLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
-func NewUpdateUserStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateUserStatusLogic {
-	return &UpdateUserStatusLogic{
+func NewGetUserByIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserByIdLogic {
+	return &GetUserByIdLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
 }
 
-// 管理后台接口 — 更新用户状态
-func (l *UpdateUserStatusLogic) UpdateUserStatus(in *pb.UpdateUserStatusReq) (*pb.UpdateUserStatusResp, error) {
+// 管理后台接口 — 按 user_id 查询任意用户
+func (l *GetUserByIdLogic) GetUserById(in *pb.GetUserByIdReq) (*pb.GetUserByIdResp, error) {
+	if in.UserId == "" {
+		return nil, errors.Invalid
+	}
+
 	u, err := l.svcCtx.UserStore.FindOne(l.ctx, in.UserId)
 	if err != nil {
 		l.Logger.Errorf("failed to find user: %v, error: %v", in.UserId, err)
@@ -35,11 +39,7 @@ func (l *UpdateUserStatusLogic) UpdateUserStatus(in *pb.UpdateUserStatusReq) (*p
 		return nil, errors.UserNotFound
 	}
 
-	u.Status = int64(in.Status)
-	if err := l.svcCtx.UserStore.Update(l.ctx, u); err != nil {
-		l.Logger.Errorf("failed to update user status: %v, error: %v", in.UserId, err)
-		return nil, errors.Database
-	}
-
-	return &pb.UpdateUserStatusResp{Success: true}, nil
+	return &pb.GetUserByIdResp{
+		User: userToInfo(u),
+	}, nil
 }

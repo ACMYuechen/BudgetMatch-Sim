@@ -1,62 +1,83 @@
 syntax = "v1"
 
+//////////////////////////////// 用户相关 /////////////////////////////////////////////////////
+@server (
+	prefix: /api/admin
+	group:  user
+	tags:   user
+	middleware: AuthMiddleware
+)
+service admin {
+	@doc "用户列表"
+	@handler ListUsers
+	get /users (ListUsersReq) returns (ListUsersResp)
+
+	@doc "按 ID 获取用户"
+	@handler GetUserById
+	get /users/:user_id (GetUserByIdReq) returns (GetUserByIdResp)
+
+	@doc "更新用户信息"
+	@handler UpdateUserInfo
+	put /users/:user_id (UpdateUserInfoReq) returns (UpdateUserInfoResp)
+
+	@doc "删除用户"
+	@handler DeleteUser
+	delete /users/:user_id (DeleteUserReq) returns (DeleteUserResp)
+}
+
+///////////////////////////////////// 基础类型 /////////////////////////////////////////
+type UserInfo {
+	Id       string `json:"id"`
+	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
+	Phone    string `json:"phone"`
+	Email    string `json:"email"`
+	Role     int    `json:"role"`
+	Status   int    `json:"status"`
+	Remark   string `json:"remark"`
+}
+
+/////////////////////////////////////// 用户相关 /////////////////////////////////////////
+
 // 用户列表请求
-type UserListReq {
+type ListUsersReq {
 	Page     int `form:"page,default=1"`
 	PageSize int `form:"page_size,default=10"`
 	Status   int `form:"status,default=0"`
 	Role     int `form:"role,default=0"`
 }
 
-// 用户列表项
-type UserItem {
-	UserId    string `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Role      int64  `json:"role"`
-	Status    int64  `json:"status"`
-	Avatar    string `json:"avatar"`
-	Remark    string `json:"remark"`
-	CreatedAt string `json:"created_at"`
-}
-
 // 用户列表响应
-type UserListResp {
-	List     []UserItem `json:"list"`
-	Total    int64      `json:"total"`
-	Page     int        `json:"page"`
-	PageSize int        `json:"page_size"`
+type ListUsersResp {
+	Total int        `json:"total"`
+	List  []UserInfo `json:"list"`
 }
 
-// 用户详情请求
-type GetUserDetailReq {
+// 按 ID 获取用户请求
+type GetUserByIdReq {
 	UserId string `path:"user_id"`
 }
 
-// 用户详情响应
-type GetUserDetailResp {
-	UserId    string `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Role      int64  `json:"role"`
-	Status    int64  `json:"status"`
-	Avatar    string `json:"avatar"`
-	Remark    string `json:"remark"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+// 按 ID 获取用户响应
+type GetUserByIdResp {
+	User UserInfo `json:"user"`
 }
 
-// 更新用户状态请求
-type UpdateUserStatusReq {
-	UserId string `json:"user_id"`
-	Status int64  `json:"status" validate:"required,oneof=1 2 3 4"`
+// 更新用户信息请求（仅覆盖非空字段）
+type UpdateUserInfoReq {
+	UserId   string `path:"user_id"`
+	Username string `json:"username,optional"`
+	Email    string `json:"email,optional"`
+	Avatar   string `json:"avatar,optional"`
+	Phone    string `json:"phone,optional"`
+	Role     int    `json:"role,optional"`
+	Status   int    `json:"status,optional"`
+	Remark   string `json:"remark,optional"`
 }
 
-// 更新用户状态响应
-type UpdateUserStatusResp {
-	Success bool `json:"success"`
+// 更新用户信息响应
+type UpdateUserInfoResp {
+	User UserInfo `json:"user"`
 }
 
 // 删除用户请求
@@ -67,29 +88,4 @@ type DeleteUserReq {
 // 删除用户响应
 type DeleteUserResp {
 	Success bool `json:"success"`
-}
-
-//////////////////////////////// 用户管理 /////////////////////////////////////////////////////
-@server (
-	prefix: /api/admin
-	group:  user
-	tags:   user
-	middleware: AuthMiddleware
-)
-service admin {
-	@doc "用户列表"
-	@handler UserList
-	get /users (UserListReq) returns (UserListResp)
-
-	@doc "用户详情"
-	@handler GetUserDetail
-	get /users/:user_id (GetUserDetailReq) returns (GetUserDetailResp)
-
-	@doc "更新用户状态"
-	@handler UpdateUserStatus
-	put /users/status (UpdateUserStatusReq) returns (UpdateUserStatusResp)
-
-	@doc "删除用户"
-	@handler DeleteUser
-	delete /users/:user_id (DeleteUserReq) returns (DeleteUserResp)
 }

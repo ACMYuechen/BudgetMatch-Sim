@@ -2,56 +2,50 @@
 
 package types
 
-type UserListReq struct {
+type UserInfo struct {
+	Id       string `json:"id"`
+	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
+	Phone    string `json:"phone"`
+	Email    string `json:"email"`
+	Role     int    `json:"role"`
+	Status   int    `json:"status"`
+	Remark   string `json:"remark"`
+}
+
+type ListUsersReq struct {
 	Page     int `form:"page,default=1"`
 	PageSize int `form:"page_size,default=10"`
 	Status   int `form:"status,default=0"`
 	Role     int `form:"role,default=0"`
 }
 
-type UserItem struct {
-	UserId    string `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Role      int64  `json:"role"`
-	Status    int64  `json:"status"`
-	Avatar    string `json:"avatar"`
-	Remark    string `json:"remark"`
-	CreatedAt string `json:"created_at"`
+type ListUsersResp struct {
+	Total int        `json:"total"`
+	List  []UserInfo `json:"list"`
 }
 
-type UserListResp struct {
-	List     []UserItem `json:"list"`
-	Total    int64      `json:"total"`
-	Page     int        `json:"page"`
-	PageSize int        `json:"page_size"`
-}
-
-type GetUserDetailReq struct {
+type GetUserByIdReq struct {
 	UserId string `path:"user_id"`
 }
 
-type GetUserDetailResp struct {
-	UserId    string `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Role      int64  `json:"role"`
-	Status    int64  `json:"status"`
-	Avatar    string `json:"avatar"`
-	Remark    string `json:"remark"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+type GetUserByIdResp struct {
+	User UserInfo `json:"user"`
 }
 
-type UpdateUserStatusReq struct {
-	UserId string `json:"user_id"`
-	Status int64  `json:"status" validate:"required,oneof=1 2 3 4"`
+type UpdateUserInfoReq struct {
+	UserId   string `path:"user_id"`
+	Username string `json:"username,optional"`
+	Email    string `json:"email,optional"`
+	Avatar   string `json:"avatar,optional"`
+	Phone    string `json:"phone,optional"`
+	Role     int    `json:"role,optional"`
+	Status   int    `json:"status,optional"`
+	Remark   string `json:"remark,optional"`
 }
 
-type UpdateUserStatusResp struct {
-	Success bool `json:"success"`
+type UpdateUserInfoResp struct {
+	User UserInfo `json:"user"`
 }
 
 type DeleteUserReq struct {

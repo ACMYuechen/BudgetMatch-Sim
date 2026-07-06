@@ -41,6 +41,6 @@ func (l *UsernameLoginLogic) UsernameLogin(req *types.UsernameLoginReq) (resp *t
 	return &types.LoginResp{
 		Token:  rpcResp.Token,
 		UserId: rpcResp.UserId,
-		Role:   rpcResp.Role,
+		Role:   int(rpcResp.Role),
 	}, nil
 }

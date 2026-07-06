@@ -5,19 +5,19 @@ appPWD = cmd/app
 appDesc = $(appPWD)/desc
 
 authRpcPWD = services/rpc/auth
-authRpcDesc = $(authRpcPWD)/desc
+authRpcDesc = $(authRpcPWD)/proto
 
 seckillRpcPWD = services/rpc/seckill
-seckillRpcDesc = $(seckillRpcPWD)/desc
+seckillRpcDesc = $(seckillRpcPWD)/proto
 
 mallRpcPWD = services/rpc/mall
-mallRpcDesc = $(mallRpcPWD)/desc
+mallRpcDesc = $(mallRpcPWD)/proto
 
 agentRpcPWD = services/rpc/agent
-agentRpcDesc = $(agentRpcPWD)/desc
+agentRpcDesc = $(agentRpcPWD)/proto
 
 paymentRpcPWD = services/rpc/payment
-paymentRpcDesc = $(paymentRpcPWD)/desc
+paymentRpcDesc = $(paymentRpcPWD)/proto
 
 # =============================================================================
 # 帮助

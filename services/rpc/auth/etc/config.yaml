@@ -8,7 +8,7 @@ Etcd:
     - ${ETCD_HOSTS}
   Key: auth.rpc
 
-# Auth配置（生产环境请通过环境变量覆盖）
+# Auth配置
 JwtAuth:
   Secret: "${JWT_SECRET}"       # JWT 签名密钥
   Expire: 86400                  # Token 过期时间（秒）

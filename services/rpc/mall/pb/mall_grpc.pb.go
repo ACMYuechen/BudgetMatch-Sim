@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.1
-// source: services/rpc/mall/desc/mall.proto
+// source: services/rpc/mall/proto/mall.proto
 
 package pb
 
@@ -459,7 +459,7 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/mall/desc/mall.proto",
+	Metadata: "services/rpc/mall/proto/mall.proto",
 }
 
 const (
@@ -751,5 +751,5 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/rpc/mall/desc/mall.proto",
+	Metadata: "services/rpc/mall/proto/mall.proto",
 }

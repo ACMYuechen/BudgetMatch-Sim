@@ -13,11 +13,11 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-// 获取当前用户资料
-func UserProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+// 获取当前用户信息
+func GetUserInfoHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			in  = new(types.UserProfileReq)
+			in  = new(types.GetUserInfoReq)
 			ctx = r.Context()
 		)
 
@@ -33,8 +33,8 @@ func UserProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewUserProfileLogic(ctx, svcCtx)
-		resp, err := l.UserProfile(in)
+		l := user.NewGetUserInfoLogic(ctx, svcCtx)
+		resp, err := l.GetUserInfo(in)
 		if err != nil {
 			httpx.Error(w, err)
 		} else {

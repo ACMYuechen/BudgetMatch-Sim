@@ -35,19 +35,19 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					// 用户列表
 					Method:  http.MethodGet,
 					Path:    "/users",
-					Handler: user.UserListHandler(serverCtx),
+					Handler: user.ListUsersHandler(serverCtx),
 				},
 				{
-					// 用户详情
+					// 按 ID 获取用户
 					Method:  http.MethodGet,
 					Path:    "/users/:user_id",
-					Handler: user.GetUserDetailHandler(serverCtx),
+					Handler: user.GetUserByIdHandler(serverCtx),
 				},
 				{
-					// 更新用户状态
+					// 更新用户信息
 					Method:  http.MethodPut,
-					Path:    "/users/status",
-					Handler: user.UpdateUserStatusHandler(serverCtx),
+					Path:    "/users/:user_id",
+					Handler: user.UpdateUserInfoHandler(serverCtx),
 				},
 				{
 					// 删除用户
