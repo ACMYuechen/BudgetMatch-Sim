@@ -1,9 +1,3 @@
-# cmd/ — REST API Gateway 层
-
-REST API Gateway 是外部流量的统一入口，负责 HTTP 请求处理、认证校验、参数校验、请求转发等。
-
-**设计原则**: Gateway 层理论上所有数据操作通过 RPC 调用下游服务
-
 ## 目录结构
 
 ```
@@ -79,26 +73,5 @@ service app/admin {
     @doc "接口说明"
     @handler HandlerName          // handler 名称
     get|post|put|delete /path (Req) returns (Resp)
-}
-```
-
-### 4. main.go 规范
-
-```go
-func main() {
-    // 1. 加载配置
-    conf.MustLoad(*configFile, &c, conf.UseEnv())
-
-    // 2. 初始化 Redis（Gateway 层非特殊情况(存在共享层model)不连数据库）
-    rds, err := redis.NewRedisDB(c.Redis)
-
-    // 3. 创建 ServiceContext（注入 RPC 客户端）
-    serverCtx := svc.NewServiceContext(c, rds.Client())
-
-    // 4. 注册路由
-    handler.RegisterHandlers(server, serverCtx)
-
-    // 5. 启动
-    sg.Start()
 }
 ```
