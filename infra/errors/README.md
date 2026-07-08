@@ -74,16 +74,6 @@ var (
 my_new_error = "自定义新业务错误"
 ```
 
-### 4. 在业务代码中使用
-
-```go
-import "budgetmatch-sim/infra/errors"
-
-if err != nil {
-    return nil, errors.MyNewError
-}
-```
-
 ## 常用模板
 
 ```go
