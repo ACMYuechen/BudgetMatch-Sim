@@ -28,12 +28,12 @@ type (
 	}
 
 	Products struct {
-		Id           string `json:"id" gorm:"type:varchar(36);primaryKey;comment:SPU ID"`
+		Id           string `json:"id" gorm:"type:text;primaryKey;comment:SPU ID"`
 		UserId       string `json:"user_id" gorm:"type:text;not null;comment:用户ID"`
-		Name         string `json:"name" gorm:"type:varchar(255);not null;comment:商品名称"`
+		Name         string `json:"name" gorm:"type:text;not null;comment:商品名称"`
 		Content      string `json:"content" gorm:"type:jsonb;comment:商品详情"`
-		Image        string `json:"image" gorm:"type:varchar(500);comment:图片URL"`
-		Providor     string `json:"providor" gorm:"type:varchar(100);comment:供应商"`
+		Image        string `json:"image" gorm:"type:text;comment:图片URL"`
+		Providor     string `json:"providor" gorm:"type:text;comment:供应商"`
 		Status       int32  `json:"status" gorm:"type:smallint;default:1;comment:状态, 0:下架 1:上架"`
 		AgentComment string `json:"agent_comment" gorm:"type:jsonb;comment:Agent推理核心: 大模型对商品的描述与评价"`
 

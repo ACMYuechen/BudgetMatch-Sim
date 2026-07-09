@@ -30,7 +30,7 @@ type (
 		OrderId        string `json:"order_id" gorm:"type:text;not null;index;comment:订单ID"`
 		ProductId      string `json:"product_id" gorm:"type:text;not null;comment:SPU ID"`
 		SkuId          string `json:"sku_id" gorm:"type:text;not null;comment:SKU ID"`
-		SkuName        string `json:"sku_name" gorm:"type:varchar(255);not null;comment:SKU快照名称"`
+		SkuName        string `json:"sku_name" gorm:"type:text;not null;comment:SKU快照名称"`
 		Price          int64  `json:"price" gorm:"type:bigint;not null;comment:单价，单位：分"`
 		Quantity       int64  `json:"quantity" gorm:"type:int;not null;comment:数量"`
 		DiscountAmount int64  `json:"discount_amount" gorm:"type:bigint;not null;comment:优惠金额，单位：分"`

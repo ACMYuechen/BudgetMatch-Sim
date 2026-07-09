@@ -30,7 +30,7 @@ type (
 	ProductSkus struct {
 		Id           string `json:"id" gorm:"type:text;primaryKey;comment:SKU ID"`
 		ProductId    string `json:"product_id" gorm:"type:text;not null;index;comment:SPU ID"`
-		Name         string `json:"name" gorm:"type:varchar(255);not null;comment:SKU名称"`
+		Name         string `json:"name" gorm:"type:text;not null;comment:SKU名称"`
 		Specs        string `json:"specs" gorm:"type:jsonb;comment:规格JSON"`
 		Price        int64  `json:"price" gorm:"type:bigint;not null;comment:售价，单位：分"`
 		Stock        int    `json:"stock" gorm:"type:int;default:0;comment:库存"`
