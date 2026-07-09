@@ -7,11 +7,11 @@ type ActivityItem {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	BannerUrl   string `json:"banner_url"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
+	StartTime   int64  `json:"start_time"`
+	EndTime     int64  `json:"end_time"`
 	Status      int32  `json:"status"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	CreatedAt   int64  `json:"created_at"`
+	UpdatedAt   int64  `json:"updated_at"`
 }
 
 type ActivityListReq {
@@ -31,8 +31,8 @@ type ActivityCreateReq {
 	Title       string `json:"title" validate:"required,max=128"`
 	Description string `json:"description" validate:"max=512"`
 	BannerUrl   string `json:"banner_url" validate:"max=512"`
-	StartTime   string `json:"start_time" validate:"required"`
-	EndTime     string `json:"end_time" validate:"required"`
+	StartTime   int64  `json:"start_time" validate:"required"`
+	EndTime     int64  `json:"end_time" validate:"required"`
 }
 
 type ActivityCreateResp {
@@ -52,8 +52,8 @@ type ActivityUpdateReq {
 	Title       string `json:"title" validate:"max=128"`
 	Description string `json:"description" validate:"max=512"`
 	BannerUrl   string `json:"banner_url" validate:"max=512"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
+	StartTime   int64  `json:"start_time"`
+	EndTime     int64  `json:"end_time"`
 }
 
 type ActivityUpdateResp {
@@ -107,8 +107,8 @@ type SkuItem {
 	LockStock     int64  `json:"lock_stock"`
 	Status        int32  `json:"status"`
 	Sort          int64  `json:"sort"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
 }
 
 type SkuListReq {

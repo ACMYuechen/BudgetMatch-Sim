@@ -50,13 +50,13 @@ func (l *UpdateSkuLogic) UpdateSku(in *pb.UpdateSkuReq) (*pb.UpdateSkuResp, erro
 		sku.SeckillPrice = in.SeckillPrice
 	}
 	if in.Stock >= 0 {
-		sku.Stock = in.Stock
+		sku.Stock = int(in.Stock)
 	}
 	if in.Sort >= 0 {
-		sku.Sort = in.Sort
+		sku.Sort = int(in.Sort)
 	}
 	if in.Status >= 0 {
-		sku.Status = int64(in.Status)
+		sku.Status = int(in.Status)
 	}
 
 	if err := l.svcCtx.SkuStore.Update(l.ctx, sku); err != nil {

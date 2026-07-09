@@ -28,17 +28,18 @@ type (
 	}
 
 	SeckillOrders struct {
-		Id          string         `json:"id" gorm:"type:varchar(36);primaryKey;comment:订单ID"`
-		ActivityId  string         `json:"activity_id" gorm:"type:varchar(36);not null;index;uniqueIndex:uk_activity_sku_user;comment:活动ID"`
-		SkuId       string         `json:"sku_id" gorm:"type:varchar(36);not null;index;uniqueIndex:uk_activity_sku_user;comment:SKU ID"`
-		UserId      string         `json:"user_id" gorm:"type:varchar(36);not null;index;uniqueIndex:uk_activity_sku_user;comment:用户ID"`
-		Quantity    int64          `json:"quantity" gorm:"type:int;default:1;comment:数量"`
-		TotalAmount int64          `json:"total_amount" gorm:"type:bigint;not null;comment:总金额，单位：分"`
-		Status      int64          `json:"status" gorm:"type:smallint;default:0;comment:状态，0:排队中 1:成功 2:失败 3:已支付 4:已关闭"`
-		Snapshot    string         `json:"snapshot" gorm:"type:jsonb;comment:订单快照"`
-		CreatedAt   time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
-		UpdatedAt   time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
-		DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+		Id          string `json:"id" gorm:"type:text;primaryKey;comment:订单ID"`
+		ActivityId  string `json:"activity_id" gorm:"type:text;not null;index;uniqueIndex:uk_activity_sku_user;comment:活动ID"`
+		SkuId       string `json:"sku_id" gorm:"type:text;not null;index;uniqueIndex:uk_activity_sku_user;comment:SKU ID"`
+		UserId      string `json:"user_id" gorm:"type:text;not null;index;uniqueIndex:uk_activity_sku_user;comment:用户ID"`
+		Quantity    int    `json:"quantity" gorm:"type:int;default:1;comment:数量"`
+		TotalAmount int64  `json:"total_amount" gorm:"type:bigint;not null;comment:总金额，单位：分"`
+		Status      int    `json:"status" gorm:"type:smallint;default:0;comment:状态，0:排队中 1:成功 2:失败 3:已支付 4:已关闭"`
+		Snapshot    string `json:"snapshot" gorm:"type:jsonb;comment:订单快照"`
+
+		CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
+		UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
+		DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	}
 
 	SeckillOrdersListReq struct {

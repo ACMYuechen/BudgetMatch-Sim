@@ -28,20 +28,8 @@ func NewCreateActivityLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cr
 }
 
 func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.CreateActivityResp, error) {
-	startTime, err := time.Parse(time.RFC3339, in.StartTime)
-	if err != nil {
-		startTime, err = time.Parse("2006-01-02 15:04:05", in.StartTime)
-		if err != nil {
-			return nil, errors.Internal
-		}
-	}
-	endTime, err := time.Parse(time.RFC3339, in.EndTime)
-	if err != nil {
-		endTime, err = time.Parse("2006-01-02 15:04:05", in.EndTime)
-		if err != nil {
-			return nil, errors.Internal
-		}
-	}
+	startTime := time.UnixMilli(in.StartTime)
+	endTime := time.UnixMilli(in.EndTime)
 
 	if endTime.Before(startTime) || endTime.Equal(startTime) {
 		return nil, errors.Internal

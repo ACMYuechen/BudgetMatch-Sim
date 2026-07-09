@@ -41,7 +41,7 @@ func (l *GetOrderLogic) GetOrder(req *types.GetOrderReq) (resp *types.GetOrderRe
 		OrderId:     rpcResp.OrderId,
 		ActivityId:  rpcResp.ActivityId,
 		SkuId:       rpcResp.SkuId,
-		Quantity:    rpcResp.Quantity,
+		Quantity:    int64(rpcResp.Quantity),
 		TotalAmount: rpcResp.TotalAmount,
 		Status:      rpcResp.Status,
 		CreatedAt:   rpcResp.CreatedAt,

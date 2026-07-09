@@ -97,13 +97,13 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 
 	// 7. deduct stock from Redis
 	// 对于低库存 SKU，使用 etcd 分布式锁兜底，防止 Redis 主从切换等极端场景下超卖
-	qty := in.Quantity
+	qty := int64(in.Quantity)
 	if qty <= 0 {
 		qty = 1
 	}
 
 	var remain int64
-	if sku.Stock <= l.svcCtx.LowStockThreshold() {
+	if int64(sku.Stock) <= l.svcCtx.LowStockThreshold() {
 		lock, err := l.svcCtx.LockManager.NewLock(fmt.Sprintf("/seckill/lock/stock/%s/%s", in.ActivityId, in.SkuId), 10)
 		if err != nil {
 			l.Logger.Errorf("failed to create etcd lock: %v", err)

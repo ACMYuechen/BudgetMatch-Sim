@@ -65,10 +65,10 @@ type ActivityItem struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	BannerUrl   string `json:"banner_url"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
+	StartTime   int64  `json:"start_time"`
+	EndTime     int64  `json:"end_time"`
 	Status      int32  `json:"status"`
-	CreatedAt   string `json:"created_at"`
+	CreatedAt   int64  `json:"created_at"`
 }
 
 type ActivityListReq struct {
@@ -151,7 +151,7 @@ type GetOrderResp struct {
 	Quantity    int64  `json:"quantity"`
 	TotalAmount int64  `json:"total_amount"`
 	Status      int32  `json:"status"`
-	CreatedAt   string `json:"created_at"`
+	CreatedAt   int64  `json:"created_at"`
 }
 
 type MallProductItem struct {

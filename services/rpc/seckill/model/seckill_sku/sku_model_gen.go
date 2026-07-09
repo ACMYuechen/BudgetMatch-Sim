@@ -28,23 +28,24 @@ type (
 	}
 
 	SeckillSkus struct {
-		Id             string         `json:"id" gorm:"type:varchar(36);primaryKey;comment:SKU ID"`
-		ActivityId     string         `json:"activity_id" gorm:"type:varchar(36);not null;index;comment:活动ID"`
-		Title          string         `json:"title" gorm:"type:varchar(255);not null;comment:SKU标题"`
-		Subtitle       string         `json:"subtitle" gorm:"type:varchar(255);comment:副标题"`
-		Pic            string         `json:"pic" gorm:"type:varchar(500);comment:商品图片URL"`
-		OriginalPrice  int64          `json:"original_price" gorm:"type:bigint;not null;comment:原价，单位：分"`
-		SeckillPrice   int64          `json:"seckill_price" gorm:"type:bigint;not null;comment:秒杀价，单位：分"`
-		Stock          int64          `json:"stock" gorm:"type:int;default:0;comment:库存"`
-		Sold           int64          `json:"sold" gorm:"type:int;default:0;comment:已售"`
-		LockStock      int64          `json:"lock_stock" gorm:"type:int;default:0;comment:锁定库存"`
-		Status         int64          `json:"status" gorm:"type:smallint;default:1;comment:状态，0:禁用 1:启用"`
-		Sort           int64          `json:"sort" gorm:"type:int;default:0;comment:排序"`
-		MallSkuId      string         `json:"mall_sku_id" gorm:"type:varchar(36);index;default:'';comment:关联商城SKU ID"`
-		MallProductId  string         `json:"mall_product_id" gorm:"type:varchar(36);default:'';comment:关联商城商品ID"`
-		CreatedAt      time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
-		UpdatedAt      time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
-		DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+		Id            string `json:"id" gorm:"type:text;primaryKey;comment:SKU ID"`
+		ActivityId    string `json:"activity_id" gorm:"type:text;not null;index;comment:活动ID"`
+		Title         string `json:"title" gorm:"type:text;not null;comment:SKU标题"`
+		Subtitle      string `json:"subtitle" gorm:"type:text;comment:副标题"`
+		Pic           string `json:"pic" gorm:"type:text;comment:商品图片URL"`
+		OriginalPrice int64  `json:"original_price" gorm:"type:bigint;not null;comment:原价，单位：分"`
+		SeckillPrice  int64  `json:"seckill_price" gorm:"type:bigint;not null;comment:秒杀价，单位：分"`
+		Stock         int    `json:"stock" gorm:"type:int;default:0;comment:库存"`
+		LockStock     int    `json:"lock_stock" gorm:"type:int;default:0;comment:锁定库存"`
+		Sold          int    `json:"sold" gorm:"type:int;default:0;comment:已售"`
+		Status        int    `json:"status" gorm:"type:smallint;default:1;comment:状态，0:禁用 1:启用"`
+		Sort          int    `json:"sort" gorm:"type:int;default:0;comment:排序"`
+		MallSkuId     string `json:"mall_sku_id" gorm:"type:text;index;default:'';comment:关联商城SKU ID"`
+		MallProductId string `json:"mall_product_id" gorm:"type:text;default:'';comment:关联商城商品ID"`
+
+		CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
+		UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
+		DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	}
 
 	SeckillSkusListReq struct {

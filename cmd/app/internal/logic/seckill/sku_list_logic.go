@@ -31,8 +31,8 @@ func NewSkuListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SkuListLo
 func (l *SkuListLogic) SkuList(req *types.SkuListReq) (resp *types.SkuListResp, err error) {
 	rpcResp, err := l.svcCtx.SkuClient.ListSkusByActivity(l.ctx, &pb.ListSkusByActivityReq{
 		ActivityId: req.ActivityId,
-		Page:         int32(req.Page),
-		PageSize:     int32(req.PageSize),
+		Page:       int32(req.Page),
+		PageSize:   int32(req.PageSize),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
@@ -49,10 +49,10 @@ func (l *SkuListLogic) SkuList(req *types.SkuListReq) (resp *types.SkuListResp, 
 			Pic:           s.Pic,
 			OriginalPrice: s.OriginalPrice,
 			SeckillPrice:  s.SeckillPrice,
-			Stock:         s.Stock,
-			Sold:          s.Sold,
+			Stock:         int64(s.Stock),
+			Sold:          int64(s.Sold),
 			Status:        s.Status,
-			Sort:          s.Sort,
+			Sort:          int64(s.Sort),
 		})
 	}
 

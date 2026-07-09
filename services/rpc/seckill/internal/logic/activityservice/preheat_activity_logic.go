@@ -62,7 +62,7 @@ func (l *PreheatActivityLogic) PreheatActivity(in *pb.PreheatActivityReq) (*pb.P
 		}
 		// 计算剩余库存
 		remain := sku.Stock - sku.Sold
-		if err := l.svcCtx.StockManager.Preheat(in.Id, sku.Id, remain, ttlSeconds); err != nil {
+		if err := l.svcCtx.StockManager.Preheat(in.Id, sku.Id, int64(remain), ttlSeconds); err != nil {
 			l.Logger.Info("preheat stock failed for sku " + sku.Id + ": " + err.Error())
 		}
 	}

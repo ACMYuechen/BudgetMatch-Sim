@@ -46,11 +46,11 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 		Pic:           in.Pic,
 		OriginalPrice: in.OriginalPrice,
 		SeckillPrice:  in.SeckillPrice,
-		Stock:         in.Stock,
+		Stock:         int(in.Stock),
 		Sold:          0,
 		LockStock:     0,
 		Status:        1,
-		Sort:          in.Sort,
+		Sort:          int(in.Sort),
 	}
 
 	// 指定商城 SKU 时，从 mall-rpc 预加载商品信息做快照；未传入的字段以商城数据兜底
@@ -78,7 +78,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 			sku.OriginalPrice = mallSku.Price
 		}
 		if sku.Stock <= 0 {
-			sku.Stock = mallSku.Stock
+			sku.Stock = int(mallSku.Stock)
 		}
 	}
 

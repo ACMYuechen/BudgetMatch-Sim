@@ -36,8 +36,8 @@ func (l *SkuCreateLogic) SkuCreate(req *types.SkuCreateReq) (resp *types.SkuCrea
 		Pic:           req.Pic,
 		OriginalPrice: req.OriginalPrice,
 		SeckillPrice:  req.SeckillPrice,
-		Stock:         req.Stock,
-		Sort:          req.Sort,
+		Stock:         int32(req.Stock),
+		Sort:          int32(req.Sort),
 		MallSkuId:     req.MallSkuId,
 	})
 	if err != nil {

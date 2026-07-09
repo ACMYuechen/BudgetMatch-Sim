@@ -27,11 +27,11 @@ type Activity struct {
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	BannerUrl     string                 `protobuf:"bytes,4,opt,name=banner_url,json=bannerUrl,proto3" json:"banner_url,omitempty"`
-	StartTime     string                 `protobuf:"bytes,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime       string                 `protobuf:"bytes,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	StartTime     int64                  `protobuf:"varint,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime       int64                  `protobuf:"varint,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	Status        int32                  `protobuf:"varint,7,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     int64                  `protobuf:"varint,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -94,18 +94,18 @@ func (x *Activity) GetBannerUrl() string {
 	return ""
 }
 
-func (x *Activity) GetStartTime() string {
+func (x *Activity) GetStartTime() int64 {
 	if x != nil {
 		return x.StartTime
 	}
-	return ""
+	return 0
 }
 
-func (x *Activity) GetEndTime() string {
+func (x *Activity) GetEndTime() int64 {
 	if x != nil {
 		return x.EndTime
 	}
-	return ""
+	return 0
 }
 
 func (x *Activity) GetStatus() int32 {
@@ -115,18 +115,18 @@ func (x *Activity) GetStatus() int32 {
 	return 0
 }
 
-func (x *Activity) GetCreatedAt() string {
+func (x *Activity) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return 0
 }
 
-func (x *Activity) GetUpdatedAt() string {
+func (x *Activity) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return ""
+	return 0
 }
 
 type CreateActivityReq struct {
@@ -134,8 +134,8 @@ type CreateActivityReq struct {
 	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	BannerUrl     string                 `protobuf:"bytes,3,opt,name=banner_url,json=bannerUrl,proto3" json:"banner_url,omitempty"`
-	StartTime     string                 `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime       string                 `protobuf:"bytes,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	StartTime     int64                  `protobuf:"varint,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime       int64                  `protobuf:"varint,5,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -191,18 +191,18 @@ func (x *CreateActivityReq) GetBannerUrl() string {
 	return ""
 }
 
-func (x *CreateActivityReq) GetStartTime() string {
+func (x *CreateActivityReq) GetStartTime() int64 {
 	if x != nil {
 		return x.StartTime
 	}
-	return ""
+	return 0
 }
 
-func (x *CreateActivityReq) GetEndTime() string {
+func (x *CreateActivityReq) GetEndTime() int64 {
 	if x != nil {
 		return x.EndTime
 	}
-	return ""
+	return 0
 }
 
 type CreateActivityResp struct {
@@ -255,8 +255,8 @@ type UpdateActivityReq struct {
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	BannerUrl     string                 `protobuf:"bytes,4,opt,name=banner_url,json=bannerUrl,proto3" json:"banner_url,omitempty"`
-	StartTime     string                 `protobuf:"bytes,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime       string                 `protobuf:"bytes,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	StartTime     int64                  `protobuf:"varint,5,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime       int64                  `protobuf:"varint,6,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -319,18 +319,18 @@ func (x *UpdateActivityReq) GetBannerUrl() string {
 	return ""
 }
 
-func (x *UpdateActivityReq) GetStartTime() string {
+func (x *UpdateActivityReq) GetStartTime() int64 {
 	if x != nil {
 		return x.StartTime
 	}
-	return ""
+	return 0
 }
 
-func (x *UpdateActivityReq) GetEndTime() string {
+func (x *UpdateActivityReq) GetEndTime() int64 {
 	if x != nil {
 		return x.EndTime
 	}
-	return ""
+	return 0
 }
 
 type UpdateActivityResp struct {
@@ -954,14 +954,14 @@ type Sku struct {
 	Pic           string                 `protobuf:"bytes,5,opt,name=pic,proto3" json:"pic,omitempty"`
 	OriginalPrice int64                  `protobuf:"varint,6,opt,name=original_price,json=originalPrice,proto3" json:"original_price,omitempty"`
 	SeckillPrice  int64                  `protobuf:"varint,7,opt,name=seckill_price,json=seckillPrice,proto3" json:"seckill_price,omitempty"`
-	Stock         int64                  `protobuf:"varint,8,opt,name=stock,proto3" json:"stock,omitempty"`
-	Sold          int64                  `protobuf:"varint,9,opt,name=sold,proto3" json:"sold,omitempty"`
-	LockStock     int64                  `protobuf:"varint,10,opt,name=lock_stock,json=lockStock,proto3" json:"lock_stock,omitempty"`
+	Stock         int32                  `protobuf:"varint,8,opt,name=stock,proto3" json:"stock,omitempty"`
+	LockStock     int32                  `protobuf:"varint,9,opt,name=lock_stock,json=lockStock,proto3" json:"lock_stock,omitempty"`
+	Sold          int32                  `protobuf:"varint,10,opt,name=sold,proto3" json:"sold,omitempty"`
 	Status        int32                  `protobuf:"varint,11,opt,name=status,proto3" json:"status,omitempty"`
-	Sort          int64                  `protobuf:"varint,12,opt,name=sort,proto3" json:"sort,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	MallSkuId     string                 `protobuf:"bytes,15,opt,name=mall_sku_id,json=mallSkuId,proto3" json:"mall_sku_id,omitempty"`
+	Sort          int32                  `protobuf:"varint,12,opt,name=sort,proto3" json:"sort,omitempty"`
+	MallSkuId     string                 `protobuf:"bytes,13,opt,name=mall_sku_id,json=mallSkuId,proto3" json:"mall_sku_id,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     int64                  `protobuf:"varint,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1045,23 +1045,23 @@ func (x *Sku) GetSeckillPrice() int64 {
 	return 0
 }
 
-func (x *Sku) GetStock() int64 {
+func (x *Sku) GetStock() int32 {
 	if x != nil {
 		return x.Stock
 	}
 	return 0
 }
 
-func (x *Sku) GetSold() int64 {
+func (x *Sku) GetLockStock() int32 {
 	if x != nil {
-		return x.Sold
+		return x.LockStock
 	}
 	return 0
 }
 
-func (x *Sku) GetLockStock() int64 {
+func (x *Sku) GetSold() int32 {
 	if x != nil {
-		return x.LockStock
+		return x.Sold
 	}
 	return 0
 }
@@ -1073,25 +1073,11 @@ func (x *Sku) GetStatus() int32 {
 	return 0
 }
 
-func (x *Sku) GetSort() int64 {
+func (x *Sku) GetSort() int32 {
 	if x != nil {
 		return x.Sort
 	}
 	return 0
-}
-
-func (x *Sku) GetCreatedAt() string {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return ""
-}
-
-func (x *Sku) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return ""
 }
 
 func (x *Sku) GetMallSkuId() string {
@@ -1099,6 +1085,20 @@ func (x *Sku) GetMallSkuId() string {
 		return x.MallSkuId
 	}
 	return ""
+}
+
+func (x *Sku) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *Sku) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
 }
 
 type CreateSkuReq struct {
@@ -1109,8 +1109,8 @@ type CreateSkuReq struct {
 	Pic           string                 `protobuf:"bytes,4,opt,name=pic,proto3" json:"pic,omitempty"`
 	OriginalPrice int64                  `protobuf:"varint,5,opt,name=original_price,json=originalPrice,proto3" json:"original_price,omitempty"`
 	SeckillPrice  int64                  `protobuf:"varint,6,opt,name=seckill_price,json=seckillPrice,proto3" json:"seckill_price,omitempty"`
-	Stock         int64                  `protobuf:"varint,7,opt,name=stock,proto3" json:"stock,omitempty"`
-	Sort          int64                  `protobuf:"varint,8,opt,name=sort,proto3" json:"sort,omitempty"`
+	Stock         int32                  `protobuf:"varint,7,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sort          int32                  `protobuf:"varint,8,opt,name=sort,proto3" json:"sort,omitempty"`
 	MallSkuId     string                 `protobuf:"bytes,9,opt,name=mall_sku_id,json=mallSkuId,proto3" json:"mall_sku_id,omitempty"` // 关联的商城 SKU，用于预加载商品信息做快照
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1188,14 +1188,14 @@ func (x *CreateSkuReq) GetSeckillPrice() int64 {
 	return 0
 }
 
-func (x *CreateSkuReq) GetStock() int64 {
+func (x *CreateSkuReq) GetStock() int32 {
 	if x != nil {
 		return x.Stock
 	}
 	return 0
 }
 
-func (x *CreateSkuReq) GetSort() int64 {
+func (x *CreateSkuReq) GetSort() int32 {
 	if x != nil {
 		return x.Sort
 	}
@@ -1261,8 +1261,8 @@ type UpdateSkuReq struct {
 	Pic           string                 `protobuf:"bytes,4,opt,name=pic,proto3" json:"pic,omitempty"`
 	OriginalPrice int64                  `protobuf:"varint,5,opt,name=original_price,json=originalPrice,proto3" json:"original_price,omitempty"`
 	SeckillPrice  int64                  `protobuf:"varint,6,opt,name=seckill_price,json=seckillPrice,proto3" json:"seckill_price,omitempty"`
-	Stock         int64                  `protobuf:"varint,7,opt,name=stock,proto3" json:"stock,omitempty"`
-	Sort          int64                  `protobuf:"varint,8,opt,name=sort,proto3" json:"sort,omitempty"`
+	Stock         int32                  `protobuf:"varint,7,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sort          int32                  `protobuf:"varint,8,opt,name=sort,proto3" json:"sort,omitempty"`
 	Status        int32                  `protobuf:"varint,9,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1340,14 +1340,14 @@ func (x *UpdateSkuReq) GetSeckillPrice() int64 {
 	return 0
 }
 
-func (x *UpdateSkuReq) GetStock() int64 {
+func (x *UpdateSkuReq) GetStock() int32 {
 	if x != nil {
 		return x.Stock
 	}
 	return 0
 }
 
-func (x *UpdateSkuReq) GetSort() int64 {
+func (x *UpdateSkuReq) GetSort() int32 {
 	if x != nil {
 		return x.Sort
 	}
@@ -1819,7 +1819,7 @@ type SubmitOrderReq struct {
 	SkuId         string                 `protobuf:"bytes,2,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Token         string                 `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
-	Quantity      int64                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Quantity      int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1882,7 +1882,7 @@ func (x *SubmitOrderReq) GetToken() string {
 	return ""
 }
 
-func (x *SubmitOrderReq) GetQuantity() int64 {
+func (x *SubmitOrderReq) GetQuantity() int32 {
 	if x != nil {
 		return x.Quantity
 	}
@@ -1991,10 +1991,10 @@ type GetOrderResp struct {
 	ActivityId    string                 `protobuf:"bytes,2,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
 	SkuId         string                 `protobuf:"bytes,3,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
 	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Quantity      int64                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Quantity      int32                  `protobuf:"varint,5,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	TotalAmount   int64                  `protobuf:"varint,6,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
 	Status        int32                  `protobuf:"varint,7,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2057,7 +2057,7 @@ func (x *GetOrderResp) GetUserId() string {
 	return ""
 }
 
-func (x *GetOrderResp) GetQuantity() int64 {
+func (x *GetOrderResp) GetQuantity() int32 {
 	if x != nil {
 		return x.Quantity
 	}
@@ -2078,11 +2078,11 @@ func (x *GetOrderResp) GetStatus() int32 {
 	return 0
 }
 
-func (x *GetOrderResp) GetCreatedAt() string {
+func (x *GetOrderResp) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return 0
 }
 
 var File_services_rpc_seckill_proto_seckill_proto protoreflect.FileDescriptor
@@ -2097,21 +2097,21 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\n" +
 	"banner_url\x18\x04 \x01(\tR\tbannerUrl\x12\x1d\n" +
 	"\n" +
-	"start_time\x18\x05 \x01(\tR\tstartTime\x12\x19\n" +
-	"\bend_time\x18\x06 \x01(\tR\aendTime\x12\x16\n" +
+	"start_time\x18\x05 \x01(\x03R\tstartTime\x12\x19\n" +
+	"\bend_time\x18\x06 \x01(\x03R\aendTime\x12\x16\n" +
 	"\x06status\x18\a \x01(\x05R\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\tR\tupdatedAt\"\xa4\x01\n" +
+	"updated_at\x18\t \x01(\x03R\tupdatedAt\"\xa4\x01\n" +
 	"\x11CreateActivityReq\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
 	"banner_url\x18\x03 \x01(\tR\tbannerUrl\x12\x1d\n" +
 	"\n" +
-	"start_time\x18\x04 \x01(\tR\tstartTime\x12\x19\n" +
-	"\bend_time\x18\x05 \x01(\tR\aendTime\"$\n" +
+	"start_time\x18\x04 \x01(\x03R\tstartTime\x12\x19\n" +
+	"\bend_time\x18\x05 \x01(\x03R\aendTime\"$\n" +
 	"\x12CreateActivityResp\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\xb4\x01\n" +
 	"\x11UpdateActivityReq\x12\x0e\n" +
@@ -2121,8 +2121,8 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\n" +
 	"banner_url\x18\x04 \x01(\tR\tbannerUrl\x12\x1d\n" +
 	"\n" +
-	"start_time\x18\x05 \x01(\tR\tstartTime\x12\x19\n" +
-	"\bend_time\x18\x06 \x01(\tR\aendTime\".\n" +
+	"start_time\x18\x05 \x01(\x03R\tstartTime\x12\x19\n" +
+	"\bend_time\x18\x06 \x01(\x03R\aendTime\".\n" +
 	"\x12UpdateActivityResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\" \n" +
 	"\x0eGetActivityReq\x12\x0e\n" +
@@ -2163,18 +2163,18 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\x03pic\x18\x05 \x01(\tR\x03pic\x12%\n" +
 	"\x0eoriginal_price\x18\x06 \x01(\x03R\roriginalPrice\x12#\n" +
 	"\rseckill_price\x18\a \x01(\x03R\fseckillPrice\x12\x14\n" +
-	"\x05stock\x18\b \x01(\x03R\x05stock\x12\x12\n" +
-	"\x04sold\x18\t \x01(\x03R\x04sold\x12\x1d\n" +
+	"\x05stock\x18\b \x01(\x05R\x05stock\x12\x1d\n" +
 	"\n" +
-	"lock_stock\x18\n" +
-	" \x01(\x03R\tlockStock\x12\x16\n" +
+	"lock_stock\x18\t \x01(\x05R\tlockStock\x12\x12\n" +
+	"\x04sold\x18\n" +
+	" \x01(\x05R\x04sold\x12\x16\n" +
 	"\x06status\x18\v \x01(\x05R\x06status\x12\x12\n" +
-	"\x04sort\x18\f \x01(\x03R\x04sort\x12\x1d\n" +
+	"\x04sort\x18\f \x01(\x05R\x04sort\x12\x1e\n" +
+	"\vmall_sku_id\x18\r \x01(\tR\tmallSkuId\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\r \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x0e \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x0e \x01(\tR\tupdatedAt\x12\x1e\n" +
-	"\vmall_sku_id\x18\x0f \x01(\tR\tmallSkuId\"\x89\x02\n" +
+	"updated_at\x18\x0f \x01(\x03R\tupdatedAt\"\x89\x02\n" +
 	"\fCreateSkuReq\x12\x1f\n" +
 	"\vactivity_id\x18\x01 \x01(\tR\n" +
 	"activityId\x12\x14\n" +
@@ -2183,8 +2183,8 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\x03pic\x18\x04 \x01(\tR\x03pic\x12%\n" +
 	"\x0eoriginal_price\x18\x05 \x01(\x03R\roriginalPrice\x12#\n" +
 	"\rseckill_price\x18\x06 \x01(\x03R\fseckillPrice\x12\x14\n" +
-	"\x05stock\x18\a \x01(\x03R\x05stock\x12\x12\n" +
-	"\x04sort\x18\b \x01(\x03R\x04sort\x12\x1e\n" +
+	"\x05stock\x18\a \x01(\x05R\x05stock\x12\x12\n" +
+	"\x04sort\x18\b \x01(\x05R\x04sort\x12\x1e\n" +
 	"\vmall_sku_id\x18\t \x01(\tR\tmallSkuId\"\x1f\n" +
 	"\rCreateSkuResp\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\xf0\x01\n" +
@@ -2195,8 +2195,8 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\x03pic\x18\x04 \x01(\tR\x03pic\x12%\n" +
 	"\x0eoriginal_price\x18\x05 \x01(\x03R\roriginalPrice\x12#\n" +
 	"\rseckill_price\x18\x06 \x01(\x03R\fseckillPrice\x12\x14\n" +
-	"\x05stock\x18\a \x01(\x03R\x05stock\x12\x12\n" +
-	"\x04sort\x18\b \x01(\x03R\x04sort\x12\x16\n" +
+	"\x05stock\x18\a \x01(\x05R\x05stock\x12\x12\n" +
+	"\x04sort\x18\b \x01(\x05R\x04sort\x12\x16\n" +
 	"\x06status\x18\t \x01(\x05R\x06status\")\n" +
 	"\rUpdateSkuResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x1b\n" +
@@ -2232,7 +2232,7 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"\x06sku_id\x18\x02 \x01(\tR\x05skuId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05token\x18\x04 \x01(\tR\x05token\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x03R\bquantity\"D\n" +
+	"\bquantity\x18\x05 \x01(\x05R\bquantity\"D\n" +
 	"\x0fSubmitOrderResp\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\x05R\x06status\"(\n" +
@@ -2244,11 +2244,11 @@ const file_services_rpc_seckill_proto_seckill_proto_rawDesc = "" +
 	"activityId\x12\x15\n" +
 	"\x06sku_id\x18\x03 \x01(\tR\x05skuId\x12\x17\n" +
 	"\auser_id\x18\x04 \x01(\tR\x06userId\x12\x1a\n" +
-	"\bquantity\x18\x05 \x01(\x03R\bquantity\x12!\n" +
+	"\bquantity\x18\x05 \x01(\x05R\bquantity\x12!\n" +
 	"\ftotal_amount\x18\x06 \x01(\x03R\vtotalAmount\x12\x16\n" +
 	"\x06status\x18\a \x01(\x05R\x06status\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt2\xf6\x04\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt2\xf6\x04\n" +
 	"\x0fActivityService\x12K\n" +
 	"\x0eCreateActivity\x12\x1a.seckill.CreateActivityReq\x1a\x1b.seckill.CreateActivityResp\"\x00\x12K\n" +
 	"\x0eUpdateActivity\x12\x1a.seckill.UpdateActivityReq\x1a\x1b.seckill.UpdateActivityResp\"\x00\x12B\n" +

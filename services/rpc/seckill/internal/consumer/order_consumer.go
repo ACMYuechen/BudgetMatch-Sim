@@ -187,7 +187,7 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 			ActivityId:  orderMsg.ActivityID,
 			SkuId:       orderMsg.SkuID,
 			UserId:      orderMsg.UserID,
-			Quantity:    orderMsg.Quantity,
+			Quantity:    int(orderMsg.Quantity),
 			TotalAmount: orderMsg.TotalAmt,
 			Status:      1,
 			Snapshot:    "{}",

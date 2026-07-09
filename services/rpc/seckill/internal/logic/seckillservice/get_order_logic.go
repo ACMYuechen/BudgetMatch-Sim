@@ -2,7 +2,6 @@ package seckillservicelogic
 
 import (
 	"context"
-	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 
@@ -40,9 +39,9 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 		ActivityId:  order.ActivityId,
 		SkuId:       order.SkuId,
 		UserId:      order.UserId,
-		Quantity:    order.Quantity,
+		Quantity:    int32(order.Quantity),
 		TotalAmount: order.TotalAmount,
 		Status:      int32(order.Status),
-		CreatedAt:   order.CreatedAt.Format(time.RFC3339),
+		CreatedAt:   order.CreatedAt.UnixMilli(),
 	}, nil
 }

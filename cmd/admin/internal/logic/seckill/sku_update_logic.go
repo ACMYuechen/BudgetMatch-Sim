@@ -36,8 +36,8 @@ func (l *SkuUpdateLogic) SkuUpdate(req *types.SkuUpdateReq) (resp *types.SkuUpda
 		Pic:           req.Pic,
 		OriginalPrice: req.OriginalPrice,
 		SeckillPrice:  req.SeckillPrice,
-		Stock:         req.Stock,
-		Sort:          req.Sort,
+		Stock:         int32(req.Stock),
+		Sort:          int32(req.Sort),
 		Status:        req.Status,
 	})
 	if err != nil {

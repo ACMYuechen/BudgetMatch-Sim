@@ -28,16 +28,17 @@ type (
 	}
 
 	SeckillActivities struct {
-		Id          string         `json:"id" gorm:"type:varchar(36);primaryKey;comment:活动ID"`
-		Title       string         `json:"title" gorm:"type:varchar(255);not null;comment:活动标题"`
-		Description string         `json:"description" gorm:"type:text;comment:活动描述"`
-		BannerUrl   string         `json:"banner_url" gorm:"type:varchar(500);comment:Banner图片URL"`
-		StartTime   time.Time      `json:"start_time" gorm:"type:timestamptz;not null;comment:开始时间"`
-		EndTime     time.Time      `json:"end_time" gorm:"type:timestamptz;not null;comment:结束时间"`
-		Status      int64          `json:"status" gorm:"type:smallint;default:0;comment:状态，0:下线 1:上线 2:预热中"`
-		CreatedAt   time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
-		UpdatedAt   time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
-		DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+		Id          string    `json:"id" gorm:"type:text;primaryKey;comment:活动ID"`
+		Title       string    `json:"title" gorm:"type:text;not null;comment:活动标题"`
+		Description string    `json:"description" gorm:"type:text;comment:活动描述"`
+		BannerUrl   string    `json:"banner_url" gorm:"type:text;comment:Banner图片URL"`
+		StartTime   time.Time `json:"start_time" gorm:"type:timestamptz;not null;comment:开始时间"`
+		EndTime     time.Time `json:"end_time" gorm:"type:timestamptz;not null;comment:结束时间"`
+		Status      int       `json:"status" gorm:"type:smallint;default:0;comment:状态，0:下线 1:上线 2:预热中"`
+
+		CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
+		UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`
+		DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	}
 
 	SeckillActivitiesListReq struct {

@@ -44,25 +44,11 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 	if in.BannerUrl != "" {
 		activity.BannerUrl = in.BannerUrl
 	}
-	if in.StartTime != "" {
-		startTime, err := time.Parse(time.RFC3339, in.StartTime)
-		if err != nil {
-			startTime, err = time.Parse("2006-01-02 15:04:05", in.StartTime)
-			if err != nil {
-				return nil, errors.Internal
-			}
-		}
-		activity.StartTime = startTime
+	if in.StartTime != 0 {
+		activity.StartTime = time.UnixMilli(in.StartTime)
 	}
-	if in.EndTime != "" {
-		endTime, err := time.Parse(time.RFC3339, in.EndTime)
-		if err != nil {
-			endTime, err = time.Parse("2006-01-02 15:04:05", in.EndTime)
-			if err != nil {
-				return nil, errors.Internal
-			}
-		}
-		activity.EndTime = endTime
+	if in.EndTime != 0 {
+		activity.EndTime = time.UnixMilli(in.EndTime)
 	}
 
 	if activity.EndTime.Before(activity.StartTime) || activity.EndTime.Equal(activity.StartTime) {

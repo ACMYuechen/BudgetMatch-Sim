@@ -39,7 +39,7 @@ func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.S
 		SkuId:      req.SkuId,
 		UserId:     userID.(string),
 		Token:      req.Token,
-		Quantity:   req.Quantity,
+		Quantity:   int32(req.Quantity),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to submit order: %v", err)
