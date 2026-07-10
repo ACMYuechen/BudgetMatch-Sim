@@ -3,8 +3,7 @@ syntax = "proto3";
 package mall;
 option go_package = "./pb";
 
-// ========== Product (SPU) ==========
-
+/////////////////////// 基础类型 ///////////////////////
 message Product {
   string id            = 1;
   string user_id       = 2;
@@ -17,6 +16,22 @@ message Product {
   string created_at    = 9;
   string updated_at    = 10;
 }
+
+message Sku {
+  string id            = 1;
+  string product_id    = 2;
+  string name          = 3;
+  string specs         = 4;
+  int64  price         = 5;
+  int64  stock         = 6;
+  int64  sold          = 7;
+  int32  status        = 8;
+  string agent_comment = 9;
+  string created_at    = 10;
+  string updated_at    = 11;
+}
+
+// ========== Product (SPU) ==========
 
 message CreateProductReq {
   string user_id       = 1;
@@ -77,20 +92,6 @@ message ListProductsResp {
 }
 
 // ========== SKU ==========
-
-message Sku {
-  string id            = 1;
-  string product_id    = 2;
-  string name          = 3;
-  string specs         = 4;
-  int64  price         = 5;
-  int64  stock         = 6;
-  int64  sold          = 7;
-  int32  status        = 8;
-  string agent_comment = 9;
-  string created_at    = 10;
-  string updated_at    = 11;
-}
 
 message CreateSkuReq {
   string product_id    = 1;

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/components"
@@ -26,8 +26,8 @@ const (
 
 // mallCatalog 是 Loader 依赖的 mall 商品能力子集。
 type mallCatalog interface {
-	ListProducts(ctx context.Context, in *productservice.ListProductsReq, opts ...grpc.CallOption) (*productservice.ListProductsResp, error)
-	ListSkusByProduct(ctx context.Context, in *productservice.ListSkusByProductReq, opts ...grpc.CallOption) (*productservice.ListSkusByProductResp, error)
+	ListProducts(ctx context.Context, in *pb.ListProductsReq, opts ...grpc.CallOption) (*pb.ListProductsResp, error)
+	ListSkusByProduct(ctx context.Context, in *pb.ListSkusByProductReq, opts ...grpc.CallOption) (*pb.ListSkusByProductResp, error)
 }
 
 // MallProductLoader 实现 eino document.Loader：分页拉取 mall 全量上架商品与 SKU，
@@ -60,7 +60,7 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 	}()
 
 	for page := int32(1); ; page++ {
-		resp, listErr := l.client.ListProducts(ctx, &productservice.ListProductsReq{
+		resp, listErr := l.client.ListProducts(ctx, &pb.ListProductsReq{
 			Page:     page,
 			PageSize: l.pageSize,
 			Status:   loaderStatusOnShelf,
@@ -88,10 +88,10 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 }
 
 // loadSkuDocs 拉取商品的全部上架 SKU 并生成文档。
-func (l *MallProductLoader) loadSkuDocs(ctx context.Context, product *productservice.Product) ([]*schema.Document, error) {
+func (l *MallProductLoader) loadSkuDocs(ctx context.Context, product *pb.Product) ([]*schema.Document, error) {
 	var docs []*schema.Document
 	for page := int32(1); ; page++ {
-		resp, err := l.client.ListSkusByProduct(ctx, &productservice.ListSkusByProductReq{
+		resp, err := l.client.ListSkusByProduct(ctx, &pb.ListSkusByProductReq{
 			ProductId: product.Id,
 			Page:      page,
 			PageSize:  l.pageSize,
@@ -114,7 +114,7 @@ func (l *MallProductLoader) loadSkuDocs(ctx context.Context, product *productser
 }
 
 // buildSkuDocument 组装单个 SKU 的文档：语义文本进 Content，业务快照进 MetaData。
-func buildSkuDocument(product *productservice.Product, sku *productservice.Sku) *schema.Document {
+func buildSkuDocument(product *pb.Product, sku *pb.Sku) *schema.Document {
 	name := joinNonEmpty(" ", product.Name, sku.Name)
 	content := buildContent(product, sku, name)
 	meta := CandidateMetadata{
@@ -132,7 +132,7 @@ func buildSkuDocument(product *productservice.Product, sku *productservice.Sku) 
 
 // buildContent 组装参与 embedding 的语义文本。刻意不含价格/库存/销量：
 // 这些高频波动字段进 MetaData，避免每次价格变动都触发重嵌入。
-func buildContent(product *productservice.Product, sku *productservice.Sku, name string) string {
+func buildContent(product *pb.Product, sku *pb.Sku, name string) string {
 	var b strings.Builder
 	b.WriteString("商品: ")
 	b.WriteString(name)

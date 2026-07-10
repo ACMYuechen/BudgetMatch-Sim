@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/cloudwego/eino/components/document"
 	"google.golang.org/grpc"
@@ -13,20 +13,20 @@ import (
 
 // stubCatalog 是 mallCatalog 的测试替身，支持分页。
 type stubCatalog struct {
-	products []*productservice.Product
-	skus     map[string][]*productservice.Sku
+	products []*pb.Product
+	skus     map[string][]*pb.Sku
 }
 
-func (s *stubCatalog) ListProducts(ctx context.Context, in *productservice.ListProductsReq, opts ...grpc.CallOption) (*productservice.ListProductsResp, error) {
-	return &productservice.ListProductsResp{
+func (s *stubCatalog) ListProducts(ctx context.Context, in *pb.ListProductsReq, opts ...grpc.CallOption) (*pb.ListProductsResp, error) {
+	return &pb.ListProductsResp{
 		List:  paginate(s.products, in.Page, in.PageSize),
 		Total: int64(len(s.products)),
 	}, nil
 }
 
-func (s *stubCatalog) ListSkusByProduct(ctx context.Context, in *productservice.ListSkusByProductReq, opts ...grpc.CallOption) (*productservice.ListSkusByProductResp, error) {
+func (s *stubCatalog) ListSkusByProduct(ctx context.Context, in *pb.ListSkusByProductReq, opts ...grpc.CallOption) (*pb.ListSkusByProductResp, error) {
 	all := s.skus[in.ProductId]
-	return &productservice.ListSkusByProductResp{
+	return &pb.ListSkusByProductResp{
 		List:  paginate(all, in.Page, in.PageSize),
 		Total: int64(len(all)),
 	}, nil
@@ -47,12 +47,12 @@ func paginate[T any](all []T, page, pageSize int32) []T {
 // TestLoaderLoadsAllPages 验证跨页全量加载：3 个商品 pageSize=2 需两页，SKU 全部展开。
 func TestLoaderLoadsAllPages(t *testing.T) {
 	catalog := &stubCatalog{
-		products: []*productservice.Product{
+		products: []*pb.Product{
 			{Id: "p1", Name: "键盘", Providor: "K", Content: "适合办公"},
 			{Id: "p2", Name: "台灯"},
 			{Id: "p3", Name: "显示器"},
 		},
-		skus: map[string][]*productservice.Sku{
+		skus: map[string][]*pb.Sku{
 			"p1": {{Id: "s1", Name: "红轴", Specs: `{"switch":"red"}`, Price: 29900, Stock: 10, Sold: 5}},
 			"p2": {{Id: "s2", Price: 16900, Stock: 3}, {Id: "s3", Name: "Pro", Price: 26900, Stock: 2}},
 			"p3": {{Id: "s4", Price: 69900, Stock: 1}},

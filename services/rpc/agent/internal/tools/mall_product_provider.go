@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"google.golang.org/grpc"
 )
@@ -23,10 +23,10 @@ const (
 )
 
 // productSearcher 是 provider 依赖的 mall 商品能力子集，
-// 生成的 productservice.ProductService 天然满足，测试中可用轻量 stub 替代。
+// 生成的客户端 productservice.ProductService 天然满足，测试中可用轻量 stub 替代。
 type productSearcher interface {
-	ListProducts(ctx context.Context, in *productservice.ListProductsReq, opts ...grpc.CallOption) (*productservice.ListProductsResp, error)
-	ListSkusByProduct(ctx context.Context, in *productservice.ListSkusByProductReq, opts ...grpc.CallOption) (*productservice.ListSkusByProductResp, error)
+	ListProducts(ctx context.Context, in *pb.ListProductsReq, opts ...grpc.CallOption) (*pb.ListProductsResp, error)
+	ListSkusByProduct(ctx context.Context, in *pb.ListSkusByProductReq, opts ...grpc.CallOption) (*pb.ListSkusByProductResp, error)
 }
 
 // MallProductProvider 是 ProductProvider 的 mall-rpc 实现：
@@ -99,16 +99,16 @@ func searchTerms(req SearchProductsReq) []string {
 }
 
 // collectProducts 对每个搜索词分页拉取上架商品，按商品 ID 去重，达到候选上限即停。
-func (p *MallProductProvider) collectProducts(ctx context.Context, terms []string) ([]*productservice.Product, error) {
+func (p *MallProductProvider) collectProducts(ctx context.Context, terms []string) ([]*pb.Product, error) {
 	seen := make(map[string]struct{})
-	var products []*productservice.Product
+	var products []*pb.Product
 
 	for _, term := range terms {
 		for page := int32(1); page <= mallMaxPagesPerTerm; page++ {
 			if len(products) >= mallMaxProducts {
 				return products, nil
 			}
-			resp, err := p.client.ListProducts(ctx, &productservice.ListProductsReq{
+			resp, err := p.client.ListProducts(ctx, &pb.ListProductsReq{
 				Page:     page,
 				PageSize: mallProductPageSize,
 				Keyword:  term,
@@ -139,10 +139,10 @@ func (p *MallProductProvider) collectProducts(ctx context.Context, terms []strin
 }
 
 // collectSkus 分页拉取商品的全部上架 SKU。
-func (p *MallProductProvider) collectSkus(ctx context.Context, productID string) ([]*productservice.Sku, error) {
-	var skus []*productservice.Sku
+func (p *MallProductProvider) collectSkus(ctx context.Context, productID string) ([]*pb.Sku, error) {
+	var skus []*pb.Sku
 	for page := int32(1); page <= mallMaxSkuPages; page++ {
-		resp, err := p.client.ListSkusByProduct(ctx, &productservice.ListSkusByProductReq{
+		resp, err := p.client.ListSkusByProduct(ctx, &pb.ListSkusByProductReq{
 			ProductId: productID,
 			Page:      page,
 			PageSize:  mallSkuPageSize,
@@ -160,7 +160,7 @@ func (p *MallProductProvider) collectSkus(ctx context.Context, productID string)
 }
 
 // candidateFromSku 把商品与 SKU 映射为候选：名称拼接 SPU+SKU，标签取供应商与规格值。
-func candidateFromSku(product *productservice.Product, sku *productservice.Sku) ProductCandidate {
+func candidateFromSku(product *pb.Product, sku *pb.Sku) ProductCandidate {
 	return ProductCandidate{
 		ID:         sku.Id,
 		Name:       joinName(product.Name, sku.Name),

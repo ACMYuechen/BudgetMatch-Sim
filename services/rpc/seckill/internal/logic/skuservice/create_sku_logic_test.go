@@ -8,6 +8,7 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"budgetmatch-sim/services/rpc/seckill/internal/svc"
 	"budgetmatch-sim/services/rpc/seckill/model/seckill_activity"
 	"budgetmatch-sim/services/rpc/seckill/model/seckill_sku"
@@ -53,13 +54,13 @@ func newLogic(skuStore *fakeSkuStore, mall productservice.ProductService) *Creat
 	return NewCreateSkuLogic(context.Background(), sc)
 }
 
-func mallResp(sku *productservice.Sku) *productservice.GetSkuResp {
+func mallResp(sku *mallpb.Sku) *productservice.GetSkuResp {
 	return &productservice.GetSkuResp{Sku: sku}
 }
 
 func TestCreateSku_SnapshotFromMall(t *testing.T) {
 	store := &fakeSkuStore{}
-	mall := fakeMallClient{resp: mallResp(&productservice.Sku{
+	mall := fakeMallClient{resp: mallResp(&mallpb.Sku{
 		Id: "mall-sku-1", ProductId: "mall-prod-1", Name: "iPhone", Price: 599900, Stock: 50, Status: 1,
 	})}
 
@@ -84,7 +85,7 @@ func TestCreateSku_SnapshotFromMall(t *testing.T) {
 
 func TestCreateSku_RequestOverridesSnapshot(t *testing.T) {
 	store := &fakeSkuStore{}
-	mall := fakeMallClient{resp: mallResp(&productservice.Sku{
+	mall := fakeMallClient{resp: mallResp(&mallpb.Sku{
 		Id: "mall-sku-1", ProductId: "mall-prod-1", Name: "iPhone", Price: 599900, Stock: 50, Status: 1,
 	})}
 
@@ -106,7 +107,7 @@ func TestCreateSku_RequestOverridesSnapshot(t *testing.T) {
 
 func TestCreateSku_MallSkuOffline(t *testing.T) {
 	store := &fakeSkuStore{}
-	mall := fakeMallClient{resp: mallResp(&productservice.Sku{Id: "mall-sku-1", Status: 0})} // 下架
+	mall := fakeMallClient{resp: mallResp(&mallpb.Sku{Id: "mall-sku-1", Status: 0})} // 下架
 
 	_, err := newLogic(store, mall).CreateSku(&pb.CreateSkuReq{
 		ActivityId: "act1", MallSkuId: "mall-sku-1", SeckillPrice: 100,
@@ -147,7 +148,7 @@ func TestCreateSku_ManualNoMallLink(t *testing.T) {
 
 func TestCreateSku_SeckillPriceAboveOriginalRejected(t *testing.T) {
 	store := &fakeSkuStore{}
-	mall := fakeMallClient{resp: mallResp(&productservice.Sku{Id: "mall-sku-1", Name: "x", Price: 100, Stock: 5, Status: 1})}
+	mall := fakeMallClient{resp: mallResp(&mallpb.Sku{Id: "mall-sku-1", Name: "x", Price: 100, Stock: 5, Status: 1})}
 
 	// 原价取商城的 100，秒杀价 200 > 原价 → 应拒绝
 	_, err := newLogic(store, mall).CreateSku(&pb.CreateSkuReq{

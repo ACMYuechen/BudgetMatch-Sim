@@ -4,19 +4,19 @@ import (
 	"context"
 	"testing"
 
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"google.golang.org/grpc"
 )
 
 // stubProductService 是 productSearcher 的测试替身，按关键词返回预置商品分页。
 type stubProductService struct {
-	productsByKeyword map[string][]*productservice.Product
-	skusByProduct     map[string][]*productservice.Sku
+	productsByKeyword map[string][]*pb.Product
+	skusByProduct     map[string][]*pb.Sku
 	listCalls         []string // 记录 ListProducts 收到的 keyword+page，用于断言分页行为
 }
 
-func (s *stubProductService) ListProducts(ctx context.Context, in *productservice.ListProductsReq, opts ...grpc.CallOption) (*productservice.ListProductsResp, error) {
+func (s *stubProductService) ListProducts(ctx context.Context, in *pb.ListProductsReq, opts ...grpc.CallOption) (*pb.ListProductsResp, error) {
 	s.listCalls = append(s.listCalls, in.Keyword)
 	all := s.productsByKeyword[in.Keyword]
 
@@ -28,7 +28,7 @@ func (s *stubProductService) ListProducts(ctx context.Context, in *productservic
 	if end > len(all) {
 		end = len(all)
 	}
-	return &productservice.ListProductsResp{
+	return &pb.ListProductsResp{
 		List:     all[start:end],
 		Total:    int64(len(all)),
 		Page:     in.Page,
@@ -36,9 +36,9 @@ func (s *stubProductService) ListProducts(ctx context.Context, in *productservic
 	}, nil
 }
 
-func (s *stubProductService) ListSkusByProduct(ctx context.Context, in *productservice.ListSkusByProductReq, opts ...grpc.CallOption) (*productservice.ListSkusByProductResp, error) {
+func (s *stubProductService) ListSkusByProduct(ctx context.Context, in *pb.ListSkusByProductReq, opts ...grpc.CallOption) (*pb.ListSkusByProductResp, error) {
 	skus := s.skusByProduct[in.ProductId]
-	return &productservice.ListSkusByProductResp{
+	return &pb.ListSkusByProductResp{
 		List:  skus,
 		Total: int64(len(skus)),
 		Page:  in.Page,
@@ -48,10 +48,10 @@ func (s *stubProductService) ListSkusByProduct(ctx context.Context, in *products
 // TestMallProviderMapsSkuToCandidate 验证商品+SKU 到候选的字段映射与库存/预算过滤。
 func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 	stub := &stubProductService{
-		productsByKeyword: map[string][]*productservice.Product{
+		productsByKeyword: map[string][]*pb.Product{
 			"键盘": {{Id: "p1", Name: "静音机械键盘", Providor: "Keychron"}},
 		},
-		skusByProduct: map[string][]*productservice.Sku{
+		skusByProduct: map[string][]*pb.Sku{
 			"p1": {
 				{Id: "s1", ProductId: "p1", Name: "红轴", Specs: `{"switch":"red"}`, Price: 29900, Stock: 10, Sold: 200},
 				{Id: "s2", ProductId: "p1", Name: "青轴", Price: 39900, Stock: 0, Sold: 50},     // 无库存,应被过滤
@@ -87,13 +87,13 @@ func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 
 // TestMallProviderDedupsAcrossTerms 验证多个搜索词命中同一商品时只保留一份。
 func TestMallProviderDedupsAcrossTerms(t *testing.T) {
-	shared := &productservice.Product{Id: "p1", Name: "台灯"}
+	shared := &pb.Product{Id: "p1", Name: "台灯"}
 	stub := &stubProductService{
-		productsByKeyword: map[string][]*productservice.Product{
+		productsByKeyword: map[string][]*pb.Product{
 			"台灯": {shared},
 			"护眼": {shared},
 		},
-		skusByProduct: map[string][]*productservice.Sku{
+		skusByProduct: map[string][]*pb.Sku{
 			"p1": {{Id: "s1", Price: 16900, Stock: 3}},
 		},
 	}
@@ -113,15 +113,15 @@ func TestMallProviderDedupsAcrossTerms(t *testing.T) {
 // TestMallProviderCapsPagination 验证每词翻页封顶：40 个商品 20/页只翻 mallMaxPagesPerTerm 页,
 // 且候选总量不超过 mallMaxProducts。
 func TestMallProviderCapsPagination(t *testing.T) {
-	var many []*productservice.Product
-	skus := make(map[string][]*productservice.Sku)
+	var many []*pb.Product
+	skus := make(map[string][]*pb.Sku)
 	for i := range 80 {
 		id := "p" + string(rune('a'+i/26)) + string(rune('a'+i%26))
-		many = append(many, &productservice.Product{Id: id, Name: "商品" + id})
-		skus[id] = []*productservice.Sku{{Id: "s-" + id, Price: 100, Stock: 1}}
+		many = append(many, &pb.Product{Id: id, Name: "商品" + id})
+		skus[id] = []*pb.Sku{{Id: "s-" + id, Price: 100, Stock: 1}}
 	}
 	stub := &stubProductService{
-		productsByKeyword: map[string][]*productservice.Product{"多": many},
+		productsByKeyword: map[string][]*pb.Product{"多": many},
 		skusByProduct:     skus,
 	}
 	provider := NewMallProductProvider(stub)
