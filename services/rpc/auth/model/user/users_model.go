@@ -7,10 +7,17 @@ import (
 	"context"
 	"errors"
 
+	infrauuid "budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
 
-var _ UsersModel = (*customUsersModel)(nil)
+const idPrefix = "usr"
+
+var (
+	_          UsersModel = (*customUsersModel)(nil)
+	generateID            = infrauuid.MustNewPrefixedShortGenerator(idPrefix)
+)
 
 type (
 	// UsersModel 原生 DB 接口，不走缓存
@@ -26,7 +33,7 @@ type (
 		Page   int
 		Size   int
 		Status int64
-		Role      int64          `json:"role" gorm:"type:int;default:100;comment:角色身份，数字标识（100为普通用户）"`
+		Role   int64 `json:"role" gorm:"type:int;default:100;comment:角色身份，数字标识（100为普通用户）"`
 	}
 
 	customUsersModel struct {
@@ -39,6 +46,19 @@ func NewUsersModel(conn *gorm.DB) UsersModel {
 	return &customUsersModel{
 		defaultUsersModel: newUsersModel(conn),
 	}
+}
+
+// NewID 生成用户表主键。
+func NewID() string {
+	return generateID()
+}
+
+// BeforeCreate 在写入用户记录前补充主键，保留调用方传入的已有主键。
+func (u *Users) BeforeCreate(_ *gorm.DB) error {
+	if u.Id == "" {
+		u.Id = NewID()
+	}
+	return nil
 }
 
 func (m *customUsersModel) FindByIds(ctx context.Context, ids []string) ([]Users, error) {

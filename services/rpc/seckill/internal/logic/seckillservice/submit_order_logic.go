@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/dlock"
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/internal/svc"
+	"budgetmatch-sim/services/rpc/seckill/model/seckill_order"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 )
 
@@ -43,7 +43,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		return nil, errors.SeckillTokenInvalid
 	}
 
-	// 2. validate activity time and status
+	// 2. 校验活动时间和状态
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
@@ -63,7 +63,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		return nil, errors.SeckillActivityEnded
 	}
 
-	// 3. validate sku
+	// 3. 校验 SKU
 	sku, err := l.svcCtx.SkuStore.FindOne(l.ctx, in.SkuId)
 	if err != nil {
 		l.Logger.Errorf("failed to find sku: %v", err)
@@ -73,19 +73,19 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		return nil, errors.SeckillSkuNotFound
 	}
 
-	// 4. rate limit: activity-level global sliding window (5s / 1000 requests per activity)
+	// 4. 活动级限流：每个活动 5 秒内最多处理 1000 个请求
 	activityKey := fmt.Sprintf("seckill:limit:activity:%s", in.ActivityId)
 	if !l.svcCtx.ActivityRateLimiter.Allow(l.ctx, activityKey) {
 		return nil, errors.TooManyRequests
 	}
 
-	// 5. rate limit: user-level token bucket (capacity 5, refill 1 per 60s per user)
+	// 5. 用户级限流：令牌桶容量为 5，每 60 秒补充 1 个令牌
 	userKey := fmt.Sprintf("seckill:limit:user:%s", in.UserId)
 	if !l.svcCtx.UserRateLimiter.Allow(l.ctx, userKey) {
 		return nil, errors.TooManyRequests
 	}
 
-	// 6. check already purchased
+	// 6. 检查用户是否已购买
 	existingOrder, err := l.svcCtx.OrderStore.FindByActivityAndSkuAndUser(l.ctx, in.ActivityId, in.SkuId, in.UserId)
 	if err != nil {
 		l.Logger.Errorf("failed to check existing order: %v", err)
@@ -95,7 +95,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		return nil, errors.SeckillAlreadyPurchased
 	}
 
-	// 7. deduct stock from Redis
+	// 7. 从 Redis 扣减库存
 	// 对于低库存 SKU，使用 etcd 分布式锁兜底，防止 Redis 主从切换等极端场景下超卖
 	qty := int64(in.Quantity)
 	if qty <= 0 {
@@ -141,8 +141,8 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		return nil, errors.SeckillStockNotEnough
 	}
 
-	// 8. generate order_id and push to stream
-	orderID := uuid.New().String()
+	// 8. 生成订单 ID 并写入消息流
+	orderID := seckill_order.NewID()
 	totalAmount := sku.SeckillPrice * qty
 
 	_, err = l.svcCtx.Redis.XAdd(l.ctx, &redis.XAddArgs{
@@ -158,13 +158,13 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}).Result()
 	if err != nil {
 		l.Logger.Errorf("failed to add to stream: %v", err)
-		// rollback stock
+		// 回滚库存
 		l.svcCtx.StockManager.Rollback(in.ActivityId, in.SkuId, qty)
 		return nil, errors.SeckillSubmitFailed
 	}
 
 	return &pb.SubmitOrderResp{
 		OrderId: orderID,
-		Status:  0, // queued
+		Status:  0, // 排队中
 	}, nil
 }

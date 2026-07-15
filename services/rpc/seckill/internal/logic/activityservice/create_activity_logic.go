@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
@@ -36,13 +35,12 @@ func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.Crea
 	}
 
 	activity := &seckill_activity.SeckillActivities{
-		Id:          uuid.New().String(),
 		Title:       in.Title,
 		Description: in.Description,
 		BannerUrl:   in.BannerUrl,
 		StartTime:   startTime,
 		EndTime:     endTime,
-		Status:      0, // default offline
+		Status:      0, // 默认下线
 	}
 
 	if err := l.svcCtx.ActivityStore.InsertOne(l.ctx, activity); err != nil {

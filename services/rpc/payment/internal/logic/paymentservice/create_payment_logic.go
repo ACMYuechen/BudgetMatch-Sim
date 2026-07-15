@@ -57,7 +57,6 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 		record = existing
 	} else {
 		record = &payments.Payments{
-			Id:         uuid.New().String(),
 			OutTradeNo: genOutTradeNo(),
 			OrderId:    in.OrderId,
 			UserId:     in.UserId,

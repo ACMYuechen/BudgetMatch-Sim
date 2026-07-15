@@ -3,7 +3,6 @@ package productservicelogic
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
@@ -28,7 +27,6 @@ func NewCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 
 func (l *CreateProductLogic) CreateProduct(in *pb.CreateProductReq) (*pb.CreateProductResp, error) {
 	product := &products.Products{
-		Id:           uuid.New().String(),
 		UserId:       in.UserId,
 		Name:         in.Name,
 		Content:      in.Content,

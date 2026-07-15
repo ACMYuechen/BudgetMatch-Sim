@@ -6,10 +6,17 @@ package mall_orders
 import (
 	"time"
 
+	infrauuid "budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
 
-var _ MallOrdersModel = (*customMallOrdersModel)(nil)
+const idPrefix = "mord"
+
+var (
+	_          MallOrdersModel = (*customMallOrdersModel)(nil)
+	generateID                 = infrauuid.MustNewPrefixedShortGenerator(idPrefix)
+)
 
 type (
 	MallOrdersModel interface {
@@ -32,6 +39,19 @@ func NewMallOrdersModel(conn *gorm.DB) MallOrdersModel {
 	return &customMallOrdersModel{
 		defaultMallOrdersModel: newMallOrdersModel(conn),
 	}
+}
+
+// NewID 生成商城订单表主键。
+func NewID() string {
+	return generateID()
+}
+
+// BeforeCreate 在写入商城订单前补充主键，保留调用方传入的已有主键。
+func (o *MallOrders) BeforeCreate(_ *gorm.DB) error {
+	if o.Id == "" {
+		o.Id = NewID()
+	}
+	return nil
 }
 
 // CreateTable 若表不存在则创建。

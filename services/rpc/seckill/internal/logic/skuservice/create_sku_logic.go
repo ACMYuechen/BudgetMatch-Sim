@@ -3,7 +3,6 @@ package skuservicelogic
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
@@ -28,7 +27,7 @@ func NewCreateSkuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateS
 }
 
 func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, error) {
-	// verify activity exists
+	// 校验活动是否存在
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
 		l.Logger.Errorf("failed to find activity: %v", err)
@@ -39,7 +38,6 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	}
 
 	sku := &seckill_sku.SeckillSkus{
-		Id:            uuid.New().String(),
 		ActivityId:    in.ActivityId,
 		Title:         in.Title,
 		Subtitle:      in.Subtitle,

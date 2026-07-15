@@ -6,10 +6,17 @@ package product_skus
 import (
 	"time"
 
+	infrauuid "budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
 
-var _ ProductSkusModel = (*customProductSkusModel)(nil)
+const idPrefix = "psku"
+
+var (
+	_          ProductSkusModel = (*customProductSkusModel)(nil)
+	generateID                  = infrauuid.MustNewPrefixedShortGenerator(idPrefix)
+)
 
 type (
 	ProductSkusModel interface {
@@ -30,6 +37,19 @@ func NewProductSkusModel(conn *gorm.DB) ProductSkusModel {
 	return &customProductSkusModel{
 		defaultProductSkusModel: newProductSkusModel(conn),
 	}
+}
+
+// NewID 生成商品 SKU 表主键。
+func NewID() string {
+	return generateID()
+}
+
+// BeforeCreate 在写入商品 SKU 记录前补充主键，保留调用方传入的已有主键。
+func (s *ProductSkus) BeforeCreate(_ *gorm.DB) error {
+	if s.Id == "" {
+		s.Id = NewID()
+	}
+	return nil
 }
 
 // CreateTable 若表不存在则创建。

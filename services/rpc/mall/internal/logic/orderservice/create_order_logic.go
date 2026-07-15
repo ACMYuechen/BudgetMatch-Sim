@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
@@ -74,7 +73,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	// 4. 在数据库事务中创建订单
-	orderID := uuid.New().String()
+	orderID := mall_orders.NewID()
 	originalAmount := sku.Price * in.Quantity
 	discountAmount := int64(0)
 	payAmount := originalAmount - discountAmount
@@ -105,7 +104,6 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	item := &mall_order_items.MallOrderItems{
-		Id:             uuid.New().String(),
 		OrderId:        orderID,
 		ProductId:      product.Id,
 		SkuId:          sku.Id,

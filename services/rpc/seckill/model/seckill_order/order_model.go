@@ -7,10 +7,17 @@ import (
 	"context"
 	"errors"
 
+	infrauuid "budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
 
-var _ SeckillOrdersModel = (*customSeckillOrdersModel)(nil)
+const idPrefix = "sord"
+
+var (
+	_          SeckillOrdersModel = (*customSeckillOrdersModel)(nil)
+	generateID                    = infrauuid.MustNewPrefixedShortGenerator(idPrefix)
+)
 
 type (
 	SeckillOrdersModel interface {
@@ -29,6 +36,19 @@ func NewSeckillOrdersModel(conn *gorm.DB) SeckillOrdersModel {
 	return &customSeckillOrdersModel{
 		defaultSeckillOrdersModel: newSeckillOrdersModel(conn),
 	}
+}
+
+// NewID 生成秒杀订单表主键。
+func NewID() string {
+	return generateID()
+}
+
+// BeforeCreate 在写入秒杀订单前补充主键，保留调用方传入的已有主键。
+func (o *SeckillOrders) BeforeCreate(_ *gorm.DB) error {
+	if o.Id == "" {
+		o.Id = NewID()
+	}
+	return nil
 }
 
 func (m *customSeckillOrdersModel) CreateTable() error {
