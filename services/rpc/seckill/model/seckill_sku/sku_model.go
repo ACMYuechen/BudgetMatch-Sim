@@ -4,12 +4,11 @@
 package seckill_sku
 
 import (
+	"budgetmatch-sim/infra/uuid"
 	"context"
 
 	"gorm.io/gorm"
 )
-
-var _ SeckillSkusModel = (*customSeckillSkusModel)(nil)
 
 type (
 	SeckillSkusModel interface {
@@ -27,6 +26,10 @@ func NewSeckillSkusModel(conn *gorm.DB) SeckillSkusModel {
 	return &customSeckillSkusModel{
 		defaultSeckillSkusModel: newSeckillSkusModel(conn),
 	}
+}
+
+func NewSeckillSkuId() string {
+	return uuid.NewPrefixedShortUUID("ssku-")
 }
 
 func (m *customSeckillSkusModel) CreateTable() error {

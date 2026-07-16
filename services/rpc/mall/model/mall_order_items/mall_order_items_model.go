@@ -4,10 +4,10 @@
 package mall_order_items
 
 import (
+	"budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
-
-var _ MallOrderItemsModel = (*customMallOrderItemsModel)(nil)
 
 type (
 	MallOrderItemsModel interface {
@@ -28,6 +28,10 @@ func NewMallOrderItemsModel(conn *gorm.DB) MallOrderItemsModel {
 	return &customMallOrderItemsModel{
 		defaultMallOrderItemsModel: newMallOrderItemsModel(conn),
 	}
+}
+
+func NewMallOrderItemId() string {
+	return uuid.NewPrefixedShortUUID("mitem-")
 }
 
 // CreateTable 若表不存在则创建。

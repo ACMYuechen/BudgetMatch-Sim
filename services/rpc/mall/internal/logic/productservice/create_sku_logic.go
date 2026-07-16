@@ -3,7 +3,6 @@ package productservicelogic
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
@@ -27,7 +26,7 @@ func NewCreateSkuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateS
 }
 
 func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, error) {
-	// validate product exists
+	// 校验商品是否存在
 	product, err := l.svcCtx.ProductStore.FindOne(l.ctx, in.ProductId)
 	if err != nil {
 		l.Logger.Errorf("failed to find product: %v", err)
@@ -38,7 +37,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	}
 
 	sku := &product_skus.ProductSkus{
-		Id:           uuid.New().String(),
+		Id:           product_skus.NewProductSkuId(),
 		ProductId:    in.ProductId,
 		Name:         in.Name,
 		Specs:        in.Specs,

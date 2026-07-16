@@ -4,13 +4,12 @@
 package seckill_order
 
 import (
+	"budgetmatch-sim/infra/uuid"
 	"context"
 	"errors"
 
 	"gorm.io/gorm"
 )
-
-var _ SeckillOrdersModel = (*customSeckillOrdersModel)(nil)
 
 type (
 	SeckillOrdersModel interface {
@@ -29,6 +28,10 @@ func NewSeckillOrdersModel(conn *gorm.DB) SeckillOrdersModel {
 	return &customSeckillOrdersModel{
 		defaultSeckillOrdersModel: newSeckillOrdersModel(conn),
 	}
+}
+
+func NewSeckillOrderId() string {
+	return uuid.NewPrefixedShortUUID("sord-")
 }
 
 func (m *customSeckillOrdersModel) CreateTable() error {

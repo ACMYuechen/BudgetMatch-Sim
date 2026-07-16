@@ -4,10 +4,10 @@
 package payments
 
 import (
+	"budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
-
-var _ PaymentsModel = (*customPaymentsModel)(nil)
 
 type (
 	PaymentsModel interface {
@@ -23,6 +23,10 @@ func NewPaymentsModel(conn *gorm.DB) PaymentsModel {
 	return &customPaymentsModel{
 		defaultPaymentsModel: newPaymentsModel(conn),
 	}
+}
+
+func NewPaymentId() string {
+	return uuid.NewPrefixedShortUUID("pay-")
 }
 
 func (m *customPaymentsModel) CreateTable() error {

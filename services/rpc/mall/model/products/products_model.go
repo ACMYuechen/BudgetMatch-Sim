@@ -4,10 +4,10 @@
 package products
 
 import (
+	"budgetmatch-sim/infra/uuid"
+
 	"gorm.io/gorm"
 )
-
-var _ ProductsModel = (*customProductsModel)(nil)
 
 type (
 	ProductsModel interface {
@@ -23,6 +23,10 @@ func NewProductsModel(conn *gorm.DB) ProductsModel {
 	return &customProductsModel{
 		defaultProductsModel: newProductsModel(conn),
 	}
+}
+
+func NewProductId() string {
+	return uuid.NewPrefixedShortUUID("prod-")
 }
 
 func (m *customProductsModel) CreateTable() error {

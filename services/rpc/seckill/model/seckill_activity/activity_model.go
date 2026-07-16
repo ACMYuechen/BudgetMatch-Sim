@@ -4,12 +4,11 @@
 package seckill_activity
 
 import (
+	"budgetmatch-sim/infra/uuid"
 	"context"
 
 	"gorm.io/gorm"
 )
-
-var _ SeckillActivitiesModel = (*customSeckillActivitiesModel)(nil)
 
 type (
 	SeckillActivitiesModel interface {
@@ -27,6 +26,10 @@ func NewSeckillActivitiesModel(conn *gorm.DB) SeckillActivitiesModel {
 	return &customSeckillActivitiesModel{
 		defaultSeckillActivitiesModel: newSeckillActivitiesModel(conn),
 	}
+}
+
+func NewSeckillActivityId() string {
+	return uuid.NewPrefixedShortUUID("sact-")
 }
 
 func (m *customSeckillActivitiesModel) CreateTable() error {

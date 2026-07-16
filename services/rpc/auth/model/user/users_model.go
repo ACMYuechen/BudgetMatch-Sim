@@ -4,13 +4,12 @@
 package user
 
 import (
+	"budgetmatch-sim/infra/uuid"
 	"context"
 	"errors"
 
 	"gorm.io/gorm"
 )
-
-var _ UsersModel = (*customUsersModel)(nil)
 
 type (
 	// UsersModel 原生 DB 接口，不走缓存
@@ -26,7 +25,7 @@ type (
 		Page   int
 		Size   int
 		Status int64
-		Role      int64          `json:"role" gorm:"type:int;default:100;comment:角色身份，数字标识（100为普通用户）"`
+		Role   int64 `json:"role" gorm:"type:int;default:100;comment:角色身份，数字标识（100为普通用户）"`
 	}
 
 	customUsersModel struct {
@@ -39,6 +38,10 @@ func NewUsersModel(conn *gorm.DB) UsersModel {
 	return &customUsersModel{
 		defaultUsersModel: newUsersModel(conn),
 	}
+}
+
+func NewUserId() string {
+	return uuid.NewPrefixedShortUUID("usr-")
 }
 
 func (m *customUsersModel) FindByIds(ctx context.Context, ids []string) ([]Users, error) {

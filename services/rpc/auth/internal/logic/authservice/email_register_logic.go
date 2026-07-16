@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
-	"budgetmatch-sim/infra/rand"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
 	"budgetmatch-sim/services/rpc/auth/model/user"
@@ -87,12 +86,9 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 		return nil, errors.Internal
 	}
 
-	// 生成用户 ID
-	userId := rand.GenerateRandomString32()
-
 	// 创建新用户
 	err = l.svcCtx.UserStore.InsertOne(l.ctx, &user.Users{
-		Id:        userId,
+		Id:        user.NewUserId(),
 		Username:  in.Username,
 		Email:     in.Email,
 		Password:  hashPassword,

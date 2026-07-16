@@ -4,12 +4,11 @@
 package product_skus
 
 import (
+	"budgetmatch-sim/infra/uuid"
 	"time"
 
 	"gorm.io/gorm"
 )
-
-var _ ProductSkusModel = (*customProductSkusModel)(nil)
 
 type (
 	ProductSkusModel interface {
@@ -30,6 +29,10 @@ func NewProductSkusModel(conn *gorm.DB) ProductSkusModel {
 	return &customProductSkusModel{
 		defaultProductSkusModel: newProductSkusModel(conn),
 	}
+}
+
+func NewProductSkuId() string {
+	return uuid.NewPrefixedShortUUID("psku-")
 }
 
 // CreateTable 若表不存在则创建。
