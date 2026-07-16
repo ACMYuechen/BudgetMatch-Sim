@@ -38,6 +38,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	}
 
 	sku := &seckill_sku.SeckillSkus{
+		Id:            seckill_sku.NewSeckillSkuId(),
 		ActivityId:    in.ActivityId,
 		Title:         in.Title,
 		Subtitle:      in.Subtitle,

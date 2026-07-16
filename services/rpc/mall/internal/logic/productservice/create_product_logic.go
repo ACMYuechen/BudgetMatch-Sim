@@ -27,6 +27,7 @@ func NewCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 
 func (l *CreateProductLogic) CreateProduct(in *pb.CreateProductReq) (*pb.CreateProductResp, error) {
 	product := &products.Products{
+		Id:           products.NewProductId(),
 		UserId:       in.UserId,
 		Name:         in.Name,
 		Content:      in.Content,

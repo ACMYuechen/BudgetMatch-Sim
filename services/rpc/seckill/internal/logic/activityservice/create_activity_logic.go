@@ -35,6 +35,7 @@ func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.Crea
 	}
 
 	activity := &seckill_activity.SeckillActivities{
+		Id:          seckill_activity.NewSeckillActivityId(),
 		Title:       in.Title,
 		Description: in.Description,
 		BannerUrl:   in.BannerUrl,

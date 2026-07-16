@@ -142,7 +142,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}
 
 	// 8. 生成订单 ID 并写入消息流
-	orderID := seckill_order.NewID()
+	orderID := seckill_order.NewSeckillOrderId()
 	totalAmount := sku.SeckillPrice * qty
 
 	_, err = l.svcCtx.Redis.XAdd(l.ctx, &redis.XAddArgs{

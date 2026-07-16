@@ -37,6 +37,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 	}
 
 	sku := &product_skus.ProductSkus{
+		Id:           product_skus.NewProductSkuId(),
 		ProductId:    in.ProductId,
 		Name:         in.Name,
 		Specs:        in.Specs,

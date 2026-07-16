@@ -88,6 +88,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 
 	// 创建新用户
 	err = l.svcCtx.UserStore.InsertOne(l.ctx, &user.Users{
+		Id:        user.NewUserId(),
 		Username:  in.Username,
 		Email:     in.Email,
 		Password:  hashPassword,

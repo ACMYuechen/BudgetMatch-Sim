@@ -73,7 +73,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	// 4. 在数据库事务中创建订单
-	orderID := mall_orders.NewID()
+	orderID := mall_orders.NewMallOrderId()
 	originalAmount := sku.Price * in.Quantity
 	discountAmount := int64(0)
 	payAmount := originalAmount - discountAmount
@@ -104,6 +104,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	item := &mall_order_items.MallOrderItems{
+		Id:             mall_order_items.NewMallOrderItemId(),
 		OrderId:        orderID,
 		ProductId:      product.Id,
 		SkuId:          sku.Id,
