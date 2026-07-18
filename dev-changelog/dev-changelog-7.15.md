@@ -34,3 +34,31 @@
 
 - `go test ./infra/uuid/` 通过（含 1 万次 Short UUID 唯一性测试）。
 - 全仓 `go build ./...` 通过；`go test ./...` 除 `infra/configcenter`、`infra/dlock` 两个依赖本地 etcd 环境（`ETCD_HOSTS`）的既有失败外全部通过。
+
+## 2026-07-18 Agent 新增文件读写工具（feat/agent/hfs）
+
+### 改了什么
+
+- 在 `services/rpc/agent/internal/agent/recommend/llm/tools.go` 中新增两个 Eino 工具：
+  - `read_file`：读取指定路径的文件内容并返回，基于 `os.ReadFile`。
+  - `write_file`：将内容写入指定路径的文件（不存在则创建），权限 0644，基于 `os.WriteFile`。
+- 两个工具与现有 `search_products` / `select_bundle` 走相同的 `decorate` 包装，自动记录调用日志和错误转 JSON。
+- 在 `services/rpc/agent/internal/agent/recommend/llm/prompt.go` 中更新 system prompt 和 user prompt：
+  - system prompt 新增文件工具使用指引，约定工作目录 `./workspace/` 下的命名规范（`preferences.json`、`recommendations/*.md`），路径不明确时要求模型反问用户。
+  - user prompt 的 Task 指引中补充文件工具调用提示。
+
+### 为什么
+
+- 文件读写是 AI Agent 的基本能力要素，当前 Agent 仅有商品检索与套装选择两个业务工具，缺乏通用 I/O 能力。
+- 应用场景：读取用户偏好文件、保存推荐报告为 Markdown、加载参考文档等。
+
+### 影响面
+
+- 仅影响 agent-rpc 的 LLM 推荐链路：ReAct Agent 工具集从 2 个扩展为 4 个。
+- 无需配置变更：文件工具无额外配置，始终注册；路径由 LLM 自主决定，无默认沙箱限制。
+- 不影响现有 `search_products` / `select_bundle` 的工具行为与推荐流程。
+
+### 怎么验证的
+
+- `go build ./services/rpc/agent/internal/agent/recommend/llm/` 编译通过。
+- 文件工具为纯 `os.ReadFile` / `os.WriteFile` 封装，无复杂状态，未新增单测。
