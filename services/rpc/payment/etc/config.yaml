@@ -8,6 +8,10 @@ Etcd:
     - ${ETCD_HOSTS}
   Key: payment.rpc
 
+JwtAuth:
+  Secret: "${JWT_SECRET}"
+  Expire: 86400
+
 Database:
   LogLevel: 4
   Driver: "Postgres"

@@ -6,6 +6,7 @@ import (
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
 
 	"google.golang.org/grpc"
@@ -68,6 +69,11 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		}
 		if u == nil {
 			return nil, errors.UserNotFound
+		}
+
+		// 角色级鉴权：拒绝非全局用户身份（如已注销/封禁等异常角色）
+		if !role.IsGlobalUserRole(int64(u.Role)) {
+			return nil, errors.Unauthorized
 		}
 
 		// 注入完整用户到 context

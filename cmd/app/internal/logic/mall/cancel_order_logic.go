@@ -1,4 +1,4 @@
-// Code scaffolded by goctl. No recover, Safe to edit.
+   // Code scaffolded by goctl. No recover, Safe to edit.
 
 package mall
 

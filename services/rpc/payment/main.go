@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/payment/internal/config"
 	paymentserviceServer "budgetmatch-sim/services/rpc/payment/internal/server/paymentservice"
 	"budgetmatch-sim/services/rpc/payment/internal/svc"
@@ -32,6 +33,14 @@ func main() {
 			reflection.Register(grpcServer)
 		}
 	})
+
+	// 注册认证拦截器：支付操作需登录用户，支付回调免鉴权
+	s.AddUnaryInterceptors(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
+		Secret: c.JwtAuth.Secret,
+		NoAuthMethods: map[string]struct{}{
+			"/payment.PaymentService/HandleNotify": {}, // 支付宝异步回调
+		},
+	}))
 	defer s.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
