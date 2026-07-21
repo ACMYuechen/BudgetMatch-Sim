@@ -13,6 +13,13 @@ if [ -f .env ]; then
     set +a
 fi
 
+# make dev 中 RPC/API 运行在宿主机，不能使用 Docker 网络内的 etcd:2379。
+# 因此本地开发时让 etcd advertise 宿主机可访问的端口；全容器模式仍使用 docker-compose.yml 默认值。
+DEV_ETCD_CLIENT_PORT=${DEV_ETCD_CLIENT_PORT:-22379}
+DEV_ETCD_ENDPOINT=${DEV_ETCD_ENDPOINT:-127.0.0.1:${DEV_ETCD_CLIENT_PORT}}
+DEV_ROCKETMQ_NAMESRV_PORT=${DEV_ROCKETMQ_NAMESRV_PORT:-19876}
+DEV_ROCKETMQ_NAMESERVERS=${DEV_ROCKETMQ_NAMESERVERS:-127.0.0.1:${DEV_ROCKETMQ_NAMESRV_PORT}}
+
 # 清理旧进程
 for pidfile in $PID_DIR/*.pid; do
     [ -f "$pidfile" ] && kill $(cat "$pidfile") 2>/dev/null || true
@@ -20,7 +27,7 @@ for pidfile in $PID_DIR/*.pid; do
 done
 
 # 兜底：按端口清理可能残留的本地服务进程
-for port in 10000 10001 10002 10003 10004 10005 10006 10007 12379; do
+for port in 10000 10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT"; do
     pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
     for pid in $pids; do
         kill -9 "$pid" 2>/dev/null || true
@@ -32,6 +39,9 @@ sleep 1
 
 # 启动基础设施
 echo "🐳 启动基础设施 (postgres + redis + rocketmq + etcd)..."
+export ETCD_CLIENT_PORT=$DEV_ETCD_CLIENT_PORT
+export ETCD_ADVERTISE_CLIENT_URLS=http://$DEV_ETCD_ENDPOINT
+export ROCKETMQ_NAMESRV_PORT=$DEV_ROCKETMQ_NAMESRV_PORT
 docker compose up postgres redis rocketmq-namesrv rocketmq-broker etcd -d
 
 echo "⏳ 等待基础设施就绪..."
@@ -39,10 +49,11 @@ sleep 8
 
 # 初始化 etcd 默认动态配置（seckill 等服务启动前必须存在）
 echo "🔧 初始化 etcd 动态配置..."
-bash scripts/init-etcd-config.sh 127.0.0.1:12379 || true
+bash scripts/init-etcd-config.sh "$DEV_ETCD_ENDPOINT" || true
 
 # 设置 etcd 地址，供 conf.UseEnv() 替换配置中的 ${ETCD_HOSTS}
-export ETCD_HOSTS=127.0.0.1:12379
+export ETCD_HOSTS=$DEV_ETCD_ENDPOINT
+export ROCKETMQ_NAMESERVERS=$DEV_ROCKETMQ_NAMESERVERS
 
 # 启动各服务（cd 到对应目录后再 go run，否则找不到 etc/config.yaml）
 # 串行启动：auth-rpc 先启动并自动创建数据库表

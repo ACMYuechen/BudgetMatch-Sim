@@ -4,7 +4,7 @@ set -e
 # 验证 etcd 服务注册、发现与分布式锁
 # 用法：./scripts/verify-etcd.sh [etcd-endpoint]
 
-ENDPOINT=${1:-127.0.0.1:2379}
+ENDPOINT=${1:-127.0.0.1:12379}
 
 if ! command -v etcdctl &> /dev/null; then
     echo "etcdctl not found, trying docker exec..."
