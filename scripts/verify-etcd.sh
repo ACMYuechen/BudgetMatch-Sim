@@ -4,7 +4,7 @@ set -e
 # 验证 etcd 服务注册、发现与分布式锁
 # 用法：./scripts/verify-etcd.sh [etcd-endpoint]
 
-ENDPOINT=${1:-127.0.0.1:2379}
+ENDPOINT=${1:-${DEV_ETCD_ENDPOINT:-${ETCD_HOSTS:-127.0.0.1:22379}}}
 
 if ! command -v etcdctl &> /dev/null; then
     echo "etcdctl not found, trying docker exec..."
@@ -18,9 +18,9 @@ $ETCDCTL endpoint health
 
 echo ""
 echo "=== 2. Check RPC service registration ==="
-for key in auth.rpc seckill.rpc mall.rpc; do
+for key in auth.rpc seckill.rpc mall.rpc agent.rpc payment.rpc; do
     echo "-- $key --"
-    $ETCDCTL get --prefix "/$key" || true
+    $ETCDCTL get --prefix "$key" || true
 done
 
 echo ""

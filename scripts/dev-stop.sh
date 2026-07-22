@@ -1,6 +1,8 @@
 #!/bin/bash
 
 PID_DIR=".pids"
+DEV_ETCD_CLIENT_PORT=${DEV_ETCD_CLIENT_PORT:-22379}
+DEV_ROCKETMQ_NAMESRV_PORT=${DEV_ROCKETMQ_NAMESRV_PORT:-19876}
 
 if [ ! -d "$PID_DIR" ]; then
     echo "没有找到运行中的服务 (缺少 .pids 目录)"
@@ -16,7 +18,7 @@ else
 fi
 
 # 按端口清理残留进程（fuser -k 直接发 SIGKILL）
-LOCAL_PORTS=(10001 10002 10003 10004 10005 10006 10007)
+LOCAL_PORTS=(10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT")
 STILL_ALIVE=()
 for port in "${LOCAL_PORTS[@]}"; do
     if fuser "$port/tcp" 2>/dev/null | grep -q .; then

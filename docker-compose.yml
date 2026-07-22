@@ -10,12 +10,12 @@ services:
       - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
       - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
       - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
-      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=${ETCD_ADVERTISE_CLIENT_URLS:-http://etcd:2379}
       - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
       - ETCD_INITIAL_CLUSTER=etcd-1=http://etcd:2380
       - ETCD_INITIAL_CLUSTER_STATE=new
     ports:
-      - "12379:2379"
+      - "${ETCD_CLIENT_PORT:-12379}:2379"
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
@@ -68,7 +68,7 @@ services:
     container_name: budgetmatch-sim-rocketmq-namesrv
     command: sh mqnamesrv
     ports:
-      - "9876:9876"
+      - "${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped

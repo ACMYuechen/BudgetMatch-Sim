@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"fmt"
+	"os"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
@@ -15,6 +16,8 @@ import (
 const (
 	toolSearchProducts = "search_products"
 	toolSelectBundle   = "select_bundle"
+	toolReadFile       = "read_file"
+	toolWriteFile      = "write_file"
 )
 
 // searchArgs 是 search_products 工具的入参，结构体标签直接驱动 Eino 生成的 JSON Schema。
@@ -45,6 +48,49 @@ type selectResult struct {
 	TotalPriceCents int64                  `json:"total_price_cents"`
 }
 
+// readFileArgs 是 read_file 工具的入参。
+type readFileArgs struct {
+	Path string `json:"path" jsonschema:"required,description=Path to the file to read"`
+}
+
+// readFileResult 是 read_file 工具返回给模型的结果。
+type readFileResult struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+}
+
+// writeFileArgs 是 write_file 工具的入参。
+type writeFileArgs struct {
+	Path    string `json:"path" jsonschema:"required,description=Path to the file to write"`
+	Content string `json:"content" jsonschema:"required,description=Content to write to the file"`
+}
+
+// writeFileResult 是 write_file 工具返回给模型的结果。
+type writeFileResult struct {
+	Path        string `json:"path"`
+	BytesWriten int    `json:"bytes_written"`
+}
+
+// readFile 是 read_file 的执行逻辑：读取文件内容并返回。
+func readFile(ctx context.Context, args readFileArgs) (*readFileResult, error) {
+	_ = ctx
+	data, err := os.ReadFile(args.Path)
+	if err != nil {
+		return nil, fmt.Errorf("read file %s: %w", args.Path, err)
+	}
+	return &readFileResult{Path: args.Path, Content: string(data)}, nil
+}
+
+// writeFile 是 write_file 的执行逻辑：将内容写入文件。
+func writeFile(ctx context.Context, args writeFileArgs) (*writeFileResult, error) {
+	_ = ctx
+	data := []byte(args.Content)
+	if err := os.WriteFile(args.Path, data, 0o644); err != nil {
+		return nil, fmt.Errorf("write file %s: %w", args.Path, err)
+	}
+	return &writeFileResult{Path: args.Path, BytesWriten: len(data)}, nil
+}
+
 // businessTools 把领域能力包装成 Eino 工具。
 // 每个工具用 InferTool 从入参结构体推导 schema，handler 闭包持有 session 写入类型化结果，
 // 再统一套上记录装饰器和错误处理器：工具出错时返回 JSON 让模型自行恢复，而不是中断整个 ReAct。
@@ -67,9 +113,29 @@ func businessTools(s *session) ([]tool.BaseTool, error) {
 		return nil, fmt.Errorf("build %s tool: %w", toolSelectBundle, err)
 	}
 
+	readF, err := utils.InferTool(
+		toolReadFile,
+		"Read the contents of a file at the given path.",
+		readFile,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("build %s tool: %w", toolReadFile, err)
+	}
+
+	writeF, err := utils.InferTool(
+		toolWriteFile,
+		"Write content to a file at the given path. Creates the file if it does not exist.",
+		writeFile,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("build %s tool: %w", toolWriteFile, err)
+	}
+
 	return []tool.BaseTool{
 		decorate(s, toolSearchProducts, search),
 		decorate(s, toolSelectBundle, selectBundle),
+		decorate(s, toolReadFile, readF),
+		decorate(s, toolWriteFile, writeF),
 	}, nil
 }
 

@@ -19,6 +19,13 @@ Rules:
 - Prefer in-stock products with strong value, relevant category, and clear practical reasons.
 - Do not invent products, prices, stock, tools, or discounts.
 - Use search_products before selecting a bundle, then use select_bundle with real candidate IDs.
+- Use read_file and write_file to load user preferences, save recommendations, or handle document-based tasks.
+  All file paths are relative to the agent workspace directory.
+  Conventions:
+    ./workspace/preferences.json — user shopping preferences
+    ./workspace/recommendations/ — saved recommendation reports (*.md)
+  When the user says "my preferences" or "last saved", read or write these well-known paths.
+  If a path is unclear, ask the user where the file is.
 - Use external MCP tools only when the user's goal clearly benefits from them.
 - If the product list is insufficient, say what is missing and keep the recommendation conservative.
 - In multi-turn conversations, interpret follow-up requests (budget changes, item swaps, "the previous one") relative to the conversation history.
@@ -56,6 +63,7 @@ func buildUserPrompt(input agentcore.Input, intent agentcore.Intent) string {
 	}))
 	out.WriteString("\n\nTask:\n")
 	out.WriteString("Call search_products first, then call select_bundle with real candidate IDs. ")
+	out.WriteString("Use read_file/write_file when the user asks to load or save files. ")
 	out.WriteString("Keep the final answer grounded in real tool results.")
 	return out.String()
 }
