@@ -27,6 +27,7 @@ func NewUpdateUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Up
 // 管理后台接口 — 更新用户信息（按 user_id 定位，仅覆盖请求中提供的字段）
 func (l *UpdateUserInfoLogic) UpdateUserInfo(in *pb.UpdateUserInfoReq) (*pb.UpdateUserInfoResp, error) {
 	if in.UserId == "" {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 
@@ -36,6 +37,7 @@ func (l *UpdateUserInfoLogic) UpdateUserInfo(in *pb.UpdateUserInfoReq) (*pb.Upda
 		return nil, errors.Database
 	}
 	if u == nil {
+		l.Logger.Errorf("return error: %v", errors.UserNotFound)
 		return nil, errors.UserNotFound
 	}
 

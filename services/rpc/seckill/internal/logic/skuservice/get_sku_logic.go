@@ -31,6 +31,7 @@ func (l *GetSkuLogic) GetSku(in *pb.GetSkuReq) (*pb.GetSkuResp, error) {
 		return nil, errors.Database
 	}
 	if sku == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillSkuNotFound)
 		return nil, errors.SeckillSkuNotFound
 	}
 

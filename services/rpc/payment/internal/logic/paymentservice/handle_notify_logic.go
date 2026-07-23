@@ -35,6 +35,7 @@ func (l *HandleNotifyLogic) HandleNotify(in *pb.HandleNotifyReq) (*pb.HandleNoti
 		return &pb.HandleNotifyResp{Ok: false, Message: "alipay not configured"}, nil
 	}
 	if len(in.Params) == 0 {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 

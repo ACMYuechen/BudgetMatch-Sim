@@ -1,8 +1,8 @@
 package productservicelogic
 
 import (
-	"budgetmatch-sim/services/rpc/mall/model/products"
 	"budgetmatch-sim/services/rpc/mall/model/product_skus"
+	"budgetmatch-sim/services/rpc/mall/model/products"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 

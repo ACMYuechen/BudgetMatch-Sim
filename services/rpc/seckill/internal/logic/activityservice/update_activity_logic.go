@@ -32,6 +32,7 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 
@@ -52,6 +53,7 @@ func (l *UpdateActivityLogic) UpdateActivity(in *pb.UpdateActivityReq) (*pb.Upda
 	}
 
 	if activity.EndTime.Before(activity.StartTime) || activity.EndTime.Equal(activity.StartTime) {
+		l.Logger.Errorf("return error: %v", errors.Internal)
 		return nil, errors.Internal
 	}
 

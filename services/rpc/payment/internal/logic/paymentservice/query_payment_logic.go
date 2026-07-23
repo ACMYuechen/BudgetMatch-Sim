@@ -29,6 +29,7 @@ func NewQueryPaymentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Quer
 // 这是不依赖异步通知的兜底确认路径，本地无公网时也能确认支付结果。
 func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPaymentResp, error) {
 	if in.OutTradeNo == "" && in.OrderId == "" {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 
@@ -47,6 +48,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 		return nil, errors.Database
 	}
 	if record == nil {
+		l.Logger.Errorf("return error: %v", errors.NotFound)
 		return nil, errors.NotFound
 	}
 

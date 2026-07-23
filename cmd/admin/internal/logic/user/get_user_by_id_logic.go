@@ -36,6 +36,7 @@ func (l *GetUserByIdLogic) GetUserById(req *types.GetUserByIdReq) (resp *types.G
 	}
 	u := rpcResp.User
 	if u == nil {
+		l.Logger.Errorf("return error: %v", errors.UserNotFound)
 		return nil, errors.UserNotFound
 	}
 

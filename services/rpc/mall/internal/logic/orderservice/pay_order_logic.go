@@ -34,12 +34,15 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 		return nil, errors.Database
 	}
 	if order == nil {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if order.UserId != in.UserId {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if order.Status != mall_orders.OrderStatusPending {
+		l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 		return nil, errors.MallInvalidOrderTransition
 	}
 
@@ -52,6 +55,7 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 	}
 	if !ok {
 		// 订单已被并发请求处理或状态已变更
+		l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 		return nil, errors.MallInvalidOrderTransition
 	}
 

@@ -33,6 +33,7 @@ func (l *AdminProductDetailLogic) AdminProductDetail(req *types.AdminProductDeta
 		return nil, errors.MallProductNotFound
 	}
 	if rpcResp.Product == nil {
+		l.Logger.Errorf("return error: %v", errors.MallProductNotFound)
 		return nil, errors.MallProductNotFound
 	}
 

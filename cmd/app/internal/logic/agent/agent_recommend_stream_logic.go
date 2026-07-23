@@ -38,6 +38,7 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		"max_items":       req.MaxItems,
 		"conversation_id": req.ConversationId,
 	}}); err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
@@ -45,6 +46,7 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		"service": "agent.rpc",
 		"method":  "Recommend",
 	}}); err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
@@ -58,15 +60,22 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		_ = emit(StreamEvent{Event: "error", Data: map[string]any{
 			"message": err.Error(),
 		}})
+		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
 	resp := mapRecommendResp(rpcResp)
 	if err := emit(StreamEvent{Event: "recommendation.final", Data: resp}); err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
-	return emit(StreamEvent{Event: "done", Data: map[string]any{
+	if err := emit(StreamEvent{Event: "done", Data: map[string]any{
 		"ok": true,
-	}})
+	}}); err != nil {
+		l.Logger.Errorf("return error: %v", err)
+		return err
+	}
+
+	return nil
 }

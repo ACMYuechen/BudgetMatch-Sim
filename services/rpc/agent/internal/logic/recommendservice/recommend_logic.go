@@ -38,6 +38,7 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 		ConversationID: in.ConversationId,
 	})
 	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 

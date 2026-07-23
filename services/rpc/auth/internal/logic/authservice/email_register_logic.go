@@ -35,6 +35,7 @@ func NewEmailRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ema
 func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.RegisterResp, error) {
 	// 校验邮箱格式
 	if !emailRegex.MatchString(in.Email) {
+		l.Logger.Errorf("return error: %v", errors.InvalidEmail)
 		return nil, errors.InvalidEmail
 	}
 
@@ -45,6 +46,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 		return nil, errors.Database
 	}
 	if existingUser != nil {
+		l.Logger.Errorf("return error: %v", errors.UserExists)
 		return nil, errors.UserExists
 	}
 
@@ -55,6 +57,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 		return nil, errors.Database
 	}
 	if existingUserByEmail != nil {
+		l.Logger.Errorf("return error: %v", errors.UserExists)
 		return nil, errors.UserExists
 	}
 
@@ -62,6 +65,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 	codeKey := CodeRedisKeyPrefix + in.Email
 	storedCode, err := l.svcCtx.Redis.Get(l.ctx, codeKey).Result()
 	if err == redis.Nil {
+		l.Logger.Errorf("return error: %v", errors.CodeExpired)
 		return nil, errors.CodeExpired
 	}
 	if err != nil {
@@ -69,6 +73,7 @@ func (l *EmailRegisterLogic) EmailRegister(in *pb.EmailRegisterReq) (*pb.Registe
 		return nil, errors.Database
 	}
 	if storedCode != in.Code {
+		l.Logger.Errorf("return error: %v", errors.CodeInvalid)
 		return nil, errors.CodeInvalid
 	}
 

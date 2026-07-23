@@ -31,6 +31,7 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.GetUserInfoResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
+		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
 
@@ -42,6 +43,7 @@ func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.G
 		return nil, errors.Internal
 	}
 	if rpcResp.User == nil {
+		l.Logger.Errorf("return error: %v", errors.Internal)
 		return nil, errors.Internal
 	}
 

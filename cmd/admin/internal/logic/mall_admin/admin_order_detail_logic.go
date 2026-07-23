@@ -33,6 +33,7 @@ func (l *AdminOrderDetailLogic) AdminOrderDetail(req *types.AdminOrderDetailReq)
 		return nil, errors.MallOrderNotFound
 	}
 	if rpcResp.Order == nil {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 

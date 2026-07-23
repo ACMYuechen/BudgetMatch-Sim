@@ -53,12 +53,15 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, errors.Database
 	}
 	if sku == nil {
+		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 		return nil, errors.MallSkuNotFound
 	}
 	if sku.Status != 1 {
+		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 		return nil, errors.MallSkuNotFound
 	}
 	if int64(sku.Stock) < in.Quantity {
+		l.Logger.Errorf("return error: %v", errors.MallStockNotEnough)
 		return nil, errors.MallStockNotEnough
 	}
 
@@ -69,6 +72,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		return nil, errors.Database
 	}
 	if product == nil || product.Status != 1 {
+		l.Logger.Errorf("return error: %v", errors.MallProductNotFound)
 		return nil, errors.MallProductNotFound
 	}
 
@@ -128,11 +132,13 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	err = l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
 		// 写入订单主表
 		if err := l.svcCtx.OrderStore.InsertTx(tx, order); err != nil {
+			l.Logger.Errorf("return error: %v", err)
 			return err
 		}
 
 		// 写入订单项
 		if err := l.svcCtx.OrderItemStore.InsertBatchTx(tx, []*mall_order_items.MallOrderItems{item}); err != nil {
+			l.Logger.Errorf("return error: %v", err)
 			return err
 		}
 
@@ -141,9 +147,11 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		for _, d := range deductions {
 			ok, err := l.svcCtx.SkuStore.DeductStockTx(tx, d.SkuID, d.Quantity, now)
 			if err != nil {
+				l.Logger.Errorf("return error: %v", err)
 				return err
 			}
 			if !ok {
+				l.Logger.Errorf("return error: %v", errors.MallStockNotEnough)
 				return errors.MallStockNotEnough
 			}
 		}
@@ -152,6 +160,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	})
 	if err != nil {
 		if err == errors.MallStockNotEnough {
+			l.Logger.Errorf("return error: %v", errors.MallStockNotEnough)
 			return nil, errors.MallStockNotEnough
 		}
 		l.Logger.Errorf("failed to create order: %v", err)

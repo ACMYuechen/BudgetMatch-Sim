@@ -31,6 +31,7 @@ func (l *DeleteProductLogic) DeleteProduct(in *pb.DeleteProductReq) (*pb.DeleteP
 		return nil, errors.Database
 	}
 	if product == nil {
+		l.Logger.Errorf("return error: %v", errors.MallProductNotFound)
 		return nil, errors.MallProductNotFound
 	}
 

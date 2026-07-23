@@ -35,14 +35,17 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		return nil, errors.Database
 	}
 	if order == nil {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if in.UserId != "" && order.UserId != in.UserId {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 
 	newStatus := int(in.Status)
 	if !isValidOrderTransition(order.Status, newStatus) {
+		l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 		return nil, errors.MallInvalidOrderTransition
 	}
 
@@ -51,20 +54,24 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		// 乐观锁条件更新：仅当订单仍为读取时的状态、且归属同一用户时才流转，避免并发绕过状态机
 		ok, err := l.svcCtx.OrderStore.UpdateStatusTx(tx, order.Id, order.UserId, order.Status, newStatus, now)
 		if err != nil {
+			l.Logger.Errorf("return error: %v", err)
 			return err
 		}
 		if !ok {
+			l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 			return errors.MallInvalidOrderTransition
 		}
 		// 首次转为已支付时补充支付时间
 		if newStatus == mall_orders.OrderStatusPaid && order.PayTime.IsZero() {
 			if err := tx.Model(&mall_orders.MallOrders{}).Where("id = ?", order.Id).Update("pay_time", now).Error; err != nil {
+				l.Logger.Errorf("return error: %v", err)
 				return err
 			}
 		}
 		return nil
 	}); err != nil {
 		if err == errors.MallInvalidOrderTransition {
+			l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 			return nil, errors.MallInvalidOrderTransition
 		}
 		l.Logger.Errorf("failed to update order status: %v", err)

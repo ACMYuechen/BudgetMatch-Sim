@@ -31,6 +31,7 @@ func NewCancelOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cance
 func (l *CancelOrderLogic) CancelOrder(req *types.MallCancelOrderReq) error {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
+		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return errors.Unauthorized
 	}
 

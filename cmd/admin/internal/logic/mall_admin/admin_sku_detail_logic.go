@@ -33,6 +33,7 @@ func (l *AdminSkuDetailLogic) AdminSkuDetail(req *types.AdminSkuDetailReq) (resp
 		return nil, errors.MallSkuNotFound
 	}
 	if rpcResp.Sku == nil {
+		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 		return nil, errors.MallSkuNotFound
 	}
 

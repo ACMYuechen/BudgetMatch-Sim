@@ -35,6 +35,7 @@ func (l *ProductDetailLogic) ProductDetail(req *types.MallProductDetailReq) (res
 		return nil, errors.MallProductNotFound
 	}
 	if rpcResp.Product == nil {
+		l.Logger.Errorf("return error: %v", errors.MallProductNotFound)
 		return nil, errors.MallProductNotFound
 	}
 

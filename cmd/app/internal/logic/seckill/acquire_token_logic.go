@@ -31,6 +31,7 @@ func NewAcquireTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Acqu
 func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *types.AcquireTokenResp, err error) {
 	userID := l.ctx.Value("user_id")
 	if userID == nil {
+		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
 

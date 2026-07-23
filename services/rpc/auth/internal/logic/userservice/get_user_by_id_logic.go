@@ -27,6 +27,7 @@ func NewGetUserByIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 // 管理后台接口 — 按 user_id 查询任意用户
 func (l *GetUserByIdLogic) GetUserById(in *pb.GetUserByIdReq) (*pb.GetUserByIdResp, error) {
 	if in.UserId == "" {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 
@@ -36,6 +37,7 @@ func (l *GetUserByIdLogic) GetUserById(in *pb.GetUserByIdReq) (*pb.GetUserByIdRe
 		return nil, errors.Database
 	}
 	if u == nil {
+		l.Logger.Errorf("return error: %v", errors.UserNotFound)
 		return nil, errors.UserNotFound
 	}
 

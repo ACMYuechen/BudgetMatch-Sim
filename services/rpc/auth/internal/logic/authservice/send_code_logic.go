@@ -33,6 +33,7 @@ func NewSendCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SendCode
 func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 	email := in.Email
 	if email == "" || !sendCodeEmailRegex.MatchString(email) {
+		l.Logger.Errorf("return error: %v", errors.InvalidEmail)
 		return nil, errors.InvalidEmail
 	}
 
@@ -44,6 +45,7 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 		return nil, errors.Database
 	}
 	if !ok {
+		l.Logger.Errorf("return error: %v", errors.TooManyRequests)
 		return nil, errors.TooManyRequests
 	}
 
@@ -64,6 +66,7 @@ func (l *SendCodeLogic) SendCode(in *pb.SendCodeReq) (*pb.SendCodeResp, error) {
 		l.Logger.Errorf("failed to send email to: %v, error: %v", email, err)
 		// 邮件发送失败，回滚已写入的验证码
 		_ = l.svcCtx.Redis.Del(l.ctx, key).Err()
+		l.Logger.Errorf("return error: %v", errors.EmailSendFailed)
 		return nil, errors.EmailSendFailed
 	}
 

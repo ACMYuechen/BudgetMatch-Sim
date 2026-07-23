@@ -30,6 +30,7 @@ func NewCreatePaymentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 // CreatePayment 发起支付，返回支付宝当面付二维码。
 func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreatePaymentResp, error) {
 	if in.OrderId == "" || in.UserId == "" || in.Amount <= 0 {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 	if l.svcCtx.Alipay == nil {

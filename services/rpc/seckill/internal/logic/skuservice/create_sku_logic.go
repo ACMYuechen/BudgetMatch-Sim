@@ -34,6 +34,7 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 
@@ -61,10 +62,12 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 		}
 		mallSku := resp.GetSku()
 		if mallSku == nil || mallSku.Id == "" {
+			l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 			return nil, errors.MallSkuNotFound
 		}
 		// 商城 SKU 已下架则不允许接入秒杀
 		if mallSku.Status != 1 {
+			l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 			return nil, errors.MallSkuNotFound
 		}
 
@@ -83,9 +86,11 @@ func (l *CreateSkuLogic) CreateSku(in *pb.CreateSkuReq) (*pb.CreateSkuResp, erro
 
 	// 基础校验
 	if sku.Stock < 0 {
+		l.Logger.Errorf("return error: %v", errors.Internal)
 		return nil, errors.Internal
 	}
 	if sku.SeckillPrice <= 0 || (sku.OriginalPrice > 0 && sku.SeckillPrice > sku.OriginalPrice) {
+		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
 	}
 

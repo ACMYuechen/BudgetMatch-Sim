@@ -31,6 +31,7 @@ func (l *DeleteSkuLogic) DeleteSku(in *pb.DeleteSkuReq) (*pb.DeleteSkuResp, erro
 		return nil, errors.Database
 	}
 	if sku == nil {
+		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 		return nil, errors.MallSkuNotFound
 	}
 
