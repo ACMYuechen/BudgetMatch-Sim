@@ -1,6 +1,6 @@
 # BudgetMatch-Sim
 
-基于高并发电商底座的组合策略推荐Agent，在严格预算约束下，通过自研规则与策略引擎，输出最优个性化购物选配方案。
+BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原型。项目以 go-zero 微服务架构承载认证、商城、秒杀、支付与推荐 Agent 等核心能力，结合商品价格、库存、预算和用户偏好等多维约束，通过规则引擎、向量检索与 LLM Agent 生成可解释、可落地的购物组合方案。它既是一个高并发电商业务底座，也是一套用于验证 AI Agent 参与真实交易链路决策的工程化实验平台。
 
 ## 技术栈
 
@@ -37,11 +37,11 @@
                               │
               ┌───────────────┼───────────────┐
               │               │               │
-     ┌────────┴────────┐ ┌───┴────┐ ┌────────┴─────────┐
-     │  PostgreSQL     │ │  etcd  │ │    RocketMQ      │
-     │    :5432        │ │ :12379 │ │ :9876 / :10911   │
-     │  Redis :6379    │ │        │ │                  │
-     └─────────────────┘ └────────┘ └──────────────────┘
+     ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
+     │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
+     │    :5432        │  │ :12379 │ │ :9876 / :10911   │
+     │  Redis :6379    │  │        │ │                  │
+     └─────────────────┘  └────────┘ └──────────────────┘
 ```
 
 | 服务 | 端口 | 说明 |
@@ -163,6 +163,35 @@ make docker-down
 └── Dockerfile          # 服务构建镜像
 ```
 
+## 关键路径
+
+| 路径 | 说明 |
+|------|------|
+| `cmd/<app>/desc/**/*.api` | REST API 定义 |
+| `cmd/<app>/internal/logic/` | API 层业务逻辑（手写） |
+| `cmd/<app>/internal/handler/` | HTTP handler（goctl 生成） |
+| `services/rpc/<service>/proto/<service>.proto` | RPC protobuf 定义 |
+| `services/rpc/<service>/internal/logic/` | RPC 层业务逻辑（手写） |
+| `services/rpc/<service>/pb/` | 生成的 protobuf Go 代码（不要编辑） |
+| `services/rpc/<service>/client/` | 生成的 RPC 客户端包装（不要编辑） |
+| `infra/errors` | 统一业务错误码、文案和 HTTP 状态映射 |
+| `infra/interceptor` | gRPC 认证与 token 透传拦截器 |
+
+## Agent 能力
+
+- LLM 链路使用 Eino ReAct Agent，入口在 `services/rpc/agent/internal/agent/recommend/llm/agent.go`。
+- 内置 Eino 工具在 `services/rpc/agent/internal/agent/recommend/llm/tools.go`，包括 `search_products`、`select_bundle`、`read_file`、`write_file`。
+- 支持 MCP 工具注入，配置在 `services/rpc/agent/etc/config.yaml` 的 `MCP` 段，适配代码在 `services/rpc/agent/internal/agent/recommend/llm/mcp.go`。
+- 支持多轮对话，`conversation_id` 首轮可为空，由服务端生成并回传；Redis 可用时会话记忆存 Redis DB 6，否则退回进程内实现。
+
+## 错误处理与日志规范
+
+- 统一业务错误定义在 `infra/errors`，`AppError.Error()` 输出 `code:msgId`，HTTP 状态码由错误码前三位决定。
+- RPC logic 返回业务错误时直接返回 `infra/errors` 中的错误值，例如 `errors.UserNotFound`、`errors.MallStockNotEnough`、`errors.InvalidToken`。
+- API logic 调用 RPC 失败时，先用 `l.Logger.Errorf(...)` 记录上下文，再原样 `return err` / `return nil, err`；不要把 RPC 返回的业务错误包装成 `errors.Internal`、`errors.Database` 等本地错误，否则客户端会丢失真实业务错误码。
+- API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
+- logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
+
 各层详细规范见：
 - [cmd/README.md](cmd/README.md)
 - [services/README.md](services/README.md)
@@ -182,4 +211,4 @@ go-zero API 定义生成 Swagger 后存放于 `docs/`：
 - 服务本地启动时会自动建表（`AutoMigrate: true`）。
 - `cmd/admin` 和 `cmd/app` 不直连数据库，数据操作通过对应 RPC 服务完成。
 - `agent-rpc` 不配置 LLM 时自动走确定性规则推荐；配置后由 Eino ReAct Agent 编排 LLM 工具调用，失败时自动降级到规则推荐。
-
+- 不要编辑 `pb/`、`client/`、`types.go`、`routes.go` 等生成代码，重新执行 `make api-all` 会覆盖这些文件。
