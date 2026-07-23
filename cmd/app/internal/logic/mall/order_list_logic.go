@@ -43,7 +43,7 @@ func (l *OrderListLogic) OrderList(req *types.MallOrderListReq) (resp *types.Mal
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	items := make([]types.MallOrderResp, 0, len(rpcResp.List))

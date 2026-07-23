@@ -41,7 +41,7 @@ func (l *OrderDetailLogic) OrderDetail(req *types.MallOrderDetailReq) (resp *typ
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get order: %v", err)
-		return nil, errors.MallOrderNotFound
+		return nil, err
 	}
 
 	return &types.MallOrderDetailResp{

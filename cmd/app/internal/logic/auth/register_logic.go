@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -37,7 +36,7 @@ func (l *RegisterLogic) Register(req *types.RegisterReq) (resp *types.RegisterRe
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to register: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.RegisterResp{

@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,7 +33,7 @@ func (l *ActivityDetailLogic) ActivityDetail(req *types.ActivityDetailReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get activity: %v", err)
-		return nil, errors.SeckillActivityNotFound
+		return nil, err
 	}
 
 	activity := rpcResp.Activity

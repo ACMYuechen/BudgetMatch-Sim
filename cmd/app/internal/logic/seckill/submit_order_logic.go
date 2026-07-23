@@ -44,7 +44,7 @@ func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.S
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to submit order: %v", err)
-		return nil, errors.SeckillSubmitFailed
+		return nil, err
 	}
 
 	return &types.SubmitOrderResp{

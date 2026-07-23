@@ -40,7 +40,7 @@ func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.G
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get user info: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 	if rpcResp.User == nil {
 		l.Logger.Errorf("return error: %v", errors.Internal)

@@ -1,4 +1,4 @@
-   // Code scaffolded by goctl. No recover, Safe to edit.
+// Code scaffolded by goctl. No recover, Safe to edit.
 
 package mall
 
@@ -41,7 +41,7 @@ func (l *CancelOrderLogic) CancelOrder(req *types.MallCancelOrderReq) error {
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to cancel order: %v", err)
-		return errors.MallOrderCannotCancel
+		return err
 	}
 
 	return nil

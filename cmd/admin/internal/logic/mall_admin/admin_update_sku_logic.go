@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -38,7 +37,7 @@ func (l *AdminUpdateSkuLogic) AdminUpdateSku(req *types.AdminUpdateSkuReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update sku: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.AdminUpdateSkuResp{Success: true}, nil

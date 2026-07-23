@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -31,7 +30,7 @@ func (l *DeleteUserLogic) DeleteUser(req *types.DeleteUserReq) (resp *types.Dele
 	_, err = l.svcCtx.UserClient.DeleteUser(l.ctx, &pb.DeleteUserReq{UserId: req.UserId})
 	if err != nil {
 		l.Logger.Errorf("failed to delete user via auth-rpc: %v, error: %v", req.UserId, err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	return &types.DeleteUserResp{Success: true}, nil

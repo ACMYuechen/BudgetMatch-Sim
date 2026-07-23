@@ -30,7 +30,7 @@ func (l *AdminSkuDetailLogic) AdminSkuDetail(req *types.AdminSkuDetailReq) (resp
 	rpcResp, err := l.svcCtx.MallProductClient.GetSku(l.ctx, &pb.GetSkuReq{Id: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to get sku: %v", err)
-		return nil, errors.MallSkuNotFound
+		return nil, err
 	}
 	if rpcResp.Sku == nil {
 		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)

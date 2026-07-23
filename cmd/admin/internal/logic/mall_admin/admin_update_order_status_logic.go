@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -33,7 +32,7 @@ func (l *AdminUpdateOrderStatusLogic) AdminUpdateOrderStatus(req *types.AdminUpd
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update order status: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.AdminUpdateOrderStatusResp{Success: true}, nil

@@ -30,7 +30,7 @@ func (l *AdminOrderDetailLogic) AdminOrderDetail(req *types.AdminOrderDetailReq)
 	rpcResp, err := l.svcCtx.MallOrderClient.GetOrder(l.ctx, &pb.GetOrderReq{OrderId: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to get order: %v", err)
-		return nil, errors.MallOrderNotFound
+		return nil, err
 	}
 	if rpcResp.Order == nil {
 		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)

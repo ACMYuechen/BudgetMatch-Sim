@@ -41,7 +41,7 @@ func (l *UpdateUserInfoLogic) UpdateUserInfo(req *types.UpdateUserInfoReq) (resp
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update user info via auth-rpc: %v, error: %v", req.UserId, err)
-		return nil, errors.Database
+		return nil, err
 	}
 	u := rpcResp.User
 	if u == nil {

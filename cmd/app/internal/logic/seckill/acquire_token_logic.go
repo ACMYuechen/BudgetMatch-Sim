@@ -42,7 +42,7 @@ func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *type
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to acquire token: %v", err)
-		return nil, errors.SeckillTokenInvalid
+		return nil, err
 	}
 
 	return &types.AcquireTokenResp{

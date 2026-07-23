@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,7 +33,7 @@ func (l *ActivityOfflineLogic) ActivityOffline(req *types.ActivityOfflineReq) (r
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to offline activity: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	return &types.ActivityOfflineResp{

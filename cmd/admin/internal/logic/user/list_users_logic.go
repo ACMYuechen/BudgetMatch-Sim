@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -37,7 +36,7 @@ func (l *ListUsersLogic) ListUsers(req *types.ListUsersReq) (resp *types.ListUse
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list users via auth-rpc: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	list := make([]types.UserInfo, 0, len(rpcResp.List))

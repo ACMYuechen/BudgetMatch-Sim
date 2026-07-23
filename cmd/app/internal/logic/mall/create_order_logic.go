@@ -44,7 +44,7 @@ func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *typ
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create order: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.MallCreateOrderResp{
