@@ -14,6 +14,7 @@ import (
 	"budgetmatch-sim/services/rpc/auth/client/userservice"
 	"budgetmatch-sim/services/rpc/mall/client/orderservice"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/payment/client/paymentservice"
 	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
 	"budgetmatch-sim/services/rpc/seckill/client/seckillservice"
 	"budgetmatch-sim/services/rpc/seckill/client/skuservice"
@@ -38,6 +39,7 @@ type ServiceContext struct {
 	MallProductClient productservice.ProductService
 	MallOrderClient   orderservice.OrderService
 	AgentClient       recommendservice.RecommendService
+	PaymentClient     paymentservice.PaymentService
 
 	// 中间件配置
 	AuthMiddleware             rest.Middleware
@@ -60,6 +62,7 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 	mallProductClient := productservice.NewProductService(mallclient)
 	mallOrderClient := orderservice.NewOrderService(mallclient)
 	agentClient := recommendservice.NewRecommendService(zrpc.MustNewClient(c.AgentRpc, tokenPropagator))
+	paymentClient := paymentservice.NewPaymentService(zrpc.MustNewClient(c.PaymentRpc, tokenPropagator))
 
 	// 创建秒杀限流中间件（仅对 /token 和 /orders 路径限流，60 秒窗口内最多 10 次请求）
 	var seckillRateMiddleware rest.Middleware
@@ -82,6 +85,7 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 		MallProductClient: mallProductClient,
 		MallOrderClient:   mallOrderClient,
 		AgentClient:       agentClient,
+		PaymentClient:     paymentClient,
 
 		// 中间件配置
 		AuthMiddleware:             middleware.NewAuthMiddleware(authclient).Handle,

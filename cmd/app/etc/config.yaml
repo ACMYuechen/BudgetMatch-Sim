@@ -61,3 +61,13 @@ AgentRpc:
   Endpoints:
     - 127.0.0.1:10006
   NonBlock: true
+
+# 支付服务 RPC
+PaymentRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: payment.rpc
+  Endpoints:
+    - 127.0.0.1:10007
+  NonBlock: true

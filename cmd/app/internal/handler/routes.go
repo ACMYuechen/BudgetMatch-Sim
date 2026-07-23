@@ -171,6 +171,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/orders/:id/cancel",
 					Handler: mall.CancelOrderHandler(serverCtx),
 				},
+				{
+					// 发起支付宝扫码支付
+					Method:  http.MethodPost,
+					Path:    "/orders/:id/pay",
+					Handler: mall.CreatePaymentHandler(serverCtx),
+				},
+				{
+					// 主动查询支付状态
+					Method:  http.MethodGet,
+					Path:    "/orders/:id/pay/query",
+					Handler: mall.QueryPaymentHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/mall"),

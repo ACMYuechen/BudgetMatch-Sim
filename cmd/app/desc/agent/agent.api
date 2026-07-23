@@ -44,6 +44,7 @@ type AgentRecommendResp {
 	prefix: /api/agent
 	group:  agent
 	tags:   agent
+	middleware: AuthMiddleware
 )
 service app {
 	@doc "Agent 推荐"
