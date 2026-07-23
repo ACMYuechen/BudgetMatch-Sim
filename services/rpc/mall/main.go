@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/infra/rocketmq"
 	"budgetmatch-sim/services/rpc/mall/internal/config"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
@@ -42,6 +43,19 @@ func main() {
 	sg.Add(s)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
+
+	// 注册认证拦截器：商品/库存管理需管理员，订单与查询需登录用户
+	s.AddUnaryInterceptors(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
+		Secret: c.JwtAuth.Secret,
+		AdminMethods: map[string]struct{}{
+			"/mall.ProductService/CreateProduct": {},
+			"/mall.ProductService/UpdateProduct": {},
+			"/mall.ProductService/DeleteProduct": {},
+			"/mall.ProductService/CreateSku":     {},
+			"/mall.ProductService/UpdateSku":     {},
+			"/mall.ProductService/DeleteSku":     {},
+		},
+	}))
 
 	// add RocketMQ producer lifecycle management
 	if ctx.RocketMQProducer != nil {

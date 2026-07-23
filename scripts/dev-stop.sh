@@ -5,29 +5,42 @@ DEV_ETCD_CLIENT_PORT=${DEV_ETCD_CLIENT_PORT:-22379}
 DEV_ROCKETMQ_NAMESRV_PORT=${DEV_ROCKETMQ_NAMESRV_PORT:-19876}
 
 if [ ! -d "$PID_DIR" ]; then
-    echo "没有找到运行中的服务"
-    exit 0
+    echo "没有找到运行中的服务 (缺少 .pids 目录)"
+else
+    echo "停止本地服务（通过 PID 文件）..."
+    for pidfile in $PID_DIR/*.pid; do
+        if [ -f "$pidfile" ]; then
+            name=$(basename "$pidfile" .pid)
+            kill $(cat "$pidfile") 2>/dev/null && echo "  ✓ $name 已停止" || true
+            rm -f "$pidfile"
+        fi
+    done
 fi
 
-echo "停止本地服务..."
-for pidfile in $PID_DIR/*.pid; do
-    if [ -f "$pidfile" ]; then
-        name=$(basename "$pidfile" .pid)
-        kill $(cat "$pidfile") 2>/dev/null && echo "  ✓ $name 已停止" || true
-        rm -f "$pidfile"
+# 按端口清理残留进程（fuser -k 直接发 SIGKILL）
+LOCAL_PORTS=(10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT")
+STILL_ALIVE=()
+for port in "${LOCAL_PORTS[@]}"; do
+    if fuser "$port/tcp" 2>/dev/null | grep -q .; then
+        fuser -k "$port/tcp" 2>/dev/null && echo "  ✓ 端口 $port 残留进程已清理"
     fi
 done
 
-# 兜底：清理可能残留的服务进程
-for port in 10000 10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT"; do
-    pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
-    for pid in $pids; do
-        if kill -9 "$pid" 2>/dev/null; then
-            echo "  ✓ 端口 $port 的残留进程 $pid 已停止"
-        fi
-    done
+# 验证端口已释放
+sleep 1
+for port in "${LOCAL_PORTS[@]}"; do
+    if fuser "$port/tcp" 2>/dev/null | grep -q .; then
+        STILL_ALIVE+=("$port")
+    fi
 done
 
+if [ ${#STILL_ALIVE[@]} -gt 0 ]; then
+    echo "⚠️  以下端口仍被占用: ${STILL_ALIVE[*]}"
+else
+    echo "✅ 所有服务端口已释放"
+fi
+
+# 停止基础设施容器
 echo "停止基础设施..."
 docker compose down 2>/dev/null || true
 

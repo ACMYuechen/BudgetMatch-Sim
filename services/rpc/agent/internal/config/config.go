@@ -1,6 +1,7 @@
 package config
 
 import (
+	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/database"
 	iredis "budgetmatch-sim/infra/redis"
 	"budgetmatch-sim/services/rpc/agent/internal/mcp"
@@ -16,6 +17,7 @@ import (
 // 服务按可用依赖自动降级（见 svc.NewServiceContext 的组装逻辑）。
 type Config struct {
 	zrpc.RpcServerConf
+	JwtAuth    auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
 	Model      model.Config          `json:"model,optional"`      // Model LLM 模型配置
 	Embedding  model.EmbeddingConfig `json:"embedding,optional"`  // Embedding 向量模型配置，未配置时 RAG 关闭
 	MCP        mcp.Config            `json:"mcp,optional"`        // MCP MCP 服务器配置

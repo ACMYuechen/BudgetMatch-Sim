@@ -13,25 +13,24 @@ if [ -f .env ]; then
     set +a
 fi
 
+# 清理旧进程：先通过 PID 文件杀，再按端口兜底
 # make dev 中 RPC/API 运行在宿主机，不能使用 Docker 网络内的 etcd:2379。
 # 因此本地开发时让 etcd advertise 宿主机可访问的端口；全容器模式仍使用 docker-compose.yml 默认值。
 DEV_ETCD_CLIENT_PORT=${DEV_ETCD_CLIENT_PORT:-22379}
 DEV_ETCD_ENDPOINT=${DEV_ETCD_ENDPOINT:-127.0.0.1:${DEV_ETCD_CLIENT_PORT}}
 DEV_ROCKETMQ_NAMESRV_PORT=${DEV_ROCKETMQ_NAMESRV_PORT:-19876}
 DEV_ROCKETMQ_NAMESERVERS=${DEV_ROCKETMQ_NAMESERVERS:-127.0.0.1:${DEV_ROCKETMQ_NAMESRV_PORT}}
-
-# 清理旧进程
 for pidfile in $PID_DIR/*.pid; do
-    [ -f "$pidfile" ] && kill $(cat "$pidfile") 2>/dev/null || true
-    rm -f "$pidfile"
+    if [ -f "$pidfile" ]; then
+        kill $(cat "$pidfile") 2>/dev/null || true
+        rm -f "$pidfile"
+    fi
 done
 
-# 兜底：按端口清理可能残留的本地服务进程
-for port in 10000 10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT"; do
-    pids=$(ss -ltnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+' | sort -u)
-    for pid in $pids; do
-        kill -9 "$pid" 2>/dev/null || true
-    done
+# 按端口清理残留进程（fuser -k 直接发 SIGKILL，比 ss+grep+kill 更可靠）
+LOCAL_PORTS=(10001 10002 10003 10004 10005 10006 10007 "$DEV_ETCD_CLIENT_PORT" "$DEV_ROCKETMQ_NAMESRV_PORT")
+for port in "${LOCAL_PORTS[@]}"; do
+    fuser -k "$port/tcp" 2>/dev/null || true
 done
 
 # 短暂等待，确保端口释放
@@ -55,48 +54,42 @@ bash scripts/init-etcd-config.sh "$DEV_ETCD_ENDPOINT" || true
 export ETCD_HOSTS=$DEV_ETCD_ENDPOINT
 export ROCKETMQ_NAMESERVERS=$DEV_ROCKETMQ_NAMESERVERS
 
-# 启动各服务（cd 到对应目录后再 go run，否则找不到 etc/config.yaml）
+# 启动各服务（go run -C 指定工作目录，无需 subshell，$! 直接捕获 go run PID）
 # 串行启动：auth-rpc 先启动并自动创建数据库表
 echo "🚀 启动服务..."
 
 echo "  → auth-rpc (port 10003)"
-(cd services/rpc/auth && nohup go run . > ../../../$LOG_DIR/auth-rpc.log 2>&1 &)
+nohup go run -C services/rpc/auth . > $LOG_DIR/auth-rpc.log 2>&1 &
 echo $! > $PID_DIR/auth-rpc.pid
-
 sleep 3
 
 echo "  → seckill-rpc (port 10004)"
-(cd services/rpc/seckill && nohup go run . > ../../../$LOG_DIR/seckill-rpc.log 2>&1 &)
+nohup go run -C services/rpc/seckill . > $LOG_DIR/seckill-rpc.log 2>&1 &
 echo $! > $PID_DIR/seckill-rpc.pid
-
 sleep 3
 
 echo "  → mall-rpc (port 10005)"
-(cd services/rpc/mall && nohup go run . > ../../../$LOG_DIR/mall-rpc.log 2>&1 &)
+nohup go run -C services/rpc/mall . > $LOG_DIR/mall-rpc.log 2>&1 &
 echo $! > $PID_DIR/mall-rpc.pid
-
 sleep 3
 
 echo "  → agent-rpc (port 10006)"
-(cd services/rpc/agent && nohup go run . > ../../../$LOG_DIR/agent-rpc.log 2>&1 &)
+nohup go run -C services/rpc/agent . > $LOG_DIR/agent-rpc.log 2>&1 &
 echo $! > $PID_DIR/agent-rpc.pid
-
 sleep 3
 
 echo "  → payment-rpc (port 10007)"
-(cd services/rpc/payment && nohup go run . > ../../../$LOG_DIR/payment-rpc.log 2>&1 &)
+nohup go run -C services/rpc/payment . > $LOG_DIR/payment-rpc.log 2>&1 &
 echo $! > $PID_DIR/payment-rpc.pid
-
 sleep 3
 
 echo "  → app (port 10002)"
-(cd cmd/app && nohup go run . > ../../$LOG_DIR/app.log 2>&1 &)
+nohup go run -C cmd/app . > $LOG_DIR/app.log 2>&1 &
 echo $! > $PID_DIR/app.pid
-
 sleep 2
 
 echo "  → admin (port 10001)"
-(cd cmd/admin && nohup go run . > ../../$LOG_DIR/admin.log 2>&1 &)
+nohup go run -C cmd/admin . > $LOG_DIR/admin.log 2>&1 &
 echo $! > $PID_DIR/admin.pid
 
 echo ""

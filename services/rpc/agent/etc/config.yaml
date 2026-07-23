@@ -7,6 +7,10 @@ Etcd:
     - ${ETCD_HOSTS}
   Key: agent.rpc
 
+JwtAuth:
+  Secret: "${JWT_SECRET}"
+  Expire: 86400
+
 Model:
   Provider: "${LLM_PROVIDER}"      # 如 openai（OpenAI 兼容接口均可）
   Model: "${LLM_MODEL}"            # 如 gpt-4.1-mini / deepseek-chat

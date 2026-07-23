@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"budgetmatch-sim/infra/database"
+	"budgetmatch-sim/infra/interceptor"
 	iredis "budgetmatch-sim/infra/redis"
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
@@ -39,7 +40,8 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	var mallClient productservice.ProductService
 	if c.MallConfigured() {
-		mallClient = productservice.NewProductService(zrpc.MustNewClient(c.MallRpc))
+		mallClient = productservice.NewProductService(zrpc.MustNewClient(c.MallRpc,
+			zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientInterceptor())))
 	}
 
 	productProvider := newProductProvider(mallClient)

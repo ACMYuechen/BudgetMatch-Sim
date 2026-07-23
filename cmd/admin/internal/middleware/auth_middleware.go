@@ -5,14 +5,12 @@ import (
 	"net/http"
 	"strings"
 
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
-
-// 管理员门槛：管理层级（900 及以上）
-const AdminRoleThreshold = 900
 
 type AuthMiddleware struct {
 	authRpc authservice.AuthService
@@ -51,15 +49,16 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// 检查是否为管理员
-		if int64(resp.User.Role) < AdminRoleThreshold {
+		// 检查是否为全局管理员
+		if !role.IsGlobalAdminRole(int64(resp.User.Role)) {
 			logx.WithContext(ctx).Errorf("unauthorized: role=%d", resp.User.Role)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// 将 user_id 注入 context
+		// 将 user_id、token 和完整用户信息注入 context
 		ctx = context.WithValue(ctx, "user_id", resp.User.Id)
+		ctx = context.WithValue(ctx, "token", tokenString)
 		ctx = context.WithValue(ctx, "user", resp.User)
 
 		next(w, r.WithContext(ctx))
