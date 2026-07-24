@@ -72,6 +72,7 @@ func (l *QueryPaymentLogic) QueryPayment(req *types.MallQueryPaymentReq) (resp *
 			Status:     payment.Status,
 			TradeNo:    payment.TradeNo,
 			BuyerId:    payment.BuyerId,
+			QrCode:     payment.QrCode,
 			PaidAt:     payment.PaidAt,
 			CreatedAt:  payment.CreatedAt,
 			UpdatedAt:  payment.UpdatedAt,

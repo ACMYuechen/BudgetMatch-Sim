@@ -55,6 +55,7 @@ func paymentToPb(p *payments.Payments) *pb.Payment {
 		BuyerId:    p.BuyerId,
 		CreatedAt:  p.CreatedAt.Format(timeLayout),
 		UpdatedAt:  p.UpdatedAt.Format(timeLayout),
+		QrCode:     p.QrCode,
 	}
 	if p.PaidAt != nil {
 		resp.PaidAt = p.PaidAt.Format(timeLayout)

@@ -8,7 +8,7 @@ import (
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 )
 
-const mallOrderStatusPending int32 = 1
+const MallOrderStatusPending int32 = 1
 
 func authenticatedUserID(ctx context.Context) (string, error) {
 	userID, ok := ctx.Value("user_id").(string)

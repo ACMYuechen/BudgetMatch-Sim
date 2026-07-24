@@ -44,6 +44,7 @@ type (
 		TradeNo    string         `json:"trade_no" gorm:"type:varchar(64);index;comment:支付宝交易号"`
 		BuyerId    string         `json:"buyer_id" gorm:"type:varchar(64);comment:买家支付宝用户ID"`
 		NotifyRaw  string         `json:"notify_raw" gorm:"type:jsonb;comment:最近一次回调/查询原始报文"`
+		QrCode     string         `json:"qr_code" gorm:"type:text;comment:支付宝二维码链接"`
 		PaidAt     *time.Time     `json:"paid_at" gorm:"type:timestamptz;comment:支付完成时间"`
 		CreatedAt  time.Time      `json:"created_at" gorm:"autoCreateTime;comment:创建时间"`
 		UpdatedAt  time.Time      `json:"updated_at" gorm:"autoUpdateTime;comment:更新时间"`

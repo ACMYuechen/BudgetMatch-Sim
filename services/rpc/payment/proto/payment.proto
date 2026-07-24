@@ -19,6 +19,7 @@ message Payment {
   string paid_at     = 10; // 支付完成时间
   string created_at  = 11;
   string updated_at  = 12;
+  string qr_code     = 13; // 支付宝二维码链接
 }
 
 // 发起支付：根据订单创建一笔支付并返回支付宝二维码。
@@ -46,6 +47,7 @@ message QueryPaymentResp {
   int32  status   = 1; // 0:pending 1:success 2:closed
   string trade_no = 2;
   Payment payment = 3;
+  string qr_code  = 4;
 }
 
 // 处理支付宝异步通知（由 REST 网关验签前的原始表单参数透传进来，服务端负责验签 + 幂等确认）

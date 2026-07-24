@@ -40,7 +40,7 @@ func (l *CreatePaymentLogic) CreatePayment(req *types.MallCreatePaymentReq) (res
 		l.Logger.Errorf("failed to load payment order: %v", err)
 		return nil, err
 	}
-	if order.Status != mallOrderStatusPending {
+	if order.Status != MallOrderStatusPending {
 		l.Logger.Errorf("order %s is not pending payment, status=%d", order.Id, order.Status)
 		return nil, errors.MallInvalidOrderTransition
 	}
