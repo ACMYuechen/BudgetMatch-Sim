@@ -32,10 +32,11 @@ func (l *GetUserByIdLogic) GetUserById(req *types.GetUserByIdReq) (resp *types.G
 	rpcResp, err := l.svcCtx.UserClient.GetUserById(l.ctx, &pb.GetUserByIdReq{UserId: req.UserId})
 	if err != nil {
 		l.Logger.Errorf("failed to get user by id via auth-rpc: %v, error: %v", req.UserId, err)
-		return nil, errors.Database
+		return nil, err
 	}
 	u := rpcResp.User
 	if u == nil {
+		l.Logger.Errorf("return error: %v", errors.UserNotFound)
 		return nil, errors.UserNotFound
 	}
 

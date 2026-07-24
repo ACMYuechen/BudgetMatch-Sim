@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -37,7 +36,7 @@ func (l *AdminCreateProductLogic) AdminCreateProduct(req *types.AdminCreateProdu
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to create product: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.AdminCreateProductResp{Id: rpcResp.Id}, nil

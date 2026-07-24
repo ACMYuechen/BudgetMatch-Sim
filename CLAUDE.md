@@ -2,32 +2,34 @@
 
 ## 项目概述
 
-BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的实验项目。核心目标是在严格预算约束下，通过自研规则与策略引擎（含基于 LLM 的推荐 Agent）输出最优个性化购物选配方案。
+BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原型。项目以 go-zero 微服务架构承载认证、商城、秒杀、支付与推荐 Agent 等核心能力，结合商品价格、库存、预算和用户偏好等多维约束，通过规则引擎、向量检索与 LLM Agent 生成可解释、可落地的购物组合方案。它既是一个高并发电商业务底座，也是一套用于验证 AI Agent 参与真实交易链路决策的工程化实验平台。
 
 ## 服务拓扑
 
 ```
-┌─────────────┐      ┌─────────────┐
-│  Admin API  │      │   App API   │   REST Gateway (cmd/)
-│   :10001    │      │   :10002    │
-└──────┬──────┘      └──────┬──────┘
-       │                      │
-       └──────────┬───────────┘
-                  │ gRPC
-       ┌──────────┼──────────┬───────────────┐
-       │          │          │               │
-┌──────┴──────┐ ┌──┴────┐ ┌──┴──────┐ ┌─────┴─────┐
-│   auth-rpc  │ │seckill│ │ mall-rpc│ │  agent-rpc│   RPC Services (services/rpc/)
-│  :10003     │ │:10004 │ │ :10005  │ │  :10006   │
-└─────────────┘ └───────┘ └─────────┘ └───────────┘
-       │          │          │               │
-       └──────────┴──────────┴───────────────┘
-                  │
-         ┌────────┴────────┐
-         │  PostgreSQL     │
-         │    :5432        │
-         │  Redis :6379    │
-         └─────────────────┘
+            ┌─────────────┐      ┌─────────────┐
+            │  Admin API  │      │   App API   │   REST Gateway (cmd/)
+            │   :10001    │      │   :10002    │
+            └──────┬──────┘      └──────┬──────┘
+                   │                    │
+                   └──────────┬─────────┘
+                              │ gRPC
+       ┌──────────┬───────────┼─────────────┬──────────────┐
+       │          │           │             │              │
+┌──────┴─────┐ ┌──┴────┐ ┌────┴────┐ ┌──────┴─────┐ ┌──────┴──────┐
+│   auth-rpc │ │seckill│ │ mall-rpc│ │  agent-rpc │ │ payment-rpc │       RPC Services (services/rpc/)
+│  :10003    │ │:10004 │ │ :10005  │ │  :10006    │ │   :10007    │
+└────────────┘ └───────┘ └─────────┘ └────────────┘ └─────────────┘
+       │          │           │             │              │
+       └──────────┴───────────┴─────────────┴──────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+     ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
+     │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
+     │    :5432        │  │ :12379 │ │ :9876 / :10911   │
+     │  Redis :6379    │  │        │ │                  │
+     └─────────────────┘  └────────┘ └──────────────────┘
 ```
 
 | 服务 | 端口 | 说明 |
@@ -38,6 +40,7 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 | `services/rpc/seckill` | 10004 (gRPC) | 秒杀活动 RPC |
 | `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
 | `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
+| `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
 | `postgres` | 5432 | 主数据库 |
 | `redis` | 6379 | 缓存与限流 |
 | `etcd` | 12379 | 服务注册与动态配置 |
@@ -62,7 +65,7 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 
 | 路径 | 说明 |
 |------|------|
-| `services/rpc/<service>/desc/<service>.proto` | protobuf 服务定义 |
+| `services/rpc/<service>/proto/<service>.proto` | protobuf 服务定义 |
 | `services/rpc/<service>/internal/logic/<service>/` | 业务逻辑（手写） |
 | `services/rpc/<service>/internal/server/<service>/` | gRPC server 实现（goctl 生成） |
 | `services/rpc/<service>/internal/svc/service_context.go` | 依赖组装 / DI 容器 |
@@ -78,7 +81,7 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 | `services/rpc/agent/internal/agent/recommend/agent.go` | 确定性规则推荐 Agent（兜底） |
 | `services/rpc/agent/internal/agent/recommend/llm/agent.go` | Eino ReAct LLM Agent，LLM 链路唯一编排入口 |
 | `services/rpc/agent/internal/agent/recommend/llm/chatmodel.go` | 模型工厂，封装 eino-ext 官方 OpenAI `ToolCallingChatModel` |
-| `services/rpc/agent/internal/agent/recommend/llm/tools.go` | Eino 业务工具定义：`search_products`、`select_bundle` |
+| `services/rpc/agent/internal/agent/recommend/llm/tools.go` | Eino 工具定义：`search_products`、`select_bundle`、`read_file`、`write_file` |
 | `services/rpc/agent/internal/agent/recommend/llm/mcp.go` | MCP 工具适配，把 MCP server 工具转成一等 Eino 工具 |
 | `services/rpc/agent/internal/agent/recommend/llm/prompt.go` | System prompt 与用户上下文 prompt |
 | `services/rpc/agent/internal/agent/recommend/llm/session.go` | 单次请求状态管理 |
@@ -104,6 +107,14 @@ BudgetMatch-Sim 是一个以历史价格时序数据推演虚拟电商市场的�
 | `cmd/app/internal/handler/agent/` | HTTP handler（goctl 生成） |
 | `cmd/app/internal/logic/agent/` | HTTP 业务逻辑 |
 
+## 错误处理与日志规范
+
+- 统一业务错误定义在 `infra/errors`，`AppError.Error()` 输出 `code:msgId`，HTTP 状态码由错误码前三位决定。
+- RPC logic 返回业务错误时直接返回 `infra/errors` 中的错误值，例如 `errors.UserNotFound`、`errors.MallStockNotEnough`、`errors.InvalidToken`。
+- API logic 调用 RPC 失败时，先用 `l.Logger.Errorf(...)` 记录上下文，再原样 `return err` / `return nil, err`；不要把 RPC 返回的业务错误包装成 `errors.Internal`、`errors.Database` 等本地错误，否则客户端会丢失真实业务错误码。
+- API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
+- logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
+
 ## 开发工作流
 
 ### 1. 初始化环境
@@ -119,7 +130,7 @@ cp .env.example .env
 make dev
 ```
 
-启动顺序：基础设施（postgres / redis / rocketmq / etcd）→ auth-rpc → seckill-rpc → mall-rpc → agent-rpc → app → admin。
+启动顺序：基础设施（postgres / redis / rocketmq / etcd）→ auth-rpc → seckill-rpc → mall-rpc → agent-rpc → payment-rpc → app → admin。
 
 ### 3. 生成代码
 

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/seckill/internal/config"
 	activityservice "budgetmatch-sim/services/rpc/seckill/internal/server/activityservice"
 	seckillservice "budgetmatch-sim/services/rpc/seckill/internal/server/seckillservice"
@@ -41,6 +42,26 @@ func main() {
 			reflection.Register(grpcServer)
 		}
 	})
+
+	// 注册认证拦截器：活动与 SKU 管理需管理员，秒杀下单需登录用户
+	s.AddUnaryInterceptors(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
+		Secret: c.JwtAuth.Secret,
+		AdminMethods: map[string]struct{}{
+			"/seckill.ActivityService/CreateActivity":  {},
+			"/seckill.ActivityService/UpdateActivity":  {},
+			"/seckill.ActivityService/GetActivity":     {},
+			"/seckill.ActivityService/ListActivities":  {},
+			"/seckill.ActivityService/DeleteActivity":  {},
+			"/seckill.ActivityService/PreheatActivity": {},
+			"/seckill.ActivityService/OnlineActivity":  {},
+			"/seckill.ActivityService/OfflineActivity": {},
+			"/seckill.SkuService/CreateSku":            {},
+			"/seckill.SkuService/UpdateSku":            {},
+			"/seckill.SkuService/GetSku":               {},
+			"/seckill.SkuService/ListSkusByActivity":   {},
+			"/seckill.SkuService/DeleteSku":            {},
+		},
+	}))
 
 	sg.Add(s)
 

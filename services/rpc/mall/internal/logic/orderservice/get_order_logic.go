@@ -31,9 +31,11 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 		return nil, errors.Database
 	}
 	if order == nil {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if in.UserId != "" && order.UserId != in.UserId {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 

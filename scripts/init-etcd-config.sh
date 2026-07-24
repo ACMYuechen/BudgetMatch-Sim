@@ -5,7 +5,7 @@ set -e
 # 用法：./scripts/init-etcd-config.sh [etcd-endpoint]
 # 默认 endpoint 对应本地 Docker Compose 中的 etcd 服务
 
-ENDPOINT=${1:-127.0.0.1:2379}
+ENDPOINT=${1:-127.0.0.1:12379}
 
 if ! command -v etcdctl &> /dev/null; then
     echo "etcdctl not found, trying docker exec..."

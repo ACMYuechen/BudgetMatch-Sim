@@ -31,6 +31,7 @@ func (l *GetActivityLogic) GetActivity(in *pb.GetActivityReq) (*pb.GetActivityRe
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 

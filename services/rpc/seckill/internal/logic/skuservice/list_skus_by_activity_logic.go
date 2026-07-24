@@ -46,9 +46,9 @@ func (l *ListSkusByActivityLogic) ListSkusByActivity(in *pb.ListSkusByActivityRe
 	}
 
 	return &pb.ListSkusByActivityResp{
-		List:      list,
-		Total:     total,
-		Page:      int32(page),
-		PageSize:  int32(pageSize),
+		List:     list,
+		Total:    total,
+		Page:     int32(page),
+		PageSize: int32(pageSize),
 	}, nil
 }

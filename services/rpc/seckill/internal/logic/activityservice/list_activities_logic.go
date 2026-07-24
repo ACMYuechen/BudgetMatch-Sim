@@ -64,9 +64,9 @@ func (l *ListActivitiesLogic) ListActivities(in *pb.ListActivitiesReq) (*pb.List
 	}
 
 	return &pb.ListActivitiesResp{
-		List:      list,
-		Total:     total,
-		Page:      int32(page),
-		PageSize:  int32(pageSize),
+		List:     list,
+		Total:    total,
+		Page:     int32(page),
+		PageSize: int32(pageSize),
 	}, nil
 }

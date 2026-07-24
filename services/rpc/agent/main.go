@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/agent/internal/config"
 	recommendserviceServer "budgetmatch-sim/services/rpc/agent/internal/server/recommendservice"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
@@ -35,6 +36,11 @@ func main() {
 			reflection.Register(grpcServer)
 		}
 	})
+
+	// 注册认证拦截器：推荐服务需登录用户身份
+	s.AddUnaryInterceptors(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
+		Secret: c.JwtAuth.Secret,
+	}))
 	defer s.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)

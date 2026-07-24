@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -37,7 +36,7 @@ func (l *SkuListLogic) SkuList(req *types.MallSkuListReq) (resp *types.MallSkuLi
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list skus: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	items := make([]types.MallSkuItem, 0, len(rpcResp.List))

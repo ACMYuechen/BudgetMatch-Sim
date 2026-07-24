@@ -31,6 +31,7 @@ func (l *DeleteActivityLogic) DeleteActivity(in *pb.DeleteActivityReq) (*pb.Dele
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 

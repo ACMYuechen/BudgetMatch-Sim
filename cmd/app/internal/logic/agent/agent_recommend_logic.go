@@ -35,6 +35,7 @@ func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp
 		ConversationId: req.ConversationId,
 	})
 	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 

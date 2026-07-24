@@ -31,6 +31,7 @@ func (l *UpdateSkuLogic) UpdateSku(in *pb.UpdateSkuReq) (*pb.UpdateSkuResp, erro
 		return nil, errors.Database
 	}
 	if sku == nil {
+		l.Logger.Errorf("return error: %v", errors.MallSkuNotFound)
 		return nil, errors.MallSkuNotFound
 	}
 

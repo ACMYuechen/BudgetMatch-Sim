@@ -32,6 +32,7 @@ func (l *PreheatActivityLogic) PreheatActivity(in *pb.PreheatActivityReq) (*pb.P
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 

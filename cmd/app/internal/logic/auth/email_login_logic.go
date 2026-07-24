@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -35,7 +34,7 @@ func (l *EmailLoginLogic) EmailLogin(req *types.EmailLoginReq) (resp *types.Logi
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to login by email: %v", err)
-		return nil, errors.Internal
+		return nil, err
 	}
 
 	return &types.LoginResp{

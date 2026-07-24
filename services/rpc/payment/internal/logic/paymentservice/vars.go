@@ -32,6 +32,7 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 		record.NotifyRaw = rawNotify
 	}
 	if err := svcCtx.PaymentStore.Update(ctx, record); err != nil {
+		logx.WithContext(ctx).Errorf("update payment failed: %v", err)
 		return err
 	}
 	logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)

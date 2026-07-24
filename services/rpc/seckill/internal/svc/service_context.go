@@ -6,6 +6,7 @@ import (
 	"budgetmatch-sim/infra/configcenter"
 	"budgetmatch-sim/infra/database"
 	"budgetmatch-sim/infra/dlock"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/infra/limit"
 	iredis "budgetmatch-sim/infra/redis"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
@@ -99,7 +100,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	// init mall product client（NonBlock：mall 启动晚于 seckill 时不阻塞，调用时再解析连接）
-	mallProductClient := productservice.NewProductService(zrpc.MustNewClient(c.MallRpc))
+	mallProductClient := productservice.NewProductService(zrpc.MustNewClient(c.MallRpc,
+		zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientInterceptor())))
 
 	svc := &ServiceContext{
 		Config:        c,

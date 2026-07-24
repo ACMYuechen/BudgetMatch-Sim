@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -38,7 +37,7 @@ func (l *ProductListLogic) ProductList(req *types.MallProductListReq) (resp *typ
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list products: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	items := make([]types.MallProductItem, 0, len(rpcResp.List))

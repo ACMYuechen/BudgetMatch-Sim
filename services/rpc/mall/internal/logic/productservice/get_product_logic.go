@@ -49,6 +49,7 @@ func (l *GetProductLogic) GetProduct(in *pb.GetProductReq) (*pb.GetProductResp, 
 	if product == nil {
 		// cache null object
 		_ = l.svcCtx.Redis.Set(l.ctx, key, "null", time.Minute).Err()
+		l.Logger.Errorf("return error: %v", errors.MallProductNotFound)
 		return nil, errors.MallProductNotFound
 	}
 

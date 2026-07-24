@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,7 +33,7 @@ func (l *SkuDetailLogic) SkuDetail(req *types.SkuDetailReq) (resp *types.SkuDeta
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get sku: %v", err)
-		return nil, errors.SeckillSkuNotFound
+		return nil, err
 	}
 
 	sku := rpcResp.Sku

@@ -31,6 +31,7 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 		return nil, errors.Database
 	}
 	if order == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillOrderNotFound)
 		return nil, errors.SeckillOrderNotFound
 	}
 

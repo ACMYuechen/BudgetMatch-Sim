@@ -37,7 +37,7 @@ CacheRedis:
 
 RocketMQ:
   NameServers:
-    - "127.0.0.1:9876"
+    - "${ROCKETMQ_NAMESERVERS}"
   GroupName: "mall-rpc"
   RetryTimes: 2
   SendMsgTimeout: 3000

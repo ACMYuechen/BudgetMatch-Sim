@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -36,7 +35,7 @@ func (l *AdminProductListLogic) AdminProductList(req *types.AdminProductListReq)
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list products: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	items := make([]types.AdminProductItem, 0, len(rpcResp.List))

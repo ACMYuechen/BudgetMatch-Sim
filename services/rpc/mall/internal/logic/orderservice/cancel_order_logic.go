@@ -35,12 +35,15 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		return nil, errors.Database
 	}
 	if order == nil {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if order.UserId != in.UserId {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	if order.Status != mall_orders.OrderStatusPending {
+		l.Logger.Errorf("return error: %v", errors.MallOrderCannotCancel)
 		return nil, errors.MallOrderCannotCancel
 	}
 
@@ -50,6 +53,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		return nil, errors.Database
 	}
 	if len(items) == 0 {
+		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
 	item := items[0]
@@ -63,15 +67,18 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 			mall_orders.OrderStatusPending, mall_orders.OrderStatusCancelled, now,
 		)
 		if err != nil {
+			l.Logger.Errorf("return error: %v", err)
 			return err
 		}
 		if !ok {
+			l.Logger.Errorf("return error: %v", errors.MallOrderCannotCancel)
 			return errors.MallOrderCannotCancel
 		}
 
 		// 恢复各订单项对应的 SKU 库存
 		for _, it := range items {
 			if err := l.svcCtx.SkuStore.RestoreStockTx(tx, it.SkuId, it.Quantity, now); err != nil {
+				l.Logger.Errorf("return error: %v", err)
 				return err
 			}
 		}
@@ -79,6 +86,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		return nil
 	}); err != nil {
 		if err == errors.MallOrderCannotCancel {
+			l.Logger.Errorf("return error: %v", errors.MallOrderCannotCancel)
 			return nil, errors.MallOrderCannotCancel
 		}
 		l.Logger.Errorf("failed to cancel order: %v", err)

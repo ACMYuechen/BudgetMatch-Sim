@@ -31,6 +31,7 @@ func (l *OnlineActivityLogic) OnlineActivity(in *pb.OnlineActivityReq) (*pb.Onli
 		return nil, errors.Database
 	}
 	if activity == nil {
+		l.Logger.Errorf("return error: %v", errors.SeckillActivityNotFound)
 		return nil, errors.SeckillActivityNotFound
 	}
 

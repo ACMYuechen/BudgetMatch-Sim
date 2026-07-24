@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/admin/internal/svc"
 	"budgetmatch-sim/cmd/admin/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -30,7 +29,7 @@ func (l *AdminDeleteProductLogic) AdminDeleteProduct(req *types.AdminDeleteProdu
 	_, err := l.svcCtx.MallProductClient.DeleteProduct(l.ctx, &pb.DeleteProductReq{Id: req.Id})
 	if err != nil {
 		l.Logger.Errorf("failed to delete product: %v", err)
-		return errors.Internal
+		return err
 	}
 	return nil
 }

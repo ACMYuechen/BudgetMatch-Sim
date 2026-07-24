@@ -31,6 +31,7 @@ func (l *CreateActivityLogic) CreateActivity(in *pb.CreateActivityReq) (*pb.Crea
 	endTime := time.UnixMilli(in.EndTime)
 
 	if endTime.Before(startTime) || endTime.Equal(startTime) {
+		l.Logger.Errorf("return error: %v", errors.Internal)
 		return nil, errors.Internal
 	}
 

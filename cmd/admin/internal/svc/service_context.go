@@ -5,6 +5,7 @@ package svc
 import (
 	"budgetmatch-sim/cmd/admin/internal/config"
 	"budgetmatch-sim/cmd/admin/internal/middleware"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/client/userservice"
 	"budgetmatch-sim/services/rpc/seckill/client/activityservice"
@@ -38,13 +39,16 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	valid := validator.New(validator.WithRequiredStructEnabled())
 
-	authclient := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc))
-	userclient := userservice.NewUserService(zrpc.MustNewClient(c.AuthRpc))
-	seckillclient := zrpc.MustNewClient(c.SeckillRpc)
+	// token 传播拦截器：将 context 中的 JWT 自动注入 outgoing gRPC metadata
+	tokenPropagator := zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientInterceptor())
+
+	authclient := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, tokenPropagator))
+	userclient := userservice.NewUserService(zrpc.MustNewClient(c.AuthRpc, tokenPropagator))
+	seckillclient := zrpc.MustNewClient(c.SeckillRpc, tokenPropagator)
 	activityclient := activityservice.NewActivityService(seckillclient)
 	skuclient := skuservice.NewSkuService(seckillclient)
 	seckillSvcClient := seckillservice.NewSeckillService(seckillclient)
-	mallclient := zrpc.MustNewClient(c.MallRpc)
+	mallclient := zrpc.MustNewClient(c.MallRpc, tokenPropagator)
 	mallProductClient := productservice.NewProductService(mallclient)
 	mallOrderClient := orderservice.NewOrderService(mallclient)
 

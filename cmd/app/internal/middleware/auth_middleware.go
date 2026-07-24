@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
@@ -45,6 +46,13 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		if resp.User == nil || resp.User.Id == "" {
 			logx.WithContext(ctx).Error("invalid token response")
 			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// 检查是否为全局用户身份（含管理员和普通用户，拒绝未注册角色）
+		if !role.IsGlobalUserRole(int64(resp.User.Role)) {
+			logx.WithContext(ctx).Errorf("unauthorized: role=%d", resp.User.Role)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 

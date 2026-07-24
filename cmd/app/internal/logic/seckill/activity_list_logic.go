@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -36,7 +35,7 @@ func (l *ActivityListLogic) ActivityList(req *types.ActivityListReq) (resp *type
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list activities: %v", err)
-		return nil, errors.Database
+		return nil, err
 	}
 
 	items := make([]types.ActivityItem, 0, len(rpcResp.List))
