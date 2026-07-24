@@ -9,6 +9,7 @@ import (
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/einolog"
+	"budgetmatch-sim/services/rpc/agent/internal/filetools"
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -43,6 +44,7 @@ type Agent struct {
 	provider   tools.ProductProvider
 	selector   *selector.BundleSelector
 	mcpCfg     mcpconfig.Config
+	fileTools  *filetools.Workspace
 	maxStep    int
 	memory     memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
 	maxHistory int            // maxHistory 单次读取的最大历史条数
@@ -52,14 +54,20 @@ type Agent struct {
 var _ agentcore.Agent = (*Agent)(nil)
 
 // NewAgent 创建基于 Eino ReAct 的推荐 Agent。
-func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector, mcpCfg mcpconfig.Config) *Agent {
+func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector,
+	mcpCfg mcpconfig.Config, fileCfg filetools.Config) *Agent {
+	workspace, err := filetools.NewWorkspace(fileCfg)
+	if err != nil {
+		panic(err)
+	}
 	return &Agent{
-		model:    m,
-		planner:  recommendagent.NewPlanner(),
-		provider: provider,
-		selector: sel,
-		mcpCfg:   mcpCfg,
-		maxStep:  defaultMaxStep,
+		model:     m,
+		planner:   recommendagent.NewPlanner(),
+		provider:  provider,
+		selector:  sel,
+		mcpCfg:    mcpCfg,
+		fileTools: workspace,
+		maxStep:   defaultMaxStep,
 	}
 }
 
@@ -95,7 +103,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	intent := a.planner.Parse(input)
 	s := newSession(a.provider, a.selector, intent)
 
-	reactTools, err := businessTools(s)
+	reactTools, err := businessTools(s, a.fileTools)
 	if err != nil {
 		return nil, err
 	}

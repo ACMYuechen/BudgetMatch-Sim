@@ -3,9 +3,9 @@ package llm
 import (
 	"context"
 	"fmt"
-	"os"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/filetools"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/tool"
@@ -50,7 +50,7 @@ type selectResult struct {
 
 // readFileArgs 是 read_file 工具的入参。
 type readFileArgs struct {
-	Path string `json:"path" jsonschema:"required,description=Path to the file to read"`
+	Path string `json:"path" jsonschema:"required,description=Relative path inside the configured agent workspace"`
 }
 
 // readFileResult 是 read_file 工具返回给模型的结果。
@@ -61,40 +61,46 @@ type readFileResult struct {
 
 // writeFileArgs 是 write_file 工具的入参。
 type writeFileArgs struct {
-	Path    string `json:"path" jsonschema:"required,description=Path to the file to write"`
+	Path    string `json:"path" jsonschema:"required,description=Relative path inside the configured agent workspace"`
 	Content string `json:"content" jsonschema:"required,description=Content to write to the file"`
 }
 
 // writeFileResult 是 write_file 工具返回给模型的结果。
 type writeFileResult struct {
-	Path        string `json:"path"`
-	BytesWriten int    `json:"bytes_written"`
+	Path         string `json:"path"`
+	BytesWritten int    `json:"bytes_written"`
 }
 
 // readFile 是 read_file 的执行逻辑：读取文件内容并返回。
-func readFile(ctx context.Context, args readFileArgs) (*readFileResult, error) {
-	_ = ctx
-	data, err := os.ReadFile(args.Path)
-	if err != nil {
-		return nil, fmt.Errorf("read file %s: %w", args.Path, err)
+func readFile(workspace *filetools.Workspace) func(context.Context, readFileArgs) (*readFileResult, error) {
+	return func(ctx context.Context, args readFileArgs) (*readFileResult, error) {
+		content, err := workspace.ReadFile(ctx, args.Path)
+		if err != nil {
+			return nil, err
+		}
+		return &readFileResult{Path: args.Path, Content: content}, nil
 	}
-	return &readFileResult{Path: args.Path, Content: string(data)}, nil
 }
 
-// writeFile 是 write_file 的执行逻辑：将内容写入文件。
-func writeFile(ctx context.Context, args writeFileArgs) (*writeFileResult, error) {
-	_ = ctx
-	data := []byte(args.Content)
-	if err := os.WriteFile(args.Path, data, 0o644); err != nil {
-		return nil, fmt.Errorf("write file %s: %w", args.Path, err)
+// writeFile 返回受工作目录和文件后缀约束的 write_file 执行逻辑。
+func writeFile(workspace *filetools.Workspace) func(context.Context, writeFileArgs) (*writeFileResult, error) {
+	return func(ctx context.Context, args writeFileArgs) (*writeFileResult, error) {
+		written, err := workspace.WriteFile(ctx, args.Path, args.Content)
+		if err != nil {
+			return nil, err
+		}
+		return &writeFileResult{Path: args.Path, BytesWritten: written}, nil
 	}
-	return &writeFileResult{Path: args.Path, BytesWriten: len(data)}, nil
 }
 
 // businessTools 把领域能力包装成 Eino 工具。
 // 每个工具用 InferTool 从入参结构体推导 schema，handler 闭包持有 session 写入类型化结果，
 // 再统一套上记录装饰器和错误处理器：工具出错时返回 JSON 让模型自行恢复，而不是中断整个 ReAct。
-func businessTools(s *session) ([]tool.BaseTool, error) {
+func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool, error) {
+	if workspace == nil {
+		return nil, fmt.Errorf("file tools workspace is required")
+	}
+
 	search, err := utils.InferTool(
 		toolSearchProducts,
 		"Search product candidates by query, keywords, budget, and item limit. Use this before selecting a bundle.",
@@ -115,8 +121,8 @@ func businessTools(s *session) ([]tool.BaseTool, error) {
 
 	readF, err := utils.InferTool(
 		toolReadFile,
-		"Read the contents of a file at the given path.",
-		readFile,
+		"Read a size-limited file using a relative path inside the configured agent workspace.",
+		readFile(workspace),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolReadFile, err)
@@ -124,8 +130,8 @@ func businessTools(s *session) ([]tool.BaseTool, error) {
 
 	writeF, err := utils.InferTool(
 		toolWriteFile,
-		"Write content to a file at the given path. Creates the file if it does not exist.",
-		writeFile,
+		"Write an allowed file type using a relative path inside the configured agent workspace.",
+		writeFile(workspace),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolWriteFile, err)

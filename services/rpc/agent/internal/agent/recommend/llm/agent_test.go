@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/filetools"
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -28,7 +29,7 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 		schema.AssistantMessage("最终推荐结果", nil),
 	}}
 
-	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}).WithMaxStep(6)
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{}).WithMaxStep(6)
 
 	result, err := agent.Run(context.Background(), agentcore.Input{Query: "study bundle", BudgetCents: 300000, MaxItems: 3})
 	if err != nil {
@@ -57,8 +58,8 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 	if result.ToolsUsed[2].Name != "tool."+toolSelectBundle || !result.ToolsUsed[2].Success {
 		t.Fatalf("unexpected select record: %+v", result.ToolsUsed[2])
 	}
-	if len(model.boundTools) != 2 {
-		t.Fatalf("expected model to receive 2 tools, got %d", len(model.boundTools))
+	if len(model.boundTools) != 4 {
+		t.Fatalf("expected model to receive 4 tools, got %d", len(model.boundTools))
 	}
 }
 
@@ -69,7 +70,7 @@ func TestAgentFallsBackWhenModelSkipsSelect(t *testing.T) {
 		schema.AssistantMessage("我直接给结论", nil),
 	}}
 
-	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{})
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
 
 	result, err := agent.Run(context.Background(), agentcore.Input{Query: "预算3000 学习用品"})
 	if err != nil {
@@ -106,7 +107,7 @@ func TestAgentInjectsHistoryIntoPrompt(t *testing.T) {
 		t.Fatalf("seed memory error = %v", err)
 	}
 
-	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}).
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{}).
 		WithMemory(mem, 20)
 
 	if _, err := agent.Run(ctx, agentcore.Input{Query: "预算加到5000", ConversationID: "c1"}); err != nil {
@@ -139,7 +140,7 @@ func TestAgentInjectsHistoryIntoPrompt(t *testing.T) {
 // TestAgentToleratesHistoryFailure 验证记忆读取失败时降级为单轮推荐，不阻断请求。
 func TestAgentToleratesHistoryFailure(t *testing.T) {
 	model := &scriptedModel{responses: []*schema.Message{schema.AssistantMessage("ok", nil)}}
-	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}).
+	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{}).
 		WithMemory(&failingMemory{}, 20)
 
 	result, err := agent.Run(context.Background(), agentcore.Input{Query: "预算3000 学习用品", ConversationID: "c1"})
