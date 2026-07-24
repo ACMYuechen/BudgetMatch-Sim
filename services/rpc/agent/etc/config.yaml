@@ -51,6 +51,15 @@ MCP:
     - "stdio"
   Timeout: 5000
 
+# LLM 文件工具。模型只能使用相对路径访问 Workspace 内文件。
+FileTools:
+  Workspace: "workspace/agent"
+  MaxReadBytes: 1048576
+  WritableExtensions:
+    - ".json"
+    - ".md"
+    - ".txt"
+
 # 商城商品数据源；注释掉整个块则退回内存 mock 商品
 MallRpc:
   Etcd:
