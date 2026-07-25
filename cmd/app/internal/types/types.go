@@ -310,14 +310,12 @@ type MallPaymentResp struct {
 	PaidAt     string `json:"paid_at"`
 	CreatedAt  string `json:"created_at"`
 	UpdatedAt  string `json:"updated_at"`
-	QrCode     string `json:"qr_code"`
 }
 
 type MallQueryPaymentResp struct {
 	Status  int32           `json:"status"`
 	TradeNo string          `json:"trade_no"`
 	Payment MallPaymentResp `json:"payment"`
-	QrCode  string          `json:"qr_code"`
 }
 
 type AgentRecommendReq struct {

@@ -1050,9 +1050,6 @@
                     }
                   }
                 },
-                "qr_code": {
-                  "type": "string"
-                },
                 "status": {
                   "type": "integer"
                 },
@@ -1909,7 +1906,7 @@
       }
     }
   },
-  "x-date": "2026-07-24 19:13:44",
+  "x-date": "2026-07-26 01:33:58",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
