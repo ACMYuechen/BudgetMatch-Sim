@@ -87,8 +87,12 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 
 	record.QrCode = res.QRCode
 	if err := l.svcCtx.PaymentStore.Update(l.ctx, record); err != nil {
-		l.Logger.Errorf("save QRCode failed: %v", err)
-		return nil, errors.Database
+		l.Logger.Errorf(
+			"save QRCode failed, returning pre-created payment anyway: order=%s outTradeNo=%s error=%v",
+			record.OrderId,
+			record.OutTradeNo,
+			err,
+		)
 	}
 	return &pb.CreatePaymentResp{
 		OutTradeNo: record.OutTradeNo,

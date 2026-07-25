@@ -307,6 +307,7 @@ type MallPaymentResp struct {
 	Status     int32  `json:"status"`
 	TradeNo    string `json:"trade_no"`
 	BuyerId    string `json:"buyer_id"`
+	QrCode     string `json:"qr_code"`
 	PaidAt     string `json:"paid_at"`
 	CreatedAt  string `json:"created_at"`
 	UpdatedAt  string `json:"updated_at"`
