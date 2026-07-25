@@ -168,7 +168,6 @@ type MallQueryPaymentResp {
 	Status  int32           `json:"status"`
 	TradeNo string          `json:"trade_no"`
 	Payment MallPaymentResp `json:"payment"`
-	QrCode  string          `json:"qr_code"`
 }
 
 // ========== Service ==========

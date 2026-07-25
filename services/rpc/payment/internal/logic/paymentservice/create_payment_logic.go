@@ -65,6 +65,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 			Amount:     in.Amount,
 			Channel:    "alipay",
 			Status:     payments.StatusPending,
+			NotifyRaw:  "{}",
 		}
 		if err := l.svcCtx.PaymentStore.InsertOne(l.ctx, record); err != nil {
 			l.Logger.Errorf("insert payment failed: %v", err)
@@ -84,6 +85,11 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 		return nil, errors.Internal
 	}
 
+	record.QrCode = res.QRCode
+	if err := l.svcCtx.PaymentStore.Update(l.ctx, record); err != nil {
+		l.Logger.Errorf("save QRCode failed: %v", err)
+		return nil, errors.Database
+	}
 	return &pb.CreatePaymentResp{
 		OutTradeNo: record.OutTradeNo,
 		QrCode:     res.QRCode,

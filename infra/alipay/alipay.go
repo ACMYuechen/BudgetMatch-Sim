@@ -106,6 +106,16 @@ func (c *Client) Query(ctx context.Context, outTradeNo, tradeNo string) (*QueryR
 		return nil, fmt.Errorf("alipay: query failed: %w", err)
 	}
 	if rsp.Code != alipay.CodeSuccess {
+
+		// 预下单后、用户扫码前，支付宝可能查不到实际交易。
+		// 对本系统来说仍然是待支付状态。
+		if rsp.SubCode == "ACQ.TRADE_NOT_EXIST" {
+			return &QueryResult{
+				OutTradeNo: outTradeNo,
+				Paid:       false,
+			}, nil
+		}
+
 		return nil, fmt.Errorf("alipay: query biz error: %s-%s", rsp.Code, rsp.Msg)
 	}
 

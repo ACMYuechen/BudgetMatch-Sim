@@ -71,3 +71,4 @@ PaymentRpc:
   Endpoints:
     - 127.0.0.1:10007
   NonBlock: true
+  Timeout: 10000
