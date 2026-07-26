@@ -1007,6 +1007,7 @@
                     "status",
                     "trade_no",
                     "buyer_id",
+                    "qr_code",
                     "paid_at",
                     "created_at",
                     "updated_at"
@@ -1034,6 +1035,9 @@
                       "type": "string"
                     },
                     "paid_at": {
+                      "type": "string"
+                    },
+                    "qr_code": {
                       "type": "string"
                     },
                     "status": {
@@ -1380,6 +1384,27 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/pay/notify/alipay": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "payment"
+        ],
+        "summary": "支付宝异步通知",
+        "operationId": "paymentAlipayNotify",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {}
           }
         }
       }
@@ -1906,7 +1931,7 @@
       }
     }
   },
-  "x-date": "2026-07-26 01:33:58",
+  "x-date": "2026-07-26 19:41:41",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
