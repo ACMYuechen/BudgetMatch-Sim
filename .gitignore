@@ -51,6 +51,7 @@ api.json
 
 # Claude Code local settings
 .claude/
+AGENTS.md
 
 # Temp files
 tmp/
