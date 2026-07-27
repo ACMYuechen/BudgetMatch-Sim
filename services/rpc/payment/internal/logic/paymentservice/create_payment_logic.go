@@ -65,6 +65,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 			Amount:     in.Amount,
 			Channel:    "alipay",
 			Status:     payments.StatusPending,
+			NotifyRaw:  "{}",
 		}
 		if err := l.svcCtx.PaymentStore.InsertOne(l.ctx, record); err != nil {
 			l.Logger.Errorf("insert payment failed: %v", err)
@@ -82,6 +83,18 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 	if err != nil {
 		l.Logger.Errorf("alipay precreate failed: %v", err)
 		return nil, errors.Internal
+	}
+
+	// 支付宝预下单已经成功，二维码持久化仅用于后续查询。即使数据库更新失败，
+	// 也应优先将本次生成的二维码返回给调用方，避免调用方因重试而重复发起预下单。
+	record.QrCode = res.QRCode
+	if err := l.svcCtx.PaymentStore.Update(l.ctx, record); err != nil {
+		l.Logger.Errorf(
+			"save QRCode failed, returning pre-created payment anyway: order=%s outTradeNo=%s error=%v",
+			record.OrderId,
+			record.OutTradeNo,
+			err,
+		)
 	}
 
 	return &pb.CreatePaymentResp{

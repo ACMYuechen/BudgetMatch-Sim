@@ -133,6 +133,44 @@ type MallCancelOrderReq {
 	Id string `path:"id"`
 }
 
+// ========== Payment Types ==========
+
+type MallCreatePaymentReq {
+	Id string `path:"id"`
+}
+
+type MallCreatePaymentResp {
+	OutTradeNo string `json:"out_trade_no"`
+	QrCode     string `json:"qr_code"`
+	Status     int32  `json:"status"`
+}
+
+type MallQueryPaymentReq {
+	Id string `path:"id"`
+}
+
+type MallPaymentResp {
+	Id         string `json:"id"`
+	OutTradeNo string `json:"out_trade_no"`
+	OrderId    string `json:"order_id"`
+	UserId     string `json:"user_id"`
+	Amount     int64  `json:"amount"`
+	Channel    string `json:"channel"`
+	Status     int32  `json:"status"`
+	TradeNo    string `json:"trade_no"`
+	BuyerId    string `json:"buyer_id"`
+	QrCode     string `json:"qr_code"`
+	PaidAt     string `json:"paid_at"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+}
+
+type MallQueryPaymentResp {
+	Status  int32           `json:"status"`
+	TradeNo string          `json:"trade_no"`
+	Payment MallPaymentResp `json:"payment"`
+}
+
 // ========== Service ==========
 
 @server (
@@ -169,4 +207,12 @@ service app {
 	@doc "取消订单"
 	@handler CancelOrder
 	post /orders/:id/cancel (MallCancelOrderReq)
+
+	@doc "发起支付宝扫码支付"
+	@handler CreatePayment
+	post /orders/:id/pay (MallCreatePaymentReq) returns (MallCreatePaymentResp)
+
+	@doc "主动查询支付状态"
+	@handler QueryPayment
+	get /orders/:id/pay/query (MallQueryPaymentReq) returns (MallQueryPaymentResp)
 }

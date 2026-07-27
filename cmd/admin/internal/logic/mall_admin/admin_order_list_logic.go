@@ -30,7 +30,7 @@ func (l *AdminOrderListLogic) AdminOrderList(req *types.AdminOrderListReq) (resp
 		UserId:   req.UserId,
 		Page:     int32(req.Page),
 		PageSize: int32(req.PageSize),
-		Status:   int32(req.Status),
+		Status:   pb.OrderStatus(req.Status),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)

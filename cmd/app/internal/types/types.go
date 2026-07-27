@@ -283,6 +283,42 @@ type MallCancelOrderReq struct {
 	Id string `path:"id"`
 }
 
+type MallCreatePaymentReq struct {
+	Id string `path:"id"`
+}
+
+type MallCreatePaymentResp struct {
+	OutTradeNo string `json:"out_trade_no"`
+	QrCode     string `json:"qr_code"`
+	Status     int32  `json:"status"`
+}
+
+type MallQueryPaymentReq struct {
+	Id string `path:"id"`
+}
+
+type MallPaymentResp struct {
+	Id         string `json:"id"`
+	OutTradeNo string `json:"out_trade_no"`
+	OrderId    string `json:"order_id"`
+	UserId     string `json:"user_id"`
+	Amount     int64  `json:"amount"`
+	Channel    string `json:"channel"`
+	Status     int32  `json:"status"`
+	TradeNo    string `json:"trade_no"`
+	BuyerId    string `json:"buyer_id"`
+	QrCode     string `json:"qr_code"`
+	PaidAt     string `json:"paid_at"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+}
+
+type MallQueryPaymentResp struct {
+	Status  int32           `json:"status"`
+	TradeNo string          `json:"trade_no"`
+	Payment MallPaymentResp `json:"payment"`
+}
+
 type AgentRecommendReq struct {
 	Query          string `json:"query" validate:"required"`
 	BudgetCents    int64  `json:"budget_cents,optional"`

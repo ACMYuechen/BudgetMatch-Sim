@@ -58,6 +58,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 			Status:  int32(record.Status),
 			TradeNo: record.TradeNo,
 			Payment: paymentToPb(record),
+			QrCode:  record.QrCode,
 		}, nil
 	}
 
@@ -84,5 +85,6 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 		Status:  int32(record.Status),
 		TradeNo: record.TradeNo,
 		Payment: paymentToPb(record),
+		QrCode:  record.QrCode,
 	}, nil
 }

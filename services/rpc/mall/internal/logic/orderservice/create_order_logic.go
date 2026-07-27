@@ -41,7 +41,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	cached, err := l.svcCtx.Redis.Get(l.ctx, idempKey).Result()
 	if err == nil && cached != "" {
 		// 返回已存在的订单 ID
-		return &pb.CreateOrderResp{OrderId: cached, Status: int32(mall_orders.OrderStatusPending)}, nil
+		return &pb.CreateOrderResp{OrderId: cached, Status: pb.OrderStatus_ORDER_STATUS_PENDING}, nil
 	} else if err != redis.Nil && err != nil {
 		l.Logger.Errorf("failed to get idempotency key: %v", err)
 	}
@@ -183,5 +183,5 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		l.svcCtx.OrderEventProducer.PublishCreatedAsync(event)
 	}
 
-	return &pb.CreateOrderResp{OrderId: orderID, Status: int32(mall_orders.OrderStatusPending)}, nil
+	return &pb.CreateOrderResp{OrderId: orderID, Status: pb.OrderStatus_ORDER_STATUS_PENDING}, nil
 }

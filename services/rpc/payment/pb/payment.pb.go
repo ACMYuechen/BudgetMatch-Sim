@@ -36,6 +36,7 @@ type Payment struct {
 	PaidAt        string                 `protobuf:"bytes,10,opt,name=paid_at,json=paidAt,proto3" json:"paid_at,omitempty"`              // 支付完成时间
 	CreatedAt     string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	QrCode        string                 `protobuf:"bytes,13,opt,name=qr_code,json=qrCode,proto3" json:"qr_code,omitempty"` // 支付宝二维码链接
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -150,6 +151,13 @@ func (x *Payment) GetCreatedAt() string {
 func (x *Payment) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *Payment) GetQrCode() string {
+	if x != nil {
+		return x.QrCode
 	}
 	return ""
 }
@@ -342,6 +350,7 @@ type QueryPaymentResp struct {
 	Status        int32                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"` // 0:pending 1:success 2:closed
 	TradeNo       string                 `protobuf:"bytes,2,opt,name=trade_no,json=tradeNo,proto3" json:"trade_no,omitempty"`
 	Payment       *Payment               `protobuf:"bytes,3,opt,name=payment,proto3" json:"payment,omitempty"`
+	QrCode        string                 `protobuf:"bytes,4,opt,name=qr_code,json=qrCode,proto3" json:"qr_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -395,6 +404,13 @@ func (x *QueryPaymentResp) GetPayment() *Payment {
 		return x.Payment
 	}
 	return nil
+}
+
+func (x *QueryPaymentResp) GetQrCode() string {
+	if x != nil {
+		return x.QrCode
+	}
+	return ""
 }
 
 // 处理支付宝异步通知（由 REST 网关验签前的原始表单参数透传进来，服务端负责验签 + 幂等确认）
@@ -498,7 +514,7 @@ var File_services_rpc_payment_proto_payment_proto protoreflect.FileDescriptor
 
 const file_services_rpc_payment_proto_payment_proto_rawDesc = "" +
 	"\n" +
-	"(services/rpc/payment/proto/payment.proto\x12\apayment\"\xc6\x02\n" +
+	"(services/rpc/payment/proto/payment.proto\x12\apayment\"\xdf\x02\n" +
 	"\aPayment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
 	"\fout_trade_no\x18\x02 \x01(\tR\n" +
@@ -515,7 +531,8 @@ const file_services_rpc_payment_proto_payment_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\tR\tupdatedAt\"x\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\x12\x17\n" +
+	"\aqr_code\x18\r \x01(\tR\x06qrCode\"x\n" +
 	"\x10CreatePaymentReq\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
@@ -529,11 +546,12 @@ const file_services_rpc_payment_proto_payment_proto_rawDesc = "" +
 	"\x0fQueryPaymentReq\x12 \n" +
 	"\fout_trade_no\x18\x01 \x01(\tR\n" +
 	"outTradeNo\x12\x19\n" +
-	"\border_id\x18\x02 \x01(\tR\aorderId\"q\n" +
+	"\border_id\x18\x02 \x01(\tR\aorderId\"\x8a\x01\n" +
 	"\x10QueryPaymentResp\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\x05R\x06status\x12\x19\n" +
 	"\btrade_no\x18\x02 \x01(\tR\atradeNo\x12*\n" +
-	"\apayment\x18\x03 \x01(\v2\x10.payment.PaymentR\apayment\"\x8a\x01\n" +
+	"\apayment\x18\x03 \x01(\v2\x10.payment.PaymentR\apayment\x12\x17\n" +
+	"\aqr_code\x18\x04 \x01(\tR\x06qrCode\"\x8a\x01\n" +
 	"\x0fHandleNotifyReq\x12<\n" +
 	"\x06params\x18\x01 \x03(\v2$.payment.HandleNotifyReq.ParamsEntryR\x06params\x1a9\n" +
 	"\vParamsEntry\x12\x10\n" +

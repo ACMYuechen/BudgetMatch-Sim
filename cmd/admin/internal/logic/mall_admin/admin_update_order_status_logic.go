@@ -28,7 +28,7 @@ func NewAdminUpdateOrderStatusLogic(ctx context.Context, svcCtx *svc.ServiceCont
 func (l *AdminUpdateOrderStatusLogic) AdminUpdateOrderStatus(req *types.AdminUpdateOrderStatusReq) (resp *types.AdminUpdateOrderStatusResp, err error) {
 	_, err = l.svcCtx.MallOrderClient.UpdateOrderStatus(l.ctx, &pb.UpdateOrderStatusReq{
 		OrderId: req.Id,
-		Status:  req.Status,
+		Status:  pb.OrderStatus(req.Status),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to update order status: %v", err)

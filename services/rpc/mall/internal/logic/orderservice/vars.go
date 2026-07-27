@@ -20,7 +20,7 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 		OriginalAmount: o.OriginalAmount,
 		DiscountAmount: o.DiscountAmount,
 		PayAmount:      o.PayAmount,
-		Status:         int32(o.Status),
+		Status:         pb.OrderStatus(o.Status),
 		PayType:        o.PayType,
 		Remark:         o.Remark,
 		Snapshot:       o.Snapshot,

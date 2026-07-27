@@ -1,12 +1,14 @@
 package mall_orders
 
-// 订单状态常量
+import "budgetmatch-sim/services/rpc/mall/pb"
+
+// 数据库存储使用 int，状态值以 protobuf 契约为准。
 const (
-	OrderStatusPending   int = 1 // 待支付
-	OrderStatusPaid      int = 2 // 已支付
-	OrderStatusShipped   int = 3 // 已发货
-	OrderStatusCompleted int = 4 // 已完成
-	OrderStatusCancelled int = 5 // 已取消
-	OrderStatusRefunding int = 6 // 退款中
-	OrderStatusRefunded  int = 7 // 已退款
+	OrderStatusPending   = int(pb.OrderStatus_ORDER_STATUS_PENDING)
+	OrderStatusPaid      = int(pb.OrderStatus_ORDER_STATUS_PAID)
+	OrderStatusShipped   = int(pb.OrderStatus_ORDER_STATUS_SHIPPED)
+	OrderStatusCompleted = int(pb.OrderStatus_ORDER_STATUS_COMPLETED)
+	OrderStatusCancelled = int(pb.OrderStatus_ORDER_STATUS_CANCELLED)
+	OrderStatusRefunding = int(pb.OrderStatus_ORDER_STATUS_REFUNDING)
+	OrderStatusRefunded  = int(pb.OrderStatus_ORDER_STATUS_REFUNDED)
 )

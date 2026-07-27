@@ -21,6 +21,71 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type OrderStatus int32
+
+const (
+	OrderStatus_ORDER_STATUS_UNSPECIFIED OrderStatus = 0
+	OrderStatus_ORDER_STATUS_PENDING     OrderStatus = 1
+	OrderStatus_ORDER_STATUS_PAID        OrderStatus = 2
+	OrderStatus_ORDER_STATUS_SHIPPED     OrderStatus = 3
+	OrderStatus_ORDER_STATUS_COMPLETED   OrderStatus = 4
+	OrderStatus_ORDER_STATUS_CANCELLED   OrderStatus = 5
+	OrderStatus_ORDER_STATUS_REFUNDING   OrderStatus = 6
+	OrderStatus_ORDER_STATUS_REFUNDED    OrderStatus = 7
+)
+
+// Enum value maps for OrderStatus.
+var (
+	OrderStatus_name = map[int32]string{
+		0: "ORDER_STATUS_UNSPECIFIED",
+		1: "ORDER_STATUS_PENDING",
+		2: "ORDER_STATUS_PAID",
+		3: "ORDER_STATUS_SHIPPED",
+		4: "ORDER_STATUS_COMPLETED",
+		5: "ORDER_STATUS_CANCELLED",
+		6: "ORDER_STATUS_REFUNDING",
+		7: "ORDER_STATUS_REFUNDED",
+	}
+	OrderStatus_value = map[string]int32{
+		"ORDER_STATUS_UNSPECIFIED": 0,
+		"ORDER_STATUS_PENDING":     1,
+		"ORDER_STATUS_PAID":        2,
+		"ORDER_STATUS_SHIPPED":     3,
+		"ORDER_STATUS_COMPLETED":   4,
+		"ORDER_STATUS_CANCELLED":   5,
+		"ORDER_STATUS_REFUNDING":   6,
+		"ORDER_STATUS_REFUNDED":    7,
+	}
+)
+
+func (x OrderStatus) Enum() *OrderStatus {
+	p := new(OrderStatus)
+	*p = x
+	return p
+}
+
+func (x OrderStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OrderStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_services_rpc_mall_proto_mall_proto_enumTypes[0].Descriptor()
+}
+
+func (OrderStatus) Type() protoreflect.EnumType {
+	return &file_services_rpc_mall_proto_mall_proto_enumTypes[0]
+}
+
+func (x OrderStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OrderStatus.Descriptor instead.
+func (OrderStatus) EnumDescriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{0}
+}
+
+// ///////////////////// 基础类型 ///////////////////////
 type Product struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -137,590 +202,6 @@ func (x *Product) GetUpdatedAt() string {
 	return ""
 }
 
-type CreateProductReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	Image         string                 `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
-	Providor      string                 `protobuf:"bytes,5,opt,name=providor,proto3" json:"providor,omitempty"`
-	AgentComment  string                 `protobuf:"bytes,6,opt,name=agent_comment,json=agentComment,proto3" json:"agent_comment,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateProductReq) Reset() {
-	*x = CreateProductReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateProductReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateProductReq) ProtoMessage() {}
-
-func (x *CreateProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateProductReq.ProtoReflect.Descriptor instead.
-func (*CreateProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *CreateProductReq) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *CreateProductReq) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *CreateProductReq) GetContent() string {
-	if x != nil {
-		return x.Content
-	}
-	return ""
-}
-
-func (x *CreateProductReq) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *CreateProductReq) GetProvidor() string {
-	if x != nil {
-		return x.Providor
-	}
-	return ""
-}
-
-func (x *CreateProductReq) GetAgentComment() string {
-	if x != nil {
-		return x.AgentComment
-	}
-	return ""
-}
-
-type CreateProductResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateProductResp) Reset() {
-	*x = CreateProductResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateProductResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateProductResp) ProtoMessage() {}
-
-func (x *CreateProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateProductResp.ProtoReflect.Descriptor instead.
-func (*CreateProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CreateProductResp) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type UpdateProductReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	Status        int32                  `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
-	Image         string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
-	Providor      string                 `protobuf:"bytes,6,opt,name=providor,proto3" json:"providor,omitempty"`
-	AgentComment  string                 `protobuf:"bytes,7,opt,name=agent_comment,json=agentComment,proto3" json:"agent_comment,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateProductReq) Reset() {
-	*x = UpdateProductReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateProductReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateProductReq) ProtoMessage() {}
-
-func (x *UpdateProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateProductReq.ProtoReflect.Descriptor instead.
-func (*UpdateProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *UpdateProductReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UpdateProductReq) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *UpdateProductReq) GetContent() string {
-	if x != nil {
-		return x.Content
-	}
-	return ""
-}
-
-func (x *UpdateProductReq) GetStatus() int32 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *UpdateProductReq) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *UpdateProductReq) GetProvidor() string {
-	if x != nil {
-		return x.Providor
-	}
-	return ""
-}
-
-func (x *UpdateProductReq) GetAgentComment() string {
-	if x != nil {
-		return x.AgentComment
-	}
-	return ""
-}
-
-type UpdateProductResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateProductResp) Reset() {
-	*x = UpdateProductResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateProductResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateProductResp) ProtoMessage() {}
-
-func (x *UpdateProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateProductResp.ProtoReflect.Descriptor instead.
-func (*UpdateProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *UpdateProductResp) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type DeleteProductReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteProductReq) Reset() {
-	*x = DeleteProductReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteProductReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteProductReq) ProtoMessage() {}
-
-func (x *DeleteProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteProductReq.ProtoReflect.Descriptor instead.
-func (*DeleteProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *DeleteProductReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type DeleteProductResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteProductResp) Reset() {
-	*x = DeleteProductResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteProductResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteProductResp) ProtoMessage() {}
-
-func (x *DeleteProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteProductResp.ProtoReflect.Descriptor instead.
-func (*DeleteProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *DeleteProductResp) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type GetProductReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetProductReq) Reset() {
-	*x = GetProductReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetProductReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetProductReq) ProtoMessage() {}
-
-func (x *GetProductReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetProductReq.ProtoReflect.Descriptor instead.
-func (*GetProductReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *GetProductReq) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type GetProductResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Product       *Product               `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetProductResp) Reset() {
-	*x = GetProductResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetProductResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetProductResp) ProtoMessage() {}
-
-func (x *GetProductResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetProductResp.ProtoReflect.Descriptor instead.
-func (*GetProductResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetProductResp) GetProduct() *Product {
-	if x != nil {
-		return x.Product
-	}
-	return nil
-}
-
-type ListProductsReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Keyword       string                 `protobuf:"bytes,3,opt,name=keyword,proto3" json:"keyword,omitempty"`
-	Status        int32                  `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
-	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListProductsReq) Reset() {
-	*x = ListProductsReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListProductsReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListProductsReq) ProtoMessage() {}
-
-func (x *ListProductsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListProductsReq.ProtoReflect.Descriptor instead.
-func (*ListProductsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ListProductsReq) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *ListProductsReq) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *ListProductsReq) GetKeyword() string {
-	if x != nil {
-		return x.Keyword
-	}
-	return ""
-}
-
-func (x *ListProductsReq) GetStatus() int32 {
-	if x != nil {
-		return x.Status
-	}
-	return 0
-}
-
-func (x *ListProductsReq) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type ListProductsResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	List          []*Product             `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
-	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListProductsResp) Reset() {
-	*x = ListProductsResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListProductsResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListProductsResp) ProtoMessage() {}
-
-func (x *ListProductsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListProductsResp.ProtoReflect.Descriptor instead.
-func (*ListProductsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *ListProductsResp) GetList() []*Product {
-	if x != nil {
-		return x.List
-	}
-	return nil
-}
-
-func (x *ListProductsResp) GetTotal() int64 {
-	if x != nil {
-		return x.Total
-	}
-	return 0
-}
-
-func (x *ListProductsResp) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *ListProductsResp) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
 type Sku struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -740,7 +221,7 @@ type Sku struct {
 
 func (x *Sku) Reset() {
 	*x = Sku{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -752,7 +233,7 @@ func (x *Sku) String() string {
 func (*Sku) ProtoMessage() {}
 
 func (x *Sku) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -765,7 +246,7 @@ func (x *Sku) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sku.ProtoReflect.Descriptor instead.
 func (*Sku) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{11}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Sku) GetId() string {
@@ -843,6 +324,590 @@ func (x *Sku) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+type CreateProductReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	Image         string                 `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
+	Providor      string                 `protobuf:"bytes,5,opt,name=providor,proto3" json:"providor,omitempty"`
+	AgentComment  string                 `protobuf:"bytes,6,opt,name=agent_comment,json=agentComment,proto3" json:"agent_comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProductReq) Reset() {
+	*x = CreateProductReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProductReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProductReq) ProtoMessage() {}
+
+func (x *CreateProductReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProductReq.ProtoReflect.Descriptor instead.
+func (*CreateProductReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateProductReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreateProductReq) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateProductReq) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *CreateProductReq) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *CreateProductReq) GetProvidor() string {
+	if x != nil {
+		return x.Providor
+	}
+	return ""
+}
+
+func (x *CreateProductReq) GetAgentComment() string {
+	if x != nil {
+		return x.AgentComment
+	}
+	return ""
+}
+
+type CreateProductResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProductResp) Reset() {
+	*x = CreateProductResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProductResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProductResp) ProtoMessage() {}
+
+func (x *CreateProductResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProductResp.ProtoReflect.Descriptor instead.
+func (*CreateProductResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateProductResp) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type UpdateProductReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	Status        int32                  `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
+	Image         string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	Providor      string                 `protobuf:"bytes,6,opt,name=providor,proto3" json:"providor,omitempty"`
+	AgentComment  string                 `protobuf:"bytes,7,opt,name=agent_comment,json=agentComment,proto3" json:"agent_comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProductReq) Reset() {
+	*x = UpdateProductReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProductReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProductReq) ProtoMessage() {}
+
+func (x *UpdateProductReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProductReq.ProtoReflect.Descriptor instead.
+func (*UpdateProductReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateProductReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateProductReq) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateProductReq) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *UpdateProductReq) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *UpdateProductReq) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *UpdateProductReq) GetProvidor() string {
+	if x != nil {
+		return x.Providor
+	}
+	return ""
+}
+
+func (x *UpdateProductReq) GetAgentComment() string {
+	if x != nil {
+		return x.AgentComment
+	}
+	return ""
+}
+
+type UpdateProductResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateProductResp) Reset() {
+	*x = UpdateProductResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateProductResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateProductResp) ProtoMessage() {}
+
+func (x *UpdateProductResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateProductResp.ProtoReflect.Descriptor instead.
+func (*UpdateProductResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateProductResp) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type DeleteProductReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteProductReq) Reset() {
+	*x = DeleteProductReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProductReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProductReq) ProtoMessage() {}
+
+func (x *DeleteProductReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteProductReq.ProtoReflect.Descriptor instead.
+func (*DeleteProductReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeleteProductReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteProductResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteProductResp) Reset() {
+	*x = DeleteProductResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProductResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProductResp) ProtoMessage() {}
+
+func (x *DeleteProductResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteProductResp.ProtoReflect.Descriptor instead.
+func (*DeleteProductResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DeleteProductResp) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type GetProductReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProductReq) Reset() {
+	*x = GetProductReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProductReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProductReq) ProtoMessage() {}
+
+func (x *GetProductReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProductReq.ProtoReflect.Descriptor instead.
+func (*GetProductReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetProductReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetProductResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Product       *Product               `protobuf:"bytes,1,opt,name=product,proto3" json:"product,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProductResp) Reset() {
+	*x = GetProductResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProductResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProductResp) ProtoMessage() {}
+
+func (x *GetProductResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProductResp.ProtoReflect.Descriptor instead.
+func (*GetProductResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetProductResp) GetProduct() *Product {
+	if x != nil {
+		return x.Product
+	}
+	return nil
+}
+
+type ListProductsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Keyword       string                 `protobuf:"bytes,3,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	Status        int32                  `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
+	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProductsReq) Reset() {
+	*x = ListProductsReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProductsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProductsReq) ProtoMessage() {}
+
+func (x *ListProductsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProductsReq.ProtoReflect.Descriptor instead.
+func (*ListProductsReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListProductsReq) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListProductsReq) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListProductsReq) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *ListProductsReq) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *ListProductsReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type ListProductsResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	List          []*Product             `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProductsResp) Reset() {
+	*x = ListProductsResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProductsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProductsResp) ProtoMessage() {}
+
+func (x *ListProductsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProductsResp.ProtoReflect.Descriptor instead.
+func (*ListProductsResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListProductsResp) GetList() []*Product {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+func (x *ListProductsResp) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListProductsResp) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListProductsResp) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type CreateSkuReq struct {
@@ -1528,7 +1593,7 @@ type Order struct {
 	OriginalAmount int64                  `protobuf:"varint,3,opt,name=original_amount,json=originalAmount,proto3" json:"original_amount,omitempty"`
 	DiscountAmount int64                  `protobuf:"varint,4,opt,name=discount_amount,json=discountAmount,proto3" json:"discount_amount,omitempty"`
 	PayAmount      int64                  `protobuf:"varint,5,opt,name=pay_amount,json=payAmount,proto3" json:"pay_amount,omitempty"`
-	Status         int32                  `protobuf:"varint,6,opt,name=status,proto3" json:"status,omitempty"`
+	Status         OrderStatus            `protobuf:"varint,6,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
 	PayType        string                 `protobuf:"bytes,7,opt,name=pay_type,json=payType,proto3" json:"pay_type,omitempty"`
 	PayTime        string                 `protobuf:"bytes,8,opt,name=pay_time,json=payTime,proto3" json:"pay_time,omitempty"`
 	Remark         string                 `protobuf:"bytes,9,opt,name=remark,proto3" json:"remark,omitempty"`
@@ -1606,11 +1671,11 @@ func (x *Order) GetPayAmount() int64 {
 	return 0
 }
 
-func (x *Order) GetStatus() int32 {
+func (x *Order) GetStatus() OrderStatus {
 	if x != nil {
 		return x.Status
 	}
-	return 0
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 func (x *Order) GetPayType() string {
@@ -1748,7 +1813,7 @@ func (x *CreateOrderReq) GetIdempotencyKey() string {
 type CreateOrderResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Status        int32                  `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1790,11 +1855,11 @@ func (x *CreateOrderResp) GetOrderId() string {
 	return ""
 }
 
-func (x *CreateOrderResp) GetStatus() int32 {
+func (x *CreateOrderResp) GetStatus() OrderStatus {
 	if x != nil {
 		return x.Status
 	}
-	return 0
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type GetOrderReq struct {
@@ -1898,7 +1963,7 @@ type ListOrdersReq struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Status        int32                  `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,4,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1954,11 +2019,11 @@ func (x *ListOrdersReq) GetPageSize() int32 {
 	return 0
 }
 
-func (x *ListOrdersReq) GetStatus() int32 {
+func (x *ListOrdersReq) GetStatus() OrderStatus {
 	if x != nil {
 		return x.Status
 	}
-	return 0
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type ListOrdersResp struct {
@@ -2129,7 +2194,7 @@ type UpdateOrderStatusReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Status        int32                  `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,3,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2178,11 +2243,11 @@ func (x *UpdateOrderStatusReq) GetUserId() string {
 	return ""
 }
 
-func (x *UpdateOrderStatusReq) GetStatus() int32 {
+func (x *UpdateOrderStatusReq) GetStatus() OrderStatus {
 	if x != nil {
 		return x.Status
 	}
-	return 0
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 type UpdateOrderStatusResp struct {
@@ -2292,7 +2357,7 @@ func (x *PayOrderReq) GetPayType() string {
 type PayOrderResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Status        int32                  `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
 	PayUrl        string                 `protobuf:"bytes,3,opt,name=pay_url,json=payUrl,proto3" json:"pay_url,omitempty"`
 	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2336,11 +2401,11 @@ func (x *PayOrderResp) GetOrderId() string {
 	return ""
 }
 
-func (x *PayOrderResp) GetStatus() int32 {
+func (x *PayOrderResp) GetStatus() OrderStatus {
 	if x != nil {
 		return x.Status
 	}
-	return 0
+	return OrderStatus_ORDER_STATUS_UNSPECIFIED
 }
 
 func (x *PayOrderResp) GetPayUrl() string {
@@ -2375,7 +2440,23 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\tR\tupdatedAt\"\xb0\x01\n" +
+	" \x01(\tR\tupdatedAt\"\x99\x02\n" +
+	"\x03Sku\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x02 \x01(\tR\tproductId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
+	"\x05specs\x18\x04 \x01(\tR\x05specs\x12\x14\n" +
+	"\x05price\x18\x05 \x01(\x03R\x05price\x12\x14\n" +
+	"\x05stock\x18\x06 \x01(\x03R\x05stock\x12\x12\n" +
+	"\x04sold\x18\a \x01(\x03R\x04sold\x12\x16\n" +
+	"\x06status\x18\b \x01(\x05R\x06status\x12#\n" +
+	"\ragent_comment\x18\t \x01(\tR\fagentComment\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\n" +
+	" \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\v \x01(\tR\tupdatedAt\"\xb0\x01\n" +
 	"\x10CreateProductReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -2413,23 +2494,7 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x04list\x18\x01 \x03(\v2\r.mall.ProductR\x04list\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
 	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\x99\x02\n" +
-	"\x03Sku\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x02 \x01(\tR\tproductId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
-	"\x05specs\x18\x04 \x01(\tR\x05specs\x12\x14\n" +
-	"\x05price\x18\x05 \x01(\x03R\x05price\x12\x14\n" +
-	"\x05stock\x18\x06 \x01(\x03R\x05stock\x12\x12\n" +
-	"\x04sold\x18\a \x01(\x03R\x04sold\x12\x16\n" +
-	"\x06status\x18\b \x01(\x05R\x06status\x12#\n" +
-	"\ragent_comment\x18\t \x01(\tR\fagentComment\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\n" +
-	" \x01(\tR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\v \x01(\tR\tupdatedAt\"\xa8\x01\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xa8\x01\n" +
 	"\fCreateSkuReq\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x12\n" +
@@ -2479,15 +2544,15 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\bquantity\x18\x05 \x01(\x03R\bquantity\x12'\n" +
 	"\x0fdiscount_amount\x18\x06 \x01(\x03R\x0ediscountAmount\x12!\n" +
 	"\ftotal_amount\x18\a \x01(\x03R\vtotalAmount\x12\x1a\n" +
-	"\bsnapshot\x18\b \x01(\tR\bsnapshot\"\xb1\x03\n" +
+	"\bsnapshot\x18\b \x01(\tR\bsnapshot\"\xc4\x03\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12'\n" +
 	"\x0foriginal_amount\x18\x03 \x01(\x03R\x0eoriginalAmount\x12'\n" +
 	"\x0fdiscount_amount\x18\x04 \x01(\x03R\x0ediscountAmount\x12\x1d\n" +
 	"\n" +
-	"pay_amount\x18\x05 \x01(\x03R\tpayAmount\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\x05R\x06status\x12\x19\n" +
+	"pay_amount\x18\x05 \x01(\x03R\tpayAmount\x12)\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x11.mall.OrderStatusR\x06status\x12\x19\n" +
 	"\bpay_type\x18\a \x01(\tR\apayType\x12\x19\n" +
 	"\bpay_time\x18\b \x01(\tR\apayTime\x12\x16\n" +
 	"\x06remark\x18\t \x01(\tR\x06remark\x12\x1a\n" +
@@ -2504,20 +2569,20 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x06sku_id\x18\x02 \x01(\tR\x05skuId\x12\x1a\n" +
 	"\bquantity\x18\x03 \x01(\x03R\bquantity\x12\x16\n" +
 	"\x06remark\x18\x04 \x01(\tR\x06remark\x12'\n" +
-	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"D\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"W\n" +
 	"\x0fCreateOrderResp\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\x05R\x06status\"A\n" +
+	"\border_id\x18\x01 \x01(\tR\aorderId\x12)\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x11.mall.OrderStatusR\x06status\"A\n" +
 	"\vGetOrderReq\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"1\n" +
 	"\fGetOrderResp\x12!\n" +
-	"\x05order\x18\x01 \x01(\v2\v.mall.OrderR\x05order\"q\n" +
+	"\x05order\x18\x01 \x01(\v2\v.mall.OrderR\x05order\"\x84\x01\n" +
 	"\rListOrdersReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\x05R\x06status\"x\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12)\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x11.mall.OrderStatusR\x06status\"x\n" +
 	"\x0eListOrdersResp\x12\x1f\n" +
 	"\x04list\x18\x01 \x03(\v2\v.mall.OrderR\x04list\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
@@ -2527,22 +2592,31 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"+\n" +
 	"\x0fCancelOrderResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"b\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"u\n" +
 	"\x14UpdateOrderStatusReq\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\x05R\x06status\"1\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12)\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x11.mall.OrderStatusR\x06status\"1\n" +
 	"\x15UpdateOrderStatusResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\\\n" +
 	"\vPayOrderReq\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x19\n" +
-	"\bpay_type\x18\x03 \x01(\tR\apayType\"t\n" +
+	"\bpay_type\x18\x03 \x01(\tR\apayType\"\x87\x01\n" +
 	"\fPayOrderResp\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\x05R\x06status\x12\x17\n" +
+	"\border_id\x18\x01 \x01(\tR\aorderId\x12)\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x11.mall.OrderStatusR\x06status\x12\x17\n" +
 	"\apay_url\x18\x03 \x01(\tR\x06payUrl\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage2\xff\x04\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage*\xe5\x01\n" +
+	"\vOrderStatus\x12\x1c\n" +
+	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x15\n" +
+	"\x11ORDER_STATUS_PAID\x10\x02\x12\x18\n" +
+	"\x14ORDER_STATUS_SHIPPED\x10\x03\x12\x1a\n" +
+	"\x16ORDER_STATUS_COMPLETED\x10\x04\x12\x1a\n" +
+	"\x16ORDER_STATUS_CANCELLED\x10\x05\x12\x1a\n" +
+	"\x16ORDER_STATUS_REFUNDING\x10\x06\x12\x19\n" +
+	"\x15ORDER_STATUS_REFUNDED\x10\a2\xff\x04\n" +
 	"\x0eProductService\x12B\n" +
 	"\rCreateProduct\x12\x16.mall.CreateProductReq\x1a\x17.mall.CreateProductResp\"\x00\x12B\n" +
 	"\rUpdateProduct\x12\x16.mall.UpdateProductReq\x1a\x17.mall.UpdateProductResp\"\x00\x12B\n" +
@@ -2576,90 +2650,97 @@ func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
 	return file_services_rpc_mall_proto_mall_proto_rawDescData
 }
 
+var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
-	(*Product)(nil),               // 0: mall.Product
-	(*CreateProductReq)(nil),      // 1: mall.CreateProductReq
-	(*CreateProductResp)(nil),     // 2: mall.CreateProductResp
-	(*UpdateProductReq)(nil),      // 3: mall.UpdateProductReq
-	(*UpdateProductResp)(nil),     // 4: mall.UpdateProductResp
-	(*DeleteProductReq)(nil),      // 5: mall.DeleteProductReq
-	(*DeleteProductResp)(nil),     // 6: mall.DeleteProductResp
-	(*GetProductReq)(nil),         // 7: mall.GetProductReq
-	(*GetProductResp)(nil),        // 8: mall.GetProductResp
-	(*ListProductsReq)(nil),       // 9: mall.ListProductsReq
-	(*ListProductsResp)(nil),      // 10: mall.ListProductsResp
-	(*Sku)(nil),                   // 11: mall.Sku
-	(*CreateSkuReq)(nil),          // 12: mall.CreateSkuReq
-	(*CreateSkuResp)(nil),         // 13: mall.CreateSkuResp
-	(*UpdateSkuReq)(nil),          // 14: mall.UpdateSkuReq
-	(*UpdateSkuResp)(nil),         // 15: mall.UpdateSkuResp
-	(*DeleteSkuReq)(nil),          // 16: mall.DeleteSkuReq
-	(*DeleteSkuResp)(nil),         // 17: mall.DeleteSkuResp
-	(*GetSkuReq)(nil),             // 18: mall.GetSkuReq
-	(*GetSkuResp)(nil),            // 19: mall.GetSkuResp
-	(*ListSkusByProductReq)(nil),  // 20: mall.ListSkusByProductReq
-	(*ListSkusByProductResp)(nil), // 21: mall.ListSkusByProductResp
-	(*OrderItem)(nil),             // 22: mall.OrderItem
-	(*Order)(nil),                 // 23: mall.Order
-	(*CreateOrderReq)(nil),        // 24: mall.CreateOrderReq
-	(*CreateOrderResp)(nil),       // 25: mall.CreateOrderResp
-	(*GetOrderReq)(nil),           // 26: mall.GetOrderReq
-	(*GetOrderResp)(nil),          // 27: mall.GetOrderResp
-	(*ListOrdersReq)(nil),         // 28: mall.ListOrdersReq
-	(*ListOrdersResp)(nil),        // 29: mall.ListOrdersResp
-	(*CancelOrderReq)(nil),        // 30: mall.CancelOrderReq
-	(*CancelOrderResp)(nil),       // 31: mall.CancelOrderResp
-	(*UpdateOrderStatusReq)(nil),  // 32: mall.UpdateOrderStatusReq
-	(*UpdateOrderStatusResp)(nil), // 33: mall.UpdateOrderStatusResp
-	(*PayOrderReq)(nil),           // 34: mall.PayOrderReq
-	(*PayOrderResp)(nil),          // 35: mall.PayOrderResp
+	(OrderStatus)(0),              // 0: mall.OrderStatus
+	(*Product)(nil),               // 1: mall.Product
+	(*Sku)(nil),                   // 2: mall.Sku
+	(*CreateProductReq)(nil),      // 3: mall.CreateProductReq
+	(*CreateProductResp)(nil),     // 4: mall.CreateProductResp
+	(*UpdateProductReq)(nil),      // 5: mall.UpdateProductReq
+	(*UpdateProductResp)(nil),     // 6: mall.UpdateProductResp
+	(*DeleteProductReq)(nil),      // 7: mall.DeleteProductReq
+	(*DeleteProductResp)(nil),     // 8: mall.DeleteProductResp
+	(*GetProductReq)(nil),         // 9: mall.GetProductReq
+	(*GetProductResp)(nil),        // 10: mall.GetProductResp
+	(*ListProductsReq)(nil),       // 11: mall.ListProductsReq
+	(*ListProductsResp)(nil),      // 12: mall.ListProductsResp
+	(*CreateSkuReq)(nil),          // 13: mall.CreateSkuReq
+	(*CreateSkuResp)(nil),         // 14: mall.CreateSkuResp
+	(*UpdateSkuReq)(nil),          // 15: mall.UpdateSkuReq
+	(*UpdateSkuResp)(nil),         // 16: mall.UpdateSkuResp
+	(*DeleteSkuReq)(nil),          // 17: mall.DeleteSkuReq
+	(*DeleteSkuResp)(nil),         // 18: mall.DeleteSkuResp
+	(*GetSkuReq)(nil),             // 19: mall.GetSkuReq
+	(*GetSkuResp)(nil),            // 20: mall.GetSkuResp
+	(*ListSkusByProductReq)(nil),  // 21: mall.ListSkusByProductReq
+	(*ListSkusByProductResp)(nil), // 22: mall.ListSkusByProductResp
+	(*OrderItem)(nil),             // 23: mall.OrderItem
+	(*Order)(nil),                 // 24: mall.Order
+	(*CreateOrderReq)(nil),        // 25: mall.CreateOrderReq
+	(*CreateOrderResp)(nil),       // 26: mall.CreateOrderResp
+	(*GetOrderReq)(nil),           // 27: mall.GetOrderReq
+	(*GetOrderResp)(nil),          // 28: mall.GetOrderResp
+	(*ListOrdersReq)(nil),         // 29: mall.ListOrdersReq
+	(*ListOrdersResp)(nil),        // 30: mall.ListOrdersResp
+	(*CancelOrderReq)(nil),        // 31: mall.CancelOrderReq
+	(*CancelOrderResp)(nil),       // 32: mall.CancelOrderResp
+	(*UpdateOrderStatusReq)(nil),  // 33: mall.UpdateOrderStatusReq
+	(*UpdateOrderStatusResp)(nil), // 34: mall.UpdateOrderStatusResp
+	(*PayOrderReq)(nil),           // 35: mall.PayOrderReq
+	(*PayOrderResp)(nil),          // 36: mall.PayOrderResp
 }
 var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
-	0,  // 0: mall.GetProductResp.product:type_name -> mall.Product
-	0,  // 1: mall.ListProductsResp.list:type_name -> mall.Product
-	11, // 2: mall.GetSkuResp.sku:type_name -> mall.Sku
-	11, // 3: mall.ListSkusByProductResp.list:type_name -> mall.Sku
-	22, // 4: mall.Order.items:type_name -> mall.OrderItem
-	23, // 5: mall.GetOrderResp.order:type_name -> mall.Order
-	23, // 6: mall.ListOrdersResp.list:type_name -> mall.Order
-	1,  // 7: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
-	3,  // 8: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
-	5,  // 9: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
-	7,  // 10: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
-	9,  // 11: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
-	12, // 12: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
-	14, // 13: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
-	16, // 14: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
-	18, // 15: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
-	20, // 16: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
-	24, // 17: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
-	26, // 18: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
-	28, // 19: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
-	30, // 20: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
-	32, // 21: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
-	34, // 22: mall.OrderService.PayOrder:input_type -> mall.PayOrderReq
-	2,  // 23: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
-	4,  // 24: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
-	6,  // 25: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
-	8,  // 26: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
-	10, // 27: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
-	13, // 28: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
-	15, // 29: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
-	17, // 30: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
-	19, // 31: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
-	21, // 32: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
-	25, // 33: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
-	27, // 34: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
-	29, // 35: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
-	31, // 36: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
-	33, // 37: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
-	35, // 38: mall.OrderService.PayOrder:output_type -> mall.PayOrderResp
-	23, // [23:39] is the sub-list for method output_type
-	7,  // [7:23] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	1,  // 0: mall.GetProductResp.product:type_name -> mall.Product
+	1,  // 1: mall.ListProductsResp.list:type_name -> mall.Product
+	2,  // 2: mall.GetSkuResp.sku:type_name -> mall.Sku
+	2,  // 3: mall.ListSkusByProductResp.list:type_name -> mall.Sku
+	0,  // 4: mall.Order.status:type_name -> mall.OrderStatus
+	23, // 5: mall.Order.items:type_name -> mall.OrderItem
+	0,  // 6: mall.CreateOrderResp.status:type_name -> mall.OrderStatus
+	24, // 7: mall.GetOrderResp.order:type_name -> mall.Order
+	0,  // 8: mall.ListOrdersReq.status:type_name -> mall.OrderStatus
+	24, // 9: mall.ListOrdersResp.list:type_name -> mall.Order
+	0,  // 10: mall.UpdateOrderStatusReq.status:type_name -> mall.OrderStatus
+	0,  // 11: mall.PayOrderResp.status:type_name -> mall.OrderStatus
+	3,  // 12: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
+	5,  // 13: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
+	7,  // 14: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
+	9,  // 15: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
+	11, // 16: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
+	13, // 17: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
+	15, // 18: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
+	17, // 19: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
+	19, // 20: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
+	21, // 21: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
+	25, // 22: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
+	27, // 23: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
+	29, // 24: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
+	31, // 25: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
+	33, // 26: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
+	35, // 27: mall.OrderService.PayOrder:input_type -> mall.PayOrderReq
+	4,  // 28: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
+	6,  // 29: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
+	8,  // 30: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
+	10, // 31: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
+	12, // 32: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
+	14, // 33: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
+	16, // 34: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
+	18, // 35: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
+	20, // 36: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
+	22, // 37: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
+	26, // 38: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
+	28, // 39: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
+	30, // 40: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
+	32, // 41: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
+	34, // 42: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
+	36, // 43: mall.OrderService.PayOrder:output_type -> mall.PayOrderResp
+	28, // [28:44] is the sub-list for method output_type
+	12, // [12:28] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_mall_proto_mall_proto_init() }
@@ -2672,13 +2753,14 @@ func file_services_rpc_mall_proto_mall_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
 		GoTypes:           file_services_rpc_mall_proto_mall_proto_goTypes,
 		DependencyIndexes: file_services_rpc_mall_proto_mall_proto_depIdxs,
+		EnumInfos:         file_services_rpc_mall_proto_mall_proto_enumTypes,
 		MessageInfos:      file_services_rpc_mall_proto_mall_proto_msgTypes,
 	}.Build()
 	File_services_rpc_mall_proto_mall_proto = out.File

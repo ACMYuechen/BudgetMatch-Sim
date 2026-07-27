@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,14 +28,14 @@ func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 }
 
 func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *types.MallCreateOrderResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
-		l.Logger.Errorf("return error: %v", errors.Unauthorized)
-		return nil, errors.Unauthorized
+	userID, err := authenticatedUserID(l.ctx)
+	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
+		return nil, err
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.CreateOrder(l.ctx, &pb.CreateOrderReq{
-		UserId:         userID.(string),
+		UserId:         userID,
 		SkuId:          req.SkuId,
 		Quantity:       req.Quantity,
 		Remark:         req.Remark,
@@ -49,6 +48,6 @@ func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *typ
 
 	return &types.MallCreateOrderResp{
 		OrderId: rpcResp.OrderId,
-		Status:  rpcResp.Status,
+		Status:  int32(rpcResp.Status),
 	}, nil
 }
