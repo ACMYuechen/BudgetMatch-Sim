@@ -139,13 +139,13 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 // loadHistory 读取会话历史。记忆未启用或读取失败时返回空——
 // 历史是增强信息而非必需输入，读取失败降级为单轮推荐，不阻断请求。
 func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schema.Message {
-	if a.memory == nil || input.ConversationID == "" {
+	if a.memory == nil || input.ConversationId == "" {
 		return nil
 	}
-	history, err := a.memory.History(ctx, input.UserID, input.ConversationID, a.maxHistory)
+	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.maxHistory)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history failed",
-			logx.Field("conversation_id", input.ConversationID),
+			logx.Field("conversation_id", input.ConversationId),
 			logx.Field("error", err.Error()),
 		)
 		return nil

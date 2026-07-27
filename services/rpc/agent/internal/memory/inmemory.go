@@ -32,9 +32,9 @@ func NewInMemory(c Conf) *InMemory {
 }
 
 // Append 追加消息并按窗口截断头部，会话不存在时自动创建。
-func (m *InMemory) Append(ctx context.Context, userID, conversationID string, msgs ...*schema.Message) error {
+func (m *InMemory) Append(ctx context.Context, userId, conversationId string, msgs ...*schema.Message) error {
 	_ = ctx
-	if userID == "" || conversationID == "" {
+	if userId == "" || conversationId == "" {
 		return fmt.Errorf("memory: user id or conversation id is empty")
 	}
 	if len(msgs) == 0 {
@@ -53,23 +53,23 @@ func (m *InMemory) Append(ctx context.Context, userID, conversationID string, ms
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	list := append(m.conv[conversationKey(userID, conversationID)], encoded...)
+	list := append(m.conv[conversationKey(userId, conversationId)], encoded...)
 	if excess := len(list) - m.conf.MaxHistory; excess > 0 {
 		list = list[excess:]
 	}
-	m.conv[conversationKey(userID, conversationID)] = list
+	m.conv[conversationKey(userId, conversationId)] = list
 	return nil
 }
 
 // History 返回最近 limit 条消息（时间正序）；limit 非正时使用窗口大小。
-func (m *InMemory) History(ctx context.Context, userID, conversationID string, limit int) ([]*schema.Message, error) {
+func (m *InMemory) History(ctx context.Context, userId, conversationId string, limit int) ([]*schema.Message, error) {
 	_ = ctx
 	if limit <= 0 {
 		limit = m.conf.MaxHistory
 	}
 
 	m.mu.RLock()
-	list := m.conv[conversationKey(userID, conversationID)]
+	list := m.conv[conversationKey(userId, conversationId)]
 	if len(list) > limit {
 		list = list[len(list)-limit:]
 	}
@@ -89,10 +89,10 @@ func (m *InMemory) History(ctx context.Context, userID, conversationID string, l
 }
 
 // Clear 删除会话的全部历史。
-func (m *InMemory) Clear(ctx context.Context, userID, conversationID string) error {
+func (m *InMemory) Clear(ctx context.Context, userId, conversationId string) error {
 	_ = ctx
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.conv, conversationKey(userID, conversationID))
+	delete(m.conv, conversationKey(userId, conversationId))
 	return nil
 }

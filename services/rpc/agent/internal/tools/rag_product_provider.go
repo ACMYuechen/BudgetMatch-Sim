@@ -68,7 +68,7 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 			continue
 		}
 		candidate := ProductCandidate{
-			ID:         doc.ID,
+			Id:         doc.ID,
 			Name:       meta.Name,
 			Category:   meta.Category,
 			Source:     "mall+rag", // 标记走了语义检索链路，便于在 tools_used 中辨识
@@ -109,7 +109,7 @@ func (p *RAGProductProvider) refresh(ctx context.Context, candidate *ProductCand
 	if p.verify == nil {
 		return true
 	}
-	resp, err := p.verify.GetSku(ctx, &productservice.GetSkuReq{Id: candidate.ID})
+	resp, err := p.verify.GetSku(ctx, &productservice.GetSkuReq{Id: candidate.Id})
 	if err != nil || resp.GetSku() == nil {
 		return true
 	}

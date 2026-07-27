@@ -21,10 +21,10 @@ type Message struct {
 }
 
 // SendResult 发送结果
-// 注意：实际底层返回的 primitive.SendResult 包含 MsgID 等字段，
+// 注意：实际底层返回的 primitive.SendResult 包含 MsgId 等字段，
 // 这里只暴露业务需要的最小集合，避免上层依赖 primitive 包。
 type SendResult struct {
-	MsgID string
+	MsgId string
 }
 
 // Producer 通用消息生产者接口
@@ -98,7 +98,7 @@ func (impl *producerImpl) SendSync(ctx context.Context, msg *Message) (*SendResu
 	}
 
 	logx.WithContext(ctx).Infof("rocketmq send success: topic=%s, msg_id=%s", msg.Topic, res.MsgID)
-	return &SendResult{MsgID: res.MsgID}, nil
+	return &SendResult{MsgId: res.MsgID}, nil
 }
 
 func (impl *producerImpl) Shutdown() error {

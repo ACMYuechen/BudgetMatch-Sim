@@ -24,7 +24,7 @@ type (
 		InsertOne(ctx context.Context, data *Payments) error
 		FindOne(ctx context.Context, id string) (*Payments, error)
 		FindByOutTradeNo(ctx context.Context, outTradeNo string) (*Payments, error)
-		FindByOrderID(ctx context.Context, orderID string) (*Payments, error)
+		FindByOrderId(ctx context.Context, orderId string) (*Payments, error)
 		Update(ctx context.Context, data *Payments) error
 	}
 
@@ -91,10 +91,10 @@ func (m *defaultPaymentsModel) FindByOutTradeNo(ctx context.Context, outTradeNo 
 	return model, nil
 }
 
-// FindByOrderID 返回该订单最近一笔支付流水。
-func (m *defaultPaymentsModel) FindByOrderID(ctx context.Context, orderID string) (*Payments, error) {
+// FindByOrderId 返回该订单最近一笔支付流水。
+func (m *defaultPaymentsModel) FindByOrderId(ctx context.Context, orderId string) (*Payments, error) {
 	model := &Payments{}
-	err := m.conn.WithContext(ctx).Where("order_id = ?", orderID).Order("created_at DESC").First(model).Error
+	err := m.conn.WithContext(ctx).Where("order_id = ?", orderId).Order("created_at DESC").First(model).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

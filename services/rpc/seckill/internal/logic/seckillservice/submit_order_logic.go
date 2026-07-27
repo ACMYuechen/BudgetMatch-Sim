@@ -31,7 +31,7 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 
 func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderResp, error) {
 	// 1. 原子校验并消费 token（GETDEL），保证一次性使用，避免并发复用
-	skuIDFromToken, err := l.svcCtx.StockManager.ConsumeToken(in.Token)
+	skuIdFromToken, err := l.svcCtx.StockManager.ConsumeToken(in.Token)
 	if err == redis.Nil {
 		l.Logger.Errorf("return error: %v", errors.SeckillTokenInvalid)
 		return nil, errors.SeckillTokenInvalid
@@ -40,7 +40,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 		l.Logger.Errorf("failed to consume token: %v", err)
 		return nil, errors.Internal
 	}
-	if skuIDFromToken != in.SkuId {
+	if skuIdFromToken != in.SkuId {
 		l.Logger.Errorf("return error: %v", errors.SeckillTokenInvalid)
 		return nil, errors.SeckillTokenInvalid
 	}
@@ -156,13 +156,13 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}
 
 	// 8. 生成订单 ID 并写入消息流
-	orderID := seckill_order.NewSeckillOrderId()
+	orderId := seckill_order.NewSeckillOrderId()
 	totalAmount := sku.SeckillPrice * qty
 
 	_, err = l.svcCtx.Redis.XAdd(l.ctx, &redis.XAddArgs{
 		Stream: "seckill:order:stream",
 		Values: map[string]interface{}{
-			"order_id":     orderID,
+			"order_id":     orderId,
 			"activity_id":  in.ActivityId,
 			"sku_id":       in.SkuId,
 			"user_id":      in.UserId,
@@ -179,7 +179,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}
 
 	return &pb.SubmitOrderResp{
-		OrderId: orderID,
+		OrderId: orderId,
 		Status:  0, // 排队中
 	}, nil
 }

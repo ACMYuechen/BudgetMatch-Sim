@@ -23,7 +23,7 @@ type session struct {
 
 	mu         sync.Mutex
 	candidates []tools.ProductCandidate
-	byID       map[string]tools.ProductCandidate
+	byId       map[string]tools.ProductCandidate
 	bundle     []agentcore.BundleItem
 	total      int64
 	calls      []agentcore.ToolCall
@@ -35,7 +35,7 @@ func newSession(provider tools.ProductProvider, sel *selector.BundleSelector, in
 		provider: provider,
 		selector: sel,
 		intent:   intent,
-		byID:     make(map[string]tools.ProductCandidate),
+		byId:     make(map[string]tools.ProductCandidate),
 	}
 }
 
@@ -46,9 +46,9 @@ func (s *session) storeCandidates(products []tools.ProductCandidate) {
 	defer s.mu.Unlock()
 
 	for _, product := range products {
-		if _, ok := s.byID[product.ID]; ok {
+		if _, ok := s.byId[product.Id]; ok {
 			for i := range s.candidates {
-				if s.candidates[i].ID == product.ID {
+				if s.candidates[i].Id == product.Id {
 					s.candidates[i] = product
 					break
 				}
@@ -56,7 +56,7 @@ func (s *session) storeCandidates(products []tools.ProductCandidate) {
 		} else {
 			s.candidates = append(s.candidates, product)
 		}
-		s.byID[product.ID] = product
+		s.byId[product.Id] = product
 	}
 }
 
@@ -70,7 +70,7 @@ func (s *session) filterCandidates(ids []string) []tools.ProductCandidate {
 	}
 	out := make([]tools.ProductCandidate, 0, len(ids))
 	for _, id := range ids {
-		if candidate, ok := s.byID[id]; ok {
+		if candidate, ok := s.byId[id]; ok {
 			out = append(out, candidate)
 		}
 	}

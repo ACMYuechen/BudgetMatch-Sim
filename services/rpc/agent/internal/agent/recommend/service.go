@@ -45,20 +45,20 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	if s == nil || s.fallback == nil {
 		return nil, agentcore.ErrAgentNotFound
 	}
-	if input.ConversationID == "" {
-		input.ConversationID = uuid.NewString()
+	if input.ConversationId == "" {
+		input.ConversationId = uuid.NewString()
 	}
 
 	result, err := s.run(ctx, input)
 	if err != nil {
-		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID), logx.Field("error", err.Error()))
+		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
 		return nil, err
 	}
 
-	result.ConversationID = input.ConversationID
+	result.ConversationId = input.ConversationId
 	result.ConversationTitle = s.conversationTitle(ctx, input)
 	s.remember(ctx, input, result)
-	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID))
+	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId))
 	return result, nil
 }
 
@@ -86,13 +86,13 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 	if s.memory == nil {
 		return
 	}
-	err := s.memory.Append(ctx, input.UserID, input.ConversationID,
+	err := s.memory.Append(ctx, input.UserId, input.ConversationId,
 		schema.UserMessage(input.Query),
 		schema.AssistantMessage(result.Summary, nil),
 	)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("append conversation memory failed",
-			logx.Field("conversation_id", input.ConversationID),
+			logx.Field("conversation_id", input.ConversationId),
 			logx.Field("error", err.Error()),
 		)
 	}
@@ -101,9 +101,9 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 // conversationTitle 以首条用户问题作为稳定标题，后续轮次不会改变该标题。
 func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) string {
 	if s.memory != nil {
-		history, err := s.memory.History(ctx, input.UserID, input.ConversationID, 0)
+		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
 		} else {
 			for _, msg := range history {
 				if msg.Role == schema.User && strings.TrimSpace(msg.Content) != "" {

@@ -110,7 +110,7 @@ func TestAgentInjectsHistoryIntoPrompt(t *testing.T) {
 	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{}).
 		WithMemory(mem, 20)
 
-	if _, err := agent.Run(ctx, agentcore.Input{Query: "预算加到5000", UserID: "u1", ConversationID: "c1"}); err != nil {
+	if _, err := agent.Run(ctx, agentcore.Input{Query: "预算加到5000", UserId: "u1", ConversationId: "c1"}); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 
@@ -143,7 +143,7 @@ func TestAgentToleratesHistoryFailure(t *testing.T) {
 	agent := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{}).
 		WithMemory(&failingMemory{}, 20)
 
-	result, err := agent.Run(context.Background(), agentcore.Input{Query: "预算3000 学习用品", UserID: "u1", ConversationID: "c1"})
+	result, err := agent.Run(context.Background(), agentcore.Input{Query: "预算3000 学习用品", UserId: "u1", ConversationId: "c1"})
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -155,15 +155,15 @@ func TestAgentToleratesHistoryFailure(t *testing.T) {
 // failingMemory 是恒定报错的记忆实现，用于容错测试。
 type failingMemory struct{}
 
-func (f *failingMemory) Append(ctx context.Context, userID, conversationID string, msgs ...*schema.Message) error {
+func (f *failingMemory) Append(ctx context.Context, userId, conversationId string, msgs ...*schema.Message) error {
 	return errors.New("memory down")
 }
 
-func (f *failingMemory) History(ctx context.Context, userID, conversationID string, limit int) ([]*schema.Message, error) {
+func (f *failingMemory) History(ctx context.Context, userId, conversationId string, limit int) ([]*schema.Message, error) {
 	return nil, errors.New("memory down")
 }
 
-func (f *failingMemory) Clear(ctx context.Context, userID, conversationID string) error {
+func (f *failingMemory) Clear(ctx context.Context, userId, conversationId string) error {
 	return errors.New("memory down")
 }
 

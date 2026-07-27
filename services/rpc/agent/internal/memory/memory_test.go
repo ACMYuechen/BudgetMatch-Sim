@@ -173,8 +173,8 @@ func TestManagerClear(t *testing.T) {
 	}
 }
 
-// TestManagerEmptyConversationID 验证空会话 ID 直接报错，避免写进共享的空 key。
-func TestManagerEmptyConversationID(t *testing.T) {
+// TestManagerEmptyConversationId 验证空会话 ID 直接报错，避免写进共享的空 key。
+func TestManagerEmptyConversationId(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {

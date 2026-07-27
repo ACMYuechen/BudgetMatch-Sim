@@ -13,14 +13,14 @@ const (
 	metaCandidate = "candidate"
 	// metaContentHash 存放内容指纹，由 Pipeline 计算、Indexer 入库。
 	metaContentHash = "content_hash"
-	// metaProductID 存放所属商品 ID。
-	metaProductID = "product_id"
+	// metaProductId 存放所属商品 ID。
+	metaProductId = "product_id"
 )
 
 // CandidateMetadata 是向量表 metadata 列的结构，承载检索后还原候选商品所需的业务快照。
 // 价格/库存/销量只存在这里，不进 embedding 文本——价格波动不应触发重嵌入。
 type CandidateMetadata struct {
-	ProductID  string   `json:"product_id"`
+	ProductId  string   `json:"product_id"`
 	Name       string   `json:"name"`
 	Category   string   `json:"category"`
 	Brand      string   `json:"brand,omitempty"`
@@ -39,7 +39,7 @@ func NewCandidateDocument(id, content string, meta CandidateMetadata) *schema.Do
 		Content: content,
 		MetaData: map[string]any{
 			metaCandidate: meta,
-			metaProductID: meta.ProductID,
+			metaProductId: meta.ProductId,
 		},
 	}
 }

@@ -28,7 +28,7 @@ func NewOrderDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Order
 }
 
 func (l *OrderDetailLogic) OrderDetail(req *types.MallOrderDetailReq) (resp *types.MallOrderDetailResp, err error) {
-	userID, err := authenticatedUserID(l.ctx)
+	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
@@ -36,7 +36,7 @@ func (l *OrderDetailLogic) OrderDetail(req *types.MallOrderDetailReq) (resp *typ
 
 	rpcResp, err := l.svcCtx.MallOrderClient.GetOrder(l.ctx, &pb.GetOrderReq{
 		OrderId: req.Id,
-		UserId:  userID,
+		UserId:  userId,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get order: %v", err)

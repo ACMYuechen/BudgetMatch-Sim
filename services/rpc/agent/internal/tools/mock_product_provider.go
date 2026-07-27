@@ -15,13 +15,13 @@ type MockProductProvider struct {
 func NewMockProductProvider() *MockProductProvider {
 	return &MockProductProvider{
 		products: []ProductCandidate{
-			{ID: "mock_keyboard_001", Name: "Entry Mechanical Keyboard", Category: "study", Source: "mock", PriceCents: 25900, Stock: 42, Sold: 1800, Tags: []string{"office", "study", "value"}},
-			{ID: "mock_mouse_001", Name: "Wireless Silent Mouse", Category: "study", Source: "mock", PriceCents: 9900, Stock: 120, Sold: 4300, Tags: []string{"office", "study", "portable"}},
-			{ID: "mock_lamp_001", Name: "Eye Protection Desk Lamp", Category: "study", Source: "mock", PriceCents: 16900, Stock: 64, Sold: 2100, Tags: []string{"study", "dorm", "health"}},
-			{ID: "mock_monitor_001", Name: "24 Inch IPS Monitor", Category: "computer", Source: "mock", PriceCents: 69900, Stock: 18, Sold: 860, Tags: []string{"office", "computer", "screen"}},
-			{ID: "mock_headset_001", Name: "Noise Cancelling Headset", Category: "computer", Source: "mock", PriceCents: 32900, Stock: 35, Sold: 980, Tags: []string{"meeting", "computer", "audio"}},
-			{ID: "mock_notebook_001", Name: "Thick Grid Notebook Set", Category: "stationery", Source: "mock", PriceCents: 4900, Stock: 300, Sold: 9200, Tags: []string{"study", "stationery", "value"}},
-			{ID: "mock_pen_001", Name: "Gel Pen Value Pack", Category: "stationery", Source: "mock", PriceCents: 3900, Stock: 500, Sold: 12000, Tags: []string{"study", "stationery", "value"}},
+			{Id: "mock_keyboard_001", Name: "Entry Mechanical Keyboard", Category: "study", Source: "mock", PriceCents: 25900, Stock: 42, Sold: 1800, Tags: []string{"office", "study", "value"}},
+			{Id: "mock_mouse_001", Name: "Wireless Silent Mouse", Category: "study", Source: "mock", PriceCents: 9900, Stock: 120, Sold: 4300, Tags: []string{"office", "study", "portable"}},
+			{Id: "mock_lamp_001", Name: "Eye Protection Desk Lamp", Category: "study", Source: "mock", PriceCents: 16900, Stock: 64, Sold: 2100, Tags: []string{"study", "dorm", "health"}},
+			{Id: "mock_monitor_001", Name: "24 Inch IPS Monitor", Category: "computer", Source: "mock", PriceCents: 69900, Stock: 18, Sold: 860, Tags: []string{"office", "computer", "screen"}},
+			{Id: "mock_headset_001", Name: "Noise Cancelling Headset", Category: "computer", Source: "mock", PriceCents: 32900, Stock: 35, Sold: 980, Tags: []string{"meeting", "computer", "audio"}},
+			{Id: "mock_notebook_001", Name: "Thick Grid Notebook Set", Category: "stationery", Source: "mock", PriceCents: 4900, Stock: 300, Sold: 9200, Tags: []string{"study", "stationery", "value"}},
+			{Id: "mock_pen_001", Name: "Gel Pen Value Pack", Category: "stationery", Source: "mock", PriceCents: 3900, Stock: 500, Sold: 12000, Tags: []string{"study", "stationery", "value"}},
 		},
 	}
 }

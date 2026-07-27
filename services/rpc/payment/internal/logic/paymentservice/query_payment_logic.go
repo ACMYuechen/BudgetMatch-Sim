@@ -41,7 +41,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 	if in.OutTradeNo != "" {
 		record, err = l.svcCtx.PaymentStore.FindByOutTradeNo(l.ctx, in.OutTradeNo)
 	} else {
-		record, err = l.svcCtx.PaymentStore.FindByOrderID(l.ctx, in.OrderId)
+		record, err = l.svcCtx.PaymentStore.FindByOrderId(l.ctx, in.OrderId)
 	}
 	if err != nil {
 		l.Logger.Errorf("find payment failed: %v", err)
@@ -75,7 +75,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 	}
 
 	if res.Paid {
-		if err := markPaid(l.ctx, l.svcCtx, record, res.TradeNo, res.BuyerID, ""); err != nil {
+		if err := markPaid(l.ctx, l.svcCtx, record, res.TradeNo, res.BuyerId, ""); err != nil {
 			l.Logger.Errorf("mark paid failed: %v", err)
 			return nil, errors.Database
 		}

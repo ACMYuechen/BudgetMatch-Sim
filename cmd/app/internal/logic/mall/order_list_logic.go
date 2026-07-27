@@ -28,14 +28,14 @@ func NewOrderListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OrderLi
 }
 
 func (l *OrderListLogic) OrderList(req *types.MallOrderListReq) (resp *types.MallOrderListResp, err error) {
-	userID, err := authenticatedUserID(l.ctx)
+	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.ListOrders(l.ctx, &pb.ListOrdersReq{
-		UserId:   userID,
+		UserId:   userId,
 		Page:     int32(req.Page),
 		PageSize: int32(req.PageSize),
 		Status:   pb.OrderStatus(req.Status),

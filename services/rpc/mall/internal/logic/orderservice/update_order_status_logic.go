@@ -81,8 +81,8 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 	// 针对已支付状态发送事件
 	if l.svcCtx.OrderEventProducer != nil && newStatus == mall_orders.OrderStatusPaid {
 		event := mq.OrderEvent{
-			OrderID: order.Id,
-			UserID:  order.UserId,
+			OrderId: order.Id,
+			UserId:  order.UserId,
 			Status:  int32(mall_orders.OrderStatusPaid),
 		}
 		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)

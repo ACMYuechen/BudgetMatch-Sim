@@ -42,7 +42,7 @@ CacheRedis:
 
 # 支付宝沙箱配置（密钥统一通过环境变量注入，详见 docs/PAYMENT.md / .env.example）
 Alipay:
-  AppID: "${ALIPAY_APP_ID}"
+  AppId: "${ALIPAY_APP_ID}"
   PrivateKey: "${ALIPAY_PRIVATE_KEY}"
   AlipayPublicKey: "${ALIPAY_PUBLIC_KEY}"
   IsProduction: false

@@ -19,14 +19,14 @@ const timeLayout = "2006-01-02T15:04:05Z07:00"
 // TODO(接订单): 支付成功后需通知 mall-rpc 把对应订单状态置为「已支付」。
 // 待后续给 mall 增加 ConfirmPayment RPC 后，在此处调用（建议放在事务/重试语义下，
 // 并保证 notify 与 query 两条确认路径都经过这里，避免重复确认）。
-func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerID, rawNotify string) error {
+func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerId, rawNotify string) error {
 	if record.Status == payments.StatusSuccess {
 		return nil
 	}
 	now := time.Now()
 	record.Status = payments.StatusSuccess
 	record.TradeNo = tradeNo
-	record.BuyerId = buyerID
+	record.BuyerId = buyerId
 	record.PaidAt = &now
 	if rawNotify != "" {
 		record.NotifyRaw = rawNotify

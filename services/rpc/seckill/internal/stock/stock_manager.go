@@ -60,14 +60,14 @@ func NewStockManager(r redis.UniversalClient) *StockManager {
 	return &StockManager{redis: r}
 }
 
-func stockKey(activityID, skuID string) string {
-	return fmt.Sprintf(stockKeyPrefix, activityID, skuID)
+func stockKey(activityId, skuId string) string {
+	return fmt.Sprintf(stockKeyPrefix, activityId, skuId)
 }
 
 // Deduct atomically checks and decrements stock.
 // Returns remaining stock, or -1 if not enough, or -2 if key missing.
-func (sm *StockManager) Deduct(activityID, skuID string, quantity int64) (int64, error) {
-	result, err := sm.redis.Eval(context.Background(), deductScript, []string{stockKey(activityID, skuID)}, quantity).Result()
+func (sm *StockManager) Deduct(activityId, skuId string, quantity int64) (int64, error) {
+	result, err := sm.redis.Eval(context.Background(), deductScript, []string{stockKey(activityId, skuId)}, quantity).Result()
 	if err != nil {
 		return 0, err
 	}
@@ -85,14 +85,14 @@ func (sm *StockManager) Deduct(activityID, skuID string, quantity int64) (int64,
 }
 
 // Rollback increments stock back (for order cancellation / failure).
-func (sm *StockManager) Rollback(activityID, skuID string, quantity int64) error {
-	_, err := sm.redis.Eval(context.Background(), rollbackScript, []string{stockKey(activityID, skuID)}, quantity).Result()
+func (sm *StockManager) Rollback(activityId, skuId string, quantity int64) error {
+	_, err := sm.redis.Eval(context.Background(), rollbackScript, []string{stockKey(activityId, skuId)}, quantity).Result()
 	return err
 }
 
 // GetStock returns current stock in Redis.
-func (sm *StockManager) GetStock(activityID, skuID string) (int64, error) {
-	val, err := sm.redis.Get(context.Background(), stockKey(activityID, skuID)).Int64()
+func (sm *StockManager) GetStock(activityId, skuId string) (int64, error) {
+	val, err := sm.redis.Get(context.Background(), stockKey(activityId, skuId)).Int64()
 	if err == redis.Nil {
 		return 0, nil
 	}
@@ -103,8 +103,8 @@ func (sm *StockManager) GetStock(activityID, skuID string) (int64, error) {
 }
 
 // Preheat sets stock with NX EX (only if key does not exist).
-func (sm *StockManager) Preheat(activityID, skuID string, remain int64, ttlSeconds int) error {
-	result, err := sm.redis.Eval(context.Background(), preheatScript, []string{stockKey(activityID, skuID)}, remain, ttlSeconds).Result()
+func (sm *StockManager) Preheat(activityId, skuId string, remain int64, ttlSeconds int) error {
+	result, err := sm.redis.Eval(context.Background(), preheatScript, []string{stockKey(activityId, skuId)}, remain, ttlSeconds).Result()
 	if err != nil {
 		return err
 	}
@@ -119,11 +119,11 @@ func (sm *StockManager) Preheat(activityID, skuID string, remain int64, ttlSecon
 }
 
 // SetToken creates a seckill token with TTL.
-func (sm *StockManager) SetToken(token, skuID string, ttl time.Duration) error {
-	return sm.redis.Set(context.Background(), fmt.Sprintf("seckill:token:%s", token), skuID, ttl).Err()
+func (sm *StockManager) SetToken(token, skuId string, ttl time.Duration) error {
+	return sm.redis.Set(context.Background(), fmt.Sprintf("seckill:token:%s", token), skuId, ttl).Err()
 }
 
-// GetToken validates token and returns associated skuID.
+// GetToken validates token and returns associated skuId.
 func (sm *StockManager) GetToken(token string) (string, error) {
 	return sm.redis.Get(context.Background(), fmt.Sprintf("seckill:token:%s", token)).Result()
 }
@@ -133,7 +133,7 @@ func (sm *StockManager) DelToken(token string) error {
 	return sm.redis.Del(context.Background(), fmt.Sprintf("seckill:token:%s", token)).Err()
 }
 
-// ConsumeToken 原子地校验并删除 token（GETDEL），返回其绑定的 skuID。
+// ConsumeToken 原子地校验并删除 token（GETDEL），返回其绑定的 skuId。
 // 相比 GetToken + DelToken 两步操作，这里保证 token 一次性消费，
 // 避免并发场景下同一 token 在删除前被重复读取使用。
 func (sm *StockManager) ConsumeToken(token string) (string, error) {
