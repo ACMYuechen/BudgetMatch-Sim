@@ -36,6 +36,9 @@ func NewAlipayNotifyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Alip
 // AlipayNotify 读取 POST 表单并转发给 payment-rpc 验签和确认支付。
 // 网关不持有支付宝密钥，处理结果仅按协议回写 success 或 failure。
 func (l *AlipayNotifyLogic) AlipayNotify(w http.ResponseWriter, r *http.Request) {
+	const maxNotifyBodySize = 1 << 20
+	r.Body = http.MaxBytesReader(w, r.Body, maxNotifyBodySize)
+
 	if err := r.ParseForm(); err != nil {
 		l.Logger.Errorf("parse alipay notify form failed: %v", err)
 		writeAlipayNotifyResponse(w, false)

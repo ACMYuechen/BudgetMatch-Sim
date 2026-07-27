@@ -1390,8 +1390,11 @@
     },
     "/api/pay/notify/alipay": {
       "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
         "produces": [
-          "application/json"
+          "text/plain"
         ],
         "schemes": [
           "https"
@@ -1404,7 +1407,9 @@
         "responses": {
           "200": {
             "description": "",
-            "schema": {}
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
@@ -1931,7 +1936,7 @@
       }
     }
   },
-  "x-date": "2026-07-26 19:41:41",
+  "x-date": "2026-07-27 14:59:11",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
