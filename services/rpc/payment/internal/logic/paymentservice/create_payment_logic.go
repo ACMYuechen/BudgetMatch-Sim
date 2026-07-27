@@ -85,6 +85,8 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 		return nil, errors.Internal
 	}
 
+	// 支付宝预下单已经成功，二维码持久化仅用于后续查询。即使数据库更新失败，
+	// 也应优先将本次生成的二维码返回给调用方，避免调用方因重试而重复发起预下单。
 	record.QrCode = res.QRCode
 	if err := l.svcCtx.PaymentStore.Update(l.ctx, record); err != nil {
 		l.Logger.Errorf(
@@ -94,6 +96,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 			err,
 		)
 	}
+
 	return &pb.CreatePaymentResp{
 		OutTradeNo: record.OutTradeNo,
 		QrCode:     res.QRCode,
