@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"budgetmatch-sim/cmd/app/internal/svc"
+	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/services/rpc/mall/pb"
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 )
 
@@ -41,4 +43,36 @@ func loadPaymentOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderID, 
 		return nil, errors.Invalid
 	}
 	return order, nil
+}
+
+func orderToType(o *pb.Order) types.MallOrderResp {
+	items := make([]types.MallOrderItem, 0, len(o.Items))
+	for _, it := range o.Items {
+		items = append(items, types.MallOrderItem{
+			ProductId:      it.ProductId,
+			SkuId:          it.SkuId,
+			SkuName:        it.SkuName,
+			Price:          it.Price,
+			Quantity:       it.Quantity,
+			DiscountAmount: it.DiscountAmount,
+			TotalAmount:    it.TotalAmount,
+			Snapshot:       it.Snapshot,
+		})
+	}
+	return types.MallOrderResp{
+		Id:             o.Id,
+		UserId:         o.UserId,
+		OriginalAmount: o.OriginalAmount,
+		DiscountAmount: o.DiscountAmount,
+		PayAmount:      o.PayAmount,
+		Status:         o.Status,
+		PayType:        o.PayType,
+		PayTime:        o.PayTime,
+		Remark:         o.Remark,
+		Snapshot:       o.Snapshot,
+		IdempotencyKey: o.IdempotencyKey,
+		Items:          items,
+		CreatedAt:      o.CreatedAt,
+		UpdatedAt:      o.UpdatedAt,
+	}
 }

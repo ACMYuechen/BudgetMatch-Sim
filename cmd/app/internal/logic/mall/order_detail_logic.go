@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,15 +28,15 @@ func NewOrderDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Order
 }
 
 func (l *OrderDetailLogic) OrderDetail(req *types.MallOrderDetailReq) (resp *types.MallOrderDetailResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
-		l.Logger.Errorf("return error: %v", errors.Unauthorized)
-		return nil, errors.Unauthorized
+	userID, err := authenticatedUserID(l.ctx)
+	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
+		return nil, err
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.GetOrder(l.ctx, &pb.GetOrderReq{
 		OrderId: req.Id,
-		UserId:  userID.(string),
+		UserId:  userID,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get order: %v", err)

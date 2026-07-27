@@ -7,7 +7,6 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
-	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -28,16 +27,16 @@ func NewCancelOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cance
 	}
 }
 
-func (l *CancelOrderLogic) CancelOrder(req *types.MallCancelOrderReq) error {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
-		l.Logger.Errorf("return error: %v", errors.Unauthorized)
-		return errors.Unauthorized
+func (l *CancelOrderLogic) CancelOrder(req *types.MallCancelOrderReq) (err error) {
+	userID, err := authenticatedUserID(l.ctx)
+	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
+		return err
 	}
 
-	_, err := l.svcCtx.MallOrderClient.CancelOrder(l.ctx, &pb.CancelOrderReq{
+	_, err = l.svcCtx.MallOrderClient.CancelOrder(l.ctx, &pb.CancelOrderReq{
 		OrderId: req.Id,
-		UserId:  userID.(string),
+		UserId:  userID,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to cancel order: %v", err)
