@@ -11,16 +11,20 @@ import (
 )
 
 const (
+	// alipayNotifySuccess 是支付宝确认通知已成功消费的固定响应。
 	alipayNotifySuccess = "success"
+	// alipayNotifyFailure 表示处理失败，支付宝会按协议重试通知。
 	alipayNotifyFailure = "failure"
 )
 
+// AlipayNotifyLogic 负责处理网关收到的支付宝异步通知。
 type AlipayNotifyLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
+// NewAlipayNotifyLogic 创建支付宝通知处理逻辑。
 func NewAlipayNotifyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AlipayNotifyLogic {
 	return &AlipayNotifyLogic{
 		ctx:    ctx,
@@ -29,6 +33,8 @@ func NewAlipayNotifyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Alip
 	}
 }
 
+// AlipayNotify 读取 POST 表单并转发给 payment-rpc 验签和确认支付。
+// 网关不持有支付宝密钥，处理结果仅按协议回写 success 或 failure。
 func (l *AlipayNotifyLogic) AlipayNotify(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		l.Logger.Errorf("parse alipay notify form failed: %v", err)
@@ -65,6 +71,7 @@ func (l *AlipayNotifyLogic) AlipayNotify(w http.ResponseWriter, r *http.Request)
 	writeAlipayNotifyResponse(w, true)
 }
 
+// writeAlipayNotifyResponse 按支付宝协议返回纯文本确认结果。
 func writeAlipayNotifyResponse(w http.ResponseWriter, success bool) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
