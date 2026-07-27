@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
+	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	paymentpb "budgetmatch-sim/services/rpc/payment/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -40,7 +41,7 @@ func (l *CreatePaymentLogic) CreatePayment(req *types.MallCreatePaymentReq) (res
 		l.Logger.Errorf("failed to load payment order: %v", err)
 		return nil, err
 	}
-	if order.Status != MallOrderStatusPending {
+	if order.Status != mallpb.OrderStatus_ORDER_STATUS_PENDING {
 		l.Logger.Errorf("order %s is not pending payment, status=%d", order.Id, order.Status)
 		return nil, errors.MallInvalidOrderTransition
 	}

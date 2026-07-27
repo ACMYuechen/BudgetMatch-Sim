@@ -71,7 +71,7 @@ func (l *PayOrderLogic) PayOrder(in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
 
 	return &pb.PayOrderResp{
 		OrderId: order.Id,
-		Status:  int32(mall_orders.OrderStatusPaid),
+		Status:  pb.OrderStatus_ORDER_STATUS_PAID,
 		PayUrl:  "https://example.com/mock-pay?order_id=" + order.Id,
 		Message: "mock payment success",
 	}, nil

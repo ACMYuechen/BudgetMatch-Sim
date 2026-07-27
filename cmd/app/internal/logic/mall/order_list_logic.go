@@ -38,7 +38,7 @@ func (l *OrderListLogic) OrderList(req *types.MallOrderListReq) (resp *types.Mal
 		UserId:   userID,
 		Page:     int32(req.Page),
 		PageSize: int32(req.PageSize),
-		Status:   int32(req.Status),
+		Status:   pb.OrderStatus(req.Status),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)

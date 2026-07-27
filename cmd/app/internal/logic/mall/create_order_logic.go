@@ -48,6 +48,6 @@ func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *typ
 
 	return &types.MallCreateOrderResp{
 		OrderId: rpcResp.OrderId,
-		Status:  rpcResp.Status,
+		Status:  int32(rpcResp.Status),
 	}, nil
 }

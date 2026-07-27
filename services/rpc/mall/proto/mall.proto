@@ -152,6 +152,17 @@ message ListSkusByProductResp {
 
 // ========== Order ==========
 
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING     = 1;
+  ORDER_STATUS_PAID        = 2;
+  ORDER_STATUS_SHIPPED     = 3;
+  ORDER_STATUS_COMPLETED   = 4;
+  ORDER_STATUS_CANCELLED   = 5;
+  ORDER_STATUS_REFUNDING   = 6;
+  ORDER_STATUS_REFUNDED    = 7;
+}
+
 message OrderItem {
   string product_id      = 1;
   string sku_id          = 2;
@@ -169,7 +180,7 @@ message Order {
   int64           original_amount = 3;
   int64           discount_amount = 4;
   int64           pay_amount      = 5;
-  int32           status          = 6;
+  OrderStatus     status          = 6;
   string          pay_type        = 7;
   string          pay_time        = 8;
   string          remark          = 9;
@@ -189,8 +200,8 @@ message CreateOrderReq {
 }
 
 message CreateOrderResp {
-  string order_id = 1;
-  int32  status   = 2;
+  string      order_id = 1;
+  OrderStatus status   = 2;
 }
 
 message GetOrderReq {
@@ -203,10 +214,10 @@ message GetOrderResp {
 }
 
 message ListOrdersReq {
-  string user_id = 1;
-  int32  page    = 2;
-  int32  page_size = 3;
-  int32  status  = 4;
+  string      user_id   = 1;
+  int32       page      = 2;
+  int32       page_size = 3;
+  OrderStatus status    = 4;
 }
 
 message ListOrdersResp {
@@ -226,9 +237,9 @@ message CancelOrderResp {
 }
 
 message UpdateOrderStatusReq {
-  string order_id = 1;
-  string user_id  = 2;
-  int32  status   = 3;
+  string      order_id = 1;
+  string      user_id  = 2;
+  OrderStatus status   = 3;
 }
 
 message UpdateOrderStatusResp {
@@ -242,10 +253,10 @@ message PayOrderReq {
 }
 
 message PayOrderResp {
-  string order_id   = 1;
-  int32  status     = 2;
-  string pay_url    = 3;
-  string message    = 4;
+  string      order_id = 1;
+  OrderStatus status   = 2;
+  string      pay_url  = 3;
+  string      message  = 4;
 }
 
 // ========== Services ==========

@@ -62,7 +62,7 @@ func orderToType(o *pb.Order) types.AdminOrderResp {
 		OriginalAmount: o.OriginalAmount,
 		DiscountAmount: o.DiscountAmount,
 		PayAmount:      o.PayAmount,
-		Status:         o.Status,
+		Status:         int32(o.Status),
 		PayType:        o.PayType,
 		PayTime:        o.PayTime,
 		Remark:         o.Remark,
