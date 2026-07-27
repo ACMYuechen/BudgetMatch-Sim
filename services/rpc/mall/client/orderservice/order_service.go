@@ -16,6 +16,8 @@ import (
 type (
 	CancelOrderReq        = pb.CancelOrderReq
 	CancelOrderResp       = pb.CancelOrderResp
+	ConfirmPaymentReq     = pb.ConfirmPaymentReq
+	ConfirmPaymentResp    = pb.ConfirmPaymentResp
 	CreateOrderReq        = pb.CreateOrderReq
 	CreateOrderResp       = pb.CreateOrderResp
 	GetOrderReq           = pb.GetOrderReq
@@ -34,6 +36,7 @@ type (
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*CancelOrderResp, error)
 		UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusReq, opts ...grpc.CallOption) (*UpdateOrderStatusResp, error)
 		PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
+		ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error)
 	}
 
 	defaultOrderService struct {
@@ -75,4 +78,9 @@ func (m *defaultOrderService) UpdateOrderStatus(ctx context.Context, in *UpdateO
 func (m *defaultOrderService) PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error) {
 	client := pb.NewOrderServiceClient(m.cli.Conn())
 	return client.PayOrder(ctx, in, opts...)
+}
+
+func (m *defaultOrderService) ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error) {
+	client := pb.NewOrderServiceClient(m.cli.Conn())
+	return client.ConfirmPayment(ctx, in, opts...)
 }

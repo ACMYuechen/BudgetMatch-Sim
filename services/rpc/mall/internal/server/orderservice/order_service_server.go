@@ -52,3 +52,8 @@ func (s *OrderServiceServer) PayOrder(ctx context.Context, in *pb.PayOrderReq) (
 	l := orderservicelogic.NewPayOrderLogic(ctx, s.svcCtx)
 	return l.PayOrder(in)
 }
+
+func (s *OrderServiceServer) ConfirmPayment(ctx context.Context, in *pb.ConfirmPaymentReq) (*pb.ConfirmPaymentResp, error) {
+	l := orderservicelogic.NewConfirmPaymentLogic(ctx, s.svcCtx)
+	return l.ConfirmPayment(in)
+}

@@ -7,6 +7,7 @@ const (
 	ECCodeInvalid
 	ECCodeExpired
 	ECSeckillActivityNotStart
+	ECMallPaymentAmountMismatch
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -63,11 +64,12 @@ const (
 )
 
 var (
-	Invalid                 = newAppError(ECInvalid, "invalid.default")
-	InvalidEmail            = newAppError(ECInvalidEmail, "invalid.invalid_email")
-	CodeInvalid             = newAppError(ECCodeInvalid, "invalid.invalid_verify_code")
-	CodeExpired             = newAppError(ECCodeExpired, "invalid.code_expired")
-	SeckillActivityNotStart = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
+	Invalid                    = newAppError(ECInvalid, "invalid.default")
+	InvalidEmail               = newAppError(ECInvalidEmail, "invalid.invalid_email")
+	CodeInvalid                = newAppError(ECCodeInvalid, "invalid.invalid_verify_code")
+	CodeExpired                = newAppError(ECCodeExpired, "invalid.code_expired")
+	SeckillActivityNotStart    = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
+	MallPaymentAmountMismatch  = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
 )
 
 var (
