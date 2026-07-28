@@ -260,19 +260,6 @@ message ConfirmPaymentResp{
   bool  was_already_confirmed  = 3;
 }
 
-message PayOrderReq {
-  string order_id = 1;
-  string user_id  = 2;
-  string pay_type = 3;
-}
-
-message PayOrderResp {
-  string      order_id = 1;
-  OrderStatus status   = 2;
-  string      pay_url  = 3;
-  string      message  = 4;
-}
-
 // ========== Services ==========
 
 service ProductService {
@@ -295,6 +282,5 @@ service OrderService {
   rpc ListOrders(ListOrdersReq) returns (ListOrdersResp) {}
   rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp) {}
   rpc UpdateOrderStatus(UpdateOrderStatusReq) returns (UpdateOrderStatusResp) {}
-  rpc PayOrder(PayOrderReq) returns (PayOrderResp) {}
   rpc ConfirmPayment(ConfirmPaymentReq) returns (ConfirmPaymentResp) {}
 }

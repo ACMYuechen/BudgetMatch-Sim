@@ -2430,134 +2430,6 @@ func (x *ConfirmPaymentResp) GetWasAlreadyConfirmed() bool {
 	return false
 }
 
-type PayOrderReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	PayType       string                 `protobuf:"bytes,3,opt,name=pay_type,json=payType,proto3" json:"pay_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PayOrderReq) Reset() {
-	*x = PayOrderReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PayOrderReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PayOrderReq) ProtoMessage() {}
-
-func (x *PayOrderReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PayOrderReq.ProtoReflect.Descriptor instead.
-func (*PayOrderReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *PayOrderReq) GetOrderId() string {
-	if x != nil {
-		return x.OrderId
-	}
-	return ""
-}
-
-func (x *PayOrderReq) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *PayOrderReq) GetPayType() string {
-	if x != nil {
-		return x.PayType
-	}
-	return ""
-}
-
-type PayOrderResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Status        OrderStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
-	PayUrl        string                 `protobuf:"bytes,3,opt,name=pay_url,json=payUrl,proto3" json:"pay_url,omitempty"`
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PayOrderResp) Reset() {
-	*x = PayOrderResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PayOrderResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PayOrderResp) ProtoMessage() {}
-
-func (x *PayOrderResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PayOrderResp.ProtoReflect.Descriptor instead.
-func (*PayOrderResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *PayOrderResp) GetOrderId() string {
-	if x != nil {
-		return x.OrderId
-	}
-	return ""
-}
-
-func (x *PayOrderResp) GetStatus() OrderStatus {
-	if x != nil {
-		return x.Status
-	}
-	return OrderStatus_ORDER_STATUS_UNSPECIFIED
-}
-
-func (x *PayOrderResp) GetPayUrl() string {
-	if x != nil {
-		return x.PayUrl
-	}
-	return ""
-}
-
-func (x *PayOrderResp) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 var File_services_rpc_mall_proto_mall_proto protoreflect.FileDescriptor
 
 const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
@@ -2745,16 +2617,7 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x12ConfirmPaymentResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\x05R\x06status\x122\n" +
-	"\x15was_already_confirmed\x18\x03 \x01(\bR\x13wasAlreadyConfirmed\"\\\n" +
-	"\vPayOrderReq\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x19\n" +
-	"\bpay_type\x18\x03 \x01(\tR\apayType\"\x87\x01\n" +
-	"\fPayOrderResp\x12\x19\n" +
-	"\border_id\x18\x01 \x01(\tR\aorderId\x12)\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x11.mall.OrderStatusR\x06status\x12\x17\n" +
-	"\apay_url\x18\x03 \x01(\tR\x06payUrl\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage*\xe5\x01\n" +
+	"\x15was_already_confirmed\x18\x03 \x01(\bR\x13wasAlreadyConfirmed*\xe5\x01\n" +
 	"\vOrderStatus\x12\x1c\n" +
 	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x15\n" +
@@ -2775,15 +2638,14 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\tUpdateSku\x12\x12.mall.UpdateSkuReq\x1a\x13.mall.UpdateSkuResp\"\x00\x126\n" +
 	"\tDeleteSku\x12\x12.mall.DeleteSkuReq\x1a\x13.mall.DeleteSkuResp\"\x00\x12-\n" +
 	"\x06GetSku\x12\x0f.mall.GetSkuReq\x1a\x10.mall.GetSkuResp\"\x00\x12N\n" +
-	"\x11ListSkusByProduct\x12\x1a.mall.ListSkusByProductReq\x1a\x1b.mall.ListSkusByProductResp\"\x002\xc6\x03\n" +
+	"\x11ListSkusByProduct\x12\x1a.mall.ListSkusByProductReq\x1a\x1b.mall.ListSkusByProductResp\"\x002\x91\x03\n" +
 	"\fOrderService\x12<\n" +
 	"\vCreateOrder\x12\x14.mall.CreateOrderReq\x1a\x15.mall.CreateOrderResp\"\x00\x123\n" +
 	"\bGetOrder\x12\x11.mall.GetOrderReq\x1a\x12.mall.GetOrderResp\"\x00\x129\n" +
 	"\n" +
 	"ListOrders\x12\x13.mall.ListOrdersReq\x1a\x14.mall.ListOrdersResp\"\x00\x12<\n" +
 	"\vCancelOrder\x12\x14.mall.CancelOrderReq\x1a\x15.mall.CancelOrderResp\"\x00\x12N\n" +
-	"\x11UpdateOrderStatus\x12\x1a.mall.UpdateOrderStatusReq\x1a\x1b.mall.UpdateOrderStatusResp\"\x00\x123\n" +
-	"\bPayOrder\x12\x11.mall.PayOrderReq\x1a\x12.mall.PayOrderResp\"\x00\x12E\n" +
+	"\x11UpdateOrderStatus\x12\x1a.mall.UpdateOrderStatusReq\x1a\x1b.mall.UpdateOrderStatusResp\"\x00\x12E\n" +
 	"\x0eConfirmPayment\x12\x17.mall.ConfirmPaymentReq\x1a\x18.mall.ConfirmPaymentResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
@@ -2799,7 +2661,7 @@ func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
 }
 
 var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(OrderStatus)(0),              // 0: mall.OrderStatus
 	(*Product)(nil),               // 1: mall.Product
@@ -2838,8 +2700,6 @@ var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(*UpdateOrderStatusResp)(nil), // 34: mall.UpdateOrderStatusResp
 	(*ConfirmPaymentReq)(nil),     // 35: mall.ConfirmPaymentReq
 	(*ConfirmPaymentResp)(nil),    // 36: mall.ConfirmPaymentResp
-	(*PayOrderReq)(nil),           // 37: mall.PayOrderReq
-	(*PayOrderResp)(nil),          // 38: mall.PayOrderResp
 }
 var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	1,  // 0: mall.GetProductResp.product:type_name -> mall.Product
@@ -2853,46 +2713,43 @@ var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	0,  // 8: mall.ListOrdersReq.status:type_name -> mall.OrderStatus
 	24, // 9: mall.ListOrdersResp.list:type_name -> mall.Order
 	0,  // 10: mall.UpdateOrderStatusReq.status:type_name -> mall.OrderStatus
-	0,  // 11: mall.PayOrderResp.status:type_name -> mall.OrderStatus
-	3,  // 12: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
-	5,  // 13: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
-	7,  // 14: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
-	9,  // 15: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
-	11, // 16: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
-	13, // 17: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
-	15, // 18: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
-	17, // 19: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
-	19, // 20: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
-	21, // 21: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
-	25, // 22: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
-	27, // 23: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
-	29, // 24: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
-	31, // 25: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
-	33, // 26: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
-	37, // 27: mall.OrderService.PayOrder:input_type -> mall.PayOrderReq
-	35, // 28: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
-	4,  // 29: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
-	6,  // 30: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
-	8,  // 31: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
-	10, // 32: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
-	12, // 33: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
-	14, // 34: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
-	16, // 35: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
-	18, // 36: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
-	20, // 37: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
-	22, // 38: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
-	26, // 39: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
-	28, // 40: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
-	30, // 41: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
-	32, // 42: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
-	34, // 43: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
-	38, // 44: mall.OrderService.PayOrder:output_type -> mall.PayOrderResp
-	36, // 45: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
-	29, // [29:46] is the sub-list for method output_type
-	12, // [12:29] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	3,  // 11: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
+	5,  // 12: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
+	7,  // 13: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
+	9,  // 14: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
+	11, // 15: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
+	13, // 16: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
+	15, // 17: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
+	17, // 18: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
+	19, // 19: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
+	21, // 20: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
+	25, // 21: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
+	27, // 22: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
+	29, // 23: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
+	31, // 24: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
+	33, // 25: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
+	35, // 26: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
+	4,  // 27: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
+	6,  // 28: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
+	8,  // 29: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
+	10, // 30: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
+	12, // 31: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
+	14, // 32: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
+	16, // 33: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
+	18, // 34: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
+	20, // 35: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
+	22, // 36: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
+	26, // 37: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
+	28, // 38: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
+	30, // 39: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
+	32, // 40: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
+	34, // 41: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
+	36, // 42: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
+	27, // [27:43] is the sub-list for method output_type
+	11, // [11:27] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_mall_proto_mall_proto_init() }
@@ -2906,7 +2763,7 @@ func file_services_rpc_mall_proto_mall_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   38,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
