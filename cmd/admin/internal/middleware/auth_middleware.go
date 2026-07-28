@@ -1,10 +1,9 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
-	"strings"
 
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/pb"
@@ -23,17 +22,17 @@ func NewAuthMiddleware(authRpc authservice.AuthService) *AuthMiddleware {
 func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		// 解析 Token
-		tokenString := r.Header.Get("Authorization")
+		requestInfo, err := request.FromHTTPRequest(r)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("failed to parse request context: %v", err)
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+		tokenString := requestInfo.Token
 		if tokenString == "" {
 			logx.WithContext(ctx).Error("missing Authorization header")
 			http.Error(w, "missing Authorization header", http.StatusUnauthorized)
 			return
-		}
-
-		// 去掉 Bearer 前缀
-		if len(tokenString) > 7 && strings.HasPrefix(tokenString, "Bearer ") {
-			tokenString = tokenString[7:]
 		}
 
 		// 通过 RPC 验证 token
@@ -56,10 +55,10 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// 将 user_id、token 和完整用户信息注入 context
-		ctx = context.WithValue(ctx, "user_id", resp.User.Id)
-		ctx = context.WithValue(ctx, "token", tokenString)
-		ctx = context.WithValue(ctx, "user", resp.User)
+		// 将可信身份信息注入统一请求上下文，并保留完整用户信息供兼容读取
+		requestInfo.UserID = resp.User.Id
+		requestInfo.Role = int64(resp.User.Role)
+		ctx = request.NewContext(ctx, requestInfo)
 
 		next(w, r.WithContext(ctx))
 	}

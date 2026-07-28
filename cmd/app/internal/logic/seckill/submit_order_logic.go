@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,8 +30,8 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 }
 
 func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.SubmitOrderResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
+	userID := request.UserID(l.ctx)
+	if userID == "" {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
@@ -38,7 +39,7 @@ func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.S
 	rpcResp, err := l.svcCtx.SeckillClient.SubmitOrder(l.ctx, &pb.SubmitOrderReq{
 		ActivityId: req.ActivityId,
 		SkuId:      req.SkuId,
-		UserId:     userID.(string),
+		UserId:     userID,
 		Token:      req.Token,
 		Quantity:   int32(req.Quantity),
 	})

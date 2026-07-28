@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"net/http"
-	"strings"
-
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/limit"
+	"budgetmatch-sim/infra/request"
+	"net/http"
+	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,13 +27,13 @@ func (m *SeckillRateLimitMiddleware) Handle(next http.HandlerFunc) http.HandlerF
 			return
 		}
 
-		userID := r.Context().Value("user_id")
-		if userID == nil {
+		userID := request.UserID(r.Context())
+		if userID == "" {
 			next(w, r)
 			return
 		}
 
-		key := "seckill:" + userID.(string) + ":" + path
+		key := "seckill:" + userID + ":" + path
 		if !m.limiter.Allow(r.Context(), key) {
 			logx.WithContext(r.Context()).Errorf("seckill rate limit exceeded: key=%s", key)
 			http.Error(w, errors.TooManyRequests.Error(), http.StatusTooManyRequests)
