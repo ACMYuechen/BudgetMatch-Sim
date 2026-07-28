@@ -2,7 +2,6 @@ package mq
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -25,12 +24,9 @@ func (p *OrderEventProducer) publish(ctx context.Context, topic, eventType strin
 	if p.producer == nil {
 		return fmt.Errorf("rocketmq producer is nil")
 	}
-	event.EventType = eventType
-	event.EventTime = time.Now().Unix()
-
-	body, err := json.Marshal(event)
+	body, err := EncodeOrderEvent(eventType, time.Now(), event)
 	if err != nil {
-		return fmt.Errorf("marshal order event failed: %w", err)
+		return err
 	}
 
 	_, err = p.producer.SendSync(ctx, &rocketmq.Message{

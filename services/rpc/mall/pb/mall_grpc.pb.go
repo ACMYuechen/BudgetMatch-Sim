@@ -468,7 +468,7 @@ const (
 	OrderService_ListOrders_FullMethodName        = "/mall.OrderService/ListOrders"
 	OrderService_CancelOrder_FullMethodName       = "/mall.OrderService/CancelOrder"
 	OrderService_UpdateOrderStatus_FullMethodName = "/mall.OrderService/UpdateOrderStatus"
-	OrderService_PayOrder_FullMethodName          = "/mall.OrderService/PayOrder"
+	OrderService_ConfirmPayment_FullMethodName    = "/mall.OrderService/ConfirmPayment"
 )
 
 // OrderServiceClient is the client API for OrderService service.
@@ -480,7 +480,7 @@ type OrderServiceClient interface {
 	ListOrders(ctx context.Context, in *ListOrdersReq, opts ...grpc.CallOption) (*ListOrdersResp, error)
 	CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*CancelOrderResp, error)
 	UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusReq, opts ...grpc.CallOption) (*UpdateOrderStatusResp, error)
-	PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error)
+	ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error)
 }
 
 type orderServiceClient struct {
@@ -541,10 +541,10 @@ func (c *orderServiceClient) UpdateOrderStatus(ctx context.Context, in *UpdateOr
 	return out, nil
 }
 
-func (c *orderServiceClient) PayOrder(ctx context.Context, in *PayOrderReq, opts ...grpc.CallOption) (*PayOrderResp, error) {
+func (c *orderServiceClient) ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PayOrderResp)
-	err := c.cc.Invoke(ctx, OrderService_PayOrder_FullMethodName, in, out, cOpts...)
+	out := new(ConfirmPaymentResp)
+	err := c.cc.Invoke(ctx, OrderService_ConfirmPayment_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -560,7 +560,7 @@ type OrderServiceServer interface {
 	ListOrders(context.Context, *ListOrdersReq) (*ListOrdersResp, error)
 	CancelOrder(context.Context, *CancelOrderReq) (*CancelOrderResp, error)
 	UpdateOrderStatus(context.Context, *UpdateOrderStatusReq) (*UpdateOrderStatusResp, error)
-	PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error)
+	ConfirmPayment(context.Context, *ConfirmPaymentReq) (*ConfirmPaymentResp, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -586,8 +586,8 @@ func (UnimplementedOrderServiceServer) CancelOrder(context.Context, *CancelOrder
 func (UnimplementedOrderServiceServer) UpdateOrderStatus(context.Context, *UpdateOrderStatusReq) (*UpdateOrderStatusResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateOrderStatus not implemented")
 }
-func (UnimplementedOrderServiceServer) PayOrder(context.Context, *PayOrderReq) (*PayOrderResp, error) {
-	return nil, status.Error(codes.Unimplemented, "method PayOrder not implemented")
+func (UnimplementedOrderServiceServer) ConfirmPayment(context.Context, *ConfirmPaymentReq) (*ConfirmPaymentResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConfirmPayment not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}
 func (UnimplementedOrderServiceServer) testEmbeddedByValue()                      {}
@@ -700,20 +700,20 @@ func _OrderService_UpdateOrderStatus_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrderService_PayOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PayOrderReq)
+func _OrderService_ConfirmPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmPaymentReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OrderServiceServer).PayOrder(ctx, in)
+		return srv.(OrderServiceServer).ConfirmPayment(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OrderService_PayOrder_FullMethodName,
+		FullMethod: OrderService_ConfirmPayment_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrderServiceServer).PayOrder(ctx, req.(*PayOrderReq))
+		return srv.(OrderServiceServer).ConfirmPayment(ctx, req.(*ConfirmPaymentReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -746,8 +746,8 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrderService_UpdateOrderStatus_Handler,
 		},
 		{
-			MethodName: "PayOrder",
-			Handler:    _OrderService_PayOrder_Handler,
+			MethodName: "ConfirmPayment",
+			Handler:    _OrderService_ConfirmPayment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

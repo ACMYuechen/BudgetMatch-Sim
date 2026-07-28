@@ -3,6 +3,7 @@ package mq
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // Topic 常量定义
@@ -29,6 +30,17 @@ type OrderEvent struct {
 	EventType      string `json:"event_type"`
 	EventTime      int64  `json:"event_time"`
 	IdempotencyKey string `json:"idempotency_key"`
+}
+
+// EncodeOrderEvent 序列化订单事件
+func EncodeOrderEvent(eventType string, eventTime time.Time, event OrderEvent) ([]byte, error) {
+	event.EventType = eventType
+	event.EventTime = eventTime.Unix()
+	body, err := json.Marshal(event)
+	if err != nil {
+		return nil, fmt.Errorf("marshal order event failed: %w", err)
+	}
+	return body, nil
 }
 
 // DecodeOrderEvent 反序列化订单事件

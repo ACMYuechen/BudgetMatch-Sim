@@ -7,6 +7,7 @@ import (
 	"budgetmatch-sim/services/rpc/mall/internal/config"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/model/product_skus"
 	"budgetmatch-sim/services/rpc/mall/model/products"
@@ -26,6 +27,7 @@ type ServiceContext struct {
 	SkuStore           product_skus.ProductSkusModel
 	OrderStore         mall_orders.MallOrdersModel
 	OrderItemStore     mall_order_items.MallOrderItemsModel
+	OrderOutboxStore   mall_order_outbox.MallOrderOutboxModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -43,6 +45,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	skuStore := product_skus.NewProductSkusModel(db.DB())
 	orderStore := mall_orders.NewMallOrdersModel(db.DB())
 	orderItemStore := mall_order_items.NewMallOrderItemsModel(db.DB())
+	orderOutboxStore := mall_order_outbox.NewMallOrderOutboxModel(db.DB())
 
 	if c.Database.AutoMigrate {
 		tables := []interface{ CreateTable() error }{
@@ -50,6 +53,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			skuStore,
 			orderStore,
 			orderItemStore,
+			orderOutboxStore,
 		}
 		for _, t := range tables {
 			if err := t.CreateTable(); err != nil {
@@ -76,9 +80,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RocketMQProducer:   producer,
 		OrderEventProducer: orderEventProducer,
 
-		ProductStore:   productStore,
-		SkuStore:       skuStore,
-		OrderStore:     orderStore,
-		OrderItemStore: orderItemStore,
+		ProductStore:     productStore,
+		SkuStore:         skuStore,
+		OrderStore:       orderStore,
+		OrderItemStore:   orderItemStore,
+		OrderOutboxStore: orderOutboxStore,
 	}
 }

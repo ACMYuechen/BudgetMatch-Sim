@@ -246,17 +246,18 @@ message UpdateOrderStatusResp {
   bool success = 1;
 }
 
-message PayOrderReq {
-  string order_id = 1;
-  string user_id  = 2;
-  string pay_type = 3;
+message ConfirmPaymentReq {
+  string order_id     = 1;
+  string user_id      = 2;
+  int64  amount       = 3;//精确到分，也就是小数点后两位
+  string out_trade_no = 4;
+  string trade_no     = 5;
 }
 
-message PayOrderResp {
-  string      order_id = 1;
-  OrderStatus status   = 2;
-  string      pay_url  = 3;
-  string      message  = 4;
+message ConfirmPaymentResp{
+  bool  success            = 1;
+  int32 status             = 2;
+  bool  was_already_confirmed  = 3;
 }
 
 // ========== Services ==========
@@ -281,5 +282,5 @@ service OrderService {
   rpc ListOrders(ListOrdersReq) returns (ListOrdersResp) {}
   rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp) {}
   rpc UpdateOrderStatus(UpdateOrderStatusReq) returns (UpdateOrderStatusResp) {}
-  rpc PayOrder(PayOrderReq) returns (PayOrderResp) {}
+  rpc ConfirmPayment(ConfirmPaymentReq) returns (ConfirmPaymentResp) {}
 }

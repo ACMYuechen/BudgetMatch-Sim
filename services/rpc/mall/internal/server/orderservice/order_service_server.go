@@ -48,7 +48,7 @@ func (s *OrderServiceServer) UpdateOrderStatus(ctx context.Context, in *pb.Updat
 	return l.UpdateOrderStatus(in)
 }
 
-func (s *OrderServiceServer) PayOrder(ctx context.Context, in *pb.PayOrderReq) (*pb.PayOrderResp, error) {
-	l := orderservicelogic.NewPayOrderLogic(ctx, s.svcCtx)
-	return l.PayOrder(in)
+func (s *OrderServiceServer) ConfirmPayment(ctx context.Context, in *pb.ConfirmPaymentReq) (*pb.ConfirmPaymentResp, error) {
+	l := orderservicelogic.NewConfirmPaymentLogic(ctx, s.svcCtx)
+	return l.ConfirmPayment(in)
 }
