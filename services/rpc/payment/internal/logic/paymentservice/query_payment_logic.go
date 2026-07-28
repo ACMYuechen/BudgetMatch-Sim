@@ -77,7 +77,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 	if res.Paid {
 		if err := markPaid(l.ctx, l.svcCtx, record, res.TradeNo, res.BuyerID, ""); err != nil {
 			l.Logger.Errorf("mark paid failed: %v", err)
-			return nil, errors.Database
+			return nil, err
 		}
 	}
 
