@@ -40,6 +40,7 @@ const (
 	ECMallInvalidOrderTransition
 	ECMallOrderCannotCancel
 	ECMallDuplicateOrder
+	ECMallPaymentConfirmationConflict
 )
 
 // 410xxx: 资源曾经存在但已不再可用。
@@ -64,12 +65,12 @@ const (
 )
 
 var (
-	Invalid                    = newAppError(ECInvalid, "invalid.default")
-	InvalidEmail               = newAppError(ECInvalidEmail, "invalid.invalid_email")
-	CodeInvalid                = newAppError(ECCodeInvalid, "invalid.invalid_verify_code")
-	CodeExpired                = newAppError(ECCodeExpired, "invalid.code_expired")
-	SeckillActivityNotStart    = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
-	MallPaymentAmountMismatch  = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
+	Invalid                   = newAppError(ECInvalid, "invalid.default")
+	InvalidEmail              = newAppError(ECInvalidEmail, "invalid.invalid_email")
+	CodeInvalid               = newAppError(ECCodeInvalid, "invalid.invalid_verify_code")
+	CodeExpired               = newAppError(ECCodeExpired, "invalid.code_expired")
+	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
+	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
 )
 
 var (
@@ -91,14 +92,15 @@ var (
 )
 
 var (
-	Conflict                   = newAppError(ECConflict, "conflict.default")
-	UserExists                 = newAppError(ECUserExists, "conflict.user_already_exists")
-	SeckillStockNotEnough      = newAppError(ECSeckillStockNotEnough, "seckill.stock_not_enough")
-	SeckillAlreadyPurchased    = newAppError(ECSeckillAlreadyPurchased, "seckill.already_purchased")
-	MallStockNotEnough         = newAppError(ECMallStockNotEnough, "mall.stock_not_enough")
-	MallInvalidOrderTransition = newAppError(ECMallInvalidOrderTransition, "mall.invalid_order_transition")
-	MallOrderCannotCancel      = newAppError(ECMallOrderCannotCancel, "mall.order_cannot_cancel")
-	MallDuplicateOrder         = newAppError(ECMallDuplicateOrder, "mall.duplicate_order")
+	Conflict                        = newAppError(ECConflict, "conflict.default")
+	UserExists                      = newAppError(ECUserExists, "conflict.user_already_exists")
+	SeckillStockNotEnough           = newAppError(ECSeckillStockNotEnough, "seckill.stock_not_enough")
+	SeckillAlreadyPurchased         = newAppError(ECSeckillAlreadyPurchased, "seckill.already_purchased")
+	MallStockNotEnough              = newAppError(ECMallStockNotEnough, "mall.stock_not_enough")
+	MallInvalidOrderTransition      = newAppError(ECMallInvalidOrderTransition, "mall.invalid_order_transition")
+	MallOrderCannotCancel           = newAppError(ECMallOrderCannotCancel, "mall.order_cannot_cancel")
+	MallDuplicateOrder              = newAppError(ECMallDuplicateOrder, "mall.duplicate_order")
+	MallPaymentConfirmationConflict = newAppError(ECMallPaymentConfirmationConflict, "mall.payment_confirmation_conflict")
 )
 
 var (

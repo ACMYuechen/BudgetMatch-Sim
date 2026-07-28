@@ -257,7 +257,7 @@ message ConfirmPaymentReq {
 message ConfirmPaymentResp{
   bool  success            = 1;
   int32 status             = 2;
-  bool  already_confirmed  = 3;
+  bool  was_already_confirmed  = 3;
 }
 
 message PayOrderReq {
