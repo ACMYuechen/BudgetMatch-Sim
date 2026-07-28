@@ -7,12 +7,18 @@ import (
 	{{end}}
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
+	{{if ne .HandlerName "AlipayNotifyHandler"}}"github.com/zeromicro/go-zero/rest/httpx"
+	{{end}}
 	{{.ImportPackages}}
 )
 
 {{if .HasDoc}}{{.Doc}}{{end}}
 func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	{{if eq .HandlerName "AlipayNotifyHandler"}}return func(w http.ResponseWriter, r *http.Request) {
+		l := {{.LogicName}}.New{{.LogicType}}(r.Context(), svcCtx)
+		l.{{.Call}}(w, r)
+	}
+	{{else}}
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
       	{{if .HasRequest}}in = new(types.{{.RequestType}}){{end}}
@@ -40,4 +46,4 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			{{if .HasResp}}httpx.OkJson(w, resp){{else}}httpx.Ok(w){{end}}
 		}
 	}
-}
+{{end}}}
