@@ -7,6 +7,7 @@ import (
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
@@ -37,6 +38,7 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 	var (
 		order               *mall_orders.MallOrders
 		wasAlreadyConfirmed bool
+		outboxEventId       string
 	)
 	err := l.svcCtx.DB.WithContext(l.ctx).Transaction(func(tx *gorm.DB) error {
 		// 锁住订单行，使同一订单的并发确认串行处理。
@@ -90,12 +92,27 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 			l.Logger.Errorf("order payment update affected no rows: order_id=%s expected_status=%d", order.Id, mall_orders.OrderStatusPending)
 			return errors.MallInvalidOrderTransition
 		}
+
+		// 创建订单支付确认事件到 Outbox 表，确保事件可靠投递。
+		outboxEventId = mall_order_outbox.NewMallOrderOutboxId()
+		event := mq.OrderEvent{OrderID: order.Id, UserID: order.UserId, Status: int32(mall_orders.OrderStatusPaid), IdempotencyKey: outboxEventId}
+		payload, err := mq.EncodeOrderEvent(mq.EventTypePaid, now, event)
+		if err != nil {
+			l.Logger.Errorf("failed to encode order paid event: order_id=%s event_id=%s error=%v", order.Id, outboxEventId, err)
+			return errors.Internal
+		}
+		outboxEvent := &mall_order_outbox.MallOrderOutbox{Id: outboxEventId, AggregateType: "order", AggregateId: order.Id, EventType: mq.EventTypePaid, DedupKey: "order:" + order.Id + ":" + mq.EventTypePaid, Topic: mq.TopicOrderPaid, Tag: mq.EventTypePaid, MessageKey: order.Id, Payload: string(payload), Status: mall_order_outbox.StatusPending, MaxAttempts: mall_order_outbox.DefaultMaxAttempts, NextRetryAt: now, LockedUntil: now}
+		if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
+			l.Logger.Errorf("failed to insert order outbox event: order_id=%s event_id=%s error=%v", order.Id, outboxEventId, err)
+			return errors.Internal
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	// 如果支付已经确认，直接返回成功响应。
 	if wasAlreadyConfirmed {
 		l.Logger.Infof("payment already confirmed: order_id=%s out_trade_no=%s trade_no=%s status=%d", order.Id, in.OutTradeNo, in.TradeNo, order.Status)
 		return &pb.ConfirmPaymentResp{
@@ -105,18 +122,7 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 		}, nil
 	}
 
-	// 只有首次完成订单状态流转时才发送事件。
-	if l.svcCtx.OrderEventProducer != nil {
-		event := mq.OrderEvent{
-			OrderID: order.Id,
-			UserID:  order.UserId,
-			Status:  int32(mall_orders.OrderStatusPaid),
-		}
-		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
-	}
-
-	l.Logger.Infof("payment confirmed: order_id=%s user_id=%s amount=%d out_trade_no=%s trade_no=%s", order.Id, order.UserId, in.Amount, in.OutTradeNo, in.TradeNo)
-
+	l.Logger.Infof("payment confirmed: order_id=%s user_id=%s amount=%d out_trade_no=%s trade_no=%s outbox_event_id=%s", order.Id, order.UserId, in.Amount, in.OutTradeNo, in.TradeNo, outboxEventId)
 	return &pb.ConfirmPaymentResp{
 		Success:             true,
 		Status:              int32(mall_orders.OrderStatusPaid),

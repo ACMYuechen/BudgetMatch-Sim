@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/infra/rocketmq"
 	"budgetmatch-sim/services/rpc/mall/internal/config"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	orderservice "budgetmatch-sim/services/rpc/mall/internal/server/orderservice"
 	productservice "budgetmatch-sim/services/rpc/mall/internal/server/productservice"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
@@ -60,6 +61,7 @@ func main() {
 	// add RocketMQ producer lifecycle management
 	if ctx.RocketMQProducer != nil {
 		sg.Add(rocketmq.NewProducerService(ctx.RocketMQProducer))
+		sg.Add(outbox.NewDispatcher(ctx.OrderOutboxStore, ctx.RocketMQProducer, outbox.DefaultConfig()))
 	}
 
 	// add RocketMQ order event consumer
