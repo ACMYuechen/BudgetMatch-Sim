@@ -1,7 +1,9 @@
 package paymentservicelogic
 
 import (
+	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -15,27 +17,52 @@ const timeLayout = "2006-01-02T15:04:05Z07:00"
 
 // markPaid 幂等地把一笔流水标记为支付成功，并落库支付宝交易号等信息。
 // 若流水已是成功态则直接返回（幂等），不重复触发后续动作。
-//
-// TODO(接订单): 支付成功后需通知 mall-rpc 把对应订单状态置为「已支付」。
-// 待后续给 mall 增加 ConfirmPayment RPC 后，在此处调用（建议放在事务/重试语义下，
-// 并保证 notify 与 query 两条确认路径都经过这里，避免重复确认）。
 func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerID, rawNotify string) error {
-	if record.Status == payments.StatusSuccess {
-		return nil
-	}
 	now := time.Now()
 	record.Status = payments.StatusSuccess
 	record.TradeNo = tradeNo
 	record.BuyerId = buyerID
 	record.PaidAt = &now
-	if rawNotify != "" {
-		record.NotifyRaw = rawNotify
-	}
-	if err := svcCtx.PaymentStore.Update(ctx, record); err != nil {
-		logx.WithContext(ctx).Errorf("update payment failed: %v", err)
+	update, err := svcCtx.PaymentStore.MarkPaidIfPending(ctx, record)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("conditional update payment %s (order %s) failed: %v", record.OutTradeNo, record.OrderId, err)
 		return err
 	}
-	logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)
+
+	if !update {
+		// 可能是流水关闭等不可支付状态，也可能是另一个并发请求已经更新为成功
+		latest, err := svcCtx.PaymentStore.FindOne(ctx, record.Id)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("failed to query payment %s after conditional update: err=%v", record.Id, err)
+			return err
+		}
+		if latest.Status != payments.StatusSuccess {
+			err := fmt.Errorf("payment %s is not payable: status=%d", latest.OutTradeNo, latest.Status)
+			logx.WithContext(ctx).Error(err)
+			return err
+		}
+		record = latest
+		logx.WithContext(ctx).Infof("payment %s (order %s) already marked as paid by other request", record.OutTradeNo, record.OrderId)
+	} else {
+		if rawNotify != "" {
+			record.NotifyRaw = rawNotify
+		}
+		logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)
+	}
+
+	_, err = svcCtx.OrderRpc.ConfirmPayment(ctx, &mallpb.ConfirmPaymentReq{
+		OrderId:    record.OrderId,
+		UserId:     record.UserId,
+		Amount:     record.Amount,
+		OutTradeNo: record.OutTradeNo,
+		TradeNo:    record.TradeNo,
+	})
+
+	if err != nil {
+		logx.WithContext(ctx).Errorf("confirm payment %s (order %s) failed: %v", record.OutTradeNo, record.OrderId, err)
+		return err
+	}
+	logx.WithContext(ctx).Infof("order payment %s (order %s) confirmed", record.OutTradeNo, record.OrderId)
 	return nil
 }
 

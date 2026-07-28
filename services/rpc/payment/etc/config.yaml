@@ -43,3 +43,10 @@ Alipay:
   IsProduction: false
   NotifyURL: "${ALIPAY_NOTIFY_URL}"
   ReturnURL: "${ALIPAY_RETURN_URL}"
+
+# MallRpc配置
+MallRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOST}
+    Key: mall.rpc
