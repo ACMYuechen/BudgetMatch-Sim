@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/metadata"
 
 	"budgetmatch-sim/services/rpc/payment/internal/svc"
 	"budgetmatch-sim/services/rpc/payment/model/payments"
@@ -19,10 +20,11 @@ const timeLayout = "2006-01-02T15:04:05Z07:00"
 // 若流水已是成功态则直接返回（幂等），不重复触发后续动作。
 func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerID, rawNotify string) error {
 	now := time.Now()
-	record.Status = payments.StatusSuccess
-	record.TradeNo = tradeNo
-	record.BuyerId = buyerID
-	record.PaidAt = &now
+	candidate := *record
+	candidate.Status = payments.StatusSuccess
+	candidate.TradeNo = tradeNo
+	candidate.BuyerId = buyerID
+	candidate.PaidAt = &now
 	update, err := svcCtx.PaymentStore.MarkPaidIfPending(ctx, record)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("conditional update payment %s (order %s) failed: %v", record.OutTradeNo, record.OrderId, err)
@@ -41,16 +43,19 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 			logx.WithContext(ctx).Error(err)
 			return err
 		}
-		record = latest
+		*record = *latest
 		logx.WithContext(ctx).Infof("payment %s (order %s) already marked as paid by other request", record.OutTradeNo, record.OrderId)
 	} else {
+		*record = candidate
 		if rawNotify != "" {
 			record.NotifyRaw = rawNotify
 		}
 		logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)
 	}
 
-	_, err = svcCtx.OrderRpc.ConfirmPayment(ctx, &mallpb.ConfirmPaymentReq{
+	mallCtx := forwardAuthorization(ctx)
+
+	confirmResp, err := svcCtx.OrderRpc.ConfirmPayment(mallCtx, &mallpb.ConfirmPaymentReq{
 		OrderId:    record.OrderId,
 		UserId:     record.UserId,
 		Amount:     record.Amount,
@@ -63,6 +68,12 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 		return err
 	}
 	logx.WithContext(ctx).Infof("order payment %s (order %s) confirmed", record.OutTradeNo, record.OrderId)
+
+	if confirmResp == nil || !confirmResp.Success {
+		err := fmt.Errorf("mall confirm payment %s (order %s) failed", record.OutTradeNo, record.OrderId)
+		logx.WithContext(ctx).Error(err)
+		return err
+	}
 	return nil
 }
 
@@ -88,4 +99,25 @@ func paymentToPb(p *payments.Payments) *pb.Payment {
 		resp.PaidAt = p.PaidAt.Format(timeLayout)
 	}
 	return resp
+}
+
+// forwardAuthorization 将当前请求的用户认证信息转发给下游 RPC。
+func forwardAuthorization(ctx context.Context) context.Context {
+	incoming, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ctx
+	}
+
+	authorization := incoming.Get("authorization")
+	if len(authorization) == 0 {
+		return ctx
+	}
+
+	outgoing := metadata.MD{}
+	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+		outgoing = md.Copy()
+	}
+	outgoing.Set("authorization", authorization...)
+
+	return metadata.NewOutgoingContext(ctx, outgoing)
 }

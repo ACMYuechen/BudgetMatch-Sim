@@ -48,5 +48,5 @@ Alipay:
 MallRpc:
   Etcd:
     Hosts:
-      - ${ETCD_HOST}
+      - ${ETCD_HOSTS}
     Key: mall.rpc
