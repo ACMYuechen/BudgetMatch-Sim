@@ -4,6 +4,11 @@ Port: 10001
 Timeout: 600000
 MaxBytes: 524288000
 
+# 链路追踪；Name 非空即开启，trace_id / span_id 自动注入日志
+Telemetry:
+  Name: admin.api
+  Sampler: 1.0
+
 # 认证中心 RPC（admin 不直接访问 DB，所有数据操作通过 auth-rpc）
 AuthRpc:
   Etcd:

@@ -41,12 +41,12 @@ func main() {
 			reflection.Register(grpcServer)
 		}
 	})
-	sg.Add(s)
-
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
 
-	// 注册认证拦截器：商品/库存管理需管理员，订单与查询需登录用户
-	s.AddUnaryInterceptors(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
+	// 注册请求日志拦截器（最外层）和认证拦截器
+	s.AddUnaryInterceptors(
+		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
+		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
 		Secret: c.JwtAuth.Secret,
 		AdminMethods: map[string]struct{}{
 			"/mall.ProductService/CreateProduct": {},
@@ -57,6 +57,8 @@ func main() {
 			"/mall.ProductService/DeleteSku":     {},
 		},
 	}))
+
+	sg.Add(s)
 
 	// add RocketMQ producer lifecycle management
 	if ctx.RocketMQProducer != nil {
