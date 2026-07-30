@@ -2,6 +2,11 @@ Name: seckill.rpc
 ListenOn: 0.0.0.0:10004
 Timeout: 60000
 
+# 链路追踪；Name 非空即开启，trace_id / span_id 自动注入日志
+Telemetry:
+  Name: seckill.rpc
+  Sampler: 1.0
+
 # 服务注册到 etcd
 Etcd:
   Hosts:

@@ -2,6 +2,11 @@ Name: agent.rpc
 ListenOn: 0.0.0.0:10006
 Timeout: 60000
 
+# 链路追踪；Name 非空即开启，trace_id / span_id 自动注入日志
+Telemetry:
+  Name: agent.rpc
+  Sampler: 1.0
+
 Etcd:
   Hosts:
     - ${ETCD_HOSTS}
