@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"budgetmatch-sim/infra/auth"
+	"budgetmatch-sim/infra/request"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc"
@@ -32,6 +33,11 @@ func LoggingInterceptor(secret string) grpc.UnaryServerInterceptor {
 		}
 
 		logx.WithContext(ctx).Infow("request start", logFields...)
+
+		// 将 userID 注入 context，供下游 handler 读取
+		if userID != "" {
+			ctx = request.WithUserID(ctx, userID)
+		}
 
 		resp, err := handler(ctx, req)
 

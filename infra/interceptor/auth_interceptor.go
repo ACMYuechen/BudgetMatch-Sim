@@ -3,23 +3,13 @@ package interceptor
 
 import (
 	"context"
-	"strings"
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/infra/role"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-)
-
-// contextKey 用于在 context 中注入认证信息。
-type contextKey string
-
-const (
-	ContextKeyUserID contextKey = "user_id"
-	ContextKeyRole   contextKey = "role"
-	ContextKeyToken  contextKey = "token"
 )
 
 // AuthConfig 配置认证拦截器的行为。
@@ -35,24 +25,23 @@ type AuthConfig struct {
 
 // UnaryServerInterceptor 返回一个 gRPC 一元拦截器，完成 JWT 校验与角色鉴权：
 //
-//  1. 白名单方法直接放行
-//  2. 从 gRPC metadata 提取 Authorization: Bearer <token>
-//  3. 验证 JWT 签名并从 claims 提取 user_id、role
-//  4. admin 方法要求 role.IsGlobalAdminRole，其余要求 role.IsGlobalUserRole
-//  5. 将 user_id、role 与原始 token 注入 context（token 供下游 RPC 传播）
+//  1. 从 gRPC metadata 解析请求信息，白名单方法不执行身份校验
+//  2. 受保护方法验证 JWT 签名并从 claims 提取 user_id、role
+//  3. admin 方法要求 role.IsGlobalAdminRole，其余要求 role.IsGlobalUserRole
+//  4. 将认证结果注入统一请求上下文，供业务读取和下游 RPC 传播
 func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		// 1. 白名单放行
+		// 1. 解析请求信息，白名单方法不执行身份校验
+		ctx, tokenString, err := request.FromGRPCContext(ctx)
 		if _, ok := cfg.NoAuthMethods[info.FullMethod]; ok {
 			return handler(ctx, req)
 		}
 
-		// 2. 提取 token
-		tokenString, err := extractToken(ctx)
-		if err != nil {
-			return nil, err
+		// 2. 受保护方法必须携带合法格式的 Token
+		if err != nil || tokenString == "" {
+			return nil, errors.InvalidToken
 		}
 
 		// 3. 验证 JWT 签名
@@ -83,32 +72,10 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 			}
 		}
 
-		// 7. 注入 context（user_id、role、原始 token，供下游 RPC 调用传播）
-		ctx = context.WithValue(ctx, ContextKeyUserID, userID)
-		ctx = context.WithValue(ctx, ContextKeyRole, int64(userRole))
-		ctx = context.WithValue(ctx, ContextKeyToken, tokenString)
+		// 7. 注入可信身份信息，供业务读取和下游 RPC 透传
+		ctx = request.WithUserID(ctx, userID)
+		ctx = request.WithRole(ctx, int64(userRole))
 
 		return handler(ctx, req)
 	}
-}
-
-// extractToken 从 gRPC metadata 中提取并清理 Bearer token。
-func extractToken(ctx context.Context) (string, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return "", errors.InvalidToken
-	}
-
-	var raw string
-	if vals := md.Get("authorization"); len(vals) > 0 {
-		raw = vals[0]
-	}
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", errors.InvalidToken
-	}
-	if len(raw) >= 7 && strings.EqualFold(raw[:7], "Bearer ") {
-		return strings.TrimSpace(raw[7:]), nil
-	}
-	return raw, nil
 }
