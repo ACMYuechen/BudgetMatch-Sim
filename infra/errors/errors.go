@@ -8,6 +8,8 @@ const (
 	ECCodeExpired
 	ECSeckillActivityNotStart
 	ECMallPaymentAmountMismatch
+	ECRequestInvalidHeader
+	ECRequestUserIDRequired
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -62,6 +64,8 @@ const (
 	ECTokenGeneration
 	ECEmailSendFailed
 	ECSeckillSubmitFailed
+	ECRequestContextNotFound
+	ECRequestNilHTTP
 )
 
 var (
@@ -71,6 +75,8 @@ var (
 	CodeExpired               = newAppError(ECCodeExpired, "invalid.code_expired")
 	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
 	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
+	RequestInvalidHeader      = newAppError(ECRequestInvalidHeader, "request.invalid_header")
+	RequestUserIDRequired     = newAppError(ECRequestUserIDRequired, "request.user_id_required")
 )
 
 var (
@@ -114,9 +120,11 @@ var (
 )
 
 var (
-	Internal            = newAppError(ECInternal, "internal.default")
-	Database            = newAppError(ECDatabase, "internal.database")
-	TokenGeneration     = newAppError(ECTokenGeneration, "internal.token_generation")
-	EmailSendFailed     = newAppError(ECEmailSendFailed, "internal.email_send_failed")
-	SeckillSubmitFailed = newAppError(ECSeckillSubmitFailed, "internal.seckill_submit_failed")
+	Internal               = newAppError(ECInternal, "internal.default")
+	Database               = newAppError(ECDatabase, "internal.database")
+	TokenGeneration        = newAppError(ECTokenGeneration, "internal.token_generation")
+	EmailSendFailed        = newAppError(ECEmailSendFailed, "internal.email_send_failed")
+	SeckillSubmitFailed    = newAppError(ECSeckillSubmitFailed, "internal.seckill_submit_failed")
+	RequestContextNotFound = newAppError(ECRequestContextNotFound, "request.context_not_found")
+	RequestNilHTTP         = newAppError(ECRequestNilHTTP, "request.nil_http")
 )
