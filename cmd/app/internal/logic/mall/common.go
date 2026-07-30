@@ -12,7 +12,7 @@ import (
 )
 
 func authenticatedUserID(ctx context.Context) (string, error) {
-	userID := request.UserID(ctx)
+	userID := request.TryUserID(ctx)
 	if userID == "" {
 		return "", errors.Unauthorized
 	}

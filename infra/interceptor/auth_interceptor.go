@@ -37,7 +37,11 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 		requestInfo, err := request.FromGRPCContext(ctx)
 		if _, ok := cfg.NoAuthMethods[info.FullMethod]; ok {
 			if err == nil {
-				ctx = request.NewContext(ctx, requestInfo)
+				ctx = request.WithToken(ctx, requestInfo.Token)
+				ctx = request.WithRequestID(ctx, requestInfo.RequestID)
+				ctx = request.WithClientIP(ctx, requestInfo.ClientIP)
+				ctx = request.WithUserAgent(ctx, requestInfo.UserAgent)
+				ctx = request.WithHeaders(ctx, requestInfo.Headers)
 			}
 			return handler(ctx, req)
 		}
@@ -77,9 +81,13 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 		}
 
 		// 7. 注入统一请求上下文，供业务读取和下游 RPC 透传
-		requestInfo.UserID = userID
-		requestInfo.Role = int64(userRole)
-		ctx = request.NewContext(ctx, requestInfo)
+		ctx = request.WithToken(ctx, requestInfo.Token)
+		ctx = request.WithRequestID(ctx, requestInfo.RequestID)
+		ctx = request.WithClientIP(ctx, requestInfo.ClientIP)
+		ctx = request.WithUserAgent(ctx, requestInfo.UserAgent)
+		ctx = request.WithHeaders(ctx, requestInfo.Headers)
+		ctx = request.WithUserID(ctx, userID)
+		ctx = request.WithRole(ctx, int64(userRole))
 
 		return handler(ctx, req)
 	}

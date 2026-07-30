@@ -27,7 +27,7 @@ func (m *SeckillRateLimitMiddleware) Handle(next http.HandlerFunc) http.HandlerF
 			return
 		}
 
-		userID := request.UserID(r.Context())
+		userID := request.TryUserID(r.Context())
 		if userID == "" {
 			next(w, r)
 			return

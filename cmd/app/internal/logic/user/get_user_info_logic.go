@@ -30,7 +30,7 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 }
 
 func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.GetUserInfoResp, err error) {
-	userID := request.UserID(l.ctx)
+	userID := request.TryUserID(l.ctx)
 	if userID == "" {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized

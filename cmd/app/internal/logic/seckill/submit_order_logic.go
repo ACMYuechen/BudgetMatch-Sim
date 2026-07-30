@@ -30,7 +30,7 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 }
 
 func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.SubmitOrderResp, err error) {
-	userID := request.UserID(l.ctx)
+	userID := request.TryUserID(l.ctx)
 	if userID == "" {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized

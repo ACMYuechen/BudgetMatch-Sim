@@ -55,10 +55,14 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// 将可信身份信息注入统一请求上下文，并保留完整用户信息供兼容读取
-		requestInfo.UserID = resp.User.Id
-		requestInfo.Role = int64(resp.User.Role)
-		ctx = request.NewContext(ctx, requestInfo)
+		// 将可信身份信息逐字段注入 Context
+		ctx = request.WithToken(ctx, requestInfo.Token)
+		ctx = request.WithRequestID(ctx, requestInfo.RequestID)
+		ctx = request.WithClientIP(ctx, requestInfo.ClientIP)
+		ctx = request.WithUserAgent(ctx, requestInfo.UserAgent)
+		ctx = request.WithHeaders(ctx, requestInfo.Headers)
+		ctx = request.WithUserID(ctx, resp.User.Id)
+		ctx = request.WithRole(ctx, int64(resp.User.Role))
 
 		next(w, r.WithContext(ctx))
 	}

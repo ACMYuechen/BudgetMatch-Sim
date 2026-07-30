@@ -53,22 +53,20 @@ func FromGRPCContext(ctx context.Context) (*Request, error) {
 //
 // 已有 metadata 会被保留，相同白名单字段会被覆盖，避免重复追加。
 func NewOutgoingContext(ctx context.Context) context.Context {
-	req, ok := stored(ctx)
-	if !ok {
-		return ctx
-	}
+	token := TryToken(ctx)
+	requestID := TryRequestID(ctx)
 
-	if req.Token == "" && req.RequestID == "" {
+	if token == "" && requestID == "" {
 		return ctx
 	}
 
 	md, _ := metadata.FromOutgoingContext(ctx)
 	md = md.Copy()
-	if req.Token != "" {
-		md.Set(metadataAuthorization, "Bearer "+req.Token)
+	if token != "" {
+		md.Set(metadataAuthorization, "Bearer "+token)
 	}
-	if req.RequestID != "" {
-		md.Set(metadataRequestID, req.RequestID)
+	if requestID != "" {
+		md.Set(metadataRequestID, requestID)
 	}
 	return metadata.NewOutgoingContext(ctx, md)
 }

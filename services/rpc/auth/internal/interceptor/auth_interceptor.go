@@ -63,9 +63,13 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		}
 
 		// 注入可信身份摘要，业务层统一通过 request 包读取
-		requestInfo.UserID = u.Id
-		requestInfo.Role = int64(u.Role)
-		ctx = request.NewContext(ctx, requestInfo)
+		ctx = request.WithToken(ctx, requestInfo.Token)
+		ctx = request.WithRequestID(ctx, requestInfo.RequestID)
+		ctx = request.WithClientIP(ctx, requestInfo.ClientIP)
+		ctx = request.WithUserAgent(ctx, requestInfo.UserAgent)
+		ctx = request.WithHeaders(ctx, requestInfo.Headers)
+		ctx = request.WithUserID(ctx, u.Id)
+		ctx = request.WithRole(ctx, int64(u.Role))
 
 		return handler(ctx, req)
 	}

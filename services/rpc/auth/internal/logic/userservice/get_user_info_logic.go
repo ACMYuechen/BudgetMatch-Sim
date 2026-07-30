@@ -27,7 +27,7 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 
 func (l *GetUserInfoLogic) GetUserInfo(in *pb.GetUserInfoReq) (*pb.GetUserInfoResp, error) {
 	// 强制使用认证拦截器注入的用户 ID，忽略请求中的 UserId，防止水平越权
-	userID := request.UserID(l.ctx)
+	userID := request.TryUserID(l.ctx)
 	if userID == "" {
 		l.Logger.Error("user id not found in request context")
 		return nil, errors.Unauthorized
