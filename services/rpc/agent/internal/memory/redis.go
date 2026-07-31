@@ -31,14 +31,14 @@ func NewRedis(client redis.UniversalClient, c Conf) *Redis {
 }
 
 // convKey 返回会话消息列表的 Redis key。
-func convKey(conversationID string) string {
-	return "agent:conv:" + conversationID + ":msgs"
+func convKey(userID, conversationID string) string {
+	return "agent:user:" + userID + ":conv:" + conversationID + ":msgs"
 }
 
 // Append 追加消息、按窗口截断并刷新 TTL，会话不存在时自动创建。
-func (m *Redis) Append(ctx context.Context, conversationID string, msgs ...*schema.Message) error {
-	if conversationID == "" {
-		return fmt.Errorf("memory: conversation id is empty")
+func (m *Redis) Append(ctx context.Context, userID, conversationID string, msgs ...*schema.Message) error {
+	if userID == "" || conversationID == "" {
+		return fmt.Errorf("memory: user id or conversation id is empty")
 	}
 	if len(msgs) == 0 {
 		return nil
@@ -54,7 +54,7 @@ func (m *Redis) Append(ctx context.Context, conversationID string, msgs ...*sche
 		values = append(values, data)
 	}
 
-	key := convKey(conversationID)
+	key := convKey(userID, conversationID)
 	pipe := m.client.Pipeline()
 	pipe.RPush(ctx, key, values...)
 	pipe.LTrim(ctx, key, int64(-m.conf.MaxHistory), -1)
@@ -67,12 +67,12 @@ func (m *Redis) Append(ctx context.Context, conversationID string, msgs ...*sche
 
 // History 返回最近 limit 条消息（时间正序）；limit 非正时使用窗口大小。
 // 会话不存在或已过期时返回空切片。
-func (m *Redis) History(ctx context.Context, conversationID string, limit int) ([]*schema.Message, error) {
+func (m *Redis) History(ctx context.Context, userID, conversationID string, limit int) ([]*schema.Message, error) {
 	if limit <= 0 {
 		limit = m.conf.MaxHistory
 	}
 
-	items, err := m.client.LRange(ctx, convKey(conversationID), int64(-limit), -1).Result()
+	items, err := m.client.LRange(ctx, convKey(userID, conversationID), int64(-limit), -1).Result()
 	if err != nil {
 		return nil, fmt.Errorf("memory: read history from redis: %w", err)
 	}
@@ -89,8 +89,8 @@ func (m *Redis) History(ctx context.Context, conversationID string, limit int) (
 }
 
 // Clear 删除会话的全部历史。
-func (m *Redis) Clear(ctx context.Context, conversationID string) error {
-	if err := m.client.Del(ctx, convKey(conversationID)).Err(); err != nil {
+func (m *Redis) Clear(ctx context.Context, userID, conversationID string) error {
+	if err := m.client.Del(ctx, convKey(userID, conversationID)).Err(); err != nil {
 		return fmt.Errorf("memory: clear conversation: %w", err)
 	}
 	return nil
