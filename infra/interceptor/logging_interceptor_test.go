@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"budgetmatch-sim/infra/auth"
+	"budgetmatch-sim/infra/request"
+
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -60,28 +63,29 @@ func TestLoggingInterceptor_DurationMeasured(t *testing.T) {
 }
 
 func TestLoggingInterceptor_UserIDExtraction(t *testing.T) {
-	// 有效 token 应在日志上下文中提取到 user_id。
-	// 使用 auth.GenerateToken 创建合法 token。
+	// 有效 token 应注入 context，handler 可读取到 user_id。
 	secret := "test-secret-key-for-interceptor"
 	interceptor := LoggingInterceptor(secret)
 
+	const expectedUserID = "user-123"
+	token, err := auth.GenerateToken(expectedUserID, secret, 3600, 1)
+	assert.NoError(t, err)
+
 	var capturedUserID string
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		capturedUserID, _ = ctx.Value(ContextKeyUserID).(string)
+		capturedUserID = request.TryUserID(ctx)
 		return "done", nil
 	}
 
-	// 注：由于 context 的不可变性，外层拦截器无法读取内层 context 注入的值。
-	// 本测试验证的是 outer interceptor 自行从 metadata 提取 user_id 的能力。
-	// user_id 由 LoggingInterceptor 内部的 extractUserIDFromMD 提取后写入 logFields，
-	// 不注入 context。此测试仅验证 handler 链正常完成。
+	md := metadata.Pairs("authorization", "Bearer "+token)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
 	info := &grpc.UnaryServerInfo{FullMethod: "/test.Service/AuthMethod"}
-	resp, err := interceptor(context.Background(), "req", info, handler)
+	resp, err := interceptor(ctx, "req", info, handler)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "done", resp)
-	// user_id 由 logging interceptor 从 metadata 提取，不会注入 context。
-	assert.Empty(t, capturedUserID)
+	assert.Equal(t, expectedUserID, capturedUserID)
 }
 
 func TestLoggingInterceptor_EmptySecretNoCrash(t *testing.T) {

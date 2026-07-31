@@ -2,21 +2,15 @@ package interceptor
 
 import (
 	"context"
-	"strings"
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
-
-// contextKey 用于在 context 中存储认证信息
-type contextKey string
-
-const ContextKeyUser contextKey = "user"
 
 var noAuthMethods = map[string]struct{}{
 	"/auth.AuthService/UsernameLogin": {},
@@ -27,7 +21,7 @@ var noAuthMethods = map[string]struct{}{
 	"/auth.AuthService/LoginByCode":   {},
 }
 
-// AuthInterceptor 从 gRPC metadata 中提取 Authorization token，验证并注入完整用户信息
+// AuthInterceptor 从统一请求上下文中解析 Token，验证后注入可信身份信息。
 func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// 不需要认证的接口白名单
@@ -35,23 +29,14 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
-		// 从 metadata 取 Authorization
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, errors.InvalidToken
-		}
-
-		var tokenString string
-		if vals := md.Get("authorization"); len(vals) > 0 {
-			tokenString = trimBearerToken(vals[0])
-		}
-
-		if tokenString == "" {
+		// 统一解析 gRPC metadata 中的请求信息
+		ctx, tokenString, err := request.FromGRPCContext(ctx)
+		if err != nil || tokenString == "" {
 			return nil, errors.InvalidToken
 		}
 
 		// 验证 token
-		_, err := auth.ValidateToken(tokenString, svcCtx.Config.JwtAuth.Secret)
+		_, err = auth.ValidateToken(tokenString, svcCtx.Config.JwtAuth.Secret)
 		if err != nil {
 			return nil, errors.InvalidToken
 		}
@@ -76,20 +61,10 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 			return nil, errors.Unauthorized
 		}
 
-		// 注入完整用户到 context
-		ctx = context.WithValue(ctx, ContextKeyUser, u)
+		// 注入可信身份摘要，业务层统一通过 request 包读取
+		ctx = request.WithUserID(ctx, u.Id)
+		ctx = request.WithRole(ctx, int64(u.Role))
 
 		return handler(ctx, req)
 	}
-}
-
-func trimBearerToken(authorization string) string {
-	authorization = strings.TrimSpace(authorization)
-	if authorization == "" {
-		return ""
-	}
-	if len(authorization) >= 7 && strings.EqualFold(authorization[:7], "Bearer ") {
-		return strings.TrimSpace(authorization[7:])
-	}
-	return authorization
 }

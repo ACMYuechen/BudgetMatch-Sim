@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,14 +30,14 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 }
 
 func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.GetUserInfoResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
+	userID := request.TryUserID(l.ctx)
+	if userID == "" {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.UserClient.GetUserInfo(l.ctx, &pb.GetUserInfoReq{
-		UserId: userID.(string),
+		UserId: userID,
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get user info: %v", err)
