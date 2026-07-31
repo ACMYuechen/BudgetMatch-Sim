@@ -41,12 +41,13 @@ type ToolCall struct {
 
 // Result 表示 Agent 执行一次推荐后的完整结果。
 type Result struct {
-	Intent          Intent       // Intent 解析出的用户意图
-	Items           []BundleItem // Items 推荐的商品列表
-	TotalPriceCents int64        // TotalPriceCents 推荐商品总价，单位为分
-	Summary         string       // Summary 推荐结果摘要
-	ToolsUsed       []ToolCall   // ToolsUsed 执行过程中使用的工具记录
-	ConversationID  string       // ConversationID 本次对话的会话标识，客户端携带它发起下一轮
+	Intent            Intent       // Intent 解析出的用户意图
+	Items             []BundleItem // Items 推荐的商品列表
+	TotalPriceCents   int64        // TotalPriceCents 推荐商品总价，单位为分
+	Summary           string       // Summary 推荐结果摘要
+	ToolsUsed         []ToolCall   // ToolsUsed 执行过程中使用的工具记录
+	ConversationID    string       // ConversationID 本次对话的会话标识，客户端携带它发起下一轮
+	ConversationTitle string       // ConversationTitle 会话的稳定展示标题
 }
 
 // Agent 是推荐 Agent 的抽象接口，每个实现代表一种推荐策略。

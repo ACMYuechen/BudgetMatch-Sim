@@ -7,6 +7,7 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/agent/client/recommendservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -28,11 +29,17 @@ func NewAgentRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ag
 }
 
 func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp *types.AgentRecommendResp, err error) {
+	// 仅信任认证中间件写入的上下文，不接受 HTTP 请求体提供的用户标识。
+	userID, err := request.MustUserID(l.ctx)
+	if err != nil {
+		return nil, err
+	}
 	rpcResp, err := l.svcCtx.AgentClient.Recommend(l.ctx, &recommendservice.RecommendReq{
 		Query:          req.Query,
 		BudgetCents:    req.BudgetCents,
 		MaxItems:       int32(req.MaxItems),
 		ConversationId: req.ConversationId,
+		UserId:         userID,
 	})
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
@@ -78,10 +85,11 @@ func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommen
 			Keywords:    intent.GetKeywords(),
 			Preferences: intent.GetPreferences(),
 		},
-		Items:           items,
-		TotalPriceCents: resp.GetTotalPriceCents(),
-		Summary:         resp.GetSummary(),
-		ToolsUsed:       toolsUsed,
-		ConversationId:  resp.GetConversationId(),
+		Items:             items,
+		TotalPriceCents:   resp.GetTotalPriceCents(),
+		Summary:           resp.GetSummary(),
+		ToolsUsed:         toolsUsed,
+		ConversationId:    resp.GetConversationId(),
+		ConversationTitle: resp.GetConversationTitle(),
 	}
 }
