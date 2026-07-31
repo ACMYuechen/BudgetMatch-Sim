@@ -15,7 +15,8 @@ import (
 type InMemory struct {
 	conf Conf
 
-	mu   sync.RWMutex
+	mu sync.RWMutex
+	// conv 以 userID:conversationID 为键，确保内存降级与 Redis 使用相同的隔离语义。
 	conv map[string][][]byte
 }
 

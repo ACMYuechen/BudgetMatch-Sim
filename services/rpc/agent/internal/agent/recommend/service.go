@@ -2,6 +2,8 @@ package recommend
 
 import (
 	"context"
+	"strings"
+	"unicode/utf8"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
@@ -49,11 +51,14 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 
 	result, err := s.run(ctx, input)
 	if err != nil {
+		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID), logx.Field("error", err.Error()))
 		return nil, err
 	}
 
 	result.ConversationID = input.ConversationID
+	result.ConversationTitle = s.conversationTitle(ctx, input)
 	s.remember(ctx, input, result)
+	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID))
 	return result, nil
 }
 
@@ -81,7 +86,7 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 	if s.memory == nil {
 		return
 	}
-	err := s.memory.Append(ctx, input.ConversationID,
+	err := s.memory.Append(ctx, input.UserID, input.ConversationID,
 		schema.UserMessage(input.Query),
 		schema.AssistantMessage(result.Summary, nil),
 	)
@@ -91,6 +96,32 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 			logx.Field("error", err.Error()),
 		)
 	}
+}
+
+// conversationTitle 以首条用户问题作为稳定标题，后续轮次不会改变该标题。
+func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) string {
+	if s.memory != nil {
+		history, err := s.memory.History(ctx, input.UserID, input.ConversationID, 0)
+		if err != nil {
+			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserID), logx.Field("conversation_id", input.ConversationID), logx.Field("error", err.Error()))
+		} else {
+			for _, msg := range history {
+				if msg.Role == schema.User && strings.TrimSpace(msg.Content) != "" {
+					return shortTitle(msg.Content)
+				}
+			}
+		}
+	}
+	return shortTitle(input.Query)
+}
+
+// shortTitle 按字符截断，避免截断中文等多字节字符。
+func shortTitle(text string) string {
+	text = strings.TrimSpace(text)
+	if utf8.RuneCountInString(text) <= 32 {
+		return text
+	}
+	return string([]rune(text)[:32]) + "…"
 }
 
 // fallbackAfterFailure 在 primary 失败时降级到 fallback，并附加一条失败工具记录。

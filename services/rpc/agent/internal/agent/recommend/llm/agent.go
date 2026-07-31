@@ -142,7 +142,7 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 	if a.memory == nil || input.ConversationID == "" {
 		return nil
 	}
-	history, err := a.memory.History(ctx, input.ConversationID, a.maxHistory)
+	history, err := a.memory.History(ctx, input.UserID, input.ConversationID, a.maxHistory)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history failed",
 			logx.Field("conversation_id", input.ConversationID),

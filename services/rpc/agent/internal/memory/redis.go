@@ -31,6 +31,7 @@ func NewRedis(client redis.UniversalClient, c Conf) *Redis {
 }
 
 // convKey 返回会话消息列表的 Redis key。
+// convKey 必须包含用户标识，避免不同用户使用相同会话标识时发生冲突。
 func convKey(userID, conversationID string) string {
 	return "agent:user:" + userID + ":conv:" + conversationID + ":msgs"
 }
