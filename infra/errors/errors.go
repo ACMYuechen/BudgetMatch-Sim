@@ -120,11 +120,9 @@ var (
 )
 
 var (
-	Internal               = newAppError(ECInternal, "internal.default")
-	Database               = newAppError(ECDatabase, "internal.database")
-	TokenGeneration        = newAppError(ECTokenGeneration, "internal.token_generation")
-	EmailSendFailed        = newAppError(ECEmailSendFailed, "internal.email_send_failed")
-	SeckillSubmitFailed    = newAppError(ECSeckillSubmitFailed, "internal.seckill_submit_failed")
-	RequestContextNotFound = newAppError(ECRequestContextNotFound, "request.context_not_found")
-	RequestNilHTTP         = newAppError(ECRequestNilHTTP, "request.nil_http")
+	Internal            = newAppError(ECInternal, "internal.default")
+	Database            = newAppError(ECDatabase, "internal.database")
+	TokenGeneration     = newAppError(ECTokenGeneration, "internal.token_generation")
+	EmailSendFailed     = newAppError(ECEmailSendFailed, "internal.email_send_failed")
+	SeckillSubmitFailed = newAppError(ECSeckillSubmitFailed, "internal.seckill_submit_failed")
 )
