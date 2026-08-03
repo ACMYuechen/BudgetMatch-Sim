@@ -2,10 +2,15 @@ package request
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 // ──────────────────────── Context Key 类型 ────────────────────────────────
@@ -205,4 +210,185 @@ func TestCloneAllowedHeaders_IsCopy(t *testing.T) {
 	cloned := cloneAllowedHeaders(original)
 	original["authorization"] = "Bearer modified"
 	assert.Equal(t, "Bearer orig", cloned["Authorization"], "修改原始 map 不应影响 clone")
+}
+
+// ──────────────────────── HTTP 解析：FromHTTPRequest ─────────────────────
+
+func TestFromHTTPRequest_Nil(t *testing.T) {
+	_, _, err := FromHTTPRequest(context.Background(), nil)
+	require.Error(t, err)
+}
+
+func TestFromHTTPRequest_NoAuth(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	_, token, err := FromHTTPRequest(context.Background(), r)
+	require.NoError(t, err)
+	assert.Empty(t, token)
+}
+
+func TestFromHTTPRequest_BearerToken(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Set("Authorization", "Bearer my-jwt-token")
+	r.Header.Set("X-Request-Id", "req-123")
+
+	ctx, token, err := FromHTTPRequest(context.Background(), r)
+	require.NoError(t, err)
+	assert.Equal(t, "my-jwt-token", token)
+	assert.Equal(t, "req-123", TryRequestID(ctx))
+}
+
+func TestFromHTTPRequest_BearerCaseInsensitive(t *testing.T) {
+	for _, prefix := range []string{"Bearer", "bearer", "BEARER", "bEaReR"} {
+		r := httptest.NewRequest(http.MethodGet, "/test", nil)
+		r.Header.Set("Authorization", prefix+" my-token")
+		_, token, err := FromHTTPRequest(context.Background(), r)
+		require.NoError(t, err)
+		assert.Equal(t, "my-token", token, "prefix=%q", prefix)
+	}
+}
+
+func TestFromHTTPRequest_BearerWithoutToken(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Set("Authorization", "Bearer")
+	_, _, err := FromHTTPRequest(context.Background(), r)
+	require.Error(t, err)
+
+	r = httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Set("Authorization", "Bearer ")
+	_, _, err = FromHTTPRequest(context.Background(), r)
+	require.Error(t, err)
+}
+
+func TestFromHTTPRequest_NonBearerToken(t *testing.T) {
+	// 非 Bearer 的 Authorization 值应原样保留
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Set("Authorization", "Basic dXNlcjpwYXNz")
+	_, token, err := FromHTTPRequest(context.Background(), r)
+	require.NoError(t, err)
+	assert.Equal(t, "Basic dXNlcjpwYXNz", token)
+}
+
+func TestFromHTTPRequest_DuplicateHeader(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Add("Authorization", "Bearer token-1")
+	r.Header.Add("Authorization", "Bearer token-2")
+	_, _, err := FromHTTPRequest(context.Background(), r)
+	require.Error(t, err)
+}
+
+func TestFromHTTPRequest_ClientIPFromForwardedFor(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/test", nil)
+	r.Header.Set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+	ctx, _, err := FromHTTPRequest(context.Background(), r)
+	require.NoError(t, err)
+	assert.Equal(t, "203.0.113.7", TryClientIP(ctx))
+}
+
+// ──────────────────────── gRPC 解析：FromGRPCContext ─────────────────────
+
+func TestFromGRPCContext_NoMetadata(t *testing.T) {
+	ctx, token, err := FromGRPCContext(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, token)
+	assert.Empty(t, TryClientIP(ctx))
+}
+
+func TestFromGRPCContext_BearerToken(t *testing.T) {
+	md := metadata.Pairs(
+		"authorization", "Bearer jwt-token-123",
+		"x-request-id", "req-grpc-1",
+		"user-agent", "TestAgent/1.0",
+	)
+	ctx, token, err := FromGRPCContext(metadata.NewIncomingContext(context.Background(), md))
+	require.NoError(t, err)
+	assert.Equal(t, "jwt-token-123", token)
+	assert.Equal(t, "jwt-token-123", TryToken(ctx))
+	assert.Equal(t, "req-grpc-1", TryRequestID(ctx))
+	assert.Equal(t, "TestAgent/1.0", TryUserAgent(ctx))
+	assert.Equal(t, "Bearer jwt-token-123", TryHeader(ctx, "Authorization"))
+}
+
+func TestFromGRPCContext_BearerCaseInsensitive(t *testing.T) {
+	// gRPC metadata key 规范化为小写
+	for _, prefix := range []string{"Bearer", "bearer", "BEARER", "bEaReR"} {
+		md := metadata.Pairs("authorization", prefix+" my-token")
+		_, token, err := FromGRPCContext(metadata.NewIncomingContext(context.Background(), md))
+		require.NoError(t, err)
+		assert.Equal(t, "my-token", token, "prefix=%q", prefix)
+	}
+}
+
+func TestFromGRPCContext_DuplicateHeader(t *testing.T) {
+	md := metadata.Pairs("authorization", "Bearer token-1", "authorization", "Bearer token-2")
+	_, _, err := FromGRPCContext(metadata.NewIncomingContext(context.Background(), md))
+	require.Error(t, err)
+}
+
+func TestFromGRPCContext_ClientIPFromPeer(t *testing.T) {
+	addr := &net.TCPAddr{IP: net.ParseIP("192.168.1.5"), Port: 12345}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{Addr: addr})
+	ctx, _, err := FromGRPCContext(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, "192.168.1.5", TryClientIP(ctx))
+}
+
+// ──────────────────────── gRPC 透传：NewOutgoingContext ──────────────────
+
+func TestNewOutgoingContext_Empty(t *testing.T) {
+	// 无 Token / RequestID 时保持原 Context 不变，不透传任何 metadata
+	ctx := context.Background()
+	got := NewOutgoingContext(ctx)
+
+	md, ok := metadata.FromOutgoingContext(got)
+	assert.False(t, ok, "不应注入 outgoing metadata")
+	assert.Empty(t, md.Get("authorization"))
+	assert.Empty(t, md.Get("x-request-id"))
+}
+
+func TestNewOutgoingContext_WithToken(t *testing.T) {
+	ctx := NewOutgoingContext(WithToken(context.Background(), "jwt-token-1"))
+	md, _ := metadata.FromOutgoingContext(ctx)
+	assert.Equal(t, []string{"Bearer jwt-token-1"}, md.Get("authorization"))
+	assert.Empty(t, md.Get("x-request-id"))
+}
+
+func TestNewOutgoingContext_WithTokenAndRequestID(t *testing.T) {
+	ctx := WithRequestID(context.Background(), "req-abc")
+	ctx = WithToken(ctx, "jwt-token-1")
+	ctx = NewOutgoingContext(ctx)
+
+	md, _ := metadata.FromOutgoingContext(ctx)
+	assert.Equal(t, []string{"Bearer jwt-token-1"}, md.Get("authorization"))
+	assert.Equal(t, []string{"req-abc"}, md.Get("x-request-id"))
+}
+
+func TestNewOutgoingContext_OnlyRequestID(t *testing.T) {
+	// 仅 RequestID 时只透传 request_id，不写 authorization
+	ctx := NewOutgoingContext(WithRequestID(context.Background(), "req-xyz"))
+	md, _ := metadata.FromOutgoingContext(ctx)
+	assert.Empty(t, md.Get("authorization"))
+	assert.Equal(t, []string{"req-xyz"}, md.Get("x-request-id"))
+}
+
+func TestNewOutgoingContext_PreservesExistingMetadata(t *testing.T) {
+	existing := metadata.Pairs("x-custom", "keep-me")
+	ctx := metadata.NewOutgoingContext(context.Background(), existing)
+	ctx = WithToken(ctx, "jwt-token-1")
+	ctx = NewOutgoingContext(ctx)
+
+	md, _ := metadata.FromOutgoingContext(ctx)
+	assert.Equal(t, []string{"keep-me"}, md.Get("x-custom"))
+	assert.Equal(t, []string{"Bearer jwt-token-1"}, md.Get("authorization"))
+}
+
+func TestNewOutgoingContext_OverridesSameKey(t *testing.T) {
+	existing := metadata.Pairs("authorization", "Bearer old-token", "x-request-id", "old-req")
+	ctx := metadata.NewOutgoingContext(context.Background(), existing)
+	ctx = WithToken(ctx, "new-token")
+	ctx = WithRequestID(ctx, "new-req")
+	ctx = NewOutgoingContext(ctx)
+
+	md, _ := metadata.FromOutgoingContext(ctx)
+	assert.Equal(t, []string{"Bearer new-token"}, md.Get("authorization"))
+	assert.Equal(t, []string{"new-req"}, md.Get("x-request-id"))
 }

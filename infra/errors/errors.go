@@ -125,4 +125,5 @@ var (
 	TokenGeneration     = newAppError(ECTokenGeneration, "internal.token_generation")
 	EmailSendFailed     = newAppError(ECEmailSendFailed, "internal.email_send_failed")
 	SeckillSubmitFailed = newAppError(ECSeckillSubmitFailed, "internal.seckill_submit_failed")
+	RequestNilHTTP      = newAppError(ECRequestNilHTTP, "request.nil_http")
 )

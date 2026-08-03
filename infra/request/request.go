@@ -1,7 +1,7 @@
 // Package request 提供统一的请求上下文解析、注入和读取能力。
 //
-// 本文件为各 ctx 字段提供单独的 With*（注入）、Try*（可选读取）和 Must*（必须读取）方法。
-// Request 结构体仅作为 FromHTTPRequest / FromGRPCContext 的返回值载体，不参与 Context 存取。
+// 本文件为各 ctx 字段提供单独的 With*（注入）、Try*（可选读取）和 Must*（必须读取）方法；
+// http.go / grpc.go 提供 HTTP 与 gRPC 入口的请求信息解析、注入和跨服务透传。
 package request
 
 import (
