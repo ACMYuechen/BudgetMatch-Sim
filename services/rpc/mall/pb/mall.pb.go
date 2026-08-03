@@ -85,6 +85,58 @@ func (OrderStatus) EnumDescriptor() ([]byte, []int) {
 	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{0}
 }
 
+type PaymentStatus int32
+
+const (
+	PaymentStatus_PAYMENT_STATUS_UNSPECIFIED PaymentStatus = 0
+	PaymentStatus_PAYMENT_STATUS_UNPAID      PaymentStatus = 1
+	PaymentStatus_PAYMENT_STATUS_PAID        PaymentStatus = 2
+	PaymentStatus_PAYMENT_STATUS_ABNORMAL    PaymentStatus = 3
+)
+
+// Enum value maps for PaymentStatus.
+var (
+	PaymentStatus_name = map[int32]string{
+		0: "PAYMENT_STATUS_UNSPECIFIED",
+		1: "PAYMENT_STATUS_UNPAID",
+		2: "PAYMENT_STATUS_PAID",
+		3: "PAYMENT_STATUS_ABNORMAL",
+	}
+	PaymentStatus_value = map[string]int32{
+		"PAYMENT_STATUS_UNSPECIFIED": 0,
+		"PAYMENT_STATUS_UNPAID":      1,
+		"PAYMENT_STATUS_PAID":        2,
+		"PAYMENT_STATUS_ABNORMAL":    3,
+	}
+)
+
+func (x PaymentStatus) Enum() *PaymentStatus {
+	p := new(PaymentStatus)
+	*p = x
+	return p
+}
+
+func (x PaymentStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PaymentStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_services_rpc_mall_proto_mall_proto_enumTypes[1].Descriptor()
+}
+
+func (PaymentStatus) Type() protoreflect.EnumType {
+	return &file_services_rpc_mall_proto_mall_proto_enumTypes[1]
+}
+
+func (x PaymentStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PaymentStatus.Descriptor instead.
+func (PaymentStatus) EnumDescriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{1}
+}
+
 // ///////////////////// 基础类型 ///////////////////////
 type Product struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1602,6 +1654,9 @@ type Order struct {
 	Items          []*OrderItem           `protobuf:"bytes,12,rep,name=items,proto3" json:"items,omitempty"`
 	CreatedAt      string                 `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt      string                 `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	PaymentStatus  PaymentStatus          `protobuf:"varint,15,opt,name=payment_status,json=paymentStatus,proto3,enum=mall.PaymentStatus" json:"payment_status,omitempty"`
+	OutTradeNo     string                 `protobuf:"bytes,16,opt,name=out_trade_no,json=outTradeNo,proto3" json:"out_trade_no,omitempty"`
+	TradeNo        string                 `protobuf:"bytes,17,opt,name=trade_no,json=tradeNo,proto3" json:"trade_no,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1730,6 +1785,27 @@ func (x *Order) GetCreatedAt() string {
 func (x *Order) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *Order) GetPaymentStatus() PaymentStatus {
+	if x != nil {
+		return x.PaymentStatus
+	}
+	return PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
+}
+
+func (x *Order) GetOutTradeNo() string {
+	if x != nil {
+		return x.OutTradeNo
+	}
+	return ""
+}
+
+func (x *Order) GetTradeNo() string {
+	if x != nil {
+		return x.TradeNo
 	}
 	return ""
 }
@@ -1964,6 +2040,7 @@ type ListOrdersReq struct {
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	Status        OrderStatus            `protobuf:"varint,4,opt,name=status,proto3,enum=mall.OrderStatus" json:"status,omitempty"`
+	PaymentStatus PaymentStatus          `protobuf:"varint,5,opt,name=payment_status,json=paymentStatus,proto3,enum=mall.PaymentStatus" json:"payment_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2024,6 +2101,13 @@ func (x *ListOrdersReq) GetStatus() OrderStatus {
 		return x.Status
 	}
 	return OrderStatus_ORDER_STATUS_UNSPECIFIED
+}
+
+func (x *ListOrdersReq) GetPaymentStatus() PaymentStatus {
+	if x != nil {
+		return x.PaymentStatus
+	}
+	return PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
 }
 
 type ListOrdersResp struct {
@@ -2552,7 +2636,7 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\bquantity\x18\x05 \x01(\x03R\bquantity\x12'\n" +
 	"\x0fdiscount_amount\x18\x06 \x01(\x03R\x0ediscountAmount\x12!\n" +
 	"\ftotal_amount\x18\a \x01(\x03R\vtotalAmount\x12\x1a\n" +
-	"\bsnapshot\x18\b \x01(\tR\bsnapshot\"\xc4\x03\n" +
+	"\bsnapshot\x18\b \x01(\tR\bsnapshot\"\xbd\x04\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12'\n" +
@@ -2571,7 +2655,11 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\r \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x0e \x01(\tR\tupdatedAt\"\x9d\x01\n" +
+	"updated_at\x18\x0e \x01(\tR\tupdatedAt\x12:\n" +
+	"\x0epayment_status\x18\x0f \x01(\x0e2\x13.mall.PaymentStatusR\rpaymentStatus\x12 \n" +
+	"\fout_trade_no\x18\x10 \x01(\tR\n" +
+	"outTradeNo\x12\x19\n" +
+	"\btrade_no\x18\x11 \x01(\tR\atradeNo\"\x9d\x01\n" +
 	"\x0eCreateOrderReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x15\n" +
 	"\x06sku_id\x18\x02 \x01(\tR\x05skuId\x12\x1a\n" +
@@ -2585,12 +2673,13 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"1\n" +
 	"\fGetOrderResp\x12!\n" +
-	"\x05order\x18\x01 \x01(\v2\v.mall.OrderR\x05order\"\x84\x01\n" +
+	"\x05order\x18\x01 \x01(\v2\v.mall.OrderR\x05order\"\xc0\x01\n" +
 	"\rListOrdersReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12)\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x11.mall.OrderStatusR\x06status\"x\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x11.mall.OrderStatusR\x06status\x12:\n" +
+	"\x0epayment_status\x18\x05 \x01(\x0e2\x13.mall.PaymentStatusR\rpaymentStatus\"x\n" +
 	"\x0eListOrdersResp\x12\x1f\n" +
 	"\x04list\x18\x01 \x03(\v2\v.mall.OrderR\x04list\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
@@ -2626,7 +2715,12 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x16ORDER_STATUS_COMPLETED\x10\x04\x12\x1a\n" +
 	"\x16ORDER_STATUS_CANCELLED\x10\x05\x12\x1a\n" +
 	"\x16ORDER_STATUS_REFUNDING\x10\x06\x12\x19\n" +
-	"\x15ORDER_STATUS_REFUNDED\x10\a2\xff\x04\n" +
+	"\x15ORDER_STATUS_REFUNDED\x10\a*\x80\x01\n" +
+	"\rPaymentStatus\x12\x1e\n" +
+	"\x1aPAYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15PAYMENT_STATUS_UNPAID\x10\x01\x12\x17\n" +
+	"\x13PAYMENT_STATUS_PAID\x10\x02\x12\x1b\n" +
+	"\x17PAYMENT_STATUS_ABNORMAL\x10\x032\xff\x04\n" +
 	"\x0eProductService\x12B\n" +
 	"\rCreateProduct\x12\x16.mall.CreateProductReq\x1a\x17.mall.CreateProductResp\"\x00\x12B\n" +
 	"\rUpdateProduct\x12\x16.mall.UpdateProductReq\x1a\x17.mall.UpdateProductResp\"\x00\x12B\n" +
@@ -2660,96 +2754,99 @@ func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
 	return file_services_rpc_mall_proto_mall_proto_rawDescData
 }
 
-var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(OrderStatus)(0),              // 0: mall.OrderStatus
-	(*Product)(nil),               // 1: mall.Product
-	(*Sku)(nil),                   // 2: mall.Sku
-	(*CreateProductReq)(nil),      // 3: mall.CreateProductReq
-	(*CreateProductResp)(nil),     // 4: mall.CreateProductResp
-	(*UpdateProductReq)(nil),      // 5: mall.UpdateProductReq
-	(*UpdateProductResp)(nil),     // 6: mall.UpdateProductResp
-	(*DeleteProductReq)(nil),      // 7: mall.DeleteProductReq
-	(*DeleteProductResp)(nil),     // 8: mall.DeleteProductResp
-	(*GetProductReq)(nil),         // 9: mall.GetProductReq
-	(*GetProductResp)(nil),        // 10: mall.GetProductResp
-	(*ListProductsReq)(nil),       // 11: mall.ListProductsReq
-	(*ListProductsResp)(nil),      // 12: mall.ListProductsResp
-	(*CreateSkuReq)(nil),          // 13: mall.CreateSkuReq
-	(*CreateSkuResp)(nil),         // 14: mall.CreateSkuResp
-	(*UpdateSkuReq)(nil),          // 15: mall.UpdateSkuReq
-	(*UpdateSkuResp)(nil),         // 16: mall.UpdateSkuResp
-	(*DeleteSkuReq)(nil),          // 17: mall.DeleteSkuReq
-	(*DeleteSkuResp)(nil),         // 18: mall.DeleteSkuResp
-	(*GetSkuReq)(nil),             // 19: mall.GetSkuReq
-	(*GetSkuResp)(nil),            // 20: mall.GetSkuResp
-	(*ListSkusByProductReq)(nil),  // 21: mall.ListSkusByProductReq
-	(*ListSkusByProductResp)(nil), // 22: mall.ListSkusByProductResp
-	(*OrderItem)(nil),             // 23: mall.OrderItem
-	(*Order)(nil),                 // 24: mall.Order
-	(*CreateOrderReq)(nil),        // 25: mall.CreateOrderReq
-	(*CreateOrderResp)(nil),       // 26: mall.CreateOrderResp
-	(*GetOrderReq)(nil),           // 27: mall.GetOrderReq
-	(*GetOrderResp)(nil),          // 28: mall.GetOrderResp
-	(*ListOrdersReq)(nil),         // 29: mall.ListOrdersReq
-	(*ListOrdersResp)(nil),        // 30: mall.ListOrdersResp
-	(*CancelOrderReq)(nil),        // 31: mall.CancelOrderReq
-	(*CancelOrderResp)(nil),       // 32: mall.CancelOrderResp
-	(*UpdateOrderStatusReq)(nil),  // 33: mall.UpdateOrderStatusReq
-	(*UpdateOrderStatusResp)(nil), // 34: mall.UpdateOrderStatusResp
-	(*ConfirmPaymentReq)(nil),     // 35: mall.ConfirmPaymentReq
-	(*ConfirmPaymentResp)(nil),    // 36: mall.ConfirmPaymentResp
+	(PaymentStatus)(0),            // 1: mall.PaymentStatus
+	(*Product)(nil),               // 2: mall.Product
+	(*Sku)(nil),                   // 3: mall.Sku
+	(*CreateProductReq)(nil),      // 4: mall.CreateProductReq
+	(*CreateProductResp)(nil),     // 5: mall.CreateProductResp
+	(*UpdateProductReq)(nil),      // 6: mall.UpdateProductReq
+	(*UpdateProductResp)(nil),     // 7: mall.UpdateProductResp
+	(*DeleteProductReq)(nil),      // 8: mall.DeleteProductReq
+	(*DeleteProductResp)(nil),     // 9: mall.DeleteProductResp
+	(*GetProductReq)(nil),         // 10: mall.GetProductReq
+	(*GetProductResp)(nil),        // 11: mall.GetProductResp
+	(*ListProductsReq)(nil),       // 12: mall.ListProductsReq
+	(*ListProductsResp)(nil),      // 13: mall.ListProductsResp
+	(*CreateSkuReq)(nil),          // 14: mall.CreateSkuReq
+	(*CreateSkuResp)(nil),         // 15: mall.CreateSkuResp
+	(*UpdateSkuReq)(nil),          // 16: mall.UpdateSkuReq
+	(*UpdateSkuResp)(nil),         // 17: mall.UpdateSkuResp
+	(*DeleteSkuReq)(nil),          // 18: mall.DeleteSkuReq
+	(*DeleteSkuResp)(nil),         // 19: mall.DeleteSkuResp
+	(*GetSkuReq)(nil),             // 20: mall.GetSkuReq
+	(*GetSkuResp)(nil),            // 21: mall.GetSkuResp
+	(*ListSkusByProductReq)(nil),  // 22: mall.ListSkusByProductReq
+	(*ListSkusByProductResp)(nil), // 23: mall.ListSkusByProductResp
+	(*OrderItem)(nil),             // 24: mall.OrderItem
+	(*Order)(nil),                 // 25: mall.Order
+	(*CreateOrderReq)(nil),        // 26: mall.CreateOrderReq
+	(*CreateOrderResp)(nil),       // 27: mall.CreateOrderResp
+	(*GetOrderReq)(nil),           // 28: mall.GetOrderReq
+	(*GetOrderResp)(nil),          // 29: mall.GetOrderResp
+	(*ListOrdersReq)(nil),         // 30: mall.ListOrdersReq
+	(*ListOrdersResp)(nil),        // 31: mall.ListOrdersResp
+	(*CancelOrderReq)(nil),        // 32: mall.CancelOrderReq
+	(*CancelOrderResp)(nil),       // 33: mall.CancelOrderResp
+	(*UpdateOrderStatusReq)(nil),  // 34: mall.UpdateOrderStatusReq
+	(*UpdateOrderStatusResp)(nil), // 35: mall.UpdateOrderStatusResp
+	(*ConfirmPaymentReq)(nil),     // 36: mall.ConfirmPaymentReq
+	(*ConfirmPaymentResp)(nil),    // 37: mall.ConfirmPaymentResp
 }
 var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
-	1,  // 0: mall.GetProductResp.product:type_name -> mall.Product
-	1,  // 1: mall.ListProductsResp.list:type_name -> mall.Product
-	2,  // 2: mall.GetSkuResp.sku:type_name -> mall.Sku
-	2,  // 3: mall.ListSkusByProductResp.list:type_name -> mall.Sku
+	2,  // 0: mall.GetProductResp.product:type_name -> mall.Product
+	2,  // 1: mall.ListProductsResp.list:type_name -> mall.Product
+	3,  // 2: mall.GetSkuResp.sku:type_name -> mall.Sku
+	3,  // 3: mall.ListSkusByProductResp.list:type_name -> mall.Sku
 	0,  // 4: mall.Order.status:type_name -> mall.OrderStatus
-	23, // 5: mall.Order.items:type_name -> mall.OrderItem
-	0,  // 6: mall.CreateOrderResp.status:type_name -> mall.OrderStatus
-	24, // 7: mall.GetOrderResp.order:type_name -> mall.Order
-	0,  // 8: mall.ListOrdersReq.status:type_name -> mall.OrderStatus
-	24, // 9: mall.ListOrdersResp.list:type_name -> mall.Order
-	0,  // 10: mall.UpdateOrderStatusReq.status:type_name -> mall.OrderStatus
-	3,  // 11: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
-	5,  // 12: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
-	7,  // 13: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
-	9,  // 14: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
-	11, // 15: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
-	13, // 16: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
-	15, // 17: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
-	17, // 18: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
-	19, // 19: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
-	21, // 20: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
-	25, // 21: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
-	27, // 22: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
-	29, // 23: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
-	31, // 24: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
-	33, // 25: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
-	35, // 26: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
-	4,  // 27: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
-	6,  // 28: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
-	8,  // 29: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
-	10, // 30: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
-	12, // 31: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
-	14, // 32: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
-	16, // 33: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
-	18, // 34: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
-	20, // 35: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
-	22, // 36: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
-	26, // 37: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
-	28, // 38: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
-	30, // 39: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
-	32, // 40: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
-	34, // 41: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
-	36, // 42: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
-	27, // [27:43] is the sub-list for method output_type
-	11, // [11:27] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	24, // 5: mall.Order.items:type_name -> mall.OrderItem
+	1,  // 6: mall.Order.payment_status:type_name -> mall.PaymentStatus
+	0,  // 7: mall.CreateOrderResp.status:type_name -> mall.OrderStatus
+	25, // 8: mall.GetOrderResp.order:type_name -> mall.Order
+	0,  // 9: mall.ListOrdersReq.status:type_name -> mall.OrderStatus
+	1,  // 10: mall.ListOrdersReq.payment_status:type_name -> mall.PaymentStatus
+	25, // 11: mall.ListOrdersResp.list:type_name -> mall.Order
+	0,  // 12: mall.UpdateOrderStatusReq.status:type_name -> mall.OrderStatus
+	4,  // 13: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
+	6,  // 14: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
+	8,  // 15: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
+	10, // 16: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
+	12, // 17: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
+	14, // 18: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
+	16, // 19: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
+	18, // 20: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
+	20, // 21: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
+	22, // 22: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
+	26, // 23: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
+	28, // 24: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
+	30, // 25: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
+	32, // 26: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
+	34, // 27: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
+	36, // 28: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
+	5,  // 29: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
+	7,  // 30: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
+	9,  // 31: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
+	11, // 32: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
+	13, // 33: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
+	15, // 34: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
+	17, // 35: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
+	19, // 36: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
+	21, // 37: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
+	23, // 38: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
+	27, // 39: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
+	29, // 40: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
+	31, // 41: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
+	33, // 42: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
+	35, // 43: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
+	37, // 44: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
+	29, // [29:45] is the sub-list for method output_type
+	13, // [13:29] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_mall_proto_mall_proto_init() }
@@ -2762,7 +2859,7 @@ func file_services_rpc_mall_proto_mall_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   2,
