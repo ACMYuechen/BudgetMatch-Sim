@@ -12,3 +12,11 @@ const (
 	OrderStatusRefunding = int(pb.OrderStatus_ORDER_STATUS_REFUNDING)
 	OrderStatusRefunded  = int(pb.OrderStatus_ORDER_STATUS_REFUNDED)
 )
+
+// 支付状态筛选值
+const (
+	PaymentStatusAll      = int(pb.PaymentStatus_PAYMENT_STATUS_UNSPECIFIED)
+	PaymentStatusUnpaid   = int(pb.PaymentStatus_PAYMENT_STATUS_UNPAID)
+	PaymentStatusPaid     = int(pb.PaymentStatus_PAYMENT_STATUS_PAID)
+	PaymentStatusAbnormal = int(pb.PaymentStatus_PAYMENT_STATUS_ABNORMAL)
+)

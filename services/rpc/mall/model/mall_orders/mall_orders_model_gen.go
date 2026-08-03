@@ -49,10 +49,11 @@ type (
 	}
 
 	MallOrdersListReq struct {
-		Page   int
-		Size   int
-		UserId string
-		Status int
+		Page          int
+		Size          int
+		UserId        string
+		Status        int
+		PaymentStatus int
 	}
 )
 
@@ -124,6 +125,35 @@ func (m *defaultMallOrdersModel) List(ctx context.Context, req MallOrdersListReq
 	}
 	if req.Status >= 0 {
 		session = session.Where("status = ?", req.Status)
+	}
+
+	// 通过数据库字段判断支付状态
+	// 支付时间可能是 NULL, 也可能是go的zeroTime, 需要同时兼容
+	zeroTime := time.Time{}
+	const unpaidCondition = `
+		COALESCE(out_trade_no, '') = ''
+		AND COALESCE(trade_no, '') = ''
+		AND (pay_time IS NULL OR pay_time = ?) 
+	`
+	const paidCondition = `
+		COALESCE(out_trade_no, '') <> ''
+		AND COALESCE(trade_no, '') <> ''
+		AND pay_time IS NOT NULL AND pay_time <> ?	
+	`
+
+	switch req.PaymentStatus {
+	case PaymentStatusUnpaid:
+		session = session.Where(unpaidCondition, zeroTime)
+	case PaymentStatusPaid:
+		session = session.Where(paidCondition, zeroTime)
+	case PaymentStatusAbnormal:
+		session = session.Where(
+			"NOT (("+unpaidCondition+") OR ("+paidCondition+"))",
+			zeroTime,
+			zeroTime,
+		)
+	case -1, PaymentStatusAll:
+	default:
 	}
 
 	err := session.Count(&total).Error
