@@ -8,7 +8,6 @@ import (
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
-	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -30,8 +29,8 @@ func NewAcquireTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Acqu
 }
 
 func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *types.AcquireTokenResp, err error) {
-	userID := request.TryUserID(l.ctx)
-	if userID == "" {
+	userID := l.ctx.Value("user_id")
+	if userID == nil {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
@@ -39,7 +38,7 @@ func (l *AcquireTokenLogic) AcquireToken(req *types.AcquireTokenReq) (resp *type
 	rpcResp, err := l.svcCtx.SeckillClient.AcquireToken(l.ctx, &pb.AcquireTokenReq{
 		ActivityId: req.ActivityId,
 		SkuId:      req.SkuId,
-		UserId:     userID,
+		UserId:     userID.(string),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to acquire token: %v", err)
