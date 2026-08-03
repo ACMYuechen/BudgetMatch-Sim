@@ -1,23 +1,28 @@
 package paymentservicelogic
 
 import (
-	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/zeromicro/go-zero/core/logx"
-	"google.golang.org/grpc/metadata"
-
+	"budgetmatch-sim/infra/auth"
+	"budgetmatch-sim/infra/role"
+	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"budgetmatch-sim/services/rpc/payment/internal/svc"
 	"budgetmatch-sim/services/rpc/payment/model/payments"
 	"budgetmatch-sim/services/rpc/payment/pb"
+
+	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/metadata"
 )
 
-const timeLayout = "2006-01-02T15:04:05Z07:00"
+const (
+	timeLayout              = "2006-01-02T15:04:05Z07:00"
+	mallCallbackTokenExpire = int64(60)
+)
 
 // markPaid 幂等地把一笔流水标记为支付成功，并落库支付宝交易号等信息。
-// 若流水已是成功态则直接返回（幂等），不重复触发后续动作。
+// 流水已成功时仍会幂等回写 mall，支持上一次订单回写失败后的重试。
 func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerID, rawNotify string) error {
 	now := time.Now()
 	candidate := *record
@@ -25,7 +30,10 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 	candidate.TradeNo = tradeNo
 	candidate.BuyerId = buyerID
 	candidate.PaidAt = &now
-	update, err := svcCtx.PaymentStore.MarkPaidIfPending(ctx, record)
+	if rawNotify != "" {
+		candidate.NotifyRaw = rawNotify
+	}
+	update, err := svcCtx.PaymentStore.MarkPaidIfPending(ctx, &candidate)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("conditional update payment %s (order %s) failed: %v", record.OutTradeNo, record.OrderId, err)
 		return err
@@ -53,7 +61,11 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 		logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)
 	}
 
-	mallCtx := forwardAuthorization(ctx)
+	mallCtx, err := newMallCallbackContext(ctx, svcCtx, record.UserId)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("create mall callback context failed: payment=%s (order %s) error=%v", record.OutTradeNo, record.OrderId, err)
+		return err
+	}
 
 	confirmResp, err := svcCtx.OrderRpc.ConfirmPayment(mallCtx, &mallpb.ConfirmPaymentReq{
 		OrderId:    record.OrderId,
@@ -101,23 +113,17 @@ func paymentToPb(p *payments.Payments) *pb.Payment {
 	return resp
 }
 
-// forwardAuthorization 将当前请求的用户认证信息转发给下游 RPC。
-func forwardAuthorization(ctx context.Context) context.Context {
-	incoming, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ctx
+// newMallCallbackContext 为 payment-rpc 回写订单生成短期调用凭据。
+func newMallCallbackContext(ctx context.Context, svcCtx *svc.ServiceContext, userID string) (context.Context, error) {
+	token, err := auth.GenerateToken(
+		userID,
+		svcCtx.Config.JwtAuth.Secret,
+		mallCallbackTokenExpire,
+		role.RoleUser,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("generate mall callback token failed: %w", err)
 	}
 
-	authorization := incoming.Get("authorization")
-	if len(authorization) == 0 {
-		return ctx
-	}
-
-	outgoing := metadata.MD{}
-	if md, ok := metadata.FromOutgoingContext(ctx); ok {
-		outgoing = md.Copy()
-	}
-	outgoing.Set("authorization", authorization...)
-
-	return metadata.NewOutgoingContext(ctx, outgoing)
+	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token), nil
 }
