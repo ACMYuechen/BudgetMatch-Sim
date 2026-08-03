@@ -6,14 +6,13 @@ import (
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
 	"budgetmatch-sim/infra/errors"
-	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/mall/pb"
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 )
 
 func authenticatedUserID(ctx context.Context) (string, error) {
-	userID := request.TryUserID(ctx)
-	if userID == "" {
+	userID, ok := ctx.Value("user_id").(string)
+	if !ok || userID == "" {
 		return "", errors.Unauthorized
 	}
 	return userID, nil

@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"budgetmatch-sim/infra/errors"
-	"budgetmatch-sim/infra/request"
+	"budgetmatch-sim/services/rpc/auth/internal/interceptor"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
+	"budgetmatch-sim/services/rpc/auth/model/user"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -26,21 +27,11 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 }
 
 func (l *GetUserInfoLogic) GetUserInfo(in *pb.GetUserInfoReq) (*pb.GetUserInfoResp, error) {
-	// 强制使用认证拦截器注入的用户 ID，忽略请求中的 UserId，防止水平越权
-	userID := request.TryUserID(l.ctx)
-	if userID == "" {
-		l.Logger.Error("user id not found in request context")
+	// 强制使用 interceptor 注入的当前用户，忽略请求中的 UserId，防止水平越权
+	u, ok := l.ctx.Value(interceptor.ContextKeyUser).(*user.Users)
+	if !ok || u == nil {
+		l.Logger.Error("user not found in context")
 		return nil, errors.Unauthorized
-	}
-
-	u, err := l.svcCtx.UserStore.FindOne(l.ctx, userID)
-	if err != nil {
-		l.Logger.Errorf("failed to find current user: user_id=%s, error=%v", userID, err)
-		return nil, errors.Database
-	}
-	if u == nil {
-		l.Logger.Errorf("current user not found: user_id=%s", userID)
-		return nil, errors.UserNotFound
 	}
 
 	return &pb.GetUserInfoResp{
