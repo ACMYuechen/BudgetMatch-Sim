@@ -4,6 +4,11 @@ Port: 10002
 Timeout: 600000
 MaxBytes: 524288000
 
+# 链路追踪；Name 非空即开启，trace_id / span_id 自动注入日志
+Telemetry:
+  Name: app.api
+  Sampler: 1.0
+
 # Auth配置（生产环境请通过环境变量覆盖）
 Auth:
   Secret: "${JWT_SECRET}"      # JWT 签名密钥

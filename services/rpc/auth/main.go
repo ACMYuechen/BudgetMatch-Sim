@@ -6,6 +6,7 @@ import (
 
 	"budgetmatch-sim/services/rpc/auth/internal/config"
 	"budgetmatch-sim/services/rpc/auth/internal/interceptor"
+	infrainterceptor "budgetmatch-sim/infra/interceptor"
 	authservice "budgetmatch-sim/services/rpc/auth/internal/server/authservice"
 	userservice "budgetmatch-sim/services/rpc/auth/internal/server/userservice"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
@@ -41,8 +42,11 @@ func main() {
 		}
 	})
 
-	// 添加认证拦截器
-	s.AddUnaryInterceptors(interceptor.AuthInterceptor(ctx))
+	// 添加请求日志拦截器（最外层）和认证拦截器
+	s.AddUnaryInterceptors(
+		infrainterceptor.LoggingInterceptor(c.JwtAuth.Secret),
+		interceptor.AuthInterceptor(ctx),
+	)
 	sg.Add(s)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
