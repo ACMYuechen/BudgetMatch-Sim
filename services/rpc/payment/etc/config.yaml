@@ -55,3 +55,4 @@ MallRpc:
     Hosts:
       - ${ETCD_HOSTS}
     Key: mall.rpc
+  Timeout: 5000

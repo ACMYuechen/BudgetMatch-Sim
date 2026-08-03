@@ -1,6 +1,7 @@
 package paymentservicelogic
 
 import (
+	"budgetmatch-sim/infra/errors"
 	"context"
 	"fmt"
 	"time"
@@ -36,7 +37,7 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 	update, err := svcCtx.PaymentStore.MarkPaidIfPending(ctx, &candidate)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("conditional update payment %s (order %s) failed: %v", record.OutTradeNo, record.OrderId, err)
-		return err
+		return errors.Database
 	}
 
 	if !update {
@@ -44,12 +45,12 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 		latest, err := svcCtx.PaymentStore.FindOne(ctx, record.Id)
 		if err != nil {
 			logx.WithContext(ctx).Errorf("failed to query payment %s after conditional update: err=%v", record.Id, err)
-			return err
+			return errors.Database
 		}
 		if latest.Status != payments.StatusSuccess {
 			err := fmt.Errorf("payment %s is not payable: status=%d", latest.OutTradeNo, latest.Status)
 			logx.WithContext(ctx).Error(err)
-			return err
+			return errors.Conflict
 		}
 		*record = *latest
 		logx.WithContext(ctx).Infof("payment %s (order %s) already marked as paid by other request", record.OutTradeNo, record.OrderId)
@@ -64,7 +65,7 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 	mallCtx, err := newMallCallbackContext(ctx, svcCtx, record.UserId)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("create mall callback context failed: payment=%s (order %s) error=%v", record.OutTradeNo, record.OrderId, err)
-		return err
+		return errors.TokenGeneration
 	}
 
 	confirmResp, err := svcCtx.OrderRpc.ConfirmPayment(mallCtx, &mallpb.ConfirmPaymentReq{
@@ -84,7 +85,7 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 	if confirmResp == nil || !confirmResp.Success {
 		err := fmt.Errorf("mall confirm payment %s (order %s) failed", record.OutTradeNo, record.OrderId)
 		logx.WithContext(ctx).Error(err)
-		return err
+		return errors.Internal
 	}
 	return nil
 }
