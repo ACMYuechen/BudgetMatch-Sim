@@ -53,14 +53,6 @@ type SendCodeResp struct {
 	Success bool `json:"success"`
 }
 
-type CheckUsernameReq struct {
-	Username string `form:"username" validate:"required"`
-}
-
-type CheckUsernameResp struct {
-	Exists bool `json:"exists"`
-}
-
 type GetUserInfoReq struct {
 }
 
