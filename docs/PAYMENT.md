@@ -59,8 +59,8 @@ cp .env.example .env
 - `infra/alipay`：支付宝客户端封装（预下单 / 验签 / 查询）。
 - `services/rpc/payment`：独立 RPC 服务 + `payments` 流水表，含 `CreatePayment` / `QueryPayment` / `HandleNotify` 三个接口。
 - 配置、`.env(.example)`、Makefile 代码生成、`docker-compose`、本地 `dev.sh` 均已接入。
+- **网关路由**：`cmd/app` 已暴露 `POST /api/mall/orders/:id/pay`（发起支付）、`GET .../pay/query`（查询），以及**无鉴权**的 `POST /api/pay/notify/alipay`（接收支付宝异步通知，把表单参数透传给 `HandleNotify`，并按协议回写纯文本结果）。
 
 尚未接线（下一阶段，需要时再做）：
 
-- **网关路由**：在 `cmd/app` 暴露 `POST /api/mall/orders/:id/pay`（发起支付）、`GET .../pay/query`（查询）、以及**无鉴权**的 `POST /api/pay/notify/alipay`（接收支付宝异步通知，把表单参数透传给 `HandleNotify`，并向支付宝回写纯文本 `success`）。
-- **回写订单状态**：`mall-rpc` 已提供 `ConfirmPayment` RPC，支付成功后还需在 payment 服务的 `markPaid` 流程中可靠调用。旧的 Mall `PayOrder` 模拟接口已移除，发起支付统一走 App 的 `POST /orders/:id/pay` 接口。
+- **回写订单状态**：支付成功后通知 `mall-rpc` 把订单置为「已支付」。建议给 mall 增加 `ConfirmPayment` RPC，并在 `services/rpc/payment/internal/logic/paymentservice/vars.go` 的 `markPaid` 中调用（已留 TODO 注释）。当前 mall 的 `PayOrder` 仍是 mock 直接置已支付，接线时一并替换。
