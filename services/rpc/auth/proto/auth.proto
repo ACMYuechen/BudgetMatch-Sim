@@ -65,6 +65,14 @@ message SendCodeResp {
   bool success = 1;
 }
 
+// 检查用户名是否已存在
+message CheckUsernameReq {
+  string username = 1;
+}
+message CheckUsernameResp {
+  bool exists = 1;
+}
+
 //////////////////////////////////////// 用户信息相关 //////////////////////////////////////
 // 获取用户信息
 message GetUserInfoReq {
@@ -124,6 +132,7 @@ service AuthService {
   rpc LoginByCode(LoginByCodeReq) returns (LoginResp) {}
   rpc SendCode(SendCodeReq) returns (SendCodeResp) {}
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenResp) {}
+  rpc CheckUsername(CheckUsernameReq) returns (CheckUsernameResp) {}
 }
 
 service UserService {

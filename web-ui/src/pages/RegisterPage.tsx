@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Card, Form, Input, Button, message, Space } from 'antd'
 import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-design/icons'
-import { register, sendCode } from '@/api/auth'
+import { register, sendCode, checkUsername } from '@/api/auth'
 
 interface RegisterForm {
   username: string
@@ -37,17 +37,36 @@ export default function RegisterPage() {
 
   const handleSendCode = async () => {
     const email = form.getFieldValue('email')
+    const username = form.getFieldValue('username')
     if (!email) {
       message.error('请先输入邮箱')
       return
     }
+    if (!username) {
+      message.error('请先输入用户名')
+      return
+    }
     setSending(true)
     try {
+      // 先检查用户名是否已被使用（必须检查成功后才能继续）
+      const checkResp = await checkUsername(username)
+      if (checkResp.exists) {
+        message.error('该用户名已被使用')
+        return
+      }
+      // 用户名可用，发送验证码
       await sendCode(email)
       message.success('验证码已发送')
       setCountdown(60)
     } catch (err) {
-      message.error((err as Error).message)
+      const errorMsg = (err as Error).message
+      if (/已存在|已被使用|already_exists/i.test(errorMsg)) {
+        message.error('该用户名已被使用')
+      } else if (/status \d{3}/.test(errorMsg) || /Request failed/.test(errorMsg) || /network/i.test(errorMsg)) {
+        message.error('验证码发送失败，请稍后重试')
+      } else {
+        message.error(errorMsg)
+      }
     } finally {
       setSending(false)
     }
@@ -65,7 +84,14 @@ export default function RegisterPage() {
       message.success('注册成功，请登录')
       navigate('/login')
     } catch (err) {
-      message.error((err as Error).message)
+      const errorMsg = (err as Error).message
+      if (/已存在|已被使用|already_exists/i.test(errorMsg)) {
+        message.error('该用户名已被使用')
+      } else if (/status \d{3}/.test(errorMsg) || /Request failed/.test(errorMsg) || /network/i.test(errorMsg)) {
+        message.error('注册失败，请检查验证码是否正确或稍后重试')
+      } else {
+        message.error(errorMsg)
+      }
     } finally {
       setLoading(false)
     }
