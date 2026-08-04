@@ -45,7 +45,7 @@ func validPaymentOrder() *mallpb.Order {
 		OriginalAmount: 1200,
 		DiscountAmount: 200,
 		PayAmount:      1000,
-		Status:         MallOrderStatusPending,
+		Status:         mallpb.OrderStatus_ORDER_STATUS_PENDING,
 	}
 }
 
