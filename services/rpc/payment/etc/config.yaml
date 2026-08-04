@@ -55,4 +55,6 @@ MallRpc:
     Hosts:
       - ${ETCD_HOSTS}
     Key: mall.rpc
+  Endpoints:
+    - 127.0.0.1:10005
   Timeout: 5000
