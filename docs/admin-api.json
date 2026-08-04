@@ -57,6 +57,14 @@
             "name": "user_id",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "integer",
+            "default": -1,
+            "example": -1,
+            "name": "payment_status",
+            "in": "query",
+            "required": true
           }
         ],
         "responses": {
@@ -83,7 +91,10 @@
                       "idempotency_key",
                       "items",
                       "created_at",
-                      "updated_at"
+                      "updated_at",
+                      "payment_status",
+                      "out_trade_no",
+                      "trade_no"
                     ],
                     "properties": {
                       "created_at": {
@@ -143,6 +154,9 @@
                       "original_amount": {
                         "type": "integer"
                       },
+                      "out_trade_no": {
+                        "type": "string"
+                      },
                       "pay_amount": {
                         "type": "integer"
                       },
@@ -152,6 +166,9 @@
                       "pay_type": {
                         "type": "string"
                       },
+                      "payment_status": {
+                        "type": "integer"
+                      },
                       "remark": {
                         "type": "string"
                       },
@@ -160,6 +177,9 @@
                       },
                       "status": {
                         "type": "integer"
+                      },
+                      "trade_no": {
+                        "type": "string"
                       },
                       "updated_at": {
                         "type": "string"
@@ -228,7 +248,10 @@
                     "idempotency_key",
                     "items",
                     "created_at",
-                    "updated_at"
+                    "updated_at",
+                    "payment_status",
+                    "out_trade_no",
+                    "trade_no"
                   ],
                   "properties": {
                     "created_at": {
@@ -288,6 +311,9 @@
                     "original_amount": {
                       "type": "integer"
                     },
+                    "out_trade_no": {
+                      "type": "string"
+                    },
                     "pay_amount": {
                       "type": "integer"
                     },
@@ -297,6 +323,9 @@
                     "pay_type": {
                       "type": "string"
                     },
+                    "payment_status": {
+                      "type": "integer"
+                    },
                     "remark": {
                       "type": "string"
                     },
@@ -305,6 +334,9 @@
                     },
                     "status": {
                       "type": "integer"
+                    },
+                    "trade_no": {
+                      "type": "string"
                     },
                     "updated_at": {
                       "type": "string"
@@ -2302,7 +2334,7 @@
       }
     }
   },
-  "x-date": "2026-07-27 14:59:10",
+  "x-date": "2026-08-04 21:23:27",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
