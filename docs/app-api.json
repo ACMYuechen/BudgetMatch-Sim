@@ -1388,6 +1388,32 @@
         }
       }
     },
+    "/api/pay/notify/alipay": {
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "payment"
+        ],
+        "summary": "支付宝异步通知",
+        "operationId": "paymentAlipayNotify",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/api/seckill/activities": {
       "get": {
         "produces": [
@@ -1910,7 +1936,7 @@
       }
     }
   },
-  "x-date": "2026-08-04 13:37:17",
+  "x-date": "2026-07-27 14:59:11",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

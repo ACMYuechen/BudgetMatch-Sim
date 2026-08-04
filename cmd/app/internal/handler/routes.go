@@ -9,6 +9,7 @@ import (
 	auth "budgetmatch-sim/cmd/app/internal/handler/auth"
 	health "budgetmatch-sim/cmd/app/internal/handler/health"
 	mall "budgetmatch-sim/cmd/app/internal/handler/mall"
+	payment "budgetmatch-sim/cmd/app/internal/handler/payment"
 	seckill "budgetmatch-sim/cmd/app/internal/handler/seckill"
 	user "budgetmatch-sim/cmd/app/internal/handler/user"
 	"budgetmatch-sim/cmd/app/internal/svc"
@@ -186,6 +187,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			}...,
 		),
 		rest.WithPrefix("/api/mall"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// 支付宝异步通知
+				Method:  http.MethodPost,
+				Path:    "/notify/alipay",
+				Handler: payment.AlipayNotifyHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/pay"),
 	)
 
 	server.AddRoutes(
