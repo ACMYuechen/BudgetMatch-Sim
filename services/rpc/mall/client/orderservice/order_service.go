@@ -14,18 +14,26 @@ import (
 )
 
 type (
-	CancelOrderReq        = pb.CancelOrderReq
-	CancelOrderResp       = pb.CancelOrderResp
-	ConfirmPaymentReq     = pb.ConfirmPaymentReq
-	ConfirmPaymentResp    = pb.ConfirmPaymentResp
-	CreateOrderReq        = pb.CreateOrderReq
-	CreateOrderResp       = pb.CreateOrderResp
-	GetOrderReq           = pb.GetOrderReq
-	GetOrderResp          = pb.GetOrderResp
-	ListOrdersReq         = pb.ListOrdersReq
-	ListOrdersResp        = pb.ListOrdersResp
-	UpdateOrderStatusReq  = pb.UpdateOrderStatusReq
-	UpdateOrderStatusResp = pb.UpdateOrderStatusResp
+	CancelOrderReq          = pb.CancelOrderReq
+	CancelOrderResp         = pb.CancelOrderResp
+	ConfirmPaymentReq       = pb.ConfirmPaymentReq
+	ConfirmPaymentResp      = pb.ConfirmPaymentResp
+	CreateOrderReq          = pb.CreateOrderReq
+	CreateOrderResp         = pb.CreateOrderResp
+	GetOrderOutboxReq       = pb.GetOrderOutboxReq
+	GetOrderOutboxResp      = pb.GetOrderOutboxResp
+	GetOrderOutboxStatsReq  = pb.GetOrderOutboxStatsReq
+	GetOrderOutboxStatsResp = pb.GetOrderOutboxStatsResp
+	GetOrderReq             = pb.GetOrderReq
+	GetOrderResp            = pb.GetOrderResp
+	ListOrderOutboxReq      = pb.ListOrderOutboxReq
+	ListOrderOutboxResp     = pb.ListOrderOutboxResp
+	ListOrdersReq           = pb.ListOrdersReq
+	ListOrdersResp          = pb.ListOrdersResp
+	ReplayOrderOutboxReq    = pb.ReplayOrderOutboxReq
+	ReplayOrderOutboxResp   = pb.ReplayOrderOutboxResp
+	UpdateOrderStatusReq    = pb.UpdateOrderStatusReq
+	UpdateOrderStatusResp   = pb.UpdateOrderStatusResp
 
 	OrderService interface {
 		CreateOrder(ctx context.Context, in *CreateOrderReq, opts ...grpc.CallOption) (*CreateOrderResp, error)
@@ -34,6 +42,10 @@ type (
 		CancelOrder(ctx context.Context, in *CancelOrderReq, opts ...grpc.CallOption) (*CancelOrderResp, error)
 		UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusReq, opts ...grpc.CallOption) (*UpdateOrderStatusResp, error)
 		ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error)
+		GetOrderOutboxStats(ctx context.Context, in *GetOrderOutboxStatsReq, opts ...grpc.CallOption) (*GetOrderOutboxStatsResp, error)
+		ListOrderOutbox(ctx context.Context, in *ListOrderOutboxReq, opts ...grpc.CallOption) (*ListOrderOutboxResp, error)
+		GetOrderOutbox(ctx context.Context, in *GetOrderOutboxReq, opts ...grpc.CallOption) (*GetOrderOutboxResp, error)
+		ReplayOrderOutbox(ctx context.Context, in *ReplayOrderOutboxReq, opts ...grpc.CallOption) (*ReplayOrderOutboxResp, error)
 	}
 
 	defaultOrderService struct {
@@ -75,4 +87,24 @@ func (m *defaultOrderService) UpdateOrderStatus(ctx context.Context, in *UpdateO
 func (m *defaultOrderService) ConfirmPayment(ctx context.Context, in *ConfirmPaymentReq, opts ...grpc.CallOption) (*ConfirmPaymentResp, error) {
 	client := pb.NewOrderServiceClient(m.cli.Conn())
 	return client.ConfirmPayment(ctx, in, opts...)
+}
+
+func (m *defaultOrderService) GetOrderOutboxStats(ctx context.Context, in *GetOrderOutboxStatsReq, opts ...grpc.CallOption) (*GetOrderOutboxStatsResp, error) {
+	client := pb.NewOrderServiceClient(m.cli.Conn())
+	return client.GetOrderOutboxStats(ctx, in, opts...)
+}
+
+func (m *defaultOrderService) ListOrderOutbox(ctx context.Context, in *ListOrderOutboxReq, opts ...grpc.CallOption) (*ListOrderOutboxResp, error) {
+	client := pb.NewOrderServiceClient(m.cli.Conn())
+	return client.ListOrderOutbox(ctx, in, opts...)
+}
+
+func (m *defaultOrderService) GetOrderOutbox(ctx context.Context, in *GetOrderOutboxReq, opts ...grpc.CallOption) (*GetOrderOutboxResp, error) {
+	client := pb.NewOrderServiceClient(m.cli.Conn())
+	return client.GetOrderOutbox(ctx, in, opts...)
+}
+
+func (m *defaultOrderService) ReplayOrderOutbox(ctx context.Context, in *ReplayOrderOutboxReq, opts ...grpc.CallOption) (*ReplayOrderOutboxResp, error) {
+	client := pb.NewOrderServiceClient(m.cli.Conn())
+	return client.ReplayOrderOutbox(ctx, in, opts...)
 }

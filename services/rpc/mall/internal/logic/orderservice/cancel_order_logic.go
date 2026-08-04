@@ -9,6 +9,7 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
@@ -83,6 +84,22 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 			}
 		}
 
+		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypeCancelled, now, mq.OrderEvent{
+			OrderID:  order.Id,
+			UserID:   order.UserId,
+			SkuID:    item.SkuId,
+			Quantity: item.Quantity,
+			Status:   int32(mall_orders.OrderStatusCancelled),
+		})
+		if err != nil {
+			l.Logger.Errorf("failed to build order cancelled event: order_id=%s error=%v", order.Id, err)
+			return err
+		}
+		if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
+			l.Logger.Errorf("failed to insert order cancelled outbox event: order_id=%s event_id=%s error=%v", order.Id, outboxEvent.Id, err)
+			return err
+		}
+
 		return nil
 	}); err != nil {
 		if err == errors.MallOrderCannotCancel {
@@ -91,18 +108,6 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		}
 		l.Logger.Errorf("failed to cancel order: %v", err)
 		return nil, errors.Database
-	}
-
-	// 发送事件
-	if l.svcCtx.OrderEventProducer != nil {
-		event := mq.OrderEvent{
-			OrderID:  order.Id,
-			UserID:   order.UserId,
-			SkuID:    item.SkuId,
-			Quantity: item.Quantity,
-			Status:   int32(mall_orders.OrderStatusCancelled),
-		}
-		l.svcCtx.OrderEventProducer.PublishCancelledAsync(event)
 	}
 
 	return &pb.CancelOrderResp{Success: true}, nil

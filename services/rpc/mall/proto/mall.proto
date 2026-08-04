@@ -260,6 +260,71 @@ message ConfirmPaymentResp{
   bool  was_already_confirmed  = 3;
 }
 
+message OrderOutboxEvent {
+  string id              = 1;
+  string aggregate_id    = 2;
+  string event_type      = 3;
+  string dedup_key       = 4;
+  string topic           = 5;
+  string tag             = 6;
+  string message_key     = 7;
+  string payload         = 8;
+  int32  status          = 9;
+  int32  attempts        = 10;
+  int32  max_attempts    = 11;
+  string next_retry_at   = 12;
+  string locked_until    = 13;
+  string last_error      = 14;
+  int64  published_at    = 15;
+  string created_at      = 16;
+  string updated_at      = 17;
+}
+
+message OrderOutboxStatusCount {
+  int32  status     = 1;
+  string event_type = 2;
+  int64  count      = 3;
+}
+
+message GetOrderOutboxStatsReq {}
+
+message GetOrderOutboxStatsResp {
+  repeated OrderOutboxStatusCount counts = 1;
+  int64 oldest_pending_at = 2;
+}
+
+message ListOrderOutboxReq {
+  int32  page         = 1;
+  int32  page_size    = 2;
+  int32  status       = 3;
+  string event_type   = 4;
+  string aggregate_id = 5;
+  string dedup_key     = 6;
+}
+
+message ListOrderOutboxResp {
+  repeated OrderOutboxEvent list = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message GetOrderOutboxReq {
+  string id = 1;
+}
+
+message GetOrderOutboxResp {
+  OrderOutboxEvent event = 1;
+}
+
+message ReplayOrderOutboxReq {
+  string id = 1;
+}
+
+message ReplayOrderOutboxResp {
+  bool success = 1;
+}
+
 // ========== Services ==========
 
 service ProductService {
@@ -283,4 +348,8 @@ service OrderService {
   rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp) {}
   rpc UpdateOrderStatus(UpdateOrderStatusReq) returns (UpdateOrderStatusResp) {}
   rpc ConfirmPayment(ConfirmPaymentReq) returns (ConfirmPaymentResp) {}
+  rpc GetOrderOutboxStats(GetOrderOutboxStatsReq) returns (GetOrderOutboxStatsResp) {}
+  rpc ListOrderOutbox(ListOrderOutboxReq) returns (ListOrderOutboxResp) {}
+  rpc GetOrderOutbox(GetOrderOutboxReq) returns (GetOrderOutboxResp) {}
+  rpc ReplayOrderOutbox(ReplayOrderOutboxReq) returns (ReplayOrderOutboxResp) {}
 }

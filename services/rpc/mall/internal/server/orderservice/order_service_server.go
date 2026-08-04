@@ -52,3 +52,23 @@ func (s *OrderServiceServer) ConfirmPayment(ctx context.Context, in *pb.ConfirmP
 	l := orderservicelogic.NewConfirmPaymentLogic(ctx, s.svcCtx)
 	return l.ConfirmPayment(in)
 }
+
+func (s *OrderServiceServer) GetOrderOutboxStats(ctx context.Context, in *pb.GetOrderOutboxStatsReq) (*pb.GetOrderOutboxStatsResp, error) {
+	l := orderservicelogic.NewGetOrderOutboxStatsLogic(ctx, s.svcCtx)
+	return l.GetOrderOutboxStats(in)
+}
+
+func (s *OrderServiceServer) ListOrderOutbox(ctx context.Context, in *pb.ListOrderOutboxReq) (*pb.ListOrderOutboxResp, error) {
+	l := orderservicelogic.NewListOrderOutboxLogic(ctx, s.svcCtx)
+	return l.ListOrderOutbox(in)
+}
+
+func (s *OrderServiceServer) GetOrderOutbox(ctx context.Context, in *pb.GetOrderOutboxReq) (*pb.GetOrderOutboxResp, error) {
+	l := orderservicelogic.NewGetOrderOutboxLogic(ctx, s.svcCtx)
+	return l.GetOrderOutbox(in)
+}
+
+func (s *OrderServiceServer) ReplayOrderOutbox(ctx context.Context, in *pb.ReplayOrderOutboxReq) (*pb.ReplayOrderOutboxResp, error) {
+	l := orderservicelogic.NewReplayOrderOutboxLogic(ctx, s.svcCtx)
+	return l.ReplayOrderOutbox(in)
+}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
@@ -44,6 +45,31 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 		})
 	}
 	return resp
+}
+
+func outboxEventToPb(event *mall_order_outbox.MallOrderOutbox) *pb.OrderOutboxEvent {
+	if event == nil {
+		return nil
+	}
+	return &pb.OrderOutboxEvent{
+		Id:          event.Id,
+		AggregateId: event.AggregateId,
+		EventType:   event.EventType,
+		DedupKey:    event.DedupKey,
+		Topic:       event.Topic,
+		Tag:         event.Tag,
+		MessageKey:  event.MessageKey,
+		Payload:     event.Payload,
+		Status:      int32(event.Status),
+		Attempts:    int32(event.Attempts),
+		MaxAttempts: int32(event.MaxAttempts),
+		NextRetryAt: event.NextRetryAt.Format(timeLayout),
+		LockedUntil: event.LockedUntil.Format(timeLayout),
+		LastError:   event.LastError,
+		PublishedAt: event.PublishedAt,
+		CreatedAt:   event.CreatedAt.Format(timeLayout),
+		UpdatedAt:   event.UpdatedAt.Format(timeLayout),
+	}
 }
 
 func idempotencyKey(key string) string {

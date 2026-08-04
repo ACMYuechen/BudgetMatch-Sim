@@ -11,8 +11,8 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database   database.Config   `json:"database"`
-	CacheRedis redis.Config      `json:"cacheRedis"`
-	JwtAuth    auth.Config       `json:"jwtAuth"`
-	RocketMQ   rocketmq.Config   `json:"rocketmq"`
+	Database   database.Config `json:"database"`
+	CacheRedis redis.Config    `json:"cacheRedis"`
+	JwtAuth    auth.Config     `json:"jwtAuth"`
+	RocketMQ   rocketmq.Config `json:"rocketmq"`
 }

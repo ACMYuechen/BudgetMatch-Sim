@@ -9,7 +9,9 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
@@ -49,6 +51,18 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		return nil, errors.MallInvalidOrderTransition
 	}
 
+	var cancellationItems []mall_order_items.MallOrderItems
+	if newStatus == mall_orders.OrderStatusCancelled {
+		cancellationItems, err = l.svcCtx.OrderItemStore.FindByOrderId(l.ctx, order.Id)
+		if err != nil {
+			l.Logger.Errorf("failed to find order items before cancellation: order_id=%s error=%v", order.Id, err)
+			return nil, errors.Database
+		}
+		if len(cancellationItems) == 0 {
+			return nil, errors.MallOrderNotFound
+		}
+	}
+
 	now := time.Now()
 	if err := l.svcCtx.DB.Transaction(func(tx *gorm.DB) error {
 		// 乐观锁条件更新：仅当订单仍为读取时的状态、且归属同一用户时才流转，避免并发绕过状态机
@@ -68,6 +82,33 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 				return err
 			}
 		}
+		if newStatus == mall_orders.OrderStatusCancelled {
+			for _, item := range cancellationItems {
+				if err := l.svcCtx.SkuStore.RestoreStockTx(tx, item.SkuId, item.Quantity, now); err != nil {
+					l.Logger.Errorf("failed to restore stock during admin cancellation: order_id=%s sku_id=%s error=%v", order.Id, item.SkuId, err)
+					return err
+				}
+			}
+		}
+
+		if newStatus == mall_orders.OrderStatusPaid || newStatus == mall_orders.OrderStatusCancelled {
+			eventType := mq.EventTypePaid
+			event := mq.OrderEvent{OrderID: order.Id, UserID: order.UserId, Status: int32(newStatus)}
+			if newStatus == mall_orders.OrderStatusCancelled {
+				eventType = mq.EventTypeCancelled
+				event.SkuID = cancellationItems[0].SkuId
+				event.Quantity = cancellationItems[0].Quantity
+			}
+			outboxEvent, err := outbox.NewOrderEvent(eventType, now, event)
+			if err != nil {
+				l.Logger.Errorf("failed to build order status event: order_id=%s event_type=%s error=%v", order.Id, eventType, err)
+				return err
+			}
+			if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
+				l.Logger.Errorf("failed to insert order status outbox event: order_id=%s event_id=%s error=%v", order.Id, outboxEvent.Id, err)
+				return err
+			}
+		}
 		return nil
 	}); err != nil {
 		if err == errors.MallInvalidOrderTransition {
@@ -76,16 +117,6 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 		}
 		l.Logger.Errorf("failed to update order status: %v", err)
 		return nil, errors.Database
-	}
-
-	// 针对已支付状态发送事件
-	if l.svcCtx.OrderEventProducer != nil && newStatus == mall_orders.OrderStatusPaid {
-		event := mq.OrderEvent{
-			OrderID: order.Id,
-			UserID:  order.UserId,
-			Status:  int32(mall_orders.OrderStatusPaid),
-		}
-		l.svcCtx.OrderEventProducer.PublishPaidAsync(event)
 	}
 
 	return &pb.UpdateOrderStatusResp{Success: true}, nil

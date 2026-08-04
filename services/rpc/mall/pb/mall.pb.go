@@ -7,11 +7,12 @@
 package pb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -2430,6 +2431,654 @@ func (x *ConfirmPaymentResp) GetWasAlreadyConfirmed() bool {
 	return false
 }
 
+type OrderOutboxEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	AggregateId   string                 `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id,omitempty"`
+	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	DedupKey      string                 `protobuf:"bytes,4,opt,name=dedup_key,json=dedupKey,proto3" json:"dedup_key,omitempty"`
+	Topic         string                 `protobuf:"bytes,5,opt,name=topic,proto3" json:"topic,omitempty"`
+	Tag           string                 `protobuf:"bytes,6,opt,name=tag,proto3" json:"tag,omitempty"`
+	MessageKey    string                 `protobuf:"bytes,7,opt,name=message_key,json=messageKey,proto3" json:"message_key,omitempty"`
+	Payload       string                 `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
+	Status        int32                  `protobuf:"varint,9,opt,name=status,proto3" json:"status,omitempty"`
+	Attempts      int32                  `protobuf:"varint,10,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	MaxAttempts   int32                  `protobuf:"varint,11,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	NextRetryAt   string                 `protobuf:"bytes,12,opt,name=next_retry_at,json=nextRetryAt,proto3" json:"next_retry_at,omitempty"`
+	LockedUntil   string                 `protobuf:"bytes,13,opt,name=locked_until,json=lockedUntil,proto3" json:"locked_until,omitempty"`
+	LastError     string                 `protobuf:"bytes,14,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	PublishedAt   int64                  `protobuf:"varint,15,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrderOutboxEvent) Reset() {
+	*x = OrderOutboxEvent{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderOutboxEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderOutboxEvent) ProtoMessage() {}
+
+func (x *OrderOutboxEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderOutboxEvent.ProtoReflect.Descriptor instead.
+func (*OrderOutboxEvent) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *OrderOutboxEvent) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetAggregateId() string {
+	if x != nil {
+		return x.AggregateId
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetDedupKey() string {
+	if x != nil {
+		return x.DedupKey
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetMessageKey() string {
+	if x != nil {
+		return x.MessageKey
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetPayload() string {
+	if x != nil {
+		return x.Payload
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *OrderOutboxEvent) GetAttempts() int32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *OrderOutboxEvent) GetMaxAttempts() int32 {
+	if x != nil {
+		return x.MaxAttempts
+	}
+	return 0
+}
+
+func (x *OrderOutboxEvent) GetNextRetryAt() string {
+	if x != nil {
+		return x.NextRetryAt
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetLockedUntil() string {
+	if x != nil {
+		return x.LockedUntil
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetPublishedAt() int64 {
+	if x != nil {
+		return x.PublishedAt
+	}
+	return 0
+}
+
+func (x *OrderOutboxEvent) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *OrderOutboxEvent) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type OrderOutboxStatusCount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        int32                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Count         int64                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrderOutboxStatusCount) Reset() {
+	*x = OrderOutboxStatusCount{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderOutboxStatusCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderOutboxStatusCount) ProtoMessage() {}
+
+func (x *OrderOutboxStatusCount) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderOutboxStatusCount.ProtoReflect.Descriptor instead.
+func (*OrderOutboxStatusCount) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *OrderOutboxStatusCount) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *OrderOutboxStatusCount) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *OrderOutboxStatusCount) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type GetOrderOutboxStatsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrderOutboxStatsReq) Reset() {
+	*x = GetOrderOutboxStatsReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderOutboxStatsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderOutboxStatsReq) ProtoMessage() {}
+
+func (x *GetOrderOutboxStatsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderOutboxStatsReq.ProtoReflect.Descriptor instead.
+func (*GetOrderOutboxStatsReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{38}
+}
+
+type GetOrderOutboxStatsResp struct {
+	state           protoimpl.MessageState    `protogen:"open.v1"`
+	Counts          []*OrderOutboxStatusCount `protobuf:"bytes,1,rep,name=counts,proto3" json:"counts,omitempty"`
+	OldestPendingAt int64                     `protobuf:"varint,2,opt,name=oldest_pending_at,json=oldestPendingAt,proto3" json:"oldest_pending_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetOrderOutboxStatsResp) Reset() {
+	*x = GetOrderOutboxStatsResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderOutboxStatsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderOutboxStatsResp) ProtoMessage() {}
+
+func (x *GetOrderOutboxStatsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderOutboxStatsResp.ProtoReflect.Descriptor instead.
+func (*GetOrderOutboxStatsResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *GetOrderOutboxStatsResp) GetCounts() []*OrderOutboxStatusCount {
+	if x != nil {
+		return x.Counts
+	}
+	return nil
+}
+
+func (x *GetOrderOutboxStatsResp) GetOldestPendingAt() int64 {
+	if x != nil {
+		return x.OldestPendingAt
+	}
+	return 0
+}
+
+type ListOrderOutboxReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Status        int32                  `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	EventType     string                 `protobuf:"bytes,4,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	AggregateId   string                 `protobuf:"bytes,5,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id,omitempty"`
+	DedupKey      string                 `protobuf:"bytes,6,opt,name=dedup_key,json=dedupKey,proto3" json:"dedup_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOrderOutboxReq) Reset() {
+	*x = ListOrderOutboxReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOrderOutboxReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOrderOutboxReq) ProtoMessage() {}
+
+func (x *ListOrderOutboxReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOrderOutboxReq.ProtoReflect.Descriptor instead.
+func (*ListOrderOutboxReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *ListOrderOutboxReq) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListOrderOutboxReq) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListOrderOutboxReq) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *ListOrderOutboxReq) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *ListOrderOutboxReq) GetAggregateId() string {
+	if x != nil {
+		return x.AggregateId
+	}
+	return ""
+}
+
+func (x *ListOrderOutboxReq) GetDedupKey() string {
+	if x != nil {
+		return x.DedupKey
+	}
+	return ""
+}
+
+type ListOrderOutboxResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	List          []*OrderOutboxEvent    `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOrderOutboxResp) Reset() {
+	*x = ListOrderOutboxResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOrderOutboxResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOrderOutboxResp) ProtoMessage() {}
+
+func (x *ListOrderOutboxResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOrderOutboxResp.ProtoReflect.Descriptor instead.
+func (*ListOrderOutboxResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ListOrderOutboxResp) GetList() []*OrderOutboxEvent {
+	if x != nil {
+		return x.List
+	}
+	return nil
+}
+
+func (x *ListOrderOutboxResp) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListOrderOutboxResp) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListOrderOutboxResp) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type GetOrderOutboxReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrderOutboxReq) Reset() {
+	*x = GetOrderOutboxReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderOutboxReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderOutboxReq) ProtoMessage() {}
+
+func (x *GetOrderOutboxReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderOutboxReq.ProtoReflect.Descriptor instead.
+func (*GetOrderOutboxReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetOrderOutboxReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetOrderOutboxResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *OrderOutboxEvent      `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetOrderOutboxResp) Reset() {
+	*x = GetOrderOutboxResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetOrderOutboxResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetOrderOutboxResp) ProtoMessage() {}
+
+func (x *GetOrderOutboxResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetOrderOutboxResp.ProtoReflect.Descriptor instead.
+func (*GetOrderOutboxResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *GetOrderOutboxResp) GetEvent() *OrderOutboxEvent {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+type ReplayOrderOutboxReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplayOrderOutboxReq) Reset() {
+	*x = ReplayOrderOutboxReq{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplayOrderOutboxReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplayOrderOutboxReq) ProtoMessage() {}
+
+func (x *ReplayOrderOutboxReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplayOrderOutboxReq.ProtoReflect.Descriptor instead.
+func (*ReplayOrderOutboxReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ReplayOrderOutboxReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ReplayOrderOutboxResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplayOrderOutboxResp) Reset() {
+	*x = ReplayOrderOutboxResp{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplayOrderOutboxResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplayOrderOutboxResp) ProtoMessage() {}
+
+func (x *ReplayOrderOutboxResp) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplayOrderOutboxResp.ProtoReflect.Descriptor instead.
+func (*ReplayOrderOutboxResp) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *ReplayOrderOutboxResp) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_services_rpc_mall_proto_mall_proto protoreflect.FileDescriptor
 
 const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
@@ -2617,7 +3266,61 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x12ConfirmPaymentResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\x05R\x06status\x122\n" +
-	"\x15was_already_confirmed\x18\x03 \x01(\bR\x13wasAlreadyConfirmed*\xe5\x01\n" +
+	"\x15was_already_confirmed\x18\x03 \x01(\bR\x13wasAlreadyConfirmed\"\x82\x04\n" +
+	"\x10OrderOutboxEvent\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\faggregate_id\x18\x02 \x01(\tR\vaggregateId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x03 \x01(\tR\teventType\x12\x1b\n" +
+	"\tdedup_key\x18\x04 \x01(\tR\bdedupKey\x12\x14\n" +
+	"\x05topic\x18\x05 \x01(\tR\x05topic\x12\x10\n" +
+	"\x03tag\x18\x06 \x01(\tR\x03tag\x12\x1f\n" +
+	"\vmessage_key\x18\a \x01(\tR\n" +
+	"messageKey\x12\x18\n" +
+	"\apayload\x18\b \x01(\tR\apayload\x12\x16\n" +
+	"\x06status\x18\t \x01(\x05R\x06status\x12\x1a\n" +
+	"\battempts\x18\n" +
+	" \x01(\x05R\battempts\x12!\n" +
+	"\fmax_attempts\x18\v \x01(\x05R\vmaxAttempts\x12\"\n" +
+	"\rnext_retry_at\x18\f \x01(\tR\vnextRetryAt\x12!\n" +
+	"\flocked_until\x18\r \x01(\tR\vlockedUntil\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\x0e \x01(\tR\tlastError\x12!\n" +
+	"\fpublished_at\x18\x0f \x01(\x03R\vpublishedAt\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x10 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x11 \x01(\tR\tupdatedAt\"e\n" +
+	"\x16OrderOutboxStatusCount\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\x05R\x06status\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12\x14\n" +
+	"\x05count\x18\x03 \x01(\x03R\x05count\"\x18\n" +
+	"\x16GetOrderOutboxStatsReq\"{\n" +
+	"\x17GetOrderOutboxStatsResp\x124\n" +
+	"\x06counts\x18\x01 \x03(\v2\x1c.mall.OrderOutboxStatusCountR\x06counts\x12*\n" +
+	"\x11oldest_pending_at\x18\x02 \x01(\x03R\x0foldestPendingAt\"\xbc\x01\n" +
+	"\x12ListOrderOutboxReq\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\x05R\x06status\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x04 \x01(\tR\teventType\x12!\n" +
+	"\faggregate_id\x18\x05 \x01(\tR\vaggregateId\x12\x1b\n" +
+	"\tdedup_key\x18\x06 \x01(\tR\bdedupKey\"\x88\x01\n" +
+	"\x13ListOrderOutboxResp\x12*\n" +
+	"\x04list\x18\x01 \x03(\v2\x16.mall.OrderOutboxEventR\x04list\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"#\n" +
+	"\x11GetOrderOutboxReq\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"B\n" +
+	"\x12GetOrderOutboxResp\x12,\n" +
+	"\x05event\x18\x01 \x01(\v2\x16.mall.OrderOutboxEventR\x05event\"&\n" +
+	"\x14ReplayOrderOutboxReq\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"1\n" +
+	"\x15ReplayOrderOutboxResp\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess*\xe5\x01\n" +
 	"\vOrderStatus\x12\x1c\n" +
 	"\x18ORDER_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14ORDER_STATUS_PENDING\x10\x01\x12\x15\n" +
@@ -2638,7 +3341,7 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\tUpdateSku\x12\x12.mall.UpdateSkuReq\x1a\x13.mall.UpdateSkuResp\"\x00\x126\n" +
 	"\tDeleteSku\x12\x12.mall.DeleteSkuReq\x1a\x13.mall.DeleteSkuResp\"\x00\x12-\n" +
 	"\x06GetSku\x12\x0f.mall.GetSkuReq\x1a\x10.mall.GetSkuResp\"\x00\x12N\n" +
-	"\x11ListSkusByProduct\x12\x1a.mall.ListSkusByProductReq\x1a\x1b.mall.ListSkusByProductResp\"\x002\x91\x03\n" +
+	"\x11ListSkusByProduct\x12\x1a.mall.ListSkusByProductReq\x1a\x1b.mall.ListSkusByProductResp\"\x002\xc8\x05\n" +
 	"\fOrderService\x12<\n" +
 	"\vCreateOrder\x12\x14.mall.CreateOrderReq\x1a\x15.mall.CreateOrderResp\"\x00\x123\n" +
 	"\bGetOrder\x12\x11.mall.GetOrderReq\x1a\x12.mall.GetOrderResp\"\x00\x129\n" +
@@ -2646,7 +3349,11 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"ListOrders\x12\x13.mall.ListOrdersReq\x1a\x14.mall.ListOrdersResp\"\x00\x12<\n" +
 	"\vCancelOrder\x12\x14.mall.CancelOrderReq\x1a\x15.mall.CancelOrderResp\"\x00\x12N\n" +
 	"\x11UpdateOrderStatus\x12\x1a.mall.UpdateOrderStatusReq\x1a\x1b.mall.UpdateOrderStatusResp\"\x00\x12E\n" +
-	"\x0eConfirmPayment\x12\x17.mall.ConfirmPaymentReq\x1a\x18.mall.ConfirmPaymentResp\"\x00B\x06Z\x04./pbb\x06proto3"
+	"\x0eConfirmPayment\x12\x17.mall.ConfirmPaymentReq\x1a\x18.mall.ConfirmPaymentResp\"\x00\x12T\n" +
+	"\x13GetOrderOutboxStats\x12\x1c.mall.GetOrderOutboxStatsReq\x1a\x1d.mall.GetOrderOutboxStatsResp\"\x00\x12H\n" +
+	"\x0fListOrderOutbox\x12\x18.mall.ListOrderOutboxReq\x1a\x19.mall.ListOrderOutboxResp\"\x00\x12E\n" +
+	"\x0eGetOrderOutbox\x12\x17.mall.GetOrderOutboxReq\x1a\x18.mall.GetOrderOutboxResp\"\x00\x12N\n" +
+	"\x11ReplayOrderOutbox\x12\x1a.mall.ReplayOrderOutboxReq\x1a\x1b.mall.ReplayOrderOutboxResp\"\x00B\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_services_rpc_mall_proto_mall_proto_rawDescOnce sync.Once
@@ -2661,45 +3368,55 @@ func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
 }
 
 var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
-	(OrderStatus)(0),              // 0: mall.OrderStatus
-	(*Product)(nil),               // 1: mall.Product
-	(*Sku)(nil),                   // 2: mall.Sku
-	(*CreateProductReq)(nil),      // 3: mall.CreateProductReq
-	(*CreateProductResp)(nil),     // 4: mall.CreateProductResp
-	(*UpdateProductReq)(nil),      // 5: mall.UpdateProductReq
-	(*UpdateProductResp)(nil),     // 6: mall.UpdateProductResp
-	(*DeleteProductReq)(nil),      // 7: mall.DeleteProductReq
-	(*DeleteProductResp)(nil),     // 8: mall.DeleteProductResp
-	(*GetProductReq)(nil),         // 9: mall.GetProductReq
-	(*GetProductResp)(nil),        // 10: mall.GetProductResp
-	(*ListProductsReq)(nil),       // 11: mall.ListProductsReq
-	(*ListProductsResp)(nil),      // 12: mall.ListProductsResp
-	(*CreateSkuReq)(nil),          // 13: mall.CreateSkuReq
-	(*CreateSkuResp)(nil),         // 14: mall.CreateSkuResp
-	(*UpdateSkuReq)(nil),          // 15: mall.UpdateSkuReq
-	(*UpdateSkuResp)(nil),         // 16: mall.UpdateSkuResp
-	(*DeleteSkuReq)(nil),          // 17: mall.DeleteSkuReq
-	(*DeleteSkuResp)(nil),         // 18: mall.DeleteSkuResp
-	(*GetSkuReq)(nil),             // 19: mall.GetSkuReq
-	(*GetSkuResp)(nil),            // 20: mall.GetSkuResp
-	(*ListSkusByProductReq)(nil),  // 21: mall.ListSkusByProductReq
-	(*ListSkusByProductResp)(nil), // 22: mall.ListSkusByProductResp
-	(*OrderItem)(nil),             // 23: mall.OrderItem
-	(*Order)(nil),                 // 24: mall.Order
-	(*CreateOrderReq)(nil),        // 25: mall.CreateOrderReq
-	(*CreateOrderResp)(nil),       // 26: mall.CreateOrderResp
-	(*GetOrderReq)(nil),           // 27: mall.GetOrderReq
-	(*GetOrderResp)(nil),          // 28: mall.GetOrderResp
-	(*ListOrdersReq)(nil),         // 29: mall.ListOrdersReq
-	(*ListOrdersResp)(nil),        // 30: mall.ListOrdersResp
-	(*CancelOrderReq)(nil),        // 31: mall.CancelOrderReq
-	(*CancelOrderResp)(nil),       // 32: mall.CancelOrderResp
-	(*UpdateOrderStatusReq)(nil),  // 33: mall.UpdateOrderStatusReq
-	(*UpdateOrderStatusResp)(nil), // 34: mall.UpdateOrderStatusResp
-	(*ConfirmPaymentReq)(nil),     // 35: mall.ConfirmPaymentReq
-	(*ConfirmPaymentResp)(nil),    // 36: mall.ConfirmPaymentResp
+	(OrderStatus)(0),                // 0: mall.OrderStatus
+	(*Product)(nil),                 // 1: mall.Product
+	(*Sku)(nil),                     // 2: mall.Sku
+	(*CreateProductReq)(nil),        // 3: mall.CreateProductReq
+	(*CreateProductResp)(nil),       // 4: mall.CreateProductResp
+	(*UpdateProductReq)(nil),        // 5: mall.UpdateProductReq
+	(*UpdateProductResp)(nil),       // 6: mall.UpdateProductResp
+	(*DeleteProductReq)(nil),        // 7: mall.DeleteProductReq
+	(*DeleteProductResp)(nil),       // 8: mall.DeleteProductResp
+	(*GetProductReq)(nil),           // 9: mall.GetProductReq
+	(*GetProductResp)(nil),          // 10: mall.GetProductResp
+	(*ListProductsReq)(nil),         // 11: mall.ListProductsReq
+	(*ListProductsResp)(nil),        // 12: mall.ListProductsResp
+	(*CreateSkuReq)(nil),            // 13: mall.CreateSkuReq
+	(*CreateSkuResp)(nil),           // 14: mall.CreateSkuResp
+	(*UpdateSkuReq)(nil),            // 15: mall.UpdateSkuReq
+	(*UpdateSkuResp)(nil),           // 16: mall.UpdateSkuResp
+	(*DeleteSkuReq)(nil),            // 17: mall.DeleteSkuReq
+	(*DeleteSkuResp)(nil),           // 18: mall.DeleteSkuResp
+	(*GetSkuReq)(nil),               // 19: mall.GetSkuReq
+	(*GetSkuResp)(nil),              // 20: mall.GetSkuResp
+	(*ListSkusByProductReq)(nil),    // 21: mall.ListSkusByProductReq
+	(*ListSkusByProductResp)(nil),   // 22: mall.ListSkusByProductResp
+	(*OrderItem)(nil),               // 23: mall.OrderItem
+	(*Order)(nil),                   // 24: mall.Order
+	(*CreateOrderReq)(nil),          // 25: mall.CreateOrderReq
+	(*CreateOrderResp)(nil),         // 26: mall.CreateOrderResp
+	(*GetOrderReq)(nil),             // 27: mall.GetOrderReq
+	(*GetOrderResp)(nil),            // 28: mall.GetOrderResp
+	(*ListOrdersReq)(nil),           // 29: mall.ListOrdersReq
+	(*ListOrdersResp)(nil),          // 30: mall.ListOrdersResp
+	(*CancelOrderReq)(nil),          // 31: mall.CancelOrderReq
+	(*CancelOrderResp)(nil),         // 32: mall.CancelOrderResp
+	(*UpdateOrderStatusReq)(nil),    // 33: mall.UpdateOrderStatusReq
+	(*UpdateOrderStatusResp)(nil),   // 34: mall.UpdateOrderStatusResp
+	(*ConfirmPaymentReq)(nil),       // 35: mall.ConfirmPaymentReq
+	(*ConfirmPaymentResp)(nil),      // 36: mall.ConfirmPaymentResp
+	(*OrderOutboxEvent)(nil),        // 37: mall.OrderOutboxEvent
+	(*OrderOutboxStatusCount)(nil),  // 38: mall.OrderOutboxStatusCount
+	(*GetOrderOutboxStatsReq)(nil),  // 39: mall.GetOrderOutboxStatsReq
+	(*GetOrderOutboxStatsResp)(nil), // 40: mall.GetOrderOutboxStatsResp
+	(*ListOrderOutboxReq)(nil),      // 41: mall.ListOrderOutboxReq
+	(*ListOrderOutboxResp)(nil),     // 42: mall.ListOrderOutboxResp
+	(*GetOrderOutboxReq)(nil),       // 43: mall.GetOrderOutboxReq
+	(*GetOrderOutboxResp)(nil),      // 44: mall.GetOrderOutboxResp
+	(*ReplayOrderOutboxReq)(nil),    // 45: mall.ReplayOrderOutboxReq
+	(*ReplayOrderOutboxResp)(nil),   // 46: mall.ReplayOrderOutboxResp
 }
 var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	1,  // 0: mall.GetProductResp.product:type_name -> mall.Product
@@ -2713,43 +3430,54 @@ var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	0,  // 8: mall.ListOrdersReq.status:type_name -> mall.OrderStatus
 	24, // 9: mall.ListOrdersResp.list:type_name -> mall.Order
 	0,  // 10: mall.UpdateOrderStatusReq.status:type_name -> mall.OrderStatus
-	3,  // 11: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
-	5,  // 12: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
-	7,  // 13: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
-	9,  // 14: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
-	11, // 15: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
-	13, // 16: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
-	15, // 17: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
-	17, // 18: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
-	19, // 19: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
-	21, // 20: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
-	25, // 21: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
-	27, // 22: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
-	29, // 23: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
-	31, // 24: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
-	33, // 25: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
-	35, // 26: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
-	4,  // 27: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
-	6,  // 28: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
-	8,  // 29: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
-	10, // 30: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
-	12, // 31: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
-	14, // 32: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
-	16, // 33: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
-	18, // 34: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
-	20, // 35: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
-	22, // 36: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
-	26, // 37: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
-	28, // 38: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
-	30, // 39: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
-	32, // 40: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
-	34, // 41: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
-	36, // 42: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
-	27, // [27:43] is the sub-list for method output_type
-	11, // [11:27] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	38, // 11: mall.GetOrderOutboxStatsResp.counts:type_name -> mall.OrderOutboxStatusCount
+	37, // 12: mall.ListOrderOutboxResp.list:type_name -> mall.OrderOutboxEvent
+	37, // 13: mall.GetOrderOutboxResp.event:type_name -> mall.OrderOutboxEvent
+	3,  // 14: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
+	5,  // 15: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
+	7,  // 16: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
+	9,  // 17: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
+	11, // 18: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
+	13, // 19: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
+	15, // 20: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
+	17, // 21: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
+	19, // 22: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
+	21, // 23: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
+	25, // 24: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
+	27, // 25: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
+	29, // 26: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
+	31, // 27: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
+	33, // 28: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
+	35, // 29: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
+	39, // 30: mall.OrderService.GetOrderOutboxStats:input_type -> mall.GetOrderOutboxStatsReq
+	41, // 31: mall.OrderService.ListOrderOutbox:input_type -> mall.ListOrderOutboxReq
+	43, // 32: mall.OrderService.GetOrderOutbox:input_type -> mall.GetOrderOutboxReq
+	45, // 33: mall.OrderService.ReplayOrderOutbox:input_type -> mall.ReplayOrderOutboxReq
+	4,  // 34: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
+	6,  // 35: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
+	8,  // 36: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
+	10, // 37: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
+	12, // 38: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
+	14, // 39: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
+	16, // 40: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
+	18, // 41: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
+	20, // 42: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
+	22, // 43: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
+	26, // 44: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
+	28, // 45: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
+	30, // 46: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
+	32, // 47: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
+	34, // 48: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
+	36, // 49: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
+	40, // 50: mall.OrderService.GetOrderOutboxStats:output_type -> mall.GetOrderOutboxStatsResp
+	42, // 51: mall.OrderService.ListOrderOutbox:output_type -> mall.ListOrderOutboxResp
+	44, // 52: mall.OrderService.GetOrderOutbox:output_type -> mall.GetOrderOutboxResp
+	46, // 53: mall.OrderService.ReplayOrderOutbox:output_type -> mall.ReplayOrderOutboxResp
+	34, // [34:54] is the sub-list for method output_type
+	14, // [14:34] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_mall_proto_mall_proto_init() }
@@ -2763,7 +3491,7 @@ func file_services_rpc_mall_proto_mall_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   36,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

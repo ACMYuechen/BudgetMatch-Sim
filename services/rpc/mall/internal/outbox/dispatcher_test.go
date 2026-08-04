@@ -75,6 +75,21 @@ func TestPublishFailureMarksDeadAtMaxAttempts(t *testing.T) {
 	assert.Nil(t, store.retry)
 }
 
+func TestPendingEventSurvivesMQFailureAndDispatcherRestart(t *testing.T) {
+	store := &durableStore{event: mall_order_outbox.MallOrderOutbox{
+		Id: "event-restart", AggregateId: "order-1", EventType: "created", Topic: "topic", Tag: "created", MessageKey: "order:order-1:created", Payload: `{}`, Status: mall_order_outbox.StatusPending, MaxAttempts: 3,
+	}}
+	failedDispatcher := NewDispatcher(store, &fakeProducer{sendErr: stderrors.New("mq unavailable")}, DefaultConfig())
+	failedDispatcher.dispatchOnce()
+	assert.Equal(t, mall_order_outbox.StatusPending, store.event.Status)
+	assert.Equal(t, 1, store.event.Attempts)
+
+	restartedDispatcher := NewDispatcher(store, &fakeProducer{}, DefaultConfig())
+	restartedDispatcher.dispatchOnce()
+	assert.Equal(t, mall_order_outbox.StatusSent, store.event.Status)
+	assert.Equal(t, 2, store.event.Attempts)
+}
+
 func processingEvent(attempts, maxAttempts int) *mall_order_outbox.MallOrderOutbox {
 	return &mall_order_outbox.MallOrderOutbox{Id: "event-1", AggregateId: "order-1", Topic: "topic", Tag: "paid", MessageKey: "order-1", Payload: `{}`, Status: mall_order_outbox.StatusProcessing, Attempts: attempts, MaxAttempts: maxAttempts}
 }
@@ -110,6 +125,43 @@ func (s *fakeStore) MarkDead(_ context.Context, req *mall_order_outbox.MarkDeadR
 
 type fakeProducer struct {
 	sendErr error
+}
+
+type durableStore struct {
+	event mall_order_outbox.MallOrderOutbox
+}
+
+func (s *durableStore) ClaimBatch(context.Context, int, time.Time, time.Time) ([]mall_order_outbox.MallOrderOutbox, int64, error) {
+	if s.event.Status != mall_order_outbox.StatusPending {
+		return nil, 0, nil
+	}
+	s.event.Status = mall_order_outbox.StatusProcessing
+	s.event.Attempts++
+	return []mall_order_outbox.MallOrderOutbox{s.event}, 0, nil
+}
+
+func (s *durableStore) MarkSent(_ context.Context, _ string, attempt int, _ time.Time) (bool, error) {
+	if s.event.Status != mall_order_outbox.StatusProcessing || s.event.Attempts != attempt {
+		return false, nil
+	}
+	s.event.Status = mall_order_outbox.StatusSent
+	return true, nil
+}
+
+func (s *durableStore) MarkRetry(_ context.Context, req *mall_order_outbox.MarkRetryReq) (bool, error) {
+	if s.event.Status != mall_order_outbox.StatusProcessing || s.event.Attempts != req.Attempt {
+		return false, nil
+	}
+	s.event.Status = mall_order_outbox.StatusPending
+	return true, nil
+}
+
+func (s *durableStore) MarkDead(_ context.Context, req *mall_order_outbox.MarkDeadReq) (bool, error) {
+	if s.event.Status != mall_order_outbox.StatusProcessing || s.event.Attempts != req.Attempt {
+		return false, nil
+	}
+	s.event.Status = mall_order_outbox.StatusDead
+	return true, nil
 }
 
 func (p *fakeProducer) SendSync(context.Context, *rocketmq.Message) (*rocketmq.SendResult, error) {
