@@ -16,7 +16,3 @@ export function sendCode(email: string) {
 export function register(data: RegisterReq) {
   return request.post<RegisterResp>('/auth/register', data)
 }
-
-export function checkUsername(username: string) {
-  return request.get<{ exists: boolean }>('/auth/check-username', { params: { username } })
-}

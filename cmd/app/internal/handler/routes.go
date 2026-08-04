@@ -61,12 +61,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/code/send",
 				Handler: auth.SendCodeHandler(serverCtx),
 			},
-			{
-				// 检查用户名是否已存在
-				Method:  http.MethodGet,
-				Path:    "/check-username",
-				Handler: auth.CheckUsernameHandler(serverCtx),
-			},
 		},
 		rest.WithPrefix("/api/auth"),
 	)

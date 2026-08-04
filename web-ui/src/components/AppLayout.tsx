@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Layout, Menu, Button, Space, Avatar, Dropdown, message } from 'antd'
+import { Layout, Menu, Button, Space, Avatar, Dropdown } from 'antd'
 import {
   HomeOutlined,
   ShoppingOutlined,
@@ -31,7 +31,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleLogout = () => {
     clearAuth()
-    message.success('已成功退出')
     navigate('/login')
   }
 
