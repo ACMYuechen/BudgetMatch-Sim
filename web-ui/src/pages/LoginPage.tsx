@@ -53,7 +53,17 @@ export default function LoginPage() {
       navigate('/')
     } catch (err) {
       console.error('[Login] failed:', err)
-      message.error((err as Error).message)
+      const errorMsg = (err as Error).message
+      if (/不存在|not_found/i.test(errorMsg)) {
+        message.error('账号不存在')
+      } else if (/密码错误|账号或密码错误|invalid_password/i.test(errorMsg)) {
+        message.error('账号或密码错误')
+      } else if (/status \d{3}/.test(errorMsg) || /Request failed/.test(errorMsg) || /network/i.test(errorMsg)) {
+        message.error('认证失败，请检查账号或密码')
+      } else {
+        message.error(errorMsg)
+      }
+     
     } finally {
       setLoading(false)
     }

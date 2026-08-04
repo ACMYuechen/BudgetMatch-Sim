@@ -19,12 +19,13 @@ type contextKey string
 const ContextKeyUser contextKey = "user"
 
 var noAuthMethods = map[string]struct{}{
-	"/auth.AuthService/UsernameLogin": {},
-	"/auth.AuthService/EmailLogin":    {},
-	"/auth.AuthService/EmailRegister": {},
-	"/auth.AuthService/ValidateToken": {},
-	"/auth.AuthService/SendCode":      {},
-	"/auth.AuthService/LoginByCode":   {},
+	"/auth.AuthService/UsernameLogin":   {},
+	"/auth.AuthService/EmailLogin":      {},
+	"/auth.AuthService/EmailRegister":   {},
+	"/auth.AuthService/ValidateToken":   {},
+	"/auth.AuthService/SendCode":        {},
+	"/auth.AuthService/LoginByCode":     {},
+	"/auth.AuthService/CheckUsername":   {},
 }
 
 // AuthInterceptor 从 gRPC metadata 中提取 Authorization token，验证并注入完整用户信息
