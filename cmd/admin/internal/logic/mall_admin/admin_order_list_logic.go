@@ -27,10 +27,11 @@ func NewAdminOrderListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 
 func (l *AdminOrderListLogic) AdminOrderList(req *types.AdminOrderListReq) (resp *types.AdminOrderListResp, err error) {
 	rpcResp, err := l.svcCtx.MallOrderClient.ListOrders(l.ctx, &pb.ListOrdersReq{
-		UserId:   req.UserId,
-		Page:     int32(req.Page),
-		PageSize: int32(req.PageSize),
-		Status:   pb.OrderStatus(req.Status),
+		UserId:        req.UserId,
+		Page:          int32(req.Page),
+		PageSize:      int32(req.PageSize),
+		Status:        pb.OrderStatus(req.Status),
+		PaymentStatus: pb.PaymentStatus(req.PaymentStatus),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to list orders: %v", err)
