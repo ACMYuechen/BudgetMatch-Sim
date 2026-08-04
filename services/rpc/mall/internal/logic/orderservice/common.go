@@ -53,7 +53,7 @@ func idempotencyKey(key string) string {
 	return "mall:idempotency:" + key
 }
 
-// 根据支付凭证完整性计算运营测支付状态
+// 根据支付凭证完整性计算运营侧支付状态
 func paymentStatusOf(order *mall_orders.MallOrders) pb.PaymentStatus {
 	hasOutTradeNo := order.OutTradeNo != ""
 	hasTradeNo := order.TradeNo != ""
