@@ -4,6 +4,7 @@ import (
 	"auth/auth.api"
 	"seckill/seckill.api"
 	"mall/mall.api"
+	"payment/payment.api"
 	"agent/agent.api"
 )
 

@@ -1,0 +1,12 @@
+syntax = "v1"
+
+@server (
+	prefix: /api/pay
+	group:  payment
+	tags:   payment
+)
+service app {
+	@doc "支付宝异步通知"
+	@handler AlipayNotify
+	post /notify/alipay
+}
