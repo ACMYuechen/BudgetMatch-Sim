@@ -23,9 +23,9 @@ type ctxKey string
 
 const (
 	ctxKeyToken     ctxKey = "token"
-	ctxKeyUserID    ctxKey = "user_id"
+	ctxKeyUserId    ctxKey = "user_id"
 	ctxKeyRole      ctxKey = "role"
-	ctxKeyRequestID ctxKey = "request_id"
+	ctxKeyRequestId ctxKey = "request_id"
 	ctxKeyClientIP  ctxKey = "client_ip"
 	ctxKeyUserAgent ctxKey = "user_agent"
 	ctxKeyHeaders   ctxKey = "headers"
@@ -36,15 +36,15 @@ const (
 const (
 	// HeaderAuthorization 是认证信息请求头。
 	HeaderAuthorization = "Authorization"
-	// HeaderRequestID 是请求链路标识请求头。
-	HeaderRequestID = "X-Request-Id"
+	// HeaderRequestId 是请求链路标识请求头。
+	HeaderRequestId = "X-Request-Id"
 	// HeaderUserAgent 是客户端标识请求头。
 	HeaderUserAgent = "User-Agent"
 )
 
 var allowedHeaders = map[string]struct{}{
 	HeaderAuthorization: {},
-	HeaderRequestID:     {},
+	HeaderRequestId:     {},
 	HeaderUserAgent:     {},
 }
 
@@ -73,27 +73,27 @@ func MustToken(ctx context.Context) (string, error) {
 	return tk, nil
 }
 
-// ──────────────────────── UserID ────────────────────────────────────────
+// ──────────────────────── UserId ────────────────────────────────────────
 
-// WithUserID 将用户 ID 注入 Context。
-func WithUserID(ctx context.Context, userID string) context.Context {
+// WithUserId 将用户 Id 注入 Context。
+func WithUserId(ctx context.Context, userId string) context.Context {
 	return logx.ContextWithFields(
-		context.WithValue(ctx, ctxKeyUserID, userID),
-		logx.Field(string(ctxKeyUserID), userID),
+		context.WithValue(ctx, ctxKeyUserId, userId),
+		logx.Field(string(ctxKeyUserId), userId),
 	)
 }
 
-// TryUserID 返回 Context 中的用户 ID，缺失时返回空字符串。
-func TryUserID(ctx context.Context) string {
-	uid, _ := ctx.Value(ctxKeyUserID).(string)
+// TryUserId 返回 Context 中的用户 Id，缺失时返回空字符串。
+func TryUserId(ctx context.Context) string {
+	uid, _ := ctx.Value(ctxKeyUserId).(string)
 	return uid
 }
 
-// MustUserID 返回 Context 中的用户 ID，缺失时返回错误。
-func MustUserID(ctx context.Context) (string, error) {
-	uid := TryUserID(ctx)
+// MustUserId 返回 Context 中的用户 Id，缺失时返回错误。
+func MustUserId(ctx context.Context) (string, error) {
+	uid := TryUserId(ctx)
 	if uid == "" {
-		return "", errors.RequestUserIDRequired
+		return "", errors.Unauthorized
 	}
 	return uid, nil
 }
@@ -123,21 +123,21 @@ func MustRole(ctx context.Context) (int64, error) {
 	return role, nil
 }
 
-// ──────────────────────── RequestID ─────────────────────────────────────
+// ──────────────────────── RequestId ─────────────────────────────────────
 
-// WithRequestID 将请求 ID 注入 Context，同时写入 go-zero 日志字段。
-func WithRequestID(ctx context.Context, requestID string) context.Context {
+// WithRequestId 将请求 Id 注入 Context，同时写入 go-zero 日志字段。
+func WithRequestId(ctx context.Context, requestId string) context.Context {
 	return logx.ContextWithFields(
-		context.WithValue(ctx, ctxKeyRequestID, requestID),
-		logx.Field(string(ctxKeyRequestID), requestID),
+		context.WithValue(ctx, ctxKeyRequestId, requestId),
+		logx.Field(string(ctxKeyRequestId), requestId),
 	)
 }
 
-// TracedRequestID 取 traceID-spanID 作为每次调用唯一的 request_id。
+// TracedRequestId 取 traceId-spanId 作为每次调用唯一的 request_id。
 //
 // span 由服务端生成，客户端复用 traceparent 也不会撞键；
 // trace 未启用（全 0）时退回随机 uuid 避免塌缩。
-func TracedRequestID(ctx context.Context) string {
+func TracedRequestId(ctx context.Context) string {
 	tid, sid := trace.TraceIDFromContext(ctx), trace.SpanIDFromContext(ctx)
 	if isZeroHex(tid) || isZeroHex(sid) {
 		return strings.ReplaceAll(uuid.New().String(), "-", "")
@@ -157,9 +157,9 @@ func isZeroHex(s string) bool {
 	return true
 }
 
-// TryRequestID 返回 Context 中的请求 ID，缺失时返回空字符串。
-func TryRequestID(ctx context.Context) string {
-	rid, _ := ctx.Value(ctxKeyRequestID).(string)
+// TryRequestId 返回 Context 中的请求 Id，缺失时返回空字符串。
+func TryRequestId(ctx context.Context) string {
+	rid, _ := ctx.Value(ctxKeyRequestId).(string)
 	return rid
 }
 

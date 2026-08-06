@@ -8,8 +8,6 @@ const (
 	ECCodeExpired
 	ECSeckillActivityNotStart
 	ECMallPaymentAmountMismatch
-	ECRequestInvalidHeader
-	ECRequestUserIDRequired
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -64,8 +62,6 @@ const (
 	ECTokenGeneration
 	ECEmailSendFailed
 	ECSeckillSubmitFailed
-	ECRequestContextNotFound
-	ECRequestNilHTTP
 )
 
 var (
@@ -75,8 +71,6 @@ var (
 	CodeExpired               = newAppError(ECCodeExpired, "invalid.code_expired")
 	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
 	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
-	RequestInvalidHeader      = newAppError(ECRequestInvalidHeader, "request.invalid_header")
-	RequestUserIDRequired     = newAppError(ECRequestUserIDRequired, "request.user_id_required")
 )
 
 var (
