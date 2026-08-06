@@ -90,12 +90,12 @@ func TestServiceWritesMemoryOnSuccess(t *testing.T) {
 	primary := &stubAgent{name: "llm", result: &agentcore.Result{Summary: "react summary"}}
 	service := NewService(&stubAgent{name: "fallback", result: &agentcore.Result{Summary: "rule"}}, primary, mem)
 
-	_, err := service.Recommend(context.Background(), agentcore.Input{Query: "预算3000买键盘", ConversationID: "c1"})
+	_, err := service.Recommend(context.Background(), agentcore.Input{Query: "预算3000买键盘", UserID: "u1", ConversationID: "c1"})
 	if err != nil {
 		t.Fatalf("Recommend() error = %v", err)
 	}
 
-	history, err := mem.History(context.Background(), "c1", 0)
+	history, err := mem.History(context.Background(), "u1", "c1", 0)
 	if err != nil {
 		t.Fatalf("History() error = %v", err)
 	}
@@ -117,12 +117,12 @@ func TestServiceWritesMemoryOnFallback(t *testing.T) {
 	fallback := &stubAgent{name: "fallback", result: &agentcore.Result{Summary: "rule summary"}}
 	service := NewService(fallback, primary, mem)
 
-	_, err := service.Recommend(context.Background(), agentcore.Input{Query: "study", ConversationID: "c1"})
+	_, err := service.Recommend(context.Background(), agentcore.Input{Query: "study", UserID: "u1", ConversationID: "c1"})
 	if err != nil {
 		t.Fatalf("Recommend() error = %v", err)
 	}
 
-	history, err := mem.History(context.Background(), "c1", 0)
+	history, err := mem.History(context.Background(), "u1", "c1", 0)
 	if err != nil {
 		t.Fatalf("History() error = %v", err)
 	}

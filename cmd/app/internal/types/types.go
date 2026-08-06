@@ -351,10 +351,11 @@ type AgentToolCall struct {
 }
 
 type AgentRecommendResp struct {
-	Intent          AgentIntent       `json:"intent"`
-	Items           []AgentBundleItem `json:"items"`
-	TotalPriceCents int64             `json:"total_price_cents"`
-	Summary         string            `json:"summary"`
-	ToolsUsed       []AgentToolCall   `json:"tools_used"`
-	ConversationId  string            `json:"conversation_id"`
+	Intent            AgentIntent       `json:"intent"`
+	Items             []AgentBundleItem `json:"items"`
+	TotalPriceCents   int64             `json:"total_price_cents"`
+	Summary           string            `json:"summary"`
+	ToolsUsed         []AgentToolCall   `json:"tools_used"`
+	ConversationId    string            `json:"conversation_id"`
+	ConversationTitle string            `json:"conversation_title"`
 }
