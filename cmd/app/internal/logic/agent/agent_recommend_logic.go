@@ -30,7 +30,7 @@ func NewAgentRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ag
 
 func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp *types.AgentRecommendResp, err error) {
 	// 仅信任认证中间件写入的上下文，不接受 HTTP 请求体提供的用户标识。
-	userID, err := request.MustUserID(l.ctx)
+	userID, err := request.MustUserId(l.ctx)
 	if err != nil {
 		return nil, err
 	}
