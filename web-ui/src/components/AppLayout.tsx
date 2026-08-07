@@ -7,6 +7,7 @@ import {
   RobotOutlined,
   UserOutlined,
   LogoutOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@/stores/authStore'
 import type { ReactNode } from 'react'
@@ -25,6 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const menuItems = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">首页</Link> },
     { key: '/products', icon: <ShoppingOutlined />, label: <Link to="/products">商城</Link> },
+    { key: '/orders', icon: <ShoppingCartOutlined />, label: <Link to="/orders">我的订单</Link> },
     { key: '/seckill', icon: <ThunderboltOutlined />, label: <Link to="/seckill">秒杀</Link> },
     { key: '/recommend', icon: <RobotOutlined />, label: <Link to="/recommend">AI推荐</Link> },
   ]

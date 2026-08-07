@@ -39,3 +39,11 @@ export function getOrderDetail(id: string) {
 export function cancelOrder(id: string) {
   return request.post<void>(`/mall/orders/${id}/cancel`, { id })
 }
+
+export function createPayment(id: string) {
+  return request.post<{ out_trade_no: string; qr_code: string; status: number }>(`/mall/orders/${id}/pay`)
+}
+
+export function queryPayment(id: string) {
+  return request.get<{ status: number; trade_no: string }>(`/mall/orders/${id}/pay/query`)
+}
