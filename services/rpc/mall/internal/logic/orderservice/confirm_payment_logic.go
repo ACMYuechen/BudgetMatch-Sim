@@ -95,7 +95,7 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 
 		// 创建订单支付确认事件到 Outbox 表，确保事件可靠投递。
 		outboxEventId = mall_order_outbox.NewMallOrderOutboxId()
-		event := mq.OrderEvent{OrderID: order.Id, UserID: order.UserId, Status: int32(mall_orders.OrderStatusPaid), IdempotencyKey: outboxEventId}
+		event := mq.OrderEvent{OrderId: order.Id, UserId: order.UserId, Status: int32(mall_orders.OrderStatusPaid), IdempotencyKey: outboxEventId}
 		payload, err := mq.EncodeOrderEvent(mq.EventTypePaid, now, event)
 		if err != nil {
 			l.Logger.Errorf("failed to encode order paid event: order_id=%s event_id=%s error=%v", order.Id, outboxEventId, err)
