@@ -116,7 +116,7 @@ func (p *fakeProducer) SendSync(context.Context, *rocketmq.Message) (*rocketmq.S
 	if p.sendErr != nil {
 		return nil, p.sendErr
 	}
-	return &rocketmq.SendResult{MsgID: "msg-1"}, nil
+	return &rocketmq.SendResult{MsgId: "msg-1"}, nil
 }
 
 func (p *fakeProducer) Shutdown() error {

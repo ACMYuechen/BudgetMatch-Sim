@@ -85,7 +85,7 @@ func TestLoaderLoadsAllPages(t *testing.T) {
 	if !ok {
 		t.Fatal("missing candidate metadata")
 	}
-	if meta.ProductID != "p1" || meta.PriceCents != 29900 || meta.Stock != 10 || meta.Source != "mall" {
+	if meta.ProductId != "p1" || meta.PriceCents != 29900 || meta.Stock != 10 || meta.Source != "mall" {
 		t.Fatalf("unexpected candidate metadata: %+v", meta)
 	}
 }

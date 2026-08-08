@@ -48,8 +48,8 @@ func (f *fakeVectorModel) Upsert(ctx context.Context, rows []product_vectors.Pro
 	return nil
 }
 
-func (f *fakeVectorModel) UpdateMetadata(ctx context.Context, skuID string, metadata string) error {
-	f.metadataUpdates = append(f.metadataUpdates, skuID)
+func (f *fakeVectorModel) UpdateMetadata(ctx context.Context, skuId string, metadata string) error {
+	f.metadataUpdates = append(f.metadataUpdates, skuId)
 	return nil
 }
 
@@ -57,8 +57,8 @@ func (f *fakeVectorModel) ListHashes(ctx context.Context) (map[string]string, er
 	return f.hashes, nil
 }
 
-func (f *fakeVectorModel) DeleteNotIn(ctx context.Context, keepSkuIDs []string) (int64, error) {
-	f.keepOnDelete = keepSkuIDs
+func (f *fakeVectorModel) DeleteNotIn(ctx context.Context, keepSkuIds []string) (int64, error) {
+	f.keepOnDelete = keepSkuIds
 	return f.pruned, nil
 }
 
@@ -69,7 +69,7 @@ func (f *fakeVectorModel) SearchByVector(ctx context.Context, vec []float32, top
 // TestPipelineSyncPartition 验证同步分流：
 // 内容未变仅刷快照、新增/变更走索引、快照外的行被清理。
 func TestPipelineSyncPartition(t *testing.T) {
-	meta := CandidateMetadata{ProductID: "p1", Name: "n", Source: "mall"}
+	meta := CandidateMetadata{ProductId: "p1", Name: "n", Source: "mall"}
 	docs := []*schema.Document{
 		NewCandidateDocument("sku-unchanged", "同样的文本", meta),
 		NewCandidateDocument("sku-new", "新商品", meta),
@@ -116,7 +116,7 @@ func TestPipelineSyncPartition(t *testing.T) {
 
 // TestPipelineFingerprintInvalidatesHashes 验证换 embedding 模型（盐值变化）后旧 hash 全部失效。
 func TestPipelineFingerprintInvalidatesHashes(t *testing.T) {
-	docs := []*schema.Document{NewCandidateDocument("sku-1", "文本", CandidateMetadata{ProductID: "p1"})}
+	docs := []*schema.Document{NewCandidateDocument("sku-1", "文本", CandidateMetadata{ProductId: "p1"})}
 
 	oldPipeline, _ := NewPipeline(&fakeLoader{docs: docs}, nil, &fakeIndexer{}, &fakeVectorModel{}, "old-model:1536")
 	model := &fakeVectorModel{hashes: map[string]string{"sku-1": oldPipeline.contentHash("文本")}}

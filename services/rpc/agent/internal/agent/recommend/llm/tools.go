@@ -37,7 +37,7 @@ type searchResult struct {
 
 // selectArgs 是 select_bundle 工具的入参。
 type selectArgs struct {
-	CandidateIDs []string `json:"candidate_ids" jsonschema:"description=Product candidate IDs from search_products; empty means use all stored candidates"`
+	CandidateIds []string `json:"candidate_ids" jsonschema:"description=Product candidate Ids from search_products; empty means use all stored candidates"`
 	BudgetCents  int64    `json:"budget_cents" jsonschema:"description=Maximum budget in cents, use 0 when unknown"`
 	MaxItems     int32    `json:"max_items" jsonschema:"description=Maximum number of bundle items"`
 }
@@ -178,7 +178,7 @@ func (s *session) selectBundle(ctx context.Context, args selectArgs) (*selectRes
 	if args.BudgetCents <= 0 {
 		args.BudgetCents = s.intent.BudgetCents
 	}
-	candidates := s.filterCandidates(args.CandidateIDs)
+	candidates := s.filterCandidates(args.CandidateIds)
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no product candidates available; call %s first", toolSearchProducts)
 	}

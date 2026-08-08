@@ -42,7 +42,7 @@ func (s *BundleSelector) Select(candidates []tools.ProductCandidate, intent agen
 		}
 		itemScore := score(candidate, budget)
 		items = append(items, agent.BundleItem{
-			ID:         candidate.ID,
+			Id:         candidate.Id,
 			Name:       candidate.Name,
 			Category:   candidate.Category,
 			Source:     candidate.Source,

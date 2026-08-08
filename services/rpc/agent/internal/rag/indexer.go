@@ -96,7 +96,7 @@ func (i *Indexer) buildRow(doc *schema.Document, vec []float64) (product_vectors
 	hash, _ := doc.MetaData[metaContentHash].(string)
 	return product_vectors.ProductVectors{
 		SkuId:       doc.ID,
-		ProductId:   meta.ProductID,
+		ProductId:   meta.ProductId,
 		Content:     doc.Content,
 		Metadata:    metadata,
 		Embedding:   pgVector(vec),

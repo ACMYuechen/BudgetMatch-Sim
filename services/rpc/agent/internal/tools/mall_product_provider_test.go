@@ -54,8 +54,8 @@ func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 		skusByProduct: map[string][]*pb.Sku{
 			"p1": {
 				{Id: "s1", ProductId: "p1", Name: "红轴", Specs: `{"switch":"red"}`, Price: 29900, Stock: 10, Sold: 200},
-				{Id: "s2", ProductId: "p1", Name: "青轴", Price: 39900, Stock: 0, Sold: 50},     // 无库存,应被过滤
-				{Id: "s3", ProductId: "p1", Name: "旗舰版", Price: 99900, Stock: 5, Sold: 10},   // 超预算,应被过滤
+				{Id: "s2", ProductId: "p1", Name: "青轴", Price: 39900, Stock: 0, Sold: 50},  // 无库存,应被过滤
+				{Id: "s3", ProductId: "p1", Name: "旗舰版", Price: 99900, Stock: 5, Sold: 10}, // 超预算,应被过滤
 			},
 		},
 	}
@@ -74,7 +74,7 @@ func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 	}
 
 	c := got[0]
-	if c.ID != "s1" || c.Name != "静音机械键盘 红轴" || c.Category != "" || c.Source != "mall" {
+	if c.Id != "s1" || c.Name != "静音机械键盘 红轴" || c.Category != "" || c.Source != "mall" {
 		t.Fatalf("unexpected candidate mapping: %+v", c)
 	}
 	if c.PriceCents != 29900 || c.Stock != 10 || c.Sold != 200 {

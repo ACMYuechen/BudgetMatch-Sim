@@ -7,6 +7,7 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/agent/client/recommendservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -32,6 +33,11 @@ func NewAgentRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecommendReq, emit func(StreamEvent) error) error {
+	// 流式请求与普通推荐使用相同的可信用户身份来源。
+	userId, err := request.MustUserId(l.ctx)
+	if err != nil {
+		return err
+	}
 	if err := emit(StreamEvent{Event: "request.accepted", Data: map[string]any{
 		"query":           req.Query,
 		"budget_cents":    req.BudgetCents,
@@ -55,6 +61,7 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		BudgetCents:    req.BudgetCents,
 		MaxItems:       int32(req.MaxItems),
 		ConversationId: req.ConversationId,
+		UserId:         userId,
 	})
 	if err != nil {
 		_ = emit(StreamEvent{Event: "error", Data: map[string]any{

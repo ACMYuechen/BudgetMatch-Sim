@@ -96,9 +96,9 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 	// 发送事件
 	if l.svcCtx.OrderEventProducer != nil {
 		event := mq.OrderEvent{
-			OrderID:  order.Id,
-			UserID:   order.UserId,
-			SkuID:    item.SkuId,
+			OrderId:  order.Id,
+			UserId:   order.UserId,
+			SkuId:    item.SkuId,
 			Quantity: item.Quantity,
 			Status:   int32(mall_orders.OrderStatusCancelled),
 		}

@@ -24,8 +24,9 @@ type (
 		InsertOne(ctx context.Context, data *Payments) error
 		FindOne(ctx context.Context, id string) (*Payments, error)
 		FindByOutTradeNo(ctx context.Context, outTradeNo string) (*Payments, error)
-		FindByOrderID(ctx context.Context, orderID string) (*Payments, error)
+		FindByOrderId(ctx context.Context, orderId string) (*Payments, error)
 		Update(ctx context.Context, data *Payments) error
+		MarkPaidIfPending(ctx context.Context, data *Payments) (bool, error)
 	}
 
 	defaultPaymentsModel struct {
@@ -91,10 +92,10 @@ func (m *defaultPaymentsModel) FindByOutTradeNo(ctx context.Context, outTradeNo 
 	return model, nil
 }
 
-// FindByOrderID 返回该订单最近一笔支付流水。
-func (m *defaultPaymentsModel) FindByOrderID(ctx context.Context, orderID string) (*Payments, error) {
+// FindByOrderId 返回该订单最近一笔支付流水。
+func (m *defaultPaymentsModel) FindByOrderId(ctx context.Context, orderId string) (*Payments, error) {
 	model := &Payments{}
-	err := m.conn.WithContext(ctx).Where("order_id = ?", orderID).Order("created_at DESC").First(model).Error
+	err := m.conn.WithContext(ctx).Where("order_id = ?", orderId).Order("created_at DESC").First(model).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -106,4 +107,22 @@ func (m *defaultPaymentsModel) FindByOrderID(ctx context.Context, orderID string
 
 func (m *defaultPaymentsModel) Update(ctx context.Context, data *Payments) error {
 	return m.conn.WithContext(ctx).Save(data).Error
+}
+
+// 通过条件更新保证支付流水状态迁移的并发幂等
+func (m *defaultPaymentsModel) MarkPaidIfPending(ctx context.Context, data *Payments) (bool, error) {
+	updates := map[string]interface{}{
+		"status":   StatusSuccess,
+		"trade_no": data.TradeNo,
+		"paid_at":  data.PaidAt,
+		"buyer_id": data.BuyerId,
+	}
+	if data.NotifyRaw != "" {
+		updates["notify_raw"] = data.NotifyRaw
+	}
+	result := m.conn.WithContext(ctx).Model(&Payments{}).Where("id = ? AND status = ?", data.Id, StatusPending).Updates(updates)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected == 1, nil
 }

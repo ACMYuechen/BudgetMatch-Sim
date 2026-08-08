@@ -4,11 +4,13 @@ import (
 	"budgetmatch-sim/infra/alipay"
 	"budgetmatch-sim/infra/database"
 	iredis "budgetmatch-sim/infra/redis"
+	"budgetmatch-sim/services/rpc/mall/client/orderservice"
 	"budgetmatch-sim/services/rpc/payment/internal/config"
 	"budgetmatch-sim/services/rpc/payment/model/payments"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/zrpc"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +20,7 @@ type ServiceContext struct {
 	Redis        redis.UniversalClient
 	PaymentStore payments.PaymentsModel
 	Alipay       *alipay.Client
+	OrderRpc     orderservice.OrderService
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -52,11 +55,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Info("alipay not configured, payment will be unavailable until keys are set")
 	}
 
+	// init order service
+	orderRpc := orderservice.NewOrderService(zrpc.MustNewClient(c.MallRpc))
+
 	return &ServiceContext{
 		Config:       c,
 		DB:           db.DB(),
 		Redis:        redisClient.Client(),
 		PaymentStore: paymentStore,
 		Alipay:       aliClient,
+		OrderRpc:     orderRpc,
 	}
 }

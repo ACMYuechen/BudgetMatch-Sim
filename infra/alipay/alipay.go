@@ -19,7 +19,7 @@ import (
 //
 // 密钥均为「密钥模式」下的 PKCS1/PKCS8 字符串（不含 -----BEGIN----- 头亦可）。
 type Config struct {
-	AppID           string `json:",optional"` // 应用 AppID
+	AppId           string `json:",optional"` // 应用 AppId
 	PrivateKey      string `json:",optional"` // 应用私钥
 	AlipayPublicKey string `json:",optional"` // 支付宝公钥（用于验签）
 	IsProduction    bool   `json:",default=false"`
@@ -30,7 +30,7 @@ type Config struct {
 // Enabled 表示是否已填入必要密钥。未配置时 payment-rpc 仍可启动，
 // 但发起支付会返回未配置错误，方便先把结构跑起来、密钥后补。
 func (c Config) Enabled() bool {
-	return c.AppID != "" && c.PrivateKey != "" && c.AlipayPublicKey != ""
+	return c.AppId != "" && c.PrivateKey != "" && c.AlipayPublicKey != ""
 }
 
 // Client 支付宝客户端封装。
@@ -42,7 +42,7 @@ type Client struct {
 // PreCreateResult 预下单（当面付扫码）结果。
 type PreCreateResult struct {
 	OutTradeNo string
-	QRCode     string // 二维码码串，前端据此渲染二维码图片
+	QrCode     string // 二维码码串，前端据此渲染二维码图片
 }
 
 // QueryResult 交易查询结果。
@@ -50,7 +50,7 @@ type QueryResult struct {
 	TradeStatus string // 原始交易状态：WAIT_BUYER_PAY / TRADE_SUCCESS / TRADE_FINISHED / TRADE_CLOSED
 	TradeNo     string
 	OutTradeNo  string
-	BuyerID     string
+	BuyerId     string
 	BuyerLogon  string
 	Paid        bool // TRADE_SUCCESS 或 TRADE_FINISHED
 }
@@ -61,7 +61,7 @@ func NewClient(cfg Config) (*Client, error) {
 		return nil, nil
 	}
 
-	c, err := alipay.New(cfg.AppID, cfg.PrivateKey, cfg.IsProduction)
+	c, err := alipay.New(cfg.AppId, cfg.PrivateKey, cfg.IsProduction)
 	if err != nil {
 		return nil, fmt.Errorf("alipay: init client failed: %w", err)
 	}
@@ -91,7 +91,7 @@ func (c *Client) PreCreate(ctx context.Context, outTradeNo, subject string, amou
 
 	return &PreCreateResult{
 		OutTradeNo: rsp.OutTradeNo,
-		QRCode:     rsp.QRCode,
+		QrCode:     rsp.QRCode,
 	}, nil
 }
 
@@ -124,7 +124,7 @@ func (c *Client) Query(ctx context.Context, outTradeNo, tradeNo string) (*QueryR
 		TradeStatus: status,
 		TradeNo:     rsp.TradeNo,
 		OutTradeNo:  rsp.OutTradeNo,
-		BuyerID:     rsp.BuyerUserId,
+		BuyerId:     rsp.BuyerUserId,
 		BuyerLogon:  rsp.BuyerLogonId,
 		Paid:        status == string(alipay.TradeStatusSuccess) || status == string(alipay.TradeStatusFinished),
 	}, nil
