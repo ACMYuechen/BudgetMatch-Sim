@@ -13,14 +13,14 @@ import (
 )
 
 func TestNormalizeOrderEventDedupKeySupportsLegacyPayload(t *testing.T) {
-	event := &OrderEvent{OrderID: "order-1", EventType: EventTypePaid, IdempotencyKey: "legacy-random-id"}
+	event := &OrderEvent{OrderId: "order-1", EventType: EventTypePaid, IdempotencyKey: "legacy-random-id"}
 	assert.Equal(t, "order:order-1:paid", NormalizeOrderEventDedupKey(event))
 }
 
 func TestConsumerProcessesDuplicateEventOnce(t *testing.T) {
 	inbox := &fakeInbox{}
 	consumer := NewOrderEventConsumer(rocketMQConfigForTest(), nil, nil, inbox)
-	body, err := EncodeOrderEvent(EventTypePaid, time.Now(), OrderEvent{OrderID: "order-1"})
+	body, err := EncodeOrderEvent(EventTypePaid, time.Now(), OrderEvent{OrderId: "order-1"})
 	require.NoError(t, err)
 
 	require.NoError(t, consumer.handleMessage(context.Background(), TopicOrderPaid, body))

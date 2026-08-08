@@ -163,6 +163,13 @@ enum OrderStatus {
   ORDER_STATUS_REFUNDED    = 7;
 }
 
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_UNPAID      = 1;
+  PAYMENT_STATUS_PAID        = 2;
+  PAYMENT_STATUS_ABNORMAL    = 3;
+}
+
 message OrderItem {
   string product_id      = 1;
   string sku_id          = 2;
@@ -189,6 +196,9 @@ message Order {
   repeated OrderItem items        = 12;
   string          created_at      = 13;
   string          updated_at      = 14;
+  PaymentStatus   payment_status  = 15;
+  string          out_trade_no    = 16;
+  string          trade_no        = 17;
 }
 
 message CreateOrderReq {
@@ -214,10 +224,11 @@ message GetOrderResp {
 }
 
 message ListOrdersReq {
-  string      user_id   = 1;
-  int32       page      = 2;
-  int32       page_size = 3;
-  OrderStatus status    = 4;
+  string        user_id        = 1;
+  int32         page           = 2;
+  int32         page_size      = 3;
+  OrderStatus   status         = 4;
+  PaymentStatus payment_status = 5;
 }
 
 message ListOrdersResp {

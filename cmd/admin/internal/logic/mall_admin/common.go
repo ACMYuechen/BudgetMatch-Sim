@@ -71,6 +71,9 @@ func orderToType(o *pb.Order) types.AdminOrderResp {
 		Items:          items,
 		CreatedAt:      o.CreatedAt,
 		UpdatedAt:      o.UpdatedAt,
+		PaymentStatus:  int32(o.PaymentStatus),
+		OutTradeNo:     o.OutTradeNo,
+		TradeNo:        o.TradeNo,
 	}
 }
 

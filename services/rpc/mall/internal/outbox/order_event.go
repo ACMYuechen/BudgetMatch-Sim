@@ -16,13 +16,13 @@ func NewOrderEvent(eventType string, eventTime time.Time, event mq.OrderEvent) (
 	if err != nil {
 		return nil, err
 	}
-	if event.OrderID == "" {
+	if event.OrderId == "" {
 		return nil, fmt.Errorf("order event order id is empty")
 	}
 
 	eventID := mall_order_outbox.NewMallOrderOutboxId()
-	dedupKey := mq.OrderEventDedupKey(event.OrderID, eventType)
-	event.EventID = eventID
+	dedupKey := mq.OrderEventDedupKey(event.OrderId, eventType)
+	event.EventId = eventID
 	event.DedupKey = dedupKey
 	// Keep the existing field during the compatibility window. New consumers
 	// use dedup_key, while older consumers still receive a stable key.
@@ -35,7 +35,7 @@ func NewOrderEvent(eventType string, eventTime time.Time, event mq.OrderEvent) (
 	return &mall_order_outbox.MallOrderOutbox{
 		Id:            eventID,
 		AggregateType: "order",
-		AggregateId:   event.OrderID,
+		AggregateId:   event.OrderId,
 		EventType:     eventType,
 		DedupKey:      dedupKey,
 		Topic:         topic,

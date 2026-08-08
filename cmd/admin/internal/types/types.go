@@ -376,13 +376,17 @@ type AdminOrderResp struct {
 	Items          []AdminOrderItem `json:"items"`
 	CreatedAt      string           `json:"created_at"`
 	UpdatedAt      string           `json:"updated_at"`
+	PaymentStatus  int32            `json:"payment_status"`
+	OutTradeNo     string           `json:"out_trade_no"`
+	TradeNo        string           `json:"trade_no"`
 }
 
 type AdminOrderListReq struct {
-	Page     int    `form:"page,default=1"`
-	PageSize int    `form:"page_size,default=10"`
-	Status   int32  `form:"status,default=-1"`
-	UserId   string `form:"user_id"`
+	Page          int    `form:"page,default=1"`
+	PageSize      int    `form:"page_size,default=10"`
+	Status        int32  `form:"status,default=-1"`
+	UserId        string `form:"user_id"`
+	PaymentStatus int32  `form:"payment_status,default=-1"`
 }
 
 type AdminOrderListResp struct {
