@@ -29,8 +29,8 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 }
 
 func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.SubmitOrderResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
+	userId := l.ctx.Value("user_id")
+	if userId == nil {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
@@ -38,7 +38,7 @@ func (l *SubmitOrderLogic) SubmitOrder(req *types.SubmitOrderReq) (resp *types.S
 	rpcResp, err := l.svcCtx.SeckillClient.SubmitOrder(l.ctx, &pb.SubmitOrderReq{
 		ActivityId: req.ActivityId,
 		SkuId:      req.SkuId,
-		UserId:     userID.(string),
+		UserId:     userId.(string),
 		Token:      req.Token,
 		Quantity:   int32(req.Quantity),
 	})

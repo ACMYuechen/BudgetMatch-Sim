@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	Endpoint        string `json:"endpoint"`
-	AccessKeyID     string `json:"accessKeyID"`
+	AccessKeyId     string `json:"accessKeyID"`
 	AccessKeySecret string `json:"accessKeySecret"`
 	BucketName      string `json:"bucketName"`
 	Domain          string `json:"domain"`
@@ -20,7 +20,7 @@ type OSS struct {
 }
 
 func NewOSS(cfg Config) (*OSS, error) {
-	client, err := oss.New(cfg.Endpoint, cfg.AccessKeyID, cfg.AccessKeySecret)
+	client, err := oss.New(cfg.Endpoint, cfg.AccessKeyId, cfg.AccessKeySecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OSS client: %w", err)
 	}

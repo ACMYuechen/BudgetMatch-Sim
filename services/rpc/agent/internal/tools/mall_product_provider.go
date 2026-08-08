@@ -139,11 +139,11 @@ func (p *MallProductProvider) collectProducts(ctx context.Context, terms []strin
 }
 
 // collectSkus 分页拉取商品的全部上架 SKU。
-func (p *MallProductProvider) collectSkus(ctx context.Context, productID string) ([]*pb.Sku, error) {
+func (p *MallProductProvider) collectSkus(ctx context.Context, productId string) ([]*pb.Sku, error) {
 	var skus []*pb.Sku
 	for page := int32(1); page <= mallMaxSkuPages; page++ {
 		resp, err := p.client.ListSkusByProduct(ctx, &pb.ListSkusByProductReq{
-			ProductId: productID,
+			ProductId: productId,
 			Page:      page,
 			PageSize:  mallSkuPageSize,
 			Status:    mallStatusOnShelf,
@@ -162,7 +162,7 @@ func (p *MallProductProvider) collectSkus(ctx context.Context, productID string)
 // candidateFromSku 把商品与 SKU 映射为候选：名称拼接 SPU+SKU，标签取供应商与规格值。
 func candidateFromSku(product *pb.Product, sku *pb.Sku) ProductCandidate {
 	return ProductCandidate{
-		ID:         sku.Id,
+		Id:         sku.Id,
 		Name:       joinName(product.Name, sku.Name),
 		Source:     "mall",
 		PriceCents: sku.Price,

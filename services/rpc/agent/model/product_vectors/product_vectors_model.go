@@ -49,11 +49,11 @@ type (
 		// Upsert 按 sku_id 批量插入或更新向量行。
 		Upsert(ctx context.Context, rows []ProductVectors) error
 		// UpdateMetadata 仅刷新业务快照（价格/库存等），用于文本未变的轻量同步。
-		UpdateMetadata(ctx context.Context, skuID string, metadata string) error
+		UpdateMetadata(ctx context.Context, skuId string, metadata string) error
 		// ListHashes 返回全表 sku_id -> content_hash，用于增量比对。
 		ListHashes(ctx context.Context) (map[string]string, error)
 		// DeleteNotIn 删除不在保留列表中的行（下架/删除的商品），返回删除行数。
-		DeleteNotIn(ctx context.Context, keepSkuIDs []string) (int64, error)
+		DeleteNotIn(ctx context.Context, keepSkuIds []string) (int64, error)
 		// SearchByVector 余弦相似度检索 topK 条，结果按相似度降序。
 		SearchByVector(ctx context.Context, vec []float32, topK int) ([]ScoredProductVector, error)
 	}
@@ -148,12 +148,12 @@ func (m *defaultProductVectorsModel) Upsert(ctx context.Context, rows []ProductV
 }
 
 // UpdateMetadata 仅刷新业务快照与更新时间。
-func (m *defaultProductVectorsModel) UpdateMetadata(ctx context.Context, skuID string, metadata string) error {
+func (m *defaultProductVectorsModel) UpdateMetadata(ctx context.Context, skuId string, metadata string) error {
 	err := m.conn.WithContext(ctx).Model(&ProductVectors{}).
-		Where("sku_id = ?", skuID).
+		Where("sku_id = ?", skuId).
 		Updates(map[string]any{"metadata": metadata, "updated_at": time.Now()}).Error
 	if err != nil {
-		return fmt.Errorf("product_vectors: update metadata for %s: %w", skuID, err)
+		return fmt.Errorf("product_vectors: update metadata for %s: %w", skuId, err)
 	}
 	return nil
 }
@@ -177,13 +177,13 @@ func (m *defaultProductVectorsModel) ListHashes(ctx context.Context) (map[string
 }
 
 // DeleteNotIn 删除保留列表之外的行；保留列表为空表示数据源已清空，同步清空整表。
-func (m *defaultProductVectorsModel) DeleteNotIn(ctx context.Context, keepSkuIDs []string) (int64, error) {
+func (m *defaultProductVectorsModel) DeleteNotIn(ctx context.Context, keepSkuIds []string) (int64, error) {
 	session := m.conn.WithContext(ctx)
 	var result *gorm.DB
-	if len(keepSkuIDs) == 0 {
+	if len(keepSkuIds) == 0 {
 		result = session.Where("1 = 1").Delete(&ProductVectors{})
 	} else {
-		result = session.Where("sku_id NOT IN ?", keepSkuIDs).Delete(&ProductVectors{})
+		result = session.Where("sku_id NOT IN ?", keepSkuIds).Delete(&ProductVectors{})
 	}
 	if result.Error != nil {
 		return 0, fmt.Errorf("product_vectors: prune stale rows: %w", result.Error)

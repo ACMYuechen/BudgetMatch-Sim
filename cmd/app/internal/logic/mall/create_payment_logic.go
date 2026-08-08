@@ -30,13 +30,13 @@ func NewCreatePaymentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 }
 
 func (l *CreatePaymentLogic) CreatePayment(req *types.MallCreatePaymentReq) (resp *types.MallCreatePaymentResp, err error) {
-	userID, err := authenticatedUserID(l.ctx)
+	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 
-	order, err := loadPaymentOrder(l.ctx, l.svcCtx, req.Id, userID)
+	order, err := loadPaymentOrder(l.ctx, l.svcCtx, req.Id, userId)
 	if err != nil {
 		l.Logger.Errorf("failed to load payment order: %v", err)
 		return nil, err
@@ -48,7 +48,7 @@ func (l *CreatePaymentLogic) CreatePayment(req *types.MallCreatePaymentReq) (res
 
 	rpcResp, err := l.svcCtx.PaymentClient.CreatePayment(l.ctx, &paymentpb.CreatePaymentReq{
 		OrderId: order.Id,
-		UserId:  userID,
+		UserId:  userId,
 		Amount:  order.PayAmount,
 	})
 	if err != nil {

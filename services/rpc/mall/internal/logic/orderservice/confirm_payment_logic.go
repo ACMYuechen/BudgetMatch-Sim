@@ -95,8 +95,8 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 
 		// 创建订单支付确认事件到 Outbox 表，确保事件可靠投递。
 		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypePaid, now, mq.OrderEvent{
-			OrderID: order.Id,
-			UserID:  order.UserId,
+			OrderId: order.Id,
+			UserId:  order.UserId,
 			Status:  int32(mall_orders.OrderStatusPaid),
 		})
 		if err != nil {

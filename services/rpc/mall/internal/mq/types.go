@@ -22,11 +22,11 @@ const (
 
 // OrderEvent 订单事件消息体
 type OrderEvent struct {
-	EventID        string `json:"event_id"`
+	EventId        string `json:"event_id"`
 	DedupKey       string `json:"dedup_key"`
-	OrderID        string `json:"order_id"`
-	UserID         string `json:"user_id"`
-	SkuID          string `json:"sku_id"`
+	OrderId        string `json:"order_id"`
+	UserId         string `json:"user_id"`
+	SkuId          string `json:"sku_id"`
 	Quantity       int64  `json:"quantity"`
 	Status         int32  `json:"status"`
 	EventType      string `json:"event_type"`
@@ -50,10 +50,10 @@ func NormalizeOrderEventDedupKey(event *OrderEvent) string {
 	if event.DedupKey != "" {
 		return event.DedupKey
 	}
-	if event.OrderID == "" || event.EventType == "" {
+	if event.OrderId == "" || event.EventType == "" {
 		return ""
 	}
-	return OrderEventDedupKey(event.OrderID, event.EventType)
+	return OrderEventDedupKey(event.OrderId, event.EventType)
 }
 
 // EncodeOrderEvent 序列化订单事件

@@ -29,14 +29,14 @@ func NewGetUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 }
 
 func (l *GetUserInfoLogic) GetUserInfo(req *types.GetUserInfoReq) (resp *types.GetUserInfoResp, err error) {
-	userID := l.ctx.Value("user_id")
-	if userID == nil {
+	userId := l.ctx.Value("user_id")
+	if userId == nil {
 		l.Logger.Errorf("return error: %v", errors.Unauthorized)
 		return nil, errors.Unauthorized
 	}
 
 	rpcResp, err := l.svcCtx.UserClient.GetUserInfo(l.ctx, &pb.GetUserInfoReq{
-		UserId: userID.(string),
+		UserId: userId.(string),
 	})
 	if err != nil {
 		l.Logger.Errorf("failed to get user info: %v", err)

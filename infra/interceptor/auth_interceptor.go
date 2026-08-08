@@ -17,7 +17,7 @@ import (
 type contextKey string
 
 const (
-	ContextKeyUserID contextKey = "user_id"
+	ContextKeyUserId contextKey = "user_id"
 	ContextKeyRole   contextKey = "role"
 	ContextKeyToken  contextKey = "token"
 )
@@ -61,7 +61,7 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 		}
 
 		// 4. 提取 user_id
-		userID, err := auth.GetUserIdFromToken(tokenString, cfg.Secret)
+		userId, err := auth.GetUserIdFromToken(tokenString, cfg.Secret)
 		if err != nil {
 			return nil, errors.InvalidToken
 		}
@@ -84,7 +84,7 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 		}
 
 		// 7. 注入 context（user_id、role、原始 token，供下游 RPC 调用传播）
-		ctx = context.WithValue(ctx, ContextKeyUserID, userID)
+		ctx = context.WithValue(ctx, ContextKeyUserId, userId)
 		ctx = context.WithValue(ctx, ContextKeyRole, int64(userRole))
 		ctx = context.WithValue(ctx, ContextKeyToken, tokenString)
 

@@ -33,14 +33,14 @@ func TestManagerRoundTrip(t *testing.T) {
 
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
-			if err := m.Append(ctx, "c1", schema.UserMessage("预算3000买学习用品"), schema.AssistantMessage("已选3件商品", nil)); err != nil {
+			if err := m.Append(ctx, "u1", "c1", schema.UserMessage("预算3000买学习用品"), schema.AssistantMessage("已选3件商品", nil)); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
-			if err := m.Append(ctx, "c1", toolMsg); err != nil {
+			if err := m.Append(ctx, "u1", "c1", toolMsg); err != nil {
 				t.Fatalf("Append(toolMsg) error = %v", err)
 			}
 
-			got, err := m.History(ctx, "c1", 0)
+			got, err := m.History(ctx, "u1", "c1", 0)
 			if err != nil {
 				t.Fatalf("History() error = %v", err)
 			}
@@ -65,17 +65,17 @@ func TestManagerDeepCopy(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
-			if err := m.Append(ctx, "c1", schema.UserMessage("原始内容")); err != nil {
+			if err := m.Append(ctx, "u1", "c1", schema.UserMessage("原始内容")); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
 
-			first, err := m.History(ctx, "c1", 0)
+			first, err := m.History(ctx, "u1", "c1", 0)
 			if err != nil {
 				t.Fatalf("History() error = %v", err)
 			}
 			first[0].Content = "被调用方改写"
 
-			again, err := m.History(ctx, "c1", 0)
+			again, err := m.History(ctx, "u1", "c1", 0)
 			if err != nil {
 				t.Fatalf("History() again error = %v", err)
 			}
@@ -92,14 +92,14 @@ func TestManagerWindow(t *testing.T) {
 	for name, m := range newManagers(t, Conf{MaxHistory: 5}) { // 5 归一化为 4
 		t.Run(name, func(t *testing.T) {
 			for i, q := range []string{"第一轮", "第二轮", "第三轮"} {
-				if err := m.Append(ctx, "c1",
+				if err := m.Append(ctx, "u1", "c1",
 					schema.UserMessage(q),
 					schema.AssistantMessage("回答"+q, nil)); err != nil {
 					t.Fatalf("Append(round %d) error = %v", i, err)
 				}
 			}
 
-			got, err := m.History(ctx, "c1", 0)
+			got, err := m.History(ctx, "u1", "c1", 0)
 			if err != nil {
 				t.Fatalf("History() error = %v", err)
 			}
@@ -121,7 +121,7 @@ func TestManagerMissingConversation(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
-			got, err := m.History(ctx, "ghost", 0)
+			got, err := m.History(ctx, "u1", "ghost", 0)
 			if err != nil {
 				t.Fatalf("History() error = %v", err)
 			}
@@ -133,17 +133,36 @@ func TestManagerMissingConversation(t *testing.T) {
 }
 
 // TestManagerClear 验证清空会话后历史为空。
+
+func TestManagerUserIsolation(t *testing.T) {
+	ctx := context.Background()
+	for name, m := range newManagers(t, Conf{}) {
+		t.Run(name, func(t *testing.T) {
+			if err := m.Append(ctx, "user-a", "c1", schema.UserMessage("only user a can read this")); err != nil {
+				t.Fatalf("Append() error = %v", err)
+			}
+			got, err := m.History(ctx, "user-b", "c1", 0)
+			if err != nil {
+				t.Fatalf("History() error = %v", err)
+			}
+			if len(got) != 0 {
+				t.Fatalf("history leaked across users: %+v", got)
+			}
+		})
+	}
+}
+
 func TestManagerClear(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
-			if err := m.Append(ctx, "c1", schema.UserMessage("hi")); err != nil {
+			if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
-			if err := m.Clear(ctx, "c1"); err != nil {
+			if err := m.Clear(ctx, "u1", "c1"); err != nil {
 				t.Fatalf("Clear() error = %v", err)
 			}
-			got, err := m.History(ctx, "c1", 0)
+			got, err := m.History(ctx, "u1", "c1", 0)
 			if err != nil {
 				t.Fatalf("History() error = %v", err)
 			}
@@ -154,12 +173,12 @@ func TestManagerClear(t *testing.T) {
 	}
 }
 
-// TestManagerEmptyConversationID 验证空会话 ID 直接报错，避免写进共享的空 key。
-func TestManagerEmptyConversationID(t *testing.T) {
+// TestManagerEmptyConversationId 验证空会话 ID 直接报错，避免写进共享的空 key。
+func TestManagerEmptyConversationId(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
-			if err := m.Append(ctx, "", schema.UserMessage("hi")); err == nil {
+			if err := m.Append(ctx, "u1", "", schema.UserMessage("hi")); err == nil {
 				t.Fatal("expected error for empty conversation id")
 			}
 		})
@@ -174,15 +193,22 @@ func TestRedisTTL(t *testing.T) {
 	t.Cleanup(func() { _ = client.Close() })
 
 	m := NewRedis(client, Conf{TTL: time.Minute})
-	if err := m.Append(ctx, "c1", schema.UserMessage("hi")); err != nil {
+	if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 		t.Fatalf("Append() error = %v", err)
 	}
-	if ttl := mr.TTL(convKey("c1")); ttl != time.Minute {
+	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
 		t.Fatalf("expected ttl 1m, got %v", ttl)
+	}
+	mr.FastForward(30 * time.Second)
+	if err := m.Append(ctx, "u1", "c1", schema.AssistantMessage("still active", nil)); err != nil {
+		t.Fatalf("Append() refresh error = %v", err)
+	}
+	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
+		t.Fatalf("expected refreshed ttl 1m, got %v", ttl)
 	}
 
 	mr.FastForward(2 * time.Minute)
-	got, err := m.History(ctx, "c1", 0)
+	got, err := m.History(ctx, "u1", "c1", 0)
 	if err != nil {
 		t.Fatalf("History() after expire error = %v", err)
 	}

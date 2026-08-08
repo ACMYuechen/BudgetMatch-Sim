@@ -85,9 +85,9 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		}
 
 		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypeCancelled, now, mq.OrderEvent{
-			OrderID:  order.Id,
-			UserID:   order.UserId,
-			SkuID:    item.SkuId,
+			OrderId:  order.Id,
+			UserId:   order.UserId,
+			SkuId:    item.SkuId,
 			Quantity: item.Quantity,
 			Status:   int32(mall_orders.OrderStatusCancelled),
 		})

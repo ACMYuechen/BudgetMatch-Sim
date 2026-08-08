@@ -78,7 +78,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	// 4. 在数据库事务中创建订单
-	orderID := mall_orders.NewMallOrderId()
+	orderId := mall_orders.NewMallOrderId()
 	originalAmount := sku.Price * in.Quantity
 	discountAmount := int64(0)
 	payAmount := originalAmount - discountAmount
@@ -95,7 +95,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	snapshotJSON, _ := json.Marshal(snapshot)
 
 	order := &mall_orders.MallOrders{
-		Id:             orderID,
+		Id:             orderId,
 		UserId:         in.UserId,
 		OriginalAmount: originalAmount,
 		DiscountAmount: discountAmount,
@@ -110,7 +110,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 
 	item := &mall_order_items.MallOrderItems{
 		Id:             mall_order_items.NewMallOrderItemId(),
-		OrderId:        orderID,
+		OrderId:        orderId,
 		ProductId:      product.Id,
 		SkuId:          sku.Id,
 		SkuName:        sku.Name,
@@ -122,10 +122,10 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	deductions := []struct {
-		SkuID    string
+		SkuId    string
 		Quantity int64
 	}{{
-		SkuID:    sku.Id,
+		SkuId:    sku.Id,
 		Quantity: in.Quantity,
 	}}
 
@@ -146,7 +146,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		// 扣减 SKU 库存（乐观锁）
 		now := time.Now()
 		for _, d := range deductions {
-			ok, err := l.svcCtx.SkuStore.DeductStockTx(tx, d.SkuID, d.Quantity, now)
+			ok, err := l.svcCtx.SkuStore.DeductStockTx(tx, d.SkuId, d.Quantity, now)
 			if err != nil {
 				l.Logger.Errorf("return error: %v", err)
 				return err
@@ -158,18 +158,18 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 		}
 
 		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypeCreated, now, mq.OrderEvent{
-			OrderID:  orderID,
-			UserID:   in.UserId,
-			SkuID:    sku.Id,
+			OrderId:  orderId,
+			UserId:   in.UserId,
+			SkuId:    sku.Id,
 			Quantity: in.Quantity,
 			Status:   int32(mall_orders.OrderStatusPending),
 		})
 		if err != nil {
-			l.Logger.Errorf("failed to build order created event: order_id=%s error=%v", orderID, err)
+			l.Logger.Errorf("failed to build order created event: order_id=%s error=%v", order.Id, err)
 			return err
 		}
 		if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
-			l.Logger.Errorf("failed to insert order created outbox event: order_id=%s event_id=%s error=%v", orderID, outboxEvent.Id, err)
+			l.Logger.Errorf("failed to insert order created outbox event: order_id=%s event_id=%s error=%v", orderId, outboxEvent.Id, err)
 			return err
 		}
 
@@ -185,7 +185,7 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 	}
 
 	// 6. 记录幂等键
-	_ = l.svcCtx.Redis.Set(l.ctx, idempKey, orderID, 24*time.Hour).Err()
+	_ = l.svcCtx.Redis.Set(l.ctx, idempKey, orderId, 24*time.Hour).Err()
 
-	return &pb.CreateOrderResp{OrderId: orderID, Status: pb.OrderStatus_ORDER_STATUS_PENDING}, nil
+	return &pb.CreateOrderResp{OrderId: orderId, Status: pb.OrderStatus_ORDER_STATUS_PENDING}, nil
 }

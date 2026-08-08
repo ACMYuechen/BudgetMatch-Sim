@@ -93,10 +93,10 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 
 		if newStatus == mall_orders.OrderStatusPaid || newStatus == mall_orders.OrderStatusCancelled {
 			eventType := mq.EventTypePaid
-			event := mq.OrderEvent{OrderID: order.Id, UserID: order.UserId, Status: int32(newStatus)}
+			event := mq.OrderEvent{OrderId: order.Id, UserId: order.UserId, Status: int32(newStatus)}
 			if newStatus == mall_orders.OrderStatusCancelled {
 				eventType = mq.EventTypeCancelled
-				event.SkuID = cancellationItems[0].SkuId
+				event.SkuId = cancellationItems[0].SkuId
 				event.Quantity = cancellationItems[0].Quantity
 			}
 			outboxEvent, err := outbox.NewOrderEvent(eventType, now, event)

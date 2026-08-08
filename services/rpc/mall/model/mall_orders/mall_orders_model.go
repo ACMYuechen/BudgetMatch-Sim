@@ -22,9 +22,9 @@ type (
 		// FindOneForUpdateTx 在事务中查询订单并加行锁。
 		FindOneForUpdateTx(tx *gorm.DB, id string) (*MallOrders, error)
 		// UpdateStatusTx 使用乐观锁条件更新订单状态，返回是否实际更新成功。
-		UpdateStatusTx(tx *gorm.DB, id, userID string, fromStatus, toStatus int, now time.Time) (bool, error)
+		UpdateStatusTx(tx *gorm.DB, id, userId string, fromStatus, toStatus int, now time.Time) (bool, error)
 		// MarkPaidTx 使用乐观锁将订单从 fromStatus 标记为已支付，并写入支付方式与支付时间，返回是否实际更新成功。
-		MarkPaidTx(tx *gorm.DB, id, userID string, fromStatus int, payType string, now time.Time) (bool, error)
+		MarkPaidTx(tx *gorm.DB, id, userId string, fromStatus int, payType string, now time.Time) (bool, error)
 		// ConfirmPaymentTx 原子地确认支付，并写入本次支付的唯一标识。
 		ConfirmPaymentTx(tx *gorm.DB, req *ConfirmPaymentTxReq) (bool, error)
 	}
@@ -78,9 +78,9 @@ func (m *customMallOrdersModel) FindOneForUpdateTx(tx *gorm.DB, id string) (*Mal
 }
 
 // UpdateStatusTx 使用乐观锁条件更新订单状态，返回是否实际更新成功。
-func (m *customMallOrdersModel) UpdateStatusTx(tx *gorm.DB, id, userID string, fromStatus, toStatus int, now time.Time) (bool, error) {
+func (m *customMallOrdersModel) UpdateStatusTx(tx *gorm.DB, id, userId string, fromStatus, toStatus int, now time.Time) (bool, error) {
 	result := tx.Model(&MallOrders{}).
-		Where("id = ? AND user_id = ? AND status = ?", id, userID, fromStatus).
+		Where("id = ? AND user_id = ? AND status = ?", id, userId, fromStatus).
 		Updates(map[string]any{
 			"status":     toStatus,
 			"updated_at": now,
@@ -92,9 +92,9 @@ func (m *customMallOrdersModel) UpdateStatusTx(tx *gorm.DB, id, userID string, f
 }
 
 // MarkPaidTx 使用乐观锁将订单从 fromStatus 标记为已支付，并写入支付方式与支付时间，返回是否实际更新成功。
-func (m *customMallOrdersModel) MarkPaidTx(tx *gorm.DB, id, userID string, fromStatus int, payType string, now time.Time) (bool, error) {
+func (m *customMallOrdersModel) MarkPaidTx(tx *gorm.DB, id, userId string, fromStatus int, payType string, now time.Time) (bool, error) {
 	result := tx.Model(&MallOrders{}).
-		Where("id = ? AND user_id = ? AND status = ?", id, userID, fromStatus).
+		Where("id = ? AND user_id = ? AND status = ?", id, userId, fromStatus).
 		Updates(map[string]any{
 			"status":     OrderStatusPaid,
 			"pay_type":   payType,

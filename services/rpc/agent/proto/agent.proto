@@ -41,7 +41,8 @@ message RecommendResp {
   int64               total_price_cents = 3;
   string              summary           = 4;
   repeated ToolCall   tools_used        = 5;
-  string              conversation_id   = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
+  string              conversation_id    = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
+  string              conversation_title = 7; // 会话稳定展示标题
 }
 
 service RecommendService {

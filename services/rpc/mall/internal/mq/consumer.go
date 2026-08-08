@@ -145,7 +145,7 @@ func (c *OrderEventConsumer) handleMessage(ctx context.Context, topic string, bo
 	}
 	dedupKey := NormalizeOrderEventDedupKey(event)
 	if dedupKey == "" {
-		return fmt.Errorf("order event dedup key is empty: topic=%s order_id=%s event_type=%s", topic, event.OrderID, event.EventType)
+		return fmt.Errorf("order event dedup key is empty: topic=%s order_id=%s event_type=%s", topic, event.OrderId, event.EventType)
 	}
 	if c.inbox == nil {
 		return fmt.Errorf("order event inbox is nil")
@@ -165,7 +165,7 @@ func (c *OrderEventConsumer) handleMessage(ctx context.Context, topic string, bo
 	}
 
 	logx.Infof("handle order event: topic=%s, order_id=%s, user_id=%s, sku_id=%s, qty=%d",
-		topic, event.OrderID, event.UserID, event.SkuID, event.Quantity)
+		topic, event.OrderId, event.UserId, event.SkuId, event.Quantity)
 
 	if err := c.processEvent(ctx, topic, event); err != nil {
 		_, markErr := c.inbox.MarkRetry(ctx, consumerGroupName, dedupKey, err.Error(), time.Now())
@@ -188,8 +188,8 @@ func (c *OrderEventConsumer) processEvent(ctx context.Context, topic string, eve
 	switch event.EventType {
 	case EventTypeCreated, EventTypeCancelled:
 		// 异步失效商品缓存
-		if event.SkuID != "" {
-			sku, err := c.skuStore.FindOne(ctx, event.SkuID)
+		if event.SkuId != "" {
+			sku, err := c.skuStore.FindOne(ctx, event.SkuId)
 			if err != nil {
 				return fmt.Errorf("find sku for cache invalidation: %w", err)
 			}
@@ -201,7 +201,7 @@ func (c *OrderEventConsumer) processEvent(ctx context.Context, topic string, eve
 		}
 	case EventTypePaid:
 		// 占位：可扩展积分、通知、对账
-		logx.Infof("order paid event handled: order_id=%s", event.OrderID)
+		logx.Infof("order paid event handled: order_id=%s", event.OrderId)
 	default:
 		return fmt.Errorf("unsupported order event type: %s", event.EventType)
 	}

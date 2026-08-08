@@ -13,7 +13,7 @@ type SearchProductsReq struct {
 
 // ProductCandidate 表示一个候选商品的信息。
 type ProductCandidate struct {
-	ID         string   // ID 商品唯一标识
+	Id         string   // Id 商品唯一标识
 	Name       string   // Name 商品名称
 	Category   string   // Category 商品分类
 	Source     string   // Source 商品来源
