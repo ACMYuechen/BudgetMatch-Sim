@@ -93,5 +93,5 @@ var _RecommendService_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "agent.proto",
+	Metadata: "services/rpc/agent/proto/agent.proto",
 }

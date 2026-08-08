@@ -76,3 +76,28 @@ func orderToType(o *pb.Order) types.AdminOrderResp {
 		TradeNo:        o.TradeNo,
 	}
 }
+
+func outboxEventToType(event *pb.OrderOutboxEvent) types.AdminOrderOutboxEvent {
+	if event == nil {
+		return types.AdminOrderOutboxEvent{}
+	}
+	return types.AdminOrderOutboxEvent{
+		Id:          event.Id,
+		AggregateId: event.AggregateId,
+		EventType:   event.EventType,
+		DedupKey:    event.DedupKey,
+		Topic:       event.Topic,
+		Tag:         event.Tag,
+		MessageKey:  event.MessageKey,
+		Payload:     event.Payload,
+		Status:      event.Status,
+		Attempts:    event.Attempts,
+		MaxAttempts: event.MaxAttempts,
+		NextRetryAt: event.NextRetryAt,
+		LockedUntil: event.LockedUntil,
+		LastError:   event.LastError,
+		PublishedAt: event.PublishedAt,
+		CreatedAt:   event.CreatedAt,
+		UpdatedAt:   event.UpdatedAt,
+	}
+}

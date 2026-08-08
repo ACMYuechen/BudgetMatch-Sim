@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"budgetmatch-sim/infra/interceptor"
-	"budgetmatch-sim/infra/rocketmq"
 	"budgetmatch-sim/services/rpc/mall/internal/config"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/outbox"
@@ -47,27 +47,31 @@ func main() {
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
 		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-		Secret: c.JwtAuth.Secret,
-		AdminMethods: map[string]struct{}{
-			"/mall.ProductService/CreateProduct": {},
-			"/mall.ProductService/UpdateProduct": {},
-			"/mall.ProductService/DeleteProduct": {},
-			"/mall.ProductService/CreateSku":     {},
-			"/mall.ProductService/UpdateSku":     {},
-			"/mall.ProductService/DeleteSku":     {},
-		},
-	}))
+			Secret: c.JwtAuth.Secret,
+			AdminMethods: map[string]struct{}{
+				"/mall.ProductService/CreateProduct":     {},
+				"/mall.ProductService/UpdateProduct":     {},
+				"/mall.ProductService/DeleteProduct":     {},
+				"/mall.ProductService/CreateSku":         {},
+				"/mall.ProductService/UpdateSku":         {},
+				"/mall.ProductService/DeleteSku":         {},
+				"/mall.OrderService/GetOrderOutboxStats": {},
+				"/mall.OrderService/ListOrderOutbox":     {},
+				"/mall.OrderService/GetOrderOutbox":      {},
+				"/mall.OrderService/ReplayOrderOutbox":   {},
+			},
+		}))
 
 	sg.Add(s)
+	sg.Add(outbox.NewMetricsCollector(ctx.OrderOutboxStore, 15*time.Second))
 
-	// add RocketMQ producer lifecycle management
-	if ctx.RocketMQProducer != nil {
-		sg.Add(rocketmq.NewProducerService(ctx.RocketMQProducer))
-		sg.Add(outbox.NewDispatcher(ctx.OrderOutboxStore, ctx.RocketMQProducer, outbox.DefaultConfig()))
+	// The dispatcher owns the producer and reconnects without blocking RPC startup.
+	if len(ctx.Config.RocketMQ.NameServers) > 0 {
+		sg.Add(outbox.NewResilientDispatcher(ctx.OrderOutboxStore, ctx.Config.RocketMQ, outbox.DefaultConfig()))
 	}
 
 	// add RocketMQ order event consumer
-	sg.Add(mq.NewOrderEventConsumer(ctx.Config.RocketMQ, ctx.SkuStore, ctx.Redis))
+	sg.Add(mq.NewOrderEventConsumer(ctx.Config.RocketMQ, ctx.SkuStore, ctx.Redis, ctx.OrderInboxStore))
 
 	sg.Start()
 }

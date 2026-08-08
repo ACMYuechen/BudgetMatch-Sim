@@ -31,9 +31,12 @@ type Store interface {
 type Dispatcher struct {
 	store    Store
 	producer rocketmq.Producer
+	factory  func() (rocketmq.Producer, error)
+	owned    bool
 	config   Config
 	quit     chan struct{}
 	stopOnce sync.Once
+	mu       sync.Mutex
 }
 
 func DefaultConfig() Config {
@@ -51,9 +54,20 @@ func NewDispatcher(store Store, producer rocketmq.Producer, config Config) *Disp
 	return &Dispatcher{store: store, producer: producer, config: config, quit: make(chan struct{})}
 }
 
+// NewResilientDispatcher 创建一个具有自动重连能力的消息调度器。
+func NewResilientDispatcher(store Store, mqConfig rocketmq.Config, config Config) *Dispatcher {
+	return &Dispatcher{
+		store:   store,
+		factory: func() (rocketmq.Producer, error) { return rocketmq.NewProducer(mqConfig) },
+		owned:   true,
+		config:  config,
+		quit:    make(chan struct{}),
+	}
+}
+
 func (d *Dispatcher) Start() {
-	if d.store == nil || d.producer == nil {
-		logx.Error("outbox dispatcher not started: store or producer is nil")
+	if d.store == nil || (d.producer == nil && d.factory == nil) {
+		logx.Error("outbox dispatcher not started: store and producer are unavailable")
 		return
 	}
 
@@ -76,10 +90,17 @@ func (d *Dispatcher) Start() {
 func (d *Dispatcher) Stop() {
 	d.stopOnce.Do(func() {
 		close(d.quit)
+		d.resetProducer()
 	})
 }
 
 func (d *Dispatcher) dispatchOnce() {
+	if d.currentProducer() == nil {
+		if err := d.connectProducer(); err != nil {
+			logx.Errorf("connect outbox rocketmq producer failed: error=%v", err)
+			return
+		}
+	}
 	now := time.Now()
 	list, expiredDeadCount, err := d.store.ClaimBatch(context.Background(), d.config.BatchSize, now, now.Add(d.config.LockDuration))
 	if err != nil {
@@ -95,13 +116,24 @@ func (d *Dispatcher) dispatchOnce() {
 }
 
 func (d *Dispatcher) publish(event *mall_order_outbox.MallOrderOutbox) {
+	producer := d.currentProducer()
+	if producer == nil {
+		outboxPublishCounter.Inc(event.EventType, "failed")
+		d.handleFailure(event, context.Canceled)
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), d.config.SendTimeout)
-	_, err := d.producer.SendSync(ctx, &rocketmq.Message{Topic: event.Topic, Tag: event.Tag, Keys: []string{event.MessageKey}, Body: []byte(event.Payload)})
+	_, err := producer.SendSync(ctx, &rocketmq.Message{Topic: event.Topic, Tag: event.Tag, Keys: []string{event.MessageKey}, Body: []byte(event.Payload)})
 	cancel()
 	if err != nil {
+		outboxPublishCounter.Inc(event.EventType, "failed")
+		if d.owned {
+			d.resetProducer()
+		}
 		d.handleFailure(event, err)
 		return
 	}
+	outboxPublishCounter.Inc(event.EventType, "sent")
 
 	now := time.Now()
 	ok, err := d.store.MarkSent(context.Background(), event.Id, event.Attempts, now)
@@ -114,6 +146,37 @@ func (d *Dispatcher) publish(event *mall_order_outbox.MallOrderOutbox) {
 		return
 	}
 	logx.Infof("outbox event sent: event_id=%s topic=%s aggregate_id=%s attempt=%d", event.Id, event.Topic, event.AggregateId, event.Attempts)
+}
+
+func (d *Dispatcher) currentProducer() rocketmq.Producer {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.producer
+}
+
+func (d *Dispatcher) connectProducer() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.producer != nil || d.factory == nil {
+		return nil
+	}
+	producer, err := d.factory()
+	if err != nil {
+		return err
+	}
+	d.producer = producer
+	return nil
+}
+
+func (d *Dispatcher) resetProducer() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.producer != nil && d.owned {
+		if err := d.producer.Shutdown(); err != nil {
+			logx.Errorf("shutdown outbox rocketmq producer failed: %v", err)
+		}
+		d.producer = nil
+	}
 }
 
 func (d *Dispatcher) handleFailure(event *mall_order_outbox.MallOrderOutbox, sendErr error) {

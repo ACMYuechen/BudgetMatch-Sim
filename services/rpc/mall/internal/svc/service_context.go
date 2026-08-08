@@ -3,9 +3,8 @@ package svc
 import (
 	"budgetmatch-sim/infra/database"
 	iredis "budgetmatch-sim/infra/redis"
-	"budgetmatch-sim/infra/rocketmq"
 	"budgetmatch-sim/services/rpc/mall/internal/config"
-	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_event_inbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
@@ -18,16 +17,15 @@ import (
 )
 
 type ServiceContext struct {
-	Config             config.Config
-	DB                 *gorm.DB
-	Redis              redis.UniversalClient
-	RocketMQProducer   rocketmq.Producer
-	OrderEventProducer *mq.OrderEventProducer
-	ProductStore       products.ProductsModel
-	SkuStore           product_skus.ProductSkusModel
-	OrderStore         mall_orders.MallOrdersModel
-	OrderItemStore     mall_order_items.MallOrderItemsModel
-	OrderOutboxStore   mall_order_outbox.MallOrderOutboxModel
+	Config           config.Config
+	DB               *gorm.DB
+	Redis            redis.UniversalClient
+	ProductStore     products.ProductsModel
+	SkuStore         product_skus.ProductSkusModel
+	OrderStore       mall_orders.MallOrdersModel
+	OrderItemStore   mall_order_items.MallOrderItemsModel
+	OrderOutboxStore mall_order_outbox.MallOrderOutboxModel
+	OrderInboxStore  mall_order_event_inbox.MallOrderEventInboxModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -46,6 +44,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	orderStore := mall_orders.NewMallOrdersModel(db.DB())
 	orderItemStore := mall_order_items.NewMallOrderItemsModel(db.DB())
 	orderOutboxStore := mall_order_outbox.NewMallOrderOutboxModel(db.DB())
+	orderInboxStore := mall_order_event_inbox.NewMallOrderEventInboxModel(db.DB())
 
 	if c.Database.AutoMigrate {
 		tables := []interface{ CreateTable() error }{
@@ -54,6 +53,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			orderStore,
 			orderItemStore,
 			orderOutboxStore,
+			orderInboxStore,
 		}
 		for _, t := range tables {
 			if err := t.CreateTable(); err != nil {
@@ -62,28 +62,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 	}
 
-	var producer rocketmq.Producer
-	var orderEventProducer *mq.OrderEventProducer
-	if len(c.RocketMQ.NameServers) > 0 {
-		producer, err = rocketmq.NewProducer(c.RocketMQ)
-		if err != nil {
-			logx.Must(err)
-		}
-		orderEventProducer = mq.NewOrderEventProducer(producer)
-	}
-
 	return &ServiceContext{
 		Config: c,
 		DB:     db.DB(),
 		Redis:  redisClient.Client(),
-
-		RocketMQProducer:   producer,
-		OrderEventProducer: orderEventProducer,
 
 		ProductStore:     productStore,
 		SkuStore:         skuStore,
 		OrderStore:       orderStore,
 		OrderItemStore:   orderItemStore,
 		OrderOutboxStore: orderOutboxStore,
+		OrderInboxStore:  orderInboxStore,
 	}
 }

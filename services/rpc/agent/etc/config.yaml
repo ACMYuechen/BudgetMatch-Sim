@@ -35,7 +35,7 @@ Embedding:
 Database:
   LogLevel: 4
   Driver: "Postgres"
-  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=15432 sslmode=disable TimeZone=Asia/Shanghai"
   MaxOpenConns: 20
   MaxIdleConns: 5
   ConnMaxLifetime: 7200s
