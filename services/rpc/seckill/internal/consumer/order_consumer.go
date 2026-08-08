@@ -27,10 +27,10 @@ const (
 )
 
 type OrderMessage struct {
-	OrderID    string
-	ActivityID string
-	SkuID      string
-	UserID     string
+	OrderId    string
+	ActivityId string
+	SkuId      string
+	UserId     string
 	Quantity   int64
 	TotalAmt   int64
 }
@@ -177,16 +177,16 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 	}
 
 	logx.Infof("processing order: %s, activity=%s, sku=%s, user=%s, qty=%d",
-		orderMsg.OrderID, orderMsg.ActivityID, orderMsg.SkuID, orderMsg.UserID, orderMsg.Quantity)
+		orderMsg.OrderId, orderMsg.ActivityId, orderMsg.SkuId, orderMsg.UserId, orderMsg.Quantity)
 
 	// start DB transaction
 	err := c.db.Transaction(func(tx *gorm.DB) error {
 		// 1. try insert order (status=1 success)
 		order := &seckill_order.SeckillOrders{
-			Id:          orderMsg.OrderID,
-			ActivityId:  orderMsg.ActivityID,
-			SkuId:       orderMsg.SkuID,
-			UserId:      orderMsg.UserID,
+			Id:          orderMsg.OrderId,
+			ActivityId:  orderMsg.ActivityId,
+			SkuId:       orderMsg.SkuId,
+			UserId:      orderMsg.UserId,
 			Quantity:    int(orderMsg.Quantity),
 			TotalAmount: orderMsg.TotalAmt,
 			Status:      1,
@@ -196,7 +196,7 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 			if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
 				// 订单已存在：说明该消息此前已被成功处理过（重复投递）。
 				// 库存已在首次处理时结算，这里绝不能再回滚，否则会把已扣库存凭空加回导致超卖。
-				logx.Infof("duplicate order, already processed, skip: %s", orderMsg.OrderID)
+				logx.Infof("duplicate order, already processed, skip: %s", orderMsg.OrderId)
 				return nil // ack
 			}
 			return err
@@ -205,16 +205,16 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 		// 2. update sku: sold += qty, lock_stock -= qty, check sold+qty <= stock
 		result := tx.Exec(
 			"UPDATE seckill_skus SET sold = sold + ?, lock_stock = lock_stock - ?, updated_at = ? WHERE id = ? AND sold + ? <= stock",
-			orderMsg.Quantity, orderMsg.Quantity, time.Now(), orderMsg.SkuID, orderMsg.Quantity,
+			orderMsg.Quantity, orderMsg.Quantity, time.Now(), orderMsg.SkuId, orderMsg.Quantity,
 		)
 		if result.Error != nil {
 			return result.Error
 		}
 		if result.RowsAffected == 0 {
 			// stock constraint failed -> rollback redis stock, mark order as failed
-			c.stockManager.Rollback(orderMsg.ActivityID, orderMsg.SkuID, orderMsg.Quantity)
+			c.stockManager.Rollback(orderMsg.ActivityId, orderMsg.SkuId, orderMsg.Quantity)
 			// mark order status = 2 (failed)
-			tx.Model(&seckill_order.SeckillOrders{}).Where("id = ?", orderMsg.OrderID).Update("status", 2)
+			tx.Model(&seckill_order.SeckillOrders{}).Where("id = ?", orderMsg.OrderId).Update("status", 2)
 			return nil // ack
 		}
 
@@ -222,19 +222,19 @@ func (c *OrderConsumer) processMessage(msg redis.XMessage) {
 	})
 
 	if err != nil {
-		logx.Errorf("order processing failed: %s, error: %v", orderMsg.OrderID, err)
+		logx.Errorf("order processing failed: %s, error: %v", orderMsg.OrderId, err)
 		// do not ack on error; message will be redelivered
 		return
 	}
 
 	c.ack(msg.ID)
-	logx.Infof("order processed successfully: %s", orderMsg.OrderID)
+	logx.Infof("order processed successfully: %s", orderMsg.OrderId)
 }
 
-func (c *OrderConsumer) ack(msgID string) {
-	if err := c.redis.XAck(context.Background(), streamKey, consumerGroup, msgID).Err(); err != nil {
+func (c *OrderConsumer) ack(msgId string) {
+	if err := c.redis.XAck(context.Background(), streamKey, consumerGroup, msgId).Err(); err != nil {
 		// ack 失败会导致消息后续被重新投递；依赖订单唯一键幂等避免重复落单
-		logx.Errorf("failed to ack message %s: %v", msgID, err)
+		logx.Errorf("failed to ack message %s: %v", msgId, err)
 	}
 }
 
@@ -243,13 +243,13 @@ func parseMessage(msg redis.XMessage) *OrderMessage {
 	for k, v := range msg.Values {
 		switch k {
 		case "order_id":
-			m.OrderID = fmt.Sprintf("%v", v)
+			m.OrderId = fmt.Sprintf("%v", v)
 		case "activity_id":
-			m.ActivityID = fmt.Sprintf("%v", v)
+			m.ActivityId = fmt.Sprintf("%v", v)
 		case "sku_id":
-			m.SkuID = fmt.Sprintf("%v", v)
+			m.SkuId = fmt.Sprintf("%v", v)
 		case "user_id":
-			m.UserID = fmt.Sprintf("%v", v)
+			m.UserId = fmt.Sprintf("%v", v)
 		case "quantity":
 			n, err := strconv.ParseInt(fmt.Sprintf("%v", v), 10, 64)
 			if err != nil {
@@ -266,11 +266,11 @@ func parseMessage(msg redis.XMessage) *OrderMessage {
 			m.TotalAmt = n
 		}
 	}
-	if m.OrderID == "" || m.ActivityID == "" || m.SkuID == "" || m.UserID == "" {
+	if m.OrderId == "" || m.ActivityId == "" || m.SkuId == "" || m.UserId == "" {
 		return nil
 	}
 	if m.Quantity <= 0 {
-		logx.Errorf("invalid order message, non-positive quantity: order=%s qty=%d", m.OrderID, m.Quantity)
+		logx.Errorf("invalid order message, non-positive quantity: order=%s qty=%d", m.OrderId, m.Quantity)
 		return nil
 	}
 	return m

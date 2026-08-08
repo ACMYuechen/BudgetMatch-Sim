@@ -22,9 +22,9 @@ const (
 
 // OrderEvent 订单事件消息体
 type OrderEvent struct {
-	OrderID        string `json:"order_id"`
-	UserID         string `json:"user_id"`
-	SkuID          string `json:"sku_id"`
+	OrderId        string `json:"order_id"`
+	UserId         string `json:"user_id"`
+	SkuId          string `json:"sku_id"`
 	Quantity       int64  `json:"quantity"`
 	Status         int32  `json:"status"`
 	EventType      string `json:"event_type"`

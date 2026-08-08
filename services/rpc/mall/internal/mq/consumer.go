@@ -85,20 +85,20 @@ func (c *OrderEventConsumer) handleMessage(ctx context.Context, topic string, bo
 	}
 
 	logx.Infof("handle order event: topic=%s, order_id=%s, user_id=%s, sku_id=%s, qty=%d",
-		topic, event.OrderID, event.UserID, event.SkuID, event.Quantity)
+		topic, event.OrderId, event.UserId, event.SkuId, event.Quantity)
 
 	switch event.EventType {
 	case EventTypeCreated, EventTypeCancelled:
 		// 异步失效商品缓存
-		if event.SkuID != "" {
-			sku, err := c.skuStore.FindOne(ctx, event.SkuID)
+		if event.SkuId != "" {
+			sku, err := c.skuStore.FindOne(ctx, event.SkuId)
 			if err == nil && sku != nil {
 				_ = c.redis.Del(ctx, productCacheKey(sku.ProductId))
 			}
 		}
 	case EventTypePaid:
 		// 占位：可扩展积分、通知、对账
-		logx.Infof("order paid event handled: order_id=%s", event.OrderID)
+		logx.Infof("order paid event handled: order_id=%s", event.OrderId)
 	}
 
 	return nil

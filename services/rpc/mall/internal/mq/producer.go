@@ -32,7 +32,7 @@ func (p *OrderEventProducer) publish(ctx context.Context, topic, eventType strin
 	_, err = p.producer.SendSync(ctx, &rocketmq.Message{
 		Topic: topic,
 		Body:  body,
-		Keys:  []string{event.OrderID},
+		Keys:  []string{event.OrderId},
 		Tag:   eventType,
 	})
 	return err
@@ -44,7 +44,7 @@ func (p *OrderEventProducer) publishAsync(topic, eventType string, event OrderEv
 		defer cancel()
 
 		if err := p.publish(ctx, topic, eventType, event); err != nil {
-			logx.WithContext(ctx).Errorf("failed to publish mall order event asynchronously: topic=%s event_type=%s order_id=%s error=%v", topic, eventType, event.OrderID, err)
+			logx.WithContext(ctx).Errorf("failed to publish mall order event asynchronously: topic=%s event_type=%s order_id=%s error=%v", topic, eventType, event.OrderId, err)
 		}
 	}()
 }

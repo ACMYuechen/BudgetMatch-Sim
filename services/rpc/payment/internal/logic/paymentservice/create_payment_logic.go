@@ -39,7 +39,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 	}
 
 	// 幂等：同一订单已有流水时复用。
-	existing, err := l.svcCtx.PaymentStore.FindByOrderID(l.ctx, in.OrderId)
+	existing, err := l.svcCtx.PaymentStore.FindByOrderId(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("find payment by order failed: %v", err)
 		return nil, errors.Database
@@ -87,10 +87,10 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 
 	// 支付宝预下单已经成功，二维码持久化仅用于后续查询。即使数据库更新失败，
 	// 也应优先将本次生成的二维码返回给调用方，避免调用方因重试而重复发起预下单。
-	record.QrCode = res.QRCode
+	record.QrCode = res.QrCode
 	if err := l.svcCtx.PaymentStore.Update(l.ctx, record); err != nil {
 		l.Logger.Errorf(
-			"save QRCode failed, returning pre-created payment anyway: order=%s outTradeNo=%s error=%v",
+			"save QrCode failed, returning pre-created payment anyway: order=%s outTradeNo=%s error=%v",
 			record.OrderId,
 			record.OutTradeNo,
 			err,
@@ -99,7 +99,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 
 	return &pb.CreatePaymentResp{
 		OutTradeNo: record.OutTradeNo,
-		QrCode:     res.QRCode,
+		QrCode:     res.QrCode,
 		Status:     int32(payments.StatusPending),
 	}, nil
 }

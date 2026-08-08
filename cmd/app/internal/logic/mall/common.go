@@ -10,18 +10,18 @@ import (
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 )
 
-func authenticatedUserID(ctx context.Context) (string, error) {
-	userID, ok := ctx.Value("user_id").(string)
-	if !ok || userID == "" {
+func authenticatedUserId(ctx context.Context) (string, error) {
+	userId, ok := ctx.Value("user_id").(string)
+	if !ok || userId == "" {
 		return "", errors.Unauthorized
 	}
-	return userID, nil
+	return userId, nil
 }
 
-func loadPaymentOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderID, userID string) (*mallpb.Order, error) {
+func loadPaymentOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderId, userId string) (*mallpb.Order, error) {
 	rpcResp, err := svcCtx.MallOrderClient.GetOrder(ctx, &mallpb.GetOrderReq{
-		OrderId: orderID,
-		UserId:  userID,
+		OrderId: orderId,
+		UserId:  userId,
 	})
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func loadPaymentOrder(ctx context.Context, svcCtx *svc.ServiceContext, orderID, 
 	}
 
 	order := rpcResp.Order
-	if order.UserId != userID {
+	if order.UserId != userId {
 		return nil, errors.MallOrderNotFound
 	}
 	if order.OriginalAmount < 0 ||

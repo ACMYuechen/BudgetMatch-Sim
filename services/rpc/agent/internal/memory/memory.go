@@ -21,15 +21,21 @@ import (
 //   - History 返回最近 limit 条消息（时间正序），会话不存在或已过期时返回空切片而非错误；
 //   - History 返回的消息必须是深拷贝，调用方修改返回值不得影响存储内容。
 type Manager interface {
-	Append(ctx context.Context, conversationID string, msgs ...*schema.Message) error
-	History(ctx context.Context, conversationID string, limit int) ([]*schema.Message, error)
-	Clear(ctx context.Context, conversationID string) error
+	Append(ctx context.Context, userId, conversationId string, msgs ...*schema.Message) error
+	History(ctx context.Context, userId, conversationId string, limit int) ([]*schema.Message, error)
+	Clear(ctx context.Context, userId, conversationId string) error
 }
 
 // storedMessage 是消息的持久化载体，内嵌 eino 消息并附加写入时间便于排查。
 //
 // 注意：Extra 等 map[string]any 字段经 JSON round-trip 会丢失具体类型；
 // 当前记忆只存最终问答文本（Extra 恒空），不受影响。
+// conversationKey 同时使用认证用户和会话标识定位存储。
+// 客户端仅提供会话标识时，无法读取其他用户的历史记录。
+func conversationKey(userId, conversationId string) string {
+	return userId + ":" + conversationId
+}
+
 type storedMessage struct {
 	schema.Message
 	CreatedAt time.Time `json:"created_at"`

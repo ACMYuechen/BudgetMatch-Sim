@@ -24,12 +24,12 @@ const (
 
 // markPaid 幂等地把一笔流水标记为支付成功，并落库支付宝交易号等信息。
 // 流水已成功时仍会幂等回写 mall，支持上一次订单回写失败后的重试。
-func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerID, rawNotify string) error {
+func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.Payments, tradeNo, buyerId, rawNotify string) error {
 	now := time.Now()
 	candidate := *record
 	candidate.Status = payments.StatusSuccess
 	candidate.TradeNo = tradeNo
-	candidate.BuyerId = buyerID
+	candidate.BuyerId = buyerId
 	candidate.PaidAt = &now
 	if rawNotify != "" {
 		candidate.NotifyRaw = rawNotify

@@ -28,14 +28,14 @@ func NewCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 }
 
 func (l *CreateOrderLogic) CreateOrder(req *types.MallCreateOrderReq) (resp *types.MallCreateOrderResp, err error) {
-	userID, err := authenticatedUserID(l.ctx)
+	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 
 	rpcResp, err := l.svcCtx.MallOrderClient.CreateOrder(l.ctx, &pb.CreateOrderReq{
-		UserId:         userID,
+		UserId:         userId,
 		SkuId:          req.SkuId,
 		Quantity:       req.Quantity,
 		Remark:         req.Remark,

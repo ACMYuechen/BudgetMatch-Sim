@@ -118,7 +118,7 @@ func buildSkuDocument(product *pb.Product, sku *pb.Sku) *schema.Document {
 	name := joinNonEmpty(" ", product.Name, sku.Name)
 	content := buildContent(product, sku, name)
 	meta := CandidateMetadata{
-		ProductID:  product.Id,
+		ProductId:  product.Id,
 		Name:       name,
 		Brand:      product.Providor,
 		PriceCents: sku.Price,

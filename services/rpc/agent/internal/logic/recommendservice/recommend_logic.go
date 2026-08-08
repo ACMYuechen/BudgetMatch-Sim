@@ -34,8 +34,8 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 		Query:          in.Query,
 		BudgetCents:    in.BudgetCents,
 		MaxItems:       in.MaxItems,
-		UserID:         in.UserId,
-		ConversationID: in.ConversationId,
+		UserId:         in.UserId,
+		ConversationId: in.ConversationId,
 	})
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
@@ -54,16 +54,17 @@ func toPB(result *agentcore.Result) *pb.RecommendResp {
 			Keywords:    result.Intent.Keywords,
 			Preferences: result.Intent.Preferences,
 		},
-		Items:           make([]*pb.BundleItem, 0, len(result.Items)),
-		TotalPriceCents: result.TotalPriceCents,
-		Summary:         result.Summary,
-		ToolsUsed:       make([]*pb.ToolCall, 0, len(result.ToolsUsed)),
-		ConversationId:  result.ConversationID,
+		Items:             make([]*pb.BundleItem, 0, len(result.Items)),
+		TotalPriceCents:   result.TotalPriceCents,
+		Summary:           result.Summary,
+		ToolsUsed:         make([]*pb.ToolCall, 0, len(result.ToolsUsed)),
+		ConversationId:    result.ConversationId,
+		ConversationTitle: result.ConversationTitle,
 	}
 
 	for _, item := range result.Items {
 		resp.Items = append(resp.Items, &pb.BundleItem{
-			Id:         item.ID,
+			Id:         item.Id,
 			Name:       item.Name,
 			Category:   item.Category,
 			Source:     item.Source,

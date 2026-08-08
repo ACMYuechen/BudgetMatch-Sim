@@ -29,13 +29,13 @@ func NewQueryPaymentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Quer
 }
 
 func (l *QueryPaymentLogic) QueryPayment(req *types.MallQueryPaymentReq) (resp *types.MallQueryPaymentResp, err error) {
-	userID, err := authenticatedUserID(l.ctx)
+	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 
-	order, err := loadPaymentOrder(l.ctx, l.svcCtx, req.Id, userID)
+	order, err := loadPaymentOrder(l.ctx, l.svcCtx, req.Id, userId)
 	if err != nil {
 		l.Logger.Errorf("failed to load payment order: %v", err)
 		return nil, err
@@ -54,7 +54,7 @@ func (l *QueryPaymentLogic) QueryPayment(req *types.MallQueryPaymentReq) (resp *
 	}
 
 	payment := rpcResp.Payment
-	if payment.OrderId != order.Id || payment.UserId != userID || payment.Amount != order.PayAmount || rpcResp.Status != payment.Status {
+	if payment.OrderId != order.Id || payment.UserId != userId || payment.Amount != order.PayAmount || rpcResp.Status != payment.Status {
 		l.Logger.Errorf("payment data does not match order %s", order.Id)
 		return nil, errors.Internal
 	}
