@@ -27,6 +27,9 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 		IdempotencyKey: o.IdempotencyKey,
 		CreatedAt:      o.CreatedAt.Format(timeLayout),
 		UpdatedAt:      o.UpdatedAt.Format(timeLayout),
+		PaymentStatus:  paymentStatusOf(o),
+		OutTradeNo:     o.OutTradeNo,
+		TradeNo:        o.TradeNo,
 	}
 	if !o.PayTime.IsZero() {
 		resp.PayTime = o.PayTime.Format(timeLayout)
@@ -48,6 +51,21 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 
 func idempotencyKey(key string) string {
 	return "mall:idempotency:" + key
+}
+
+// 根据支付凭证完整性计算运营侧支付状态
+func paymentStatusOf(order *mall_orders.MallOrders) pb.PaymentStatus {
+	hasOutTradeNo := order.OutTradeNo != ""
+	hasTradeNo := order.TradeNo != ""
+	hasPayTime := !order.PayTime.IsZero()
+	switch {
+	case !hasOutTradeNo && !hasTradeNo && !hasPayTime:
+		return pb.PaymentStatus_PAYMENT_STATUS_UNPAID
+	case hasOutTradeNo && hasTradeNo && hasPayTime:
+		return pb.PaymentStatus_PAYMENT_STATUS_PAID
+	default:
+		return pb.PaymentStatus_PAYMENT_STATUS_ABNORMAL
+	}
 }
 
 // 暂时未使用
