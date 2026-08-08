@@ -26,6 +26,7 @@ type (
 		FindByOutTradeNo(ctx context.Context, outTradeNo string) (*Payments, error)
 		FindByOrderId(ctx context.Context, orderId string) (*Payments, error)
 		Update(ctx context.Context, data *Payments) error
+		MarkPaidIfPending(ctx context.Context, data *Payments) (bool, error)
 	}
 
 	defaultPaymentsModel struct {
@@ -106,4 +107,22 @@ func (m *defaultPaymentsModel) FindByOrderId(ctx context.Context, orderId string
 
 func (m *defaultPaymentsModel) Update(ctx context.Context, data *Payments) error {
 	return m.conn.WithContext(ctx).Save(data).Error
+}
+
+// 通过条件更新保证支付流水状态迁移的并发幂等
+func (m *defaultPaymentsModel) MarkPaidIfPending(ctx context.Context, data *Payments) (bool, error) {
+	updates := map[string]interface{}{
+		"status":   StatusSuccess,
+		"trade_no": data.TradeNo,
+		"paid_at":  data.PaidAt,
+		"buyer_id": data.BuyerId,
+	}
+	if data.NotifyRaw != "" {
+		updates["notify_raw"] = data.NotifyRaw
+	}
+	result := m.conn.WithContext(ctx).Model(&Payments{}).Where("id = ? AND status = ?", data.Id, StatusPending).Updates(updates)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected == 1, nil
 }
