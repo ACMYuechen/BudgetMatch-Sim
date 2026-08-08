@@ -67,7 +67,7 @@ func TestLoggingInterceptor_UserIDExtraction(t *testing.T) {
 
 	var capturedUserID string
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		capturedUserID, _ = ctx.Value(ContextKeyUserID).(string)
+		capturedUserID, _ = ctx.Value(ContextKeyUserId).(string)
 		return "done", nil
 	}
 

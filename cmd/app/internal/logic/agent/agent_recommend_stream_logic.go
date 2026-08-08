@@ -34,7 +34,7 @@ func NewAgentRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContex
 
 func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecommendReq, emit func(StreamEvent) error) error {
 	// 流式请求与普通推荐使用相同的可信用户身份来源。
-	userID, err := request.MustUserId(l.ctx)
+	userId, err := request.MustUserId(l.ctx)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		BudgetCents:    req.BudgetCents,
 		MaxItems:       int32(req.MaxItems),
 		ConversationId: req.ConversationId,
-		UserId:         userID,
+		UserId:         userId,
 	})
 	if err != nil {
 		_ = emit(StreamEvent{Event: "error", Data: map[string]any{
