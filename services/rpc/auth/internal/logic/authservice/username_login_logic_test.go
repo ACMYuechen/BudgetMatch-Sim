@@ -45,8 +45,6 @@ func (m *mockUsersModel) ListByFilter(ctx context.Context, req user.UsersListFil
 	return nil, 0, nil
 }
 
-// TestUsernameLogin_Success 测试用户名登录成功场景
-// 验证正确用户名和密码能够成功登录，返回正确的用户ID和Token
 func TestUsernameLogin_Success(t *testing.T) {
 	password := "correct-password"
 	hashed, _ := auth.HashPassword(password)
@@ -89,8 +87,6 @@ func TestUsernameLogin_Success(t *testing.T) {
 	}
 }
 
-// TestUsernameLogin_UserNotFound 测试用户名不存在场景
-// 验证使用不存在的用户名登录时，返回 UserNotFound 错误
 func TestUsernameLogin_UserNotFound(t *testing.T) {
 	mockStore := &mockUsersModel{
 		findByUsernameFunc: func(ctx context.Context, username string) (*user.Users, error) {
@@ -114,8 +110,6 @@ func TestUsernameLogin_UserNotFound(t *testing.T) {
 	}
 }
 
-// TestUsernameLogin_InvalidPassword 测试密码错误场景
-// 验证使用正确用户名但错误密码登录时，返回 InvalidPassword 错误
 func TestUsernameLogin_InvalidPassword(t *testing.T) {
 	hashed, _ := auth.HashPassword("correct-password")
 
