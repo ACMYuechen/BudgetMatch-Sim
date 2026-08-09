@@ -228,6 +228,7 @@ services:
       - ETCD_HOSTS=etcd:2379
       # 支付宝沙箱密钥（从宿主 .env 注入，未配置时支付功能不可用但服务可启动）
       - ALIPAY_APP_ID=${ALIPAY_APP_ID:-}
+      - ALIPAY_SELLER_ID=${ALIPAY_SELLER_ID:-}
       - ALIPAY_PRIVATE_KEY=${ALIPAY_PRIVATE_KEY:-}
       - ALIPAY_PUBLIC_KEY=${ALIPAY_PUBLIC_KEY:-}
       - ALIPAY_NOTIFY_URL=${ALIPAY_NOTIFY_URL:-}

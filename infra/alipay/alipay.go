@@ -5,8 +5,10 @@ package alipay
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/smartwalle/alipay/v3"
 )
@@ -20,6 +22,7 @@ import (
 // 密钥均为「密钥模式」下的 PKCS1/PKCS8 字符串（不含 -----BEGIN----- 头亦可）。
 type Config struct {
 	AppId           string `json:",optional"` // 应用 AppId
+	SellerId        string `json:",optional"` // 支付宝商户 PID
 	PrivateKey      string `json:",optional"` // 应用私钥
 	AlipayPublicKey string `json:",optional"` // 支付宝公钥（用于验签）
 	IsProduction    bool   `json:",default=false"`
@@ -143,7 +146,43 @@ func (c *Client) DecodeNotify(ctx context.Context, params map[string]string) (*a
 	return noti, nil
 }
 
-// fenToYuan 分转元字符串，保留两位小数。
+// fenToYuan 分转元字符串，不使用浮点数。
 func fenToYuan(fen int64) string {
-	return strconv.FormatFloat(float64(fen)/100.0, 'f', 2, 64)
+	return fmt.Sprintf("%d.%02d", fen/100, fen%100)
+}
+
+// YuanToFen 将支付宝金额字符串精确转换为分，不使用浮点数。
+func YuanToFen(amount string) (int64, error) {
+	parts := strings.Split(amount, ".")
+	if len(parts) > 2 || parts[0] == "" {
+		return 0, fmt.Errorf("invalid amount: %s", amount)
+	}
+
+	yuan, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || yuan < 0 {
+		return 0, fmt.Errorf("invalid yuan amount: %s", amount)
+	}
+
+	var fraction string
+	if len(parts) == 2 {
+		fraction = parts[1]
+	}
+	switch len(fraction) {
+	case 0:
+		fraction = "00"
+	case 1:
+		fraction += "0"
+	case 2:
+	default:
+		return 0, fmt.Errorf("amount precision exceeds two digits: %q", fraction)
+	}
+
+	fen, err := strconv.ParseInt(fraction, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid fraction amount: %q", fraction)
+	}
+	if yuan > (math.MaxInt64-fen)/100 {
+		return 0, fmt.Errorf("amount overflow: %q", yuan)
+	}
+	return yuan*100 + fen, nil
 }
