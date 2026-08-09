@@ -6,24 +6,26 @@
 >
 > 最后更新：2026-08-08
 >
-> 范围：持续集成（CI）
+> 范围：持续集成（CI），不包含部署（CD）
 
 ## 1. 文档目的
 
-本文定义 BudgetMatch-Sim 持续集成系统的完整、可验证需求，作为后续编写 GitHub Actions 工作流、CI 脚本、测试配置和安全扫描配置的实施依据。
+本文定义 BudgetMatch-Sim 当前阶段的 CI 最小可用方案，作为编写 GitHub Actions、仓库脚本和分支保护规则的实施依据。
 
-本文中的关键词含义如下：
+当前阶段以“代码可检查、测试可执行、服务可构建、镜像可生成”为目标，不建设定时任务、复杂指标体系或高可用兜底机制。部署工具与部署流程另行调研和决策。
 
-- **MUST（必须）**：验收 CI 时不可缺少的要求。
-- **SHOULD（应该）**：原则上应实现；若暂不实现，必须记录原因和后续计划。
-- **MAY（可以）**：按项目规模、运行时间和免费额度选择实现。
+关键词含义：
+
+- **MUST（必须）**：第一版 CI 的合并门禁要求。
+- **SHOULD（应该）**：建议实现，但不阻塞第一版 CI 上线。
+- **MAY（可以）**：出现明确需求后再实施。
 
 ## 2. 项目基线
 
-当前仓库具有以下与 CI 相关的特征：
+仓库当前包含：
 
-- 单一 Go Module，`go.mod` 声明 Go `1.26.1`。
-- 包含 7 个 Go 可执行服务：
+- 单一 Go Module，Go 版本以 `go.mod` 为准。
+- 7 个 Go 可执行服务：
   - `cmd/admin`
   - `cmd/app`
   - `services/rpc/auth`
@@ -31,421 +33,126 @@
   - `services/rpc/mall`
   - `services/rpc/agent`
   - `services/rpc/payment`
-- 包含 1 个 React/Vite 前端：`web-ui`。
-- Go 全仓测试中：
-  - `infra/dlock` 和 `infra/configcenter` 需要可用的 etcd。
-  - pgvector 集成测试需要 `RAG_TEST_PG_DSN`，否则会跳过。
-- `web-ui` 当前具备 `lint` 和 `build` 脚本，尚无自动化测试脚本。
-- API、RPC、Swagger 和部分 Go 代码通过 `make api-all` 生成。
-- 后端服务共用根目录 `Dockerfile`，通过 `SERVICE_PATH` 和 `PORT` 构建参数生成不同镜像。
-- 前端使用独立的 `web-ui/Dockerfile`。
-- 仓库当前没有项目级 GitHub Actions CI 工作流。
+- React/Vite 前端：`web-ui`。
+- Go 测试依赖 etcd；pgvector 集成测试通过 `RAG_TEST_PG_DSN` 配置。
+- 后端服务复用根目录 `Dockerfile`，前端使用 `web-ui/Dockerfile`。
+- 根目录已有 `docker-compose.yml`。
 
-## 3. 目标与非目标
+## 3. CI 范围
 
-### 3.1 CI 目标
+CI **MUST** 验证：
 
-CI 系统必须能够证明：
+1. Go 依赖、格式、静态检查和测试通过。
+2. 7 个 Go 服务均可编译。
+3. 前端依赖可安装，lint 和生产构建通过。
+4. Compose 配置及两个 Dockerfile 可用于构建。
+5. 8 个应用镜像均可成功构建。
+6. 代码、依赖和镜像通过基础安全检查。
+7. PR 不读取生产密钥，也不调用真实生产外部服务。
+8. 开发者可以在本地运行与 CI 等价的核心命令。
 
-1. Go 与前端代码符合格式和静态质量要求。
-2. 所有自动化测试在确定、隔离的环境中运行并通过。
-3. 7 个 Go 服务和前端均能成功构建。
-4. API、Proto、Swagger 与生成代码不存在漂移。
-5. Dockerfile、Compose 和 CI 配置可以被正确解析。
-6. 代码、依赖、配置和容器经过自动化安全扫描。
-7. CI 不使用生产密钥，不调用真实生产外部服务。
-8. 同一 commit 重跑应产生等价结果。
-9. CI 失败能够定位到具体 Job、包、文件或镜像。
-10. 开发者能够在本地运行与 CI 等价的检查。
+## 4. 工作流设计
 
-### 3.2 非目标
-
-以下事项不属于本次 CI 建设范围：
-
-- 推送正式镜像或二进制制品。
-- 创建 Git Tag、GitHub Release 或版本号。
-- 部署到开发、测试、预发布或生产环境。
-- 生产环境审批、灰度、回滚和监控。
-- 真实支付宝、邮件、OSS、LLM 或 Embedding 调用。
-- 生产数据库迁移。
-
-## 4. 工作流总体设计
-
-CI 应至少包含以下工作流：
+只建立一个核心工作流：
 
 ```text
-.github/workflows/
-├── ci.yml          # PR 与 main 的核心检查
-├── security.yml    # 定时完整安全扫描
-└── nightly.yml     # 定时全量集成与稳定性验证
+.github/workflows/ci.yml
 ```
 
-核心 `ci.yml` 的逻辑依赖应为：
+Job 结构：
 
 ```text
-preflight
-   ├── go-quality
-   ├── go-test
-   ├── web-quality
-   ├── generated-code
-   ├── config-validation
-   └── security-fast
-             │
-             ▼
-       container-verify
-             │
-             ▼
-          ci-gate
+go-check ─────────┐
+web-check ────────┤
+security-check ───┼──> CI Gate
+container-check ──┘
 ```
 
-## 5. 触发与并发需求
+不同 Job 应并行执行。`CI Gate` 汇总所有必需检查，为分支保护提供唯一、稳定的 required check 名称。
 
-### CI-TRG-001：PR 触发
+## 5. 触发与权限
 
-核心 CI **MUST** 在 Pull Request 的以下事件触发：
+### 5.1 触发条件
 
-- `opened`
-- `synchronize`
-- `reopened`
-- `ready_for_review`
+核心 CI **MUST** 支持：
 
-### CI-TRG-002：main 触发
+- Pull Request：`opened`、`synchronize`、`reopened`、`ready_for_review`。
+- 推送到 `main`。
+- 手动执行：`workflow_dispatch`。
 
-核心 CI **MUST** 在代码推送到 `main` 时运行全量检查。
+同一 PR 出现新提交时，旧运行 **SHOULD** 通过 `concurrency` 取消，避免展示过期结果。
 
-### CI-TRG-003：手动触发
+第一版 **MUST NOT** 配置 `schedule`。
 
-核心 CI、Weekly Security 和 Nightly **MUST** 支持 `workflow_dispatch`，用于基线验证和故障排查。
+### 5.2 最小权限
 
-### CI-TRG-004：定时触发
-
-- `security.yml` **SHOULD** 每周运行一次。
-- `nightly.yml` **SHOULD** 在工作日每天运行一次。
-
-### CI-TRG-005：并发控制
-
-同一 PR 的新运行 **MUST** 取消旧运行，避免浪费免费 Actions 配额和产生过期结果。
-
-## 6. 权限与执行安全需求
-
-### CI-SEC-001：最小权限
-
-所有 CI 工作流默认权限 **MUST** 为：
+工作流默认权限 **MUST** 为：
 
 ```yaml
 permissions:
   contents: read
 ```
 
-CI **MUST NOT** 请求 `packages: write`、`contents: write` 或部署权限。
+第一版 CI 不推送镜像，因此不申请 `packages: write` 或 `contents: write`。
 
-### CI-SEC-002：PR 隔离
+### 5.3 PR 安全边界
 
-- PR Job **MUST NOT** 读取仓库或环境中的生产密钥。
-- 工作流 **MUST NOT** 使用 `pull_request_target` 执行 PR 中的代码。
-- PR 标题、分支名等不可信值 **MUST NOT** 直接拼接进 shell 脚本。
+- PR Job **MUST NOT** 读取生产密钥。
+- **MUST NOT** 使用 `pull_request_target` 执行 PR 中的代码。
+- 分支名、PR 标题等不可信输入 **MUST NOT** 直接拼接到 shell 命令。
+- CI **MUST NOT** 调用真实生产外部服务；相关测试应使用 Mock、Stub 或测试配置。
 
-### CI-SEC-003：Action 固定版本
+## 6. 必需检查
 
-所有第三方及官方 Action **MUST** 固定到完整 commit SHA，并在同一行注释对应版本号。
+### 6.1 Go 检查：`go-check`
 
-Action 更新 **SHOULD** 由 Dependabot 管理。
+Go 版本 **MUST** 以 `go.mod` 为唯一来源。
 
-### CI-SEC-004：工具版本
-
-以下工具 **MUST** 固定版本：
-
-- Go
-- Node.js
-- golangci-lint
-- gotestsum
-- goctl
-- protoc 与 Go 插件
-- Gitleaks
-- govulncheck
-- gosec
-- Trivy
-- Hadolint
-
-### CI-SEC-005：自建 Runner
-
-如使用自建 Runner：
-
-- 任意 PR 代码 **MUST NOT** 在持久化、高权限 Runner 上运行。
-- 自建 Runner **SHOULD** 仅运行可信的 `main` 或定时任务。
-- 自建 Runner **SHOULD** 使用一次性或可销毁实例。
-
-## 7. Preflight 需求
-
-### CI-PRE-001：仓库完整性
-
-`preflight` **MUST** 验证以下文件存在：
-
-```text
-go.mod
-go.sum
-Dockerfile
-docker-compose.yml
-web-ui/package.json
-web-ui/package-lock.json
-web-ui/Dockerfile
-```
-
-### CI-PRE-002：真实环境文件
-
-真实 `.env` **MUST NOT** 被 Git 跟踪；发现后 CI 必须失败。
-
-允许提交：
-
-- `.env.example`
-- 只含假数据的 `.env.ci`
-
-### CI-PRE-003：构建矩阵
-
-`preflight` **SHOULD** 输出容器验证矩阵：
-
-- `main` 始终包含全部 8 个镜像。
-- PR 根据受影响路径选择镜像。
-- `Dockerfile`、`go.mod`、`go.sum`、`infra/**` 改动视为影响全部后端镜像。
-- 无法识别影响范围时必须回退到全部镜像，不能静默跳过。
-
-## 8. Go 代码质量需求
-
-### CI-GOQ-001：Go 版本来源
-
-CI **MUST** 以 `go.mod` 为 Go 版本的唯一来源。
-
-### CI-GOQ-002：依赖完整性
-
-CI **MUST** 执行：
+至少执行：
 
 ```bash
 go mod download
 go mod verify
-go mod tidy
-git diff --exit-code -- go.mod go.sum
-```
-
-`go mod tidy` 产生差异时必须失败。
-
-### CI-GOQ-003：格式
-
-CI **MUST** 使用 `gofmt -l` 检查全仓 Go 文件。发现未格式化文件时必须打印文件名并失败。
-
-### CI-GOQ-004：静态检查
-
-CI **MUST** 执行：
-
-```bash
+test -z "$(gofmt -l .)"
 go vet ./...
-golangci-lint run
+go test -count=1 -race ./...
 ```
 
-生成代码的排除规则必须精确，禁止通过排除整个业务目录规避检查。
+测试环境 **MUST** 提供：
 
-## 9. Go 测试与编译需求
+- etcd，与仓库当前测试兼容。
+- pgvector PostgreSQL 16。
+- `ETCD_HOSTS` 和 CI 专用 `RAG_TEST_PG_DSN`。
 
-### CI-GOT-001：测试依赖
+pgvector 集成测试不得因 CI 缺少 DSN 而被静默跳过。
 
-`go-test` **MUST** 启动并等待以下服务健康：
+测试通过后，**MUST** 编译全部 7 个 Go 服务。构建输出仅用于验证，不作为长期 Artifact 保存。
 
-- etcd `3.5.15`
-- pgvector PostgreSQL 16
+`golangci-lint` 可在规则集确认后加入同一 Job；第一版不得为了通过检查而大范围排除业务目录。
 
-### CI-GOT-002：测试环境变量
+### 6.2 前端检查：`web-check`
 
-CI **MUST** 设置：
-
-```text
-ETCD_HOSTS=127.0.0.1:2379
-RAG_TEST_PG_DSN=<CI 专用 pgvector DSN>
-```
-
-CI 必须确保 pgvector 集成测试实际执行，而不是因缺少 DSN 被跳过。
-
-### CI-GOT-003：测试参数
-
-Go 全仓测试 **MUST** 包含：
-
-```text
--count=1
--race
--shuffle=on
--covermode=atomic
--coverprofile=coverage.out
-```
-
-### CI-GOT-004：测试报告
-
-测试 **MUST** 生成：
-
-- JUnit XML
-- Go coverage profile
-
-即使测试失败，报告也应上传。
-
-### CI-GOT-005：服务编译
-
-测试通过后，CI **MUST** 单独编译 7 个 Go 入口：
-
-```text
-cmd/admin
-cmd/app
-services/rpc/auth
-services/rpc/seckill
-services/rpc/mall
-services/rpc/agent
-services/rpc/payment
-```
-
-编译 **MUST** 使用 `-trimpath`，输出仅放入临时目录，不作为长期 Artifact 上传。
-
-### CI-GOT-006：覆盖率策略
-
-- 首次稳定运行后 **MUST** 建立覆盖率基线。
-- 后续 PR **SHOULD NOT** 降低整体覆盖率。
-- 生成代码 **SHOULD** 从覆盖率统计中排除。
-- 支付、订单、库存和秒杀模块 **SHOULD** 设置独立阈值。
-- 缺陷修复 **MUST** 添加对应回归测试，除非 PR 中说明不可测试原因。
-
-## 10. 前端质量需求
-
-### CI-WEB-001：依赖安装
-
-前端 **MUST** 使用锁文件和：
+在 `web-ui` 中执行：
 
 ```bash
 npm ci
-```
-
-禁止在 CI 使用 `npm install` 更新锁文件。
-
-### CI-WEB-002：Lint 与构建
-
-CI **MUST** 执行：
-
-```bash
 npm run lint
 npm run build
 ```
 
-构建必须包含 TypeScript 类型检查。
+CI **MUST** 使用锁文件安装依赖，不得通过 `npm install` 修改锁文件。
 
-### CI-WEB-003：前端测试
+项目当前没有前端自动化测试脚本，因此第一版不把 Vitest 作为验收条件；新增测试框架后再将 `npm test` 纳入门禁。
 
-项目 **SHOULD** 引入 Vitest 与 React Testing Library，并增加：
+### 6.3 配置和容器检查：`container-check`
 
-```bash
-npm run test -- --run --coverage
-```
-
-优先覆盖：
-
-- 登录、注册和 Token 过期。
-- 商品、订单和秒杀核心状态。
-- 推荐 SSE 中断与重连。
-- 支付状态轮询。
-- API 错误统一处理。
-
-### CI-WEB-004：前端报告
-
-前端测试接入后，CI **MUST** 上传 JUnit 与覆盖率报告，但不长期保存 `dist/`。
-
-## 11. 生成代码一致性需求
-
-### CI-GEN-001：工具链固定
-
-在启用严格生成代码检查前，`goctl`、`protoc` 及相关插件版本 **MUST** 被固定并记录。
-
-### CI-GEN-002：漂移检查
-
-CI **MUST** 执行：
-
-```bash
-make api-all
-git diff --exit-code
-```
-
-发现 API、RPC、Swagger 或生成 Go 代码差异时必须失败。
-
-### CI-GEN-003：兼容性检查
-
-项目 **SHOULD** 后续引入 Buf，并检查 Proto lint 与相对 `main` 的破坏性变更。
-
-## 12. 配置验证需求
-
-### CI-CFG-001：CI 环境文件
-
-仓库 **MUST** 提供只含假值的 `.env.ci`。该文件不得包含任何真实邮箱、密钥、Token、支付参数或云账号信息。
-
-### CI-CFG-002：Compose 校验
-
-CI **MUST** 执行：
+仓库应提供只包含假值的 `.env.ci`，并执行：
 
 ```bash
 docker compose --env-file .env.ci config --quiet
 ```
 
-### CI-CFG-003：Dockerfile 校验
-
-根目录和 `web-ui` 的 Dockerfile **MUST** 经过 Hadolint 检查。
-
-### CI-CFG-004：外部服务
-
-核心 CI **MUST NOT** 调用真实支付宝、SMTP、OSS、LLM 或 Embedding 服务。相关测试必须使用 Mock、Sandbox stub 或项目已有的确定性降级路径。
-
-## 13. 自动安全扫描需求
-
-### CI-SCAN-001：PR 快速安全扫描
-
-每个 PR **MUST** 执行：
-
-- Gitleaks：新增 commit/diff 密钥扫描。
-- govulncheck：Go 可达漏洞扫描。
-- gosec：Go 源码安全扫描。
-- Trivy filesystem：依赖、Dockerfile 与配置扫描。
-
-### CI-SCAN-002：安全门禁
-
-| 类型 | 门禁要求 |
-|---|---|
-| 密钥泄漏 | 必须失败 |
-| Critical 漏洞 | 必须失败 |
-| 可达 Go 漏洞 | 必须失败 |
-| High 漏洞 | 存量清理后必须失败 |
-| Medium/Low | 生成报告，可暂不阻塞 |
-
-### CI-SCAN-003：例外管理
-
-安全例外 **MUST** 包含：
-
-- 漏洞或规则编号
-- 影响范围
-- 接受原因
-- 负责人
-- 创建日期
-- 到期日期
-- 关联 Issue
-
-例外过期时 CI 必须失败。
-
-### CI-SCAN-004：Weekly Security
-
-每周安全工作流 **SHOULD** 执行：
-
-- Gitleaks 全 Git 历史扫描。
-- govulncheck 全仓扫描。
-- gosec 全仓扫描。
-- Trivy 文件系统扫描。
-- 8 个容器的构建与镜像扫描。
-- npm 生产和开发依赖扫描。
-- 安全例外过期检查。
-
-## 14. 容器验证需求
-
-### CI-IMG-001：镜像集合
-
-CI **MUST** 能验证以下 8 个镜像：
+CI **MUST** 使用现有 Dockerfile 构建以下 8 个应用镜像：
 
 ```text
 auth-rpc
@@ -458,271 +165,121 @@ admin
 web-ui
 ```
 
-### CI-IMG-002：禁止推送
+第一版采用固定的完整构建清单，不建设受影响路径矩阵。构建过程：
 
-CI 容器验证：
-
-- **MUST NOT** 登录镜像仓库。
-- **MUST NOT** 推送镜像。
-- **MUST NOT** 使用 `latest`。
+- **MUST NOT** 登录或推送镜像仓库。
+- **MUST NOT** 使用 `latest` 作为验证结果的唯一标识。
 - **MUST NOT** 通过 build args 传入密钥。
+- **SHOULD** 使用 BuildKit 缓存缩短重复构建时间；缓存失败不得改变检查结果。
 
-### CI-IMG-003：构建策略
+Hadolint **SHOULD** 检查根目录和 `web-ui` 的 Dockerfile。
 
-- PR **SHOULD** 构建受影响镜像。
-- `main` **MUST** 构建全部 8 个镜像。
-- Docker、Go 依赖或共享基础代码变更 **MUST** 构建全部相关镜像。
+### 6.4 安全检查：`security-check`
 
-### CI-IMG-004：镜像扫描
+CI 保留确定性的基础安全扫描。至少包括：
 
-构建后的本地镜像 **MUST** 使用 Trivy 扫描 High 和 Critical 漏洞。
+- Gitleaks：密钥泄漏检查。
+- govulncheck：Go 可达漏洞检查。
+- gosec：Go 源码安全检查。
+- Trivy filesystem：依赖和配置检查。
+- Trivy image：构建后镜像检查，可放入 `container-check`。
 
-### CI-IMG-005：缓存
+门禁规则：
 
-容器构建 **SHOULD** 使用 BuildKit 的 GitHub Actions Cache。缓存失效只能影响速度，不能影响正确性。
+| 问题 | 第一版处理 |
+|---|---|
+| 已确认的密钥泄漏 | 阻塞 |
+| Critical 漏洞 | 阻塞 |
+| 可达 Go 漏洞 | 阻塞 |
+| 存量 High 问题 | 首次接入时形成清单，再决定阻塞日期 |
+| Medium/Low | 输出报告，不阻塞 |
 
-## 15. 统一门禁需求
+安全例外必须记录问题编号、原因、负责人和到期时间。第一版不建立额外的定时全历史扫描工作流。
 
-### CI-GATE-001：稳定结果
+## 7. 合并门禁与结果
 
-核心工作流 **MUST** 提供唯一、稳定命名的最终 Job：`CI Gate`。
+### 7.1 `CI Gate`
 
-### CI-GATE-002：始终执行
+工作流 **MUST** 提供名为 `CI Gate` 的最终 Job，并使用 `if: always()` 汇总所有必需 Job。
 
-`CI Gate` **MUST** 使用 `if: always()` 汇总所有依赖 Job。
+- 所有必需 Job 成功时，`CI Gate` 成功。
+- 任一必需 Job 失败、取消或缺少预期结果时，`CI Gate` 失败。
+- 仅由明确条件造成的合法跳过可以接受。
 
-### CI-GATE-003：Fail Closed
+仓库分支保护启用后，应只把稳定的 `CI Gate` 设置为 required status check，降低内部 Job 调整对保护规则的影响。
 
-结果判定：
+### 7.2 日志和 Artifact
 
-- `success`：通过。
-- 因明确路径条件导致的 `skipped`：允许。
-- `failure`：失败。
-- `cancelled`：失败。
-- 缺少预期结果：失败。
+- GitHub Actions 日志应能定位到失败的 Job、命令或镜像。
+- 覆盖率、安全报告或失败日志可按实际排障需要上传。
+- 不上传 `node_modules`、Go 缓存、普通二进制、完整镜像 tar、`.env` 或含密钥的配置。
+- 第一版不制定 P50/P95、固定保留天数等运营指标；使用 GitHub 默认日志能力即可。
 
-CI 无法确认某项检查成功时，不得把总体结果标记为成功。
+## 8. 本地复现
 
-## 16. Nightly 需求
+复杂命令 **SHOULD** 放入 Makefile 或 `.ci/scripts/`，GitHub Actions 只负责环境准备和调度。
 
-### CI-NGT-001：重复与并发测试
-
-Nightly **SHOULD** 执行至少 3 次带 race 和 shuffle 的全仓 Go 测试，用于发现顺序依赖和偶发并发问题。
-
-### CI-NGT-002：完整服务集成
-
-Nightly **SHOULD**：
-
-1. 构建并启动完整 Docker Compose。
-2. 等待必要服务健康。
-3. 执行 `make smoke-test`。
-4. 执行有时限的秒杀压力测试。
-5. 收集失败服务日志。
-6. 在 `always()` 清理容器和 CI 数据卷。
-
-### CI-NGT-003：压力脚本安全
-
-压力测试脚本 **MUST** 具有明确目标地址、并发上限、持续时间和退出码，并防止误指向非 CI 环境。
-
-## 17. 报告与 Artifact 需求
-
-### CI-ART-001：允许上传的 Artifact
-
-CI 可以上传：
-
-- JUnit 报告
-- 覆盖率报告
-- 安全扫描 JSON/SARIF 报告
-- 失败日志
-- 必要的 SBOM
-
-### CI-ART-002：禁止上传的 Artifact
-
-CI 不应上传：
-
-- `node_modules`
-- Go Module Cache
-- 普通编译二进制
-- 完整 Docker 镜像 tar
-- 正常运行日志
-- `.env` 或含密钥的配置
-
-### CI-ART-003：保留期限
-
-- PR 普通报告 **SHOULD** 保留 7 天。
-- Weekly/Nightly 失败报告 **SHOULD** 保留 14 天。
-- 报告中不得包含密钥原文。
-
-## 18. 缓存与免费额度需求
-
-### CI-CACHE-001：Go
-
-CI **SHOULD** 缓存 Go Module 与 Build Cache，缓存键至少包含 Runner OS、Go 版本和 `go.sum` 哈希。
-
-测试结果不得依赖缓存，必须使用 `-count=1`。
-
-### CI-CACHE-002：Node
-
-CI **SHOULD** 缓存 npm 下载目录，不缓存 `node_modules`。缓存键至少包含 Node 版本和 `package-lock.json` 哈希。
-
-### CI-CACHE-003：资源控制
-
-- 每个 Job **MUST** 设置合理超时。
-- 同一 PR 的旧运行 **MUST** 被取消。
-- 重型扫描和压力测试 **SHOULD** 放入 Weekly/Nightly。
-- 普通 PR 的 P95 运行时间 **SHOULD** 不超过 15 分钟。
-
-## 19. 本地复现需求
-
-### CI-LOCAL-001：仓库脚本
-
-复杂 CI 逻辑 **SHOULD** 放入 `.ci/scripts/`，而不是全部写成 Workflow 内联脚本。
-
-建议目录：
+建议提供以下入口：
 
 ```text
-.ci/
-├── scripts/
-│   ├── check-go-format.sh
-│   ├── check-go-mod.sh
-│   ├── build-services.sh
-│   ├── check-generated.sh
-│   ├── validate-config.sh
-│   ├── security-fast.sh
-│   └── ci-gate.sh
-├── tool-versions.env
-└── security-exceptions.yaml
-```
-
-### CI-LOCAL-002：Makefile 入口
-
-项目 **SHOULD** 提供：
-
-```text
-make ci-go-quality
-make ci-go-test
+make ci-go
 make ci-web
-make ci-generated
-make ci-config
 make ci-security
 make ci-container
 make ci
 ```
 
-GitHub Actions 负责环境、缓存、并行调度和报告上传；实际检查命令应尽量通过仓库脚本或 Makefile 复用。
+其中 `make ci` 应在具备 Docker、Go、Node.js 的开发环境中执行全部核心检查。脚本失败必须返回非零退出码。
 
-## 20. 失败与 Flaky Test 管理
-
-### CI-FLAKE-001：禁止用重试掩盖失败
-
-- 测试失败 **MUST NOT** 通过自动重跑变绿。
-- 网络下载可以有限重试。
-- 测试本身不得因失败自动重试。
-
-### CI-FLAKE-002：不稳定测试
-
-Flaky Test 必须建立 Issue、负责人和修复期限。确需临时隔离时必须记录原因和恢复日期。
-
-### CI-FLAKE-003：continue-on-error
-
-以下检查在初次引入阶段可以临时设为报告模式：
-
-- golangci-lint 存量问题
-- High 漏洞存量
-- 初次覆盖率比较
-
-以下检查不得设置 `continue-on-error`：
-
-- 编译
-- 自动化测试
-- 密钥泄漏
-- Critical 漏洞
-- `CI Gate`
-
-## 21. 非功能指标
-
-| 指标 | 目标 |
-|---|---:|
-| PR CI P50 | 不超过 8 分钟 |
-| PR CI P95 | 不超过 15 分钟 |
-| main 全量 CI | 不超过 25 分钟 |
-| Nightly | 不超过 60 分钟 |
-| Flaky 失败比例 | 小于 1% |
-| 因缓存故障造成的构建失败 | 0 |
-| CI 使用生产密钥次数 | 0 |
-| 过期安全例外数量 | 0 |
-
-若普通 PR 长期超过 15 分钟，应先分析 Job 时长、缓存命中率和依赖下载，再考虑测试分片或更细路径过滤。
-
-## 22. 分阶段实施要求
+## 9. 实施顺序
 
 ### Phase 1：基础门禁
 
-- Go 格式、依赖和 vet。
-- Go 测试与 7 个服务编译。
-- 前端 lint/build。
-- Compose 配置验证。
+- Go 格式、依赖、vet、测试和 7 个服务编译。
+- 前端 `npm ci`、lint 和 build。
+- Compose 配置解析。
 - `CI Gate`。
 
-### Phase 2：完整质量检查
+### Phase 2：容器与安全
 
-- golangci-lint。
-- Vitest。
-- 覆盖率基线。
-- 固定生成工具版本。
+- 构建全部 8 个应用镜像。
+- Hadolint。
+- Gitleaks、govulncheck、gosec、Trivy。
+- 确认并登记存量扫描问题。
+
+### Phase 3：按真实需求增强
+
+仅在项目出现对应需求后评估：
+
+- 前端自动化测试及覆盖率门禁。
 - 生成代码漂移检查。
-
-### Phase 3：安全门禁
-
-- Gitleaks。
-- govulncheck。
-- gosec。
-- Trivy 文件系统扫描。
-- 安全例外管理。
-
-### Phase 4：容器验证
-
-- 受影响镜像矩阵。
-- `main` 全 8 镜像构建。
-- Trivy 镜像扫描。
-- BuildKit 缓存。
-
-### Phase 5：Weekly 与 Nightly
-
-- 全历史安全扫描。
 - 完整 Compose 冒烟测试。
-- 重复并发测试。
-- 秒杀短时压力测试。
-- 失败日志归档与自动清理。
+- 更细的路径过滤、构建矩阵或测试拆分。
 
-## 23. 最终验收标准
+不预先实施定时扫描、Nightly、压力测试和 CI 指标平台。
 
-CI 实施完成后必须满足：
+## 10. 第一版验收标准
 
-1. 新 PR 自动触发核心 CI。
-2. `main` 始终运行全量核心 CI。
-3. etcd 相关测试在 CI 中真实执行。
-4. pgvector 集成测试不因缺少 DSN 被跳过。
-5. 7 个 Go 服务和前端均能构建。
-6. Go race、shuffle 和覆盖率检查有效。
-7. 生成代码不一致会导致 CI 失败。
-8. Compose 与两个 Dockerfile 均经过验证。
-9. 密钥泄漏、Critical 漏洞和可达 Go 漏洞会导致 CI 失败。
-10. PR 构建受影响容器，`main` 构建全部 8 个容器。
-11. 容器验证过程不登录仓库、不推送镜像、不读取生产密钥。
-12. 最终提供唯一稳定的 `CI Gate` 结果。
-13. 测试失败时能够获得 JUnit、覆盖率或必要日志。
-14. 开发者能够通过 `make ci` 本地复现核心检查。
-15. 普通 PR CI 的 P95 运行时间不超过 15 分钟。
+第一版 CI 完成时必须满足：
 
-## 24. 待实施阶段确认项
+1. PR、`main` 推送及手动操作可以触发 `ci.yml`。
+2. Go 检查和依赖服务测试真实执行。
+3. 7 个 Go 服务和前端均能成功构建。
+4. Compose 配置能够解析，8 个应用镜像均能构建。
+5. 基础安全扫描生效，明确的严重问题会阻塞合并。
+6. CI 不使用生产密钥，不调用真实生产外部服务，不推送镜像。
+7. `CI Gate` 为唯一、稳定的合并门禁结果。
+8. 开发者可以通过 `make ci` 或等价脚本在本地复现核心检查。
 
-以下内容需在实现对应阶段前确定：
+## 11. 与部署工作的边界
 
-- golangci-lint 的具体版本和规则集。
-- goctl、protoc 及相关插件的锁定版本。
-- 首次覆盖率基线和核心包阈值。
-- High 漏洞存量清理期限。
-- 容器路径影响矩阵的具体实现方式。
-- Weekly/Nightly 的最终 cron 时间。
-- GitHub 托管 Runner 免费额度不足时的 Runner 策略。
+本文件只负责证明提交满足合并条件，不决定应用部署位置和部署工具。
+
+部署应另建技术选型记录，重点比较：
+
+- GitHub Actions + GHCR + 单机 Docker Compose + SSH。
+- 自托管 Coolify + Docker Compose。
+- Portainer CE 的管理能力及免费版自动部署限制。
+- K3s + Argo CD 在多机、高可用场景下的成本与复杂度。
+
+在部署方案确定前，CI 只验证 Dockerfile 能正确构建，不申请推送仓库或访问服务器所需的权限。
