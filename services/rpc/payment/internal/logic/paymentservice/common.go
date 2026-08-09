@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	infraalipay "budgetmatch-sim/infra/alipay"
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/role"
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
@@ -13,6 +14,7 @@ import (
 	"budgetmatch-sim/services/rpc/payment/model/payments"
 	"budgetmatch-sim/services/rpc/payment/pb"
 
+	sdkalipay "github.com/smartwalle/alipay/v3"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/metadata"
 )
@@ -127,4 +129,40 @@ func newMallCallbackContext(ctx context.Context, svcCtx *svc.ServiceContext, use
 	}
 
 	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token), nil
+}
+
+func validateSuccessfulNotify(noti *sdkalipay.Notification, record *payments.Payments, cfg infraalipay.Config) error {
+	if noti.AppId == "" || noti.AppId != cfg.AppId {
+		return fmt.Errorf("app_id mismatch")
+	}
+	if noti.SellerId == "" || noti.SellerId != cfg.SellerId {
+		return fmt.Errorf("seller_id mismatch")
+	}
+	if noti.OutTradeNo == "" || noti.OutTradeNo != record.OutTradeNo {
+		return fmt.Errorf("out_trade_no mismatch")
+	}
+	if noti.TradeNo == "" {
+		return fmt.Errorf("trade_no is empty")
+	}
+
+	switch noti.TradeStatus {
+	case sdkalipay.TradeStatusSuccess, sdkalipay.TradeStatusFinished:
+	default:
+		return fmt.Errorf("invalid success trade status: %s", noti.TradeStatus)
+	}
+
+	amountFen, err := infraalipay.YuanToFen(noti.TotalAmount)
+	if err != nil {
+		return fmt.Errorf("invalid total amount: %w", err)
+	}
+	if amountFen != record.Amount {
+		return fmt.Errorf("total_amount mismatch: notify=%d, record=%d", amountFen, record.Amount)
+	}
+
+	if record.Status == payments.StatusSuccess &&
+		record.TradeNo != "" &&
+		record.TradeNo != noti.TradeNo {
+		return fmt.Errorf("trade_no conflicts with confirmed payment")
+	}
+	return nil
 }

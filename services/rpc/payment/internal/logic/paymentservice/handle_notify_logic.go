@@ -1,6 +1,7 @@
 package paymentservicelogic
 
 import (
+	infraalipay "budgetmatch-sim/infra/alipay"
 	"context"
 	"encoding/json"
 
@@ -46,6 +47,20 @@ func (l *HandleNotifyLogic) HandleNotify(in *pb.HandleNotifyReq) (*pb.HandleNoti
 		return &pb.HandleNotifyResp{Ok: false, Message: "verify failed"}, nil
 	}
 
+	// 先验证通知属于本应用和本收款方
+	if noti.AppId != l.svcCtx.Config.Alipay.AppId {
+		l.Logger.Errorf("notify app_id mismatch: out_trade_no=%s", noti.OutTradeNo)
+		return &pb.HandleNotifyResp{Ok: false, Message: "invalid app_id"}, nil
+	}
+	if noti.SellerId != l.svcCtx.Config.Alipay.SellerId {
+		l.Logger.Errorf("seller_id mismatch: out_trade_no=%s", noti.OutTradeNo)
+		return &pb.HandleNotifyResp{Ok: false, Message: "invalid seller_id"}, nil
+	}
+	if noti.OutTradeNo == "" {
+		l.Logger.Errorf("notify out_trade_no empty")
+		return &pb.HandleNotifyResp{Ok: false, Message: "invalid order"}, nil
+	}
+
 	record, err := l.svcCtx.PaymentStore.FindByOutTradeNo(l.ctx, noti.OutTradeNo)
 	if err != nil {
 		l.Logger.Errorf("find payment failed: %v", err)
@@ -56,9 +71,28 @@ func (l *HandleNotifyLogic) HandleNotify(in *pb.HandleNotifyReq) (*pb.HandleNoti
 		return &pb.HandleNotifyResp{Ok: false, Message: "unknown order"}, nil
 	}
 
+	amountFen, err := infraalipay.YuanToFen(noti.TotalAmount)
+	if err != nil || amountFen != record.Amount {
+		l.Logger.Errorf(
+			"notify amount mismatch: out_trade_no=%s, notify_amount=%s, expected_amount=%s",
+			noti.OutTradeNo, noti.TotalAmount, record.Amount,
+		)
+		return &pb.HandleNotifyResp{Ok: false, Message: "amount mismatch"}, nil
+	}
+
 	// 仅在交易成功/结束时确认。其它状态（等待付款、关闭）仅记录。
 	switch noti.TradeStatus {
 	case alipay.TradeStatusSuccess, alipay.TradeStatusFinished:
+		if noti.TradeNo == "" {
+			l.Logger.Errorf("notify trade_no is empty: out_trade_no: %s", noti.OutTradeNo)
+			return &pb.HandleNotifyResp{Ok: false, Message: "invalid trade_no"}, nil
+		}
+
+		if err := validateSuccessfulNotify(noti, record, l.svcCtx.Config.Alipay); err != nil {
+			l.Logger.Errorf("reject successful notify: out_trade_no=%s error=%v", noti.OutTradeNo, err)
+			return &pb.HandleNotifyResp{Ok: false, Message: "invalid notify"}, nil
+		}
+
 		raw, _ := json.Marshal(in.Params)
 		if err := markPaid(l.ctx, l.svcCtx, record, noti.TradeNo, noti.BuyerId, string(raw)); err != nil {
 			l.Logger.Errorf("mark paid failed: %v", err)
