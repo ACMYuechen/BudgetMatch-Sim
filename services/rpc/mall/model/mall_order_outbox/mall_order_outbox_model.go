@@ -5,6 +5,7 @@ package mall_order_outbox
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"gorm.io/gorm"
@@ -29,6 +30,9 @@ type (
 		MarkRetry(ctx context.Context, req *MarkRetryReq) (bool, error)
 		// MarkDead 将当前领取版本从发送中流转为死信。
 		MarkDead(ctx context.Context, req *MarkDeadReq) (bool, error)
+		ListFiltered(ctx context.Context, req ListFilteredReq) ([]MallOrderOutbox, int64, error)
+		GetStats(ctx context.Context) ([]StatusCount, time.Time, error)
+		ReplayDead(ctx context.Context, id string, now time.Time) (bool, error)
 	}
 
 	customMallOrderOutboxModel struct {
@@ -48,6 +52,21 @@ type (
 		Attempt   int
 		LastError string
 		Now       time.Time
+	}
+
+	ListFilteredReq struct {
+		Page        int
+		Size        int
+		Status      int
+		EventType   string
+		AggregateId string
+		DedupKey    string
+	}
+
+	StatusCount struct {
+		Status    int
+		EventType string
+		Count     int64
 	}
 )
 
@@ -122,6 +141,84 @@ func (m *customMallOrderOutboxModel) MarkRetry(ctx context.Context, req *MarkRet
 
 func (m *customMallOrderOutboxModel) MarkDead(ctx context.Context, req *MarkDeadReq) (bool, error) {
 	result := m.conn.WithContext(ctx).Model(&MallOrderOutbox{}).Where("id = ? AND status = ? AND attempts = ?", req.Id, StatusProcessing, req.Attempt).Updates(map[string]any{"status": StatusDead, "locked_until": req.Now, "last_error": req.LastError, "updated_at": req.Now})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+
+func (m *customMallOrderOutboxModel) ListFiltered(ctx context.Context, req ListFilteredReq) ([]MallOrderOutbox, int64, error) {
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Size <= 0 {
+		req.Size = 20
+	}
+	if req.Size > 100 {
+		req.Size = 100
+	}
+
+	query := m.conn.WithContext(ctx).Model(&MallOrderOutbox{})
+	if req.Status >= 0 {
+		query = query.Where("status = ?", req.Status)
+	}
+	if req.EventType != "" {
+		query = query.Where("event_type = ?", req.EventType)
+	}
+	if req.AggregateId != "" {
+		query = query.Where("aggregate_id = ?", req.AggregateId)
+	}
+	if req.DedupKey != "" {
+		query = query.Where("dedup_key = ?", req.DedupKey)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	list := make([]MallOrderOutbox, 0)
+	if total == 0 {
+		return list, 0, nil
+	}
+	err := query.Order("created_at DESC").Limit(req.Size).Offset((req.Page - 1) * req.Size).Find(&list).Error
+	return list, total, err
+}
+
+func (m *customMallOrderOutboxModel) GetStats(ctx context.Context) ([]StatusCount, time.Time, error) {
+	counts := make([]StatusCount, 0)
+	if err := m.conn.WithContext(ctx).Model(&MallOrderOutbox{}).
+		Select("status, event_type, COUNT(*) AS count").
+		Group("status, event_type").
+		Order("status, event_type").
+		Scan(&counts).Error; err != nil {
+		return nil, time.Time{}, err
+	}
+
+	var oldest sql.NullTime
+	if err := m.conn.WithContext(ctx).Model(&MallOrderOutbox{}).
+		Where("status = ?", StatusPending).
+		Select("MIN(created_at)").
+		Scan(&oldest).Error; err != nil {
+		return nil, time.Time{}, err
+	}
+	if oldest.Valid {
+		return counts, oldest.Time, nil
+	}
+	return counts, time.Time{}, nil
+}
+
+func (m *customMallOrderOutboxModel) ReplayDead(ctx context.Context, id string, now time.Time) (bool, error) {
+	result := m.conn.WithContext(ctx).Model(&MallOrderOutbox{}).
+		Where("id = ? AND status = ?", id, StatusDead).
+		Updates(map[string]any{
+			"status":        StatusPending,
+			"attempts":      0,
+			"next_retry_at": now,
+			"locked_until":  now,
+			"last_error":    "",
+			"published_at":  0,
+			"updated_at":    now,
+		})
 	if result.Error != nil {
 		return false, result.Error
 	}

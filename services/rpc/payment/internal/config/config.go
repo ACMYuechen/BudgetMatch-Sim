@@ -15,4 +15,5 @@ type Config struct {
 	Database   database.Config
 	CacheRedis redis.Config  `json:"cacheRedis"`
 	Alipay     alipay.Config `json:"alipay"`
+	MallRpc    zrpc.RpcClientConf
 }

@@ -376,13 +376,17 @@ type AdminOrderResp struct {
 	Items          []AdminOrderItem `json:"items"`
 	CreatedAt      string           `json:"created_at"`
 	UpdatedAt      string           `json:"updated_at"`
+	PaymentStatus  int32            `json:"payment_status"`
+	OutTradeNo     string           `json:"out_trade_no"`
+	TradeNo        string           `json:"trade_no"`
 }
 
 type AdminOrderListReq struct {
-	Page     int    `form:"page,default=1"`
-	PageSize int    `form:"page_size,default=10"`
-	Status   int32  `form:"status,default=-1"`
-	UserId   string `form:"user_id"`
+	Page          int    `form:"page,default=1"`
+	PageSize      int    `form:"page_size,default=10"`
+	Status        int32  `form:"status,default=-1"`
+	UserId        string `form:"user_id"`
+	PaymentStatus int32  `form:"payment_status,default=-1"`
 }
 
 type AdminOrderListResp struct {
@@ -406,6 +410,69 @@ type AdminUpdateOrderStatusReq struct {
 }
 
 type AdminUpdateOrderStatusResp struct {
+	Success bool `json:"success"`
+}
+
+type AdminOrderOutboxEvent struct {
+	Id          string `json:"id"`
+	AggregateId string `json:"aggregate_id"`
+	EventType   string `json:"event_type"`
+	DedupKey    string `json:"dedup_key"`
+	Topic       string `json:"topic"`
+	Tag         string `json:"tag"`
+	MessageKey  string `json:"message_key"`
+	Payload     string `json:"payload"`
+	Status      int32  `json:"status"`
+	Attempts    int32  `json:"attempts"`
+	MaxAttempts int32  `json:"max_attempts"`
+	NextRetryAt string `json:"next_retry_at"`
+	LockedUntil string `json:"locked_until"`
+	LastError   string `json:"last_error"`
+	PublishedAt int64  `json:"published_at"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+type AdminOrderOutboxStatusCount struct {
+	Status    int32  `json:"status"`
+	EventType string `json:"event_type"`
+	Count     int64  `json:"count"`
+}
+
+type AdminOrderOutboxStatsResp struct {
+	Counts          []AdminOrderOutboxStatusCount `json:"counts"`
+	OldestPendingAt int64                         `json:"oldest_pending_at"`
+}
+
+type AdminOrderOutboxListReq struct {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=20"`
+	Status      int32  `form:"status,default=-1"`
+	EventType   string `form:"event_type,optional"`
+	AggregateId string `form:"aggregate_id,optional"`
+	DedupKey    string `form:"dedup_key,optional"`
+}
+
+type AdminOrderOutboxListResp struct {
+	List     []AdminOrderOutboxEvent `json:"list"`
+	Total    int64                   `json:"total"`
+	Page     int                     `json:"page"`
+	PageSize int                     `json:"page_size"`
+}
+
+type AdminOrderOutboxDetailReq struct {
+	Id string `path:"id"`
+}
+
+type AdminOrderOutboxDetailResp struct {
+	Event AdminOrderOutboxEvent `json:"event"`
+}
+
+type AdminReplayOrderOutboxReq struct {
+	Id string `path:"id"`
+}
+
+type AdminReplayOrderOutboxResp struct {
 	Success bool `json:"success"`
 }
 

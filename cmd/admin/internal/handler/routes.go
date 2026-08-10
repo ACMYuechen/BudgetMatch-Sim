@@ -229,6 +229,30 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/orders/:id/status",
 					Handler: mall_admin.AdminUpdateOrderStatusHandler(serverCtx),
 				},
+				{
+					// 订单Outbox状态统计
+					Method:  http.MethodGet,
+					Path:    "/outbox/stats",
+					Handler: mall_admin.AdminOrderOutboxStatsHandler(serverCtx),
+				},
+				{
+					// 订单Outbox事件列表
+					Method:  http.MethodGet,
+					Path:    "/outbox/events",
+					Handler: mall_admin.AdminOrderOutboxListHandler(serverCtx),
+				},
+				{
+					// 订单Outbox事件详情
+					Method:  http.MethodGet,
+					Path:    "/outbox/events/:id",
+					Handler: mall_admin.AdminOrderOutboxDetailHandler(serverCtx),
+				},
+				{
+					// 重放订单Outbox死信
+					Method:  http.MethodPost,
+					Path:    "/outbox/events/:id/replay",
+					Handler: mall_admin.AdminReplayOrderOutboxHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/admin/mall"),

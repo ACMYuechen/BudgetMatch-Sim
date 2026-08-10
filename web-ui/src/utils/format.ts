@@ -23,17 +23,7 @@ export function formatDate(iso: string): string {
   return d.toLocaleDateString('zh-CN')
 }
 
-export function getOrderStatusText(status: number): string {
-  const map: Record<number, string> = {
-    0: '待支付',
-    1: '已支付',
-    2: '已发货',
-    3: '已完成',
-    4: '已取消',
-    5: '已退款',
-  }
-  return map[status] ?? `未知(${status})`
-}
+export { getOrderStatusText, getOrderStatusColor, OrderStatus } from '@/constants/orderStatus'
 
 export function generateIdempotencyKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`

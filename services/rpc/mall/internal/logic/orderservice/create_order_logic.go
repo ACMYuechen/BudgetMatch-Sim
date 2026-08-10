@@ -11,6 +11,7 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
@@ -156,6 +157,22 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 			}
 		}
 
+		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypeCreated, now, mq.OrderEvent{
+			OrderId:  orderId,
+			UserId:   in.UserId,
+			SkuId:    sku.Id,
+			Quantity: in.Quantity,
+			Status:   int32(mall_orders.OrderStatusPending),
+		})
+		if err != nil {
+			l.Logger.Errorf("failed to build order created event: order_id=%s error=%v", order.Id, err)
+			return err
+		}
+		if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
+			l.Logger.Errorf("failed to insert order created outbox event: order_id=%s event_id=%s error=%v", orderId, outboxEvent.Id, err)
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -169,19 +186,6 @@ func (l *CreateOrderLogic) CreateOrder(in *pb.CreateOrderReq) (*pb.CreateOrderRe
 
 	// 6. 记录幂等键
 	_ = l.svcCtx.Redis.Set(l.ctx, idempKey, orderId, 24*time.Hour).Err()
-
-	// 7. 异步发送 RocketMQ 事件
-	if l.svcCtx.OrderEventProducer != nil {
-		event := mq.OrderEvent{
-			OrderId:        orderId,
-			UserId:         in.UserId,
-			SkuId:          sku.Id,
-			Quantity:       in.Quantity,
-			Status:         int32(mall_orders.OrderStatusPending),
-			IdempotencyKey: in.IdempotencyKey,
-		}
-		l.svcCtx.OrderEventProducer.PublishCreatedAsync(event)
-	}
 
 	return &pb.CreateOrderResp{OrderId: orderId, Status: pb.OrderStatus_ORDER_STATUS_PENDING}, nil
 }

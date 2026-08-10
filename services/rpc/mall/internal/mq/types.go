@@ -22,6 +22,8 @@ const (
 
 // OrderEvent 订单事件消息体
 type OrderEvent struct {
+	EventId        string `json:"event_id"`
+	DedupKey       string `json:"dedup_key"`
 	OrderId        string `json:"order_id"`
 	UserId         string `json:"user_id"`
 	SkuId          string `json:"sku_id"`
@@ -30,6 +32,28 @@ type OrderEvent struct {
 	EventType      string `json:"event_type"`
 	EventTime      int64  `json:"event_time"`
 	IdempotencyKey string `json:"idempotency_key"`
+}
+
+// OrderEventDedupKey returns the stable business key shared by the outbox row,
+// RocketMQ payload and consumers. It intentionally does not use the random
+// outbox row ID so a replay is still recognized as the same business event.
+func OrderEventDedupKey(orderID, eventType string) string {
+	return "order:" + orderID + ":" + eventType
+}
+
+// NormalizeOrderEventDedupKey keeps consumers compatible with messages
+// produced before dedup_key was added to the payload.
+func NormalizeOrderEventDedupKey(event *OrderEvent) string {
+	if event == nil {
+		return ""
+	}
+	if event.DedupKey != "" {
+		return event.DedupKey
+	}
+	if event.OrderId == "" || event.EventType == "" {
+		return ""
+	}
+	return OrderEventDedupKey(event.OrderId, event.EventType)
 }
 
 // EncodeOrderEvent 序列化订单事件

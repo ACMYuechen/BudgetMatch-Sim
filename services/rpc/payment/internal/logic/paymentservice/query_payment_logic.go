@@ -54,6 +54,10 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 
 	// 已成功则直接返回本地状态，无需再查支付宝。
 	if record.Status == payments.StatusSuccess {
+		if err := markPaid(l.ctx, l.svcCtx, record, record.TradeNo, record.BuyerId, ""); err != nil {
+			l.Logger.Errorf("mark paid failed: %v", err)
+			return nil, err
+		}
 		return &pb.QueryPaymentResp{
 			Status:  int32(record.Status),
 			TradeNo: record.TradeNo,
@@ -77,7 +81,7 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 	if res.Paid {
 		if err := markPaid(l.ctx, l.svcCtx, record, res.TradeNo, res.BuyerId, ""); err != nil {
 			l.Logger.Errorf("mark paid failed: %v", err)
-			return nil, errors.Database
+			return nil, err
 		}
 	}
 

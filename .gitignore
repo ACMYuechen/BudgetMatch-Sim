@@ -57,6 +57,7 @@ AGENTS.md
 tmp/
 temp/
 *.pid
+docs/*.json
 
 # Frontend
 web/node_modules/

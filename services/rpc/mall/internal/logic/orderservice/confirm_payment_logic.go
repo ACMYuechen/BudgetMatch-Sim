@@ -6,8 +6,8 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
+	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
-	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
@@ -94,14 +94,16 @@ func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.Conf
 		}
 
 		// 创建订单支付确认事件到 Outbox 表，确保事件可靠投递。
-		outboxEventId = mall_order_outbox.NewMallOrderOutboxId()
-		event := mq.OrderEvent{OrderID: order.Id, UserID: order.UserId, Status: int32(mall_orders.OrderStatusPaid), IdempotencyKey: outboxEventId}
-		payload, err := mq.EncodeOrderEvent(mq.EventTypePaid, now, event)
+		outboxEvent, err := outbox.NewOrderEvent(mq.EventTypePaid, now, mq.OrderEvent{
+			OrderId: order.Id,
+			UserId:  order.UserId,
+			Status:  int32(mall_orders.OrderStatusPaid),
+		})
 		if err != nil {
-			l.Logger.Errorf("failed to encode order paid event: order_id=%s event_id=%s error=%v", order.Id, outboxEventId, err)
+			l.Logger.Errorf("failed to build order paid event: order_id=%s error=%v", order.Id, err)
 			return errors.Internal
 		}
-		outboxEvent := &mall_order_outbox.MallOrderOutbox{Id: outboxEventId, AggregateType: "order", AggregateId: order.Id, EventType: mq.EventTypePaid, DedupKey: "order:" + order.Id + ":" + mq.EventTypePaid, Topic: mq.TopicOrderPaid, Tag: mq.EventTypePaid, MessageKey: order.Id, Payload: string(payload), Status: mall_order_outbox.StatusPending, MaxAttempts: mall_order_outbox.DefaultMaxAttempts, NextRetryAt: now, LockedUntil: now}
+		outboxEventId = outboxEvent.Id
 		if err := l.svcCtx.OrderOutboxStore.InsertTx(tx, outboxEvent); err != nil {
 			l.Logger.Errorf("failed to insert order outbox event: order_id=%s event_id=%s error=%v", order.Id, outboxEventId, err)
 			return errors.Internal

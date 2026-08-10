@@ -1,26 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Button, Spin, Empty, Tag, message } from 'antd'
-import { ArrowLeftOutlined } from '@ant-design/icons'
-import { getOrderDetail, cancelOrder } from '@/api/mall'
+import { Card, Descriptions, Button, Spin, Empty, Tag, message, Modal, QRCode, Space } from 'antd'
+import { ArrowLeftOutlined, PayCircleOutlined } from '@ant-design/icons'
+import { getOrderDetail, cancelOrder, createPayment, queryPayment } from '@/api/mall'
 import { PriceDisplay } from '@/components/PriceDisplay'
-import { formatDateTime, getOrderStatusText } from '@/utils/format'
+import { formatDateTime, getOrderStatusText, getOrderStatusColor, OrderStatus } from '@/utils/format'
 import type { Order } from '@/types/api'
-
-const statusColors: Record<number, string> = {
-  0: 'orange',
-  1: 'green',
-  2: 'blue',
-  3: 'success',
-  4: 'default',
-  5: 'red',
-}
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
+  const [payModalOpen, setPayModalOpen] = useState(false)
+  const [payLoading, setPayLoading] = useState(false)
+  const [qrCode, setQrCode] = useState('')
+  const [outTradeNo, setOutTradeNo] = useState('')
+  const paymentCheckTimer = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -29,6 +25,14 @@ export default function OrderDetailPage() {
       .then((res) => setOrder(res.order))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    return () => {
+      if (paymentCheckTimer.current) {
+        clearInterval(paymentCheckTimer.current)
+      }
+    }
+  }, [])
 
   const handleCancel = async () => {
     if (!id) return
@@ -40,6 +44,51 @@ export default function OrderDetailPage() {
     } catch (err) {
       message.error((err as Error).message)
     }
+  }
+
+  const handlePay = async () => {
+    if (!id) return
+    setPayLoading(true)
+    try {
+      const res = await createPayment(id)
+      setQrCode(res.qr_code)
+      setOutTradeNo(res.out_trade_no)
+      setPayModalOpen(true)
+      startPaymentCheck()
+    } catch (err) {
+      message.error((err as Error).message)
+    } finally {
+      setPayLoading(false)
+    }
+  }
+
+  const startPaymentCheck = () => {
+    if (paymentCheckTimer.current) {
+      clearInterval(paymentCheckTimer.current)
+    }
+    paymentCheckTimer.current = setInterval(async () => {
+      try {
+        const res = await queryPayment(id!)
+        if (res.status === OrderStatus.PAID || res.status === 2) {
+          if (paymentCheckTimer.current) {
+            clearInterval(paymentCheckTimer.current)
+          }
+          setPayModalOpen(false)
+          message.success('支付成功！')
+          const orderRes = await getOrderDetail(id!)
+          setOrder(orderRes.order)
+        }
+      } catch (err) {
+        // 忽略查询错误，继续轮询
+      }
+    }, 3000)
+  }
+
+  const handlePayModalClose = () => {
+    if (paymentCheckTimer.current) {
+      clearInterval(paymentCheckTimer.current)
+    }
+    setPayModalOpen(false)
   }
 
   if (loading) {
@@ -64,14 +113,24 @@ export default function OrderDetailPage() {
         title={
           <div className="flex items-center gap-4">
             <span>订单详情</span>
-            <Tag color={statusColors[order.status] || 'default'}>
+            <Tag color={getOrderStatusColor(order.status)}>
               {getOrderStatusText(order.status)}
             </Tag>
           </div>
         }
         extra={
-          order.status === 0 && (
-            <Button danger onClick={handleCancel}>取消订单</Button>
+          order.status === OrderStatus.PENDING && (
+            <Space>
+              <Button
+                type="primary"
+                icon={<PayCircleOutlined />}
+                loading={payLoading}
+                onClick={handlePay}
+              >
+                去支付
+              </Button>
+              <Button danger onClick={handleCancel}>取消订单</Button>
+            </Space>
           )
         }
       >
@@ -102,9 +161,25 @@ export default function OrderDetailPage() {
         </div>
 
         <div className="flex justify-end items-center mt-6 pt-4 border-t text-xl">
-          订单总计: <PriceDisplay cents={order.total_amount} />
+          订单总计: <PriceDisplay cents={order.pay_amount} />
         </div>
       </Card>
+
+      <Modal
+        title="支付宝扫码支付"
+        open={payModalOpen}
+        onCancel={handlePayModalClose}
+        footer={null}
+        width={320}
+        centered
+      >
+        <div className="flex flex-col items-center py-4">
+          <QRCode value={qrCode} size={200} />
+          <p className="mt-4 text-gray-500">请使用支付宝扫描二维码支付</p>
+          <p className="text-sm text-gray-400">订单号: {outTradeNo}</p>
+          <p className="text-sm text-orange-500 mt-2">二维码有效期 15 分钟</p>
+        </div>
+      </Modal>
     </div>
   )
 }

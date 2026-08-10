@@ -20,7 +20,7 @@ JwtAuth:
 Database:
   LogLevel: 4
   Driver: "Postgres"
-  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=15432 sslmode=disable TimeZone=Asia/Shanghai"
   MaxOpenConns: 100
   MaxIdleConns: 20
   ConnMaxLifetime: 7200s
@@ -48,3 +48,13 @@ Alipay:
   IsProduction: false
   NotifyURL: "${ALIPAY_NOTIFY_URL}"
   ReturnURL: "${ALIPAY_RETURN_URL}"
+
+# MallRpc配置
+MallRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: mall.rpc
+  Endpoints:
+    - 127.0.0.1:10005
+  Timeout: 5000

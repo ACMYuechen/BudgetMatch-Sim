@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
+	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
@@ -27,6 +28,9 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 		IdempotencyKey: o.IdempotencyKey,
 		CreatedAt:      o.CreatedAt.Format(timeLayout),
 		UpdatedAt:      o.UpdatedAt.Format(timeLayout),
+		PaymentStatus:  paymentStatusOf(o),
+		OutTradeNo:     o.OutTradeNo,
+		TradeNo:        o.TradeNo,
 	}
 	if !o.PayTime.IsZero() {
 		resp.PayTime = o.PayTime.Format(timeLayout)
@@ -46,8 +50,48 @@ func orderToPb(o *mall_orders.MallOrders, items []mall_order_items.MallOrderItem
 	return resp
 }
 
+func outboxEventToPb(event *mall_order_outbox.MallOrderOutbox) *pb.OrderOutboxEvent {
+	if event == nil {
+		return nil
+	}
+	return &pb.OrderOutboxEvent{
+		Id:          event.Id,
+		AggregateId: event.AggregateId,
+		EventType:   event.EventType,
+		DedupKey:    event.DedupKey,
+		Topic:       event.Topic,
+		Tag:         event.Tag,
+		MessageKey:  event.MessageKey,
+		Payload:     event.Payload,
+		Status:      int32(event.Status),
+		Attempts:    int32(event.Attempts),
+		MaxAttempts: int32(event.MaxAttempts),
+		NextRetryAt: event.NextRetryAt.Format(timeLayout),
+		LockedUntil: event.LockedUntil.Format(timeLayout),
+		LastError:   event.LastError,
+		PublishedAt: event.PublishedAt,
+		CreatedAt:   event.CreatedAt.Format(timeLayout),
+		UpdatedAt:   event.UpdatedAt.Format(timeLayout),
+	}
+}
+
 func idempotencyKey(key string) string {
 	return "mall:idempotency:" + key
+}
+
+// 根据支付凭证完整性计算运营侧支付状态
+func paymentStatusOf(order *mall_orders.MallOrders) pb.PaymentStatus {
+	hasOutTradeNo := order.OutTradeNo != ""
+	hasTradeNo := order.TradeNo != ""
+	hasPayTime := !order.PayTime.IsZero()
+	switch {
+	case !hasOutTradeNo && !hasTradeNo && !hasPayTime:
+		return pb.PaymentStatus_PAYMENT_STATUS_UNPAID
+	case hasOutTradeNo && hasTradeNo && hasPayTime:
+		return pb.PaymentStatus_PAYMENT_STATUS_PAID
+	default:
+		return pb.PaymentStatus_PAYMENT_STATUS_ABNORMAL
+	}
 }
 
 // 暂时未使用

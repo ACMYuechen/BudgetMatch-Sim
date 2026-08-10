@@ -86,7 +86,9 @@ export interface OrderItem {
 export interface Order {
   id: string
   user_id: string
-  total_amount: number
+  original_amount: number
+  discount_amount: number
+  pay_amount: number
   status: number
   pay_type: string
   pay_time: string
