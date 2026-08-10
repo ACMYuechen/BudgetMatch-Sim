@@ -95,6 +95,8 @@
 
   ```bash
   go test ./cmd/admin/... ./services/rpc/mall/...
+  ```
+
 ## 2026-08-03 支付成功回写商城订单状态（feat/payment）
 
 ### 改了什么
@@ -116,3 +118,50 @@
 - 支付宝主动查询和异步通知确认成功后，Mall 订单会由待支付更新为已支付，并写入支付时间和交易号。
 - Mall 回写失败时支付流水保持成功语义，接口返回原始错误；后续重复查询可再次触发幂等回写。
 - 实测异步通知可在不调用主动查询的情况下将订单更新为已支付；重复查询后支付时间、库存、销量和 Outbox 支付事件数量均未变化。
+
+## 2026-08-10 加固支付 RPC 授权与支付宝回调业务校验（fix/payment）
+
+### 改了什么
+
+- 支付宝异步通知通过 RSA2 验签后，继续精确校验 `app_id`、`seller_id`、`out_trade_no`、`trade_no`、`trade_status` 和 `total_amount`。
+- 将支付宝元金额通过字符串解析为整数分进行比较，不使用浮点数；拒绝金额不一致、格式非法和超过两位小数的通知。
+- 仅允许 `TRADE_SUCCESS` 和 `TRADE_FINISHED` 状态确认支付，并拒绝已成功流水出现不同支付宝交易号的冲突通知。
+- CreatePayment 和 QueryPayment 从认证上下文读取用户身份，校验请求用户、订单归属和支付流水归属，不再只信任请求中的 `user_id`、`order_id`。
+- 修复同一用户、同一订单和相同金额的已有支付流水被错误判定为冲突的问题，恢复待支付流水复用和已支付结果幂等返回。
+- 为 payment-rpc 调用 mall-rpc 引入独立的短期服务 JWT，校验调用方、签发方、接收方、有效期和签名方法。
+- 将 `ConfirmPayment` 限制为 payment-rpc 服务身份调用，普通用户 JWT、错误服务、错误 audience 和错误密钥均无法调用。
+- 新增 `PAYMENT_MALL_SERVICE_SECRET` 和 `ALIPAY_SELLER_ID` 配置，payment-rpc 与 mall-rpc 使用相同服务密钥完成内部调用认证。
+- 补充支付宝成功通知业务字段校验、跨用户访问、服务 Token、ConfirmPayment 身份限制和事务回滚测试。
+
+### 为什么
+
+- 支付宝通知签名正确只能证明报文来自支付宝，仍需确认通知属于当前应用、当前收款方和当前本地支付流水，避免错误商户、错误金额或错误订单被标记为成功。
+- CreatePayment 和 QueryPayment 面向用户开放，不能使用请求字段作为资源归属依据，需要以认证中间件写入的用户身份为准。
+- ConfirmPayment 会直接修改订单支付状态和交易凭证，必须与普通用户 JWT 隔离，只允许可信的 payment-rpc 调用。
+- 支付回调与主动查询可能重复或并发到达，需要保持支付流水和订单确认幂等，并拒绝不同交易号覆盖已确认结果。
+
+### 影响面
+
+- `POST /api/pay/notify/alipay` 的合法支付宝通知仍返回纯文本 `success`；验签失败或业务字段不匹配时返回 `failure`，不会更新支付流水和订单。
+- `POST /api/mall/orders/:id/pay` 和 `GET /api/mall/orders/:id/pay/query` 会拒绝跨用户创建支付或查询支付流水，并使用 NotFound 语义避免泄露目标资源。
+- `/mall.OrderService/ConfirmPayment` 不再接受普通用户 JWT，只接受 audience 为 mall-rpc 的 payment-rpc 短期服务 Token。
+- 部署时必须为 payment-rpc 和 mall-rpc 配置相同的 `PAYMENT_MALL_SERVICE_SECRET`，并将 `ALIPAY_SELLER_ID` 配置为支付宝商户 PID。
+- RocketMQ 消息投递与本次支付授权、回调校验相互独立；本地 broker 地址问题后续单独处理。
+
+### 怎么验证的
+
+- 使用支付宝沙箱和 Cloudflare Tunnel 完成真实异步通知测试，确认 RSA2 验签、AppID、SellerID、金额和交易字段校验通过后，支付流水与商城订单自动更新为成功。
+- 核对 payment 与 order 的金额、商户订单号、支付宝交易号和支付时间完全一致，并确认通知原始数据已经落库。
+- 使用普通用户 JWT 直接调用 ConfirmPayment，确认返回 `401002:unauthorized.invalid_token`；使用 payment-rpc 服务 Token 调用成功。
+- 使用表格测试验证 AppID、SellerID、金额、金额精度、商户订单号、支付宝交易号和交易状态错误时均被拒绝。
+- 使用不同认证用户验证 CreatePayment 和 QueryPayment 跨用户请求被拒绝，且不会进入支付宝查询或修改支付状态。
+- 重复查询已成功支付，确认支付流水和订单均按相同交易号幂等返回。
+- 执行以下测试并通过：
+
+  ```bash
+  GOCACHE=/tmp/budgetmatch-go-cache go test -count=1 \
+    ./infra/serviceauth \
+    ./infra/interceptor \
+    ./services/rpc/payment/internal/logic/paymentservice \
+    ./services/rpc/mall/internal/logic/orderservice
+  ```
