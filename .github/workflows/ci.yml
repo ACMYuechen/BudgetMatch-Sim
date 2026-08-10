@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [chore/ci]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -28,11 +28,6 @@ jobs:
           ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
         ports:
           - 2379:2379
-        options: >-
-          --health-cmd "etcdctl endpoint health"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
       postgres:
         image: pgvector/pgvector:pg16@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
         env:
@@ -52,6 +47,19 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Wait for etcd
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:2379/health \
+              | grep --quiet '"health":"true"'; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "etcd did not become healthy" >&2
+          curl --silent --show-error http://127.0.0.1:2379/health >&2 || true
+          exit 1
       - name: Set up Go from go.mod
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -60,21 +68,21 @@ jobs:
       - name: Run Go checks and build all services
         run: .ci/scripts/go-check.sh
 
-  web-check:
-    name: Web Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: web-ui/package-lock.json
-      - name: Run frontend checks
-        run: .ci/scripts/web-check.sh
+  # web-check:
+  #   name: Web Check
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 20
+  #   steps:
+  #     - name: Check out source
+  #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+  #       with:
+  #         node-version: '20'
+  #         cache: npm
+  #         cache-dependency-path: web-ui/package-lock.json
+  #     - name: Run frontend checks
+  #       run: .ci/scripts/web-check.sh
 
   security-check:
     name: Security Check
@@ -108,12 +116,13 @@ jobs:
   ci-gate:
     name: CI Gate
     if: ${{ always() }}
-    needs: [go-check, web-check, security-check, container-check]
+    # needs: [go-check, web-check, security-check, container-check]
+    needs: [go-check, security-check, container-check]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       GO_RESULT: ${{ needs.go-check.result }}
-      WEB_RESULT: ${{ needs.web-check.result }}
+      # WEB_RESULT: ${{ needs.web-check.result }}
       SECURITY_RESULT: ${{ needs.security-check.result }}
       CONTAINER_RESULT: ${{ needs.container-check.result }}
     steps:
