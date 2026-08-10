@@ -19,6 +19,36 @@ cleanup() {
 }
 trap cleanup EXIT
 
+retry_command() {
+  local max_attempts="$1"
+  shift
+
+  local attempt
+  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+    if "$@"; then
+      return 0
+    fi
+
+    if ((attempt == max_attempts)); then
+      return 1
+    fi
+
+    echo "Command failed (attempt ${attempt}/${max_attempts}); retrying in $((attempt * 5)) seconds" >&2
+    sleep "$((attempt * 5))"
+  done
+}
+
+ensure_image() {
+  local image="$1"
+
+  if docker image inspect "${image}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "Pulling ${image}"
+  retry_command 3 docker pull "${image}"
+}
+
 prepare_build_context() {
   local path target_dir
 
@@ -57,7 +87,7 @@ build_image() {
         --cache-to "type=gha,mode=max,scope=budgetmatch-${name}"
       )
     fi
-    if ! docker buildx build \
+    if ! retry_command 3 docker buildx build \
       --file "${dockerfile}" \
       --tag "${image}" \
       --load \
@@ -67,7 +97,7 @@ build_image() {
       return 1
     fi
   else
-    if ! docker build \
+    if ! retry_command 3 docker build \
       --file "${dockerfile}" \
       --tag "${image}" \
       "${build_args[@]}" \
@@ -124,6 +154,10 @@ readonly IMAGE_TAG
 validate_image_tag "${IMAGE_TAG}"
 
 docker compose --env-file .env.ci config --quiet
+
+echo "Preparing container check tool images"
+ensure_image "${HADOLINT_IMAGE}"
+ensure_image "${TRIVY_IMAGE}"
 
 echo "Linting Dockerfiles"
 docker run --rm --interactive "${HADOLINT_IMAGE}" hadolint --failure-threshold error - < Dockerfile
