@@ -18,10 +18,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const (
-	timeLayout              = "2006-01-02T15:04:05Z07:00"
-	mallCallbackTokenExpire = int64(60)
-)
+const timeLayout = "2006-01-02T15:04:05Z07:00"
 
 // markPaid 幂等地把一笔流水标记为支付成功，并落库支付宝交易号等信息。
 // 流水已成功时仍会幂等回写 mall，支持上一次订单回写失败后的重试。
