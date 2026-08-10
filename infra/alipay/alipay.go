@@ -182,7 +182,7 @@ func YuanToFen(amount string) (int64, error) {
 		return 0, fmt.Errorf("invalid fraction amount: %q", fraction)
 	}
 	if yuan > (math.MaxInt64-fen)/100 {
-		return 0, fmt.Errorf("amount overflow: %q", yuan)
+		return 0, fmt.Errorf("amount overflow: %d", yuan)
 	}
 	return yuan*100 + fen, nil
 }

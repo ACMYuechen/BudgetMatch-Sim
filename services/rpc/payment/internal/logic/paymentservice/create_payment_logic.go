@@ -37,7 +37,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 
 	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
-		l.Logger.Errorf("get authenticated user failed: %v", errors.Invalid)
+		l.Logger.Errorf("get authenticated user failed: %v", err)
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 	},
 	)
 	if err != nil {
-		l.Logger.Errorf("get payment order failed: order_id=%d %v",
+		l.Logger.Errorf("get payment order failed: order_id=%s user_id=%s err=%v",
 			in.OrderId, userId, err)
 		return nil, err
 	}

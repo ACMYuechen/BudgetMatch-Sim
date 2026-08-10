@@ -74,7 +74,7 @@ func (l *HandleNotifyLogic) HandleNotify(in *pb.HandleNotifyReq) (*pb.HandleNoti
 	amountFen, err := infraalipay.YuanToFen(noti.TotalAmount)
 	if err != nil || amountFen != record.Amount {
 		l.Logger.Errorf(
-			"notify amount mismatch: out_trade_no=%s, notify_amount=%s, expected_amount=%s",
+			"notify amount mismatch: out_trade_no=%s, notify_amount=%s, expected_amount=%d",
 			noti.OutTradeNo, noti.TotalAmount, record.Amount,
 		)
 		return &pb.HandleNotifyResp{Ok: false, Message: "amount mismatch"}, nil
