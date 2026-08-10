@@ -99,7 +99,7 @@ func (l *CreatePaymentLogic) CreatePayment(in *pb.CreatePaymentReq) (*pb.CreateP
 	}
 
 	// 检查旧流水归属
-	if existing != nil && (existing.UserId != userId || existing.Amount == order.PayAmount) {
+	if existing != nil && (existing.UserId != userId || existing.Amount != order.PayAmount) {
 		l.Logger.Errorf("existing payment does not match order: order_id=%s payment_user_id=%s payment_amount=%d",
 			order.Id, existing.UserId, existing.Amount)
 		return nil, errors.Conflict
