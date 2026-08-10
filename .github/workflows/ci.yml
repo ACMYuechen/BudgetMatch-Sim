@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main]
+    branches: [chore/ci]
   workflow_dispatch:
 
 concurrency:
@@ -68,21 +68,21 @@ jobs:
       - name: Run Go checks and build all services
         run: .ci/scripts/go-check.sh
 
-  # web-check:
-  #   name: Web Check
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 20
-  #   steps:
-  #     - name: Check out source
-  #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-  #       with:
-  #         node-version: '20'
-  #         cache: npm
-  #         cache-dependency-path: web-ui/package-lock.json
-  #     - name: Run frontend checks
-  #       run: .ci/scripts/web-check.sh
+  web-check:
+    name: Web Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web-ui/package-lock.json
+      - name: Run frontend checks
+        run: .ci/scripts/web-check.sh
 
   security-check:
     name: Security Check
@@ -116,13 +116,12 @@ jobs:
   ci-gate:
     name: CI Gate
     if: ${{ always() }}
-    # needs: [go-check, web-check, security-check, container-check]
-    needs: [go-check, security-check, container-check]
+    needs: [go-check, web-check, security-check, container-check]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       GO_RESULT: ${{ needs.go-check.result }}
-      # WEB_RESULT: ${{ needs.web-check.result }}
+      WEB_RESULT: ${{ needs.web-check.result }}
       SECURITY_RESULT: ${{ needs.security-check.result }}
       CONTAINER_RESULT: ${{ needs.container-check.result }}
     steps:
