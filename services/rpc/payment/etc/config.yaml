@@ -40,6 +40,9 @@ CacheRedis:
   PoolTimeout: 4s
   MaxRetries: 3
 
+ServiceAuth:
+  Secret: "${PAYMENT_MALL_SERVICE_SECRET}"
+
 # 支付宝沙箱配置（密钥统一通过环境变量注入，详见 docs/PAYMENT.md / .env.example）
 Alipay:
   AppId: "${ALIPAY_APP_ID}"

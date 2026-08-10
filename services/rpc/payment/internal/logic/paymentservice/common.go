@@ -2,10 +2,9 @@ package paymentservicelogic
 
 import (
 	infraalipay "budgetmatch-sim/infra/alipay"
-	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/interceptor"
-	"budgetmatch-sim/infra/role"
+	"budgetmatch-sim/infra/serviceauth"
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"budgetmatch-sim/services/rpc/payment/internal/svc"
 	"budgetmatch-sim/services/rpc/payment/model/payments"
@@ -64,7 +63,7 @@ func markPaid(ctx context.Context, svcCtx *svc.ServiceContext, record *payments.
 		logx.WithContext(ctx).Infof("payment %s (order %s) marked paid, tradeNo=%s", record.OutTradeNo, record.OrderId, tradeNo)
 	}
 
-	mallCtx, err := newMallCallbackContext(ctx, svcCtx, record.UserId)
+	mallCtx, err := newMallCallbackContext(ctx, svcCtx)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("create mall callback context failed: payment=%s (order %s) error=%v", record.OutTradeNo, record.OrderId, err)
 		return errors.TokenGeneration
@@ -117,18 +116,21 @@ func paymentToPb(p *payments.Payments) *pb.Payment {
 }
 
 // newMallCallbackContext 为 payment-rpc 回写订单生成短期调用凭据。
-func newMallCallbackContext(ctx context.Context, svcCtx *svc.ServiceContext, userID string) (context.Context, error) {
-	token, err := auth.GenerateToken(
-		userID,
-		svcCtx.Config.JwtAuth.Secret,
-		mallCallbackTokenExpire,
-		role.RoleUser,
+func newMallCallbackContext(ctx context.Context, svcCtx *svc.ServiceContext) (context.Context, error) {
+	token, err := serviceauth.GenerateToken(
+		serviceauth.ServicePayment,
+		serviceauth.ServiceMall,
+		svcCtx.Config.ServiceAuth.Secret,
+		time.Minute,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("generate mall callback token failed: %w", err)
+		return nil, fmt.Errorf("generate mall service token failed: %w", err)
 	}
-
-	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token), nil
+	return metadata.AppendToOutgoingContext(
+		ctx,
+		"authorization",
+		"Bearer "+token,
+	), nil
 }
 
 // validateSuccessfulNotify 校验已经通过签名验证的支付成功通知。

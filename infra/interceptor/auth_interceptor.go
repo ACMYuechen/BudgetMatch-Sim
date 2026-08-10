@@ -2,6 +2,7 @@
 package interceptor
 
 import (
+	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	"strings"
 
@@ -17,10 +18,17 @@ import (
 type contextKey string
 
 const (
-	ContextKeyUserId contextKey = "user_id"
-	ContextKeyRole   contextKey = "role"
-	ContextKeyToken  contextKey = "token"
+	ContextKeyUserId      contextKey = "user_id"
+	ContextKeyRole        contextKey = "role"
+	ContextKeyToken       contextKey = "token"
+	ContextKeyServiceName contextKey = "service_name"
 )
+
+// ServiceMethodPolicy 描述某个 RPC 方法允许的服务调用方
+type ServiceMethodPolicy struct {
+	Caller   string
+	Audience string
+}
 
 // AuthConfig 配置认证拦截器的行为。
 type AuthConfig struct {
@@ -31,6 +39,10 @@ type AuthConfig struct {
 	// AdminMethods 是需要全局管理员角色（role 1-99）的方法集合。
 	// 未在此集合且不在 NoAuthMethods 中的方法默认要求全局用户角色（role 1-199）。
 	AdminMethods map[string]struct{}
+	// ServiceSecret 使用独立于用户 JWT 的服务认证密钥
+	ServiceSecret string
+	// ServiceMethods 中的方法只能使用服务 JWT 调用
+	ServiceMethods map[string]ServiceMethodPolicy
 }
 
 // UnaryServerInterceptor 返回一个 gRPC 一元拦截器，完成 JWT 校验与角色鉴权：
@@ -44,6 +56,21 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		// 服务专用方法只接受服务 JWT ，不进入普通用户 JWT 验证流程
+		if policy, ok := cfg.ServiceMethods[info.FullMethod]; ok {
+			tokenString, err := extractToken(ctx)
+			if err != nil {
+				return nil, err
+			}
+			claims, err := serviceauth.ValidateToken(tokenString, cfg.ServiceSecret, policy.Caller, policy.Audience)
+			if err != nil {
+				return nil, errors.InvalidToken
+			}
+
+			ctx = context.WithValue(ctx, ContextKeyServiceName, claims.Service)
+			return handler(ctx, req)
+		}
+
 		// 1. 白名单放行
 		if _, ok := cfg.NoAuthMethods[info.FullMethod]; ok {
 			return handler(ctx, req)

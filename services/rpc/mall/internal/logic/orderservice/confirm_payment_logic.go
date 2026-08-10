@@ -1,6 +1,8 @@
 package orderservicelogic
 
 import (
+	"budgetmatch-sim/infra/interceptor"
+	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	"time"
 
@@ -30,6 +32,11 @@ func NewConfirmPaymentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Co
 }
 
 func (l *ConfirmPaymentLogic) ConfirmPayment(in *pb.ConfirmPaymentReq) (*pb.ConfirmPaymentResp, error) {
+	caller, ok := l.ctx.Value(interceptor.ContextKeyServiceName).(string)
+	if !ok || caller != serviceauth.ServicePayment {
+		l.Logger.Errorf("unauthorized confirm payment caller")
+		return nil, errors.Unauthorized
+	}
 	if in == nil || in.OrderId == "" || in.UserId == "" || in.OutTradeNo == "" || in.TradeNo == "" || in.Amount <= 0 {
 		l.Logger.Error("invalid confirm payment request")
 		return nil, errors.Invalid
