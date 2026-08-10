@@ -1,18 +1,18 @@
 package paymentservicelogic
 
 import (
-	"budgetmatch-sim/infra/errors"
-	"context"
-	"fmt"
-	"time"
-
 	infraalipay "budgetmatch-sim/infra/alipay"
 	"budgetmatch-sim/infra/auth"
+	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/infra/role"
 	mallpb "budgetmatch-sim/services/rpc/mall/pb"
 	"budgetmatch-sim/services/rpc/payment/internal/svc"
 	"budgetmatch-sim/services/rpc/payment/model/payments"
 	"budgetmatch-sim/services/rpc/payment/pb"
+	"context"
+	"fmt"
+	"time"
 
 	sdkalipay "github.com/smartwalle/alipay/v3"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -166,4 +166,23 @@ func validateSuccessfulNotify(noti *sdkalipay.Notification, record *payments.Pay
 		return fmt.Errorf("trade_no conflicts with confirmed payment")
 	}
 	return nil
+}
+
+// authenticatedUserID 返回认证拦截器确认过的用户身份。
+func authenticatedUserId(ctx context.Context) (string, error) {
+	userId, ok := ctx.Value(interceptor.ContextKeyUserId).(string)
+	if !ok || userId == "" {
+		return "", errors.Unauthorized
+	}
+	return userId, nil
+}
+
+// newMallUserContext 将当前用户 JWT 转发给 mall-rpc。
+func newMallUserContext(ctx context.Context) (context.Context, error) {
+	token := interceptor.TokenFromContext(ctx)
+	if token == "" {
+		return nil, errors.InvalidToken
+	}
+
+	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token), nil
 }
