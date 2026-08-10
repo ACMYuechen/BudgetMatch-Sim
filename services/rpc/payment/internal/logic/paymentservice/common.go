@@ -131,6 +131,7 @@ func newMallCallbackContext(ctx context.Context, svcCtx *svc.ServiceContext, use
 	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token), nil
 }
 
+// validateSuccessfulNotify 校验已经通过签名验证的支付成功通知。
 func validateSuccessfulNotify(noti *sdkalipay.Notification, record *payments.Payments, cfg infraalipay.Config) error {
 	if noti.AppId == "" || noti.AppId != cfg.AppId {
 		return fmt.Errorf("app_id mismatch")
