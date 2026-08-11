@@ -5,10 +5,15 @@ package recommend
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
+
+	"github.com/cloudwego/eino/schema"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // AgentName 推荐 Agent 的唯一标识名称。
@@ -19,6 +24,15 @@ type Agent struct {
 	planner  *Planner                 // planner 意图解析器，用于从用户查询中提取预算、关键词等意图信息
 	provider tools.ProductProvider    // provider 商品数据源，提供候选商品搜索能力
 	selector *selector.BundleSelector // selector 商品选择器，从候选商品中挑选最优组合
+	memory   memory.Manager           // memory 会话记忆，用于规则兜底继承历史约束
+	window   int                      // window 最多读取的历史消息数
+}
+
+// WithMemory 启用规则推荐的多轮上下文读取。
+func (a *Agent) WithMemory(mem memory.Manager, window int) *Agent {
+	a.memory = mem
+	a.window = window
+	return a
 }
 
 // NewAgent 创建一个新的推荐 Agent 实例。
@@ -42,7 +56,8 @@ func (a *Agent) Name() string {
 //  2. 候选搜索：调用 provider 根据意图关键词和预算搜索候选商品；
 //  3. 商品选择：通过 selector 从候选商品中按评分选出最优组合，确保总价不超出预算。
 func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
-	intent := a.planner.Parse(input)
+	historyQueries := a.loadHistoryQueries(ctx, input)
+	intent := a.planner.ParseWithHistory(input, historyQueries)
 	candidates, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
 		Query:       input.Query,
 		Keywords:    intent.Keywords,
@@ -65,6 +80,29 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		Summary:         summary(len(items), total, intent.BudgetCents),
 		ToolsUsed:       toolsUsed,
 	}, nil
+}
+
+// loadHistoryQueries 提取历史中的用户原始问题；读取失败时降级为单轮规则推荐。
+func (a *Agent) loadHistoryQueries(ctx context.Context, input agentcore.Input) []string {
+	if a.memory == nil || input.UserId == "" || input.ConversationId == "" {
+		return nil
+	}
+	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.window)
+	if err != nil {
+		logx.WithContext(ctx).Errorw("load conversation history for fallback failed",
+			logx.Field("conversation_id", input.ConversationId),
+			logx.Field("error", err.Error()),
+		)
+		return nil
+	}
+
+	queries := make([]string, 0, len(history)/2)
+	for _, msg := range history {
+		if msg != nil && msg.Role == schema.User && strings.TrimSpace(msg.Content) != "" {
+			queries = append(queries, msg.Content)
+		}
+	}
+	return queries
 }
 
 // summary 根据选中的商品数量、总价和预算生成结果摘要文本。

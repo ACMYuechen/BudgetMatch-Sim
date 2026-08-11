@@ -7,6 +7,8 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/schema"
 )
@@ -148,6 +150,48 @@ func TestServiceKeepsTitleAfterHistoryTruncation(t *testing.T) {
 		if result.ConversationTitle != "第一轮需求" {
 			t.Fatalf("round %d title changed to %q", i+1, result.ConversationTitle)
 		}
+	}
+}
+
+// TestServiceFallbackUsesConversationHistory 验证无模型与模型失败两条规则路径都继承历史商品上下文。
+func TestServiceFallbackUsesConversationHistory(t *testing.T) {
+	tests := []struct {
+		name    string
+		primary agentcore.Agent
+	}{
+		{name: "no primary"},
+		{name: "primary failure", primary: &stubAgent{name: "llm", err: errors.New("model down")}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mem := memory.NewInMemory(memory.Conf{})
+			fallback := NewAgent(tools.NewMockProductProvider(), selector.NewBundleSelector()).WithMemory(mem, 20)
+			service := NewService(fallback, tt.primary, mem)
+
+			if _, err := service.Recommend(context.Background(), agentcore.Input{
+				Query:          "预算3000买通勤耳机",
+				UserId:         "u1",
+				ConversationId: "c1",
+			}); err != nil {
+				t.Fatalf("first Recommend() error = %v", err)
+			}
+
+			result, err := service.Recommend(context.Background(), agentcore.Input{
+				Query:          "预算提高到5000",
+				UserId:         "u1",
+				ConversationId: "c1",
+			})
+			if err != nil {
+				t.Fatalf("follow-up Recommend() error = %v", err)
+			}
+			if result.Intent.BudgetCents != 500000 {
+				t.Fatalf("BudgetCents = %d, want 500000", result.Intent.BudgetCents)
+			}
+			if !containsString(result.Intent.Keywords, "耳机") {
+				t.Fatalf("expected inherited headphones keyword, got %v", result.Intent.Keywords)
+			}
+		})
 	}
 }
 

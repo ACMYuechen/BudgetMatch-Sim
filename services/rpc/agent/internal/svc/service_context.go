@@ -50,7 +50,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	bundleSelector := recommend.NewBundleSelector()
 	mem := newMemoryManager(c)
 
-	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector)
+	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector).
+		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
 
 	return &ServiceContext{
