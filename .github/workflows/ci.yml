@@ -70,9 +70,14 @@ jobs:
     env:
       ETCD_HOSTS: 127.0.0.1:2379
       RAG_TEST_PG_DSN: host=127.0.0.1 user=root password=ci-postgres-password dbname=budgetmatch_ci port=5432 sslmode=disable
+      CI_EVENT_NAME: ${{ github.event_name }}
+      CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Check out source
+      - name: Check out source with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: Wait for etcd
         run: |
           for _ in {1..30}; do
@@ -91,7 +96,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - name: Run Go checks and build all services
+      - name: Run Go checks and build all packages
         run: .ci/scripts/go-check.sh
 
   web-check:
