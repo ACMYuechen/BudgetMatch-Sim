@@ -25,10 +25,12 @@ import (
 // 会话记忆的写入统一收口在这里：无论结果来自 primary 还是 fallback，
 // 成功返回前都写入本轮问答对，保证降级轮次的历史没有空洞；
 // Agent 实现只读历史不写历史，避免多写入点带来的重复或缺失。
+// 同一用户的同一会话在单个服务实例内串行执行，避免并发请求读取相同旧历史并乱序写入。
 type Service struct {
 	primary  agentcore.Agent
 	fallback agentcore.Agent
 	memory   memory.Manager
+	locks    *conversationLocker
 }
 
 // NewService 创建推荐编排服务。fallback 必填，primary 与 mem 可为 nil（nil 记忆表示无多轮能力）。
@@ -37,6 +39,7 @@ func NewService(fallback, primary agentcore.Agent, mem memory.Manager) *Service 
 		primary:  primary,
 		fallback: fallback,
 		memory:   mem,
+		locks:    newConversationLocker(),
 	}
 }
 
@@ -48,6 +51,19 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	if input.ConversationId == "" {
 		input.ConversationId = uuid.NewString()
 	}
+	release, err := s.locks.acquire(ctx, conversationLockKey{
+		userId:         input.UserId,
+		conversationId: input.ConversationId,
+	})
+	if err != nil {
+		logx.WithContext(ctx).Errorw("wait for conversation execution failed",
+			logx.Field("user_id", input.UserId),
+			logx.Field("conversation_id", input.ConversationId),
+			logx.Field("error", err.Error()),
+		)
+		return nil, err
+	}
+	defer release()
 
 	result, err := s.run(ctx, input)
 	if err != nil {
