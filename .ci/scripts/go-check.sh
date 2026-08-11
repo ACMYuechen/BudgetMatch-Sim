@@ -16,6 +16,56 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Records each phase duration while preserving the command's exit status.
+run_timed() {
+  local label="$1"
+  shift
+
+  local started_at="${SECONDS}"
+  local status
+  local result
+
+  if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+    echo "::group::${label}"
+  fi
+
+  set +e
+  "$@"
+  status=$?
+  set -e
+
+  if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+    echo "::endgroup::"
+  fi
+
+  if ((status == 0)); then
+    result="passed"
+  else
+    result="failed (exit ${status})"
+  fi
+
+  local elapsed=$((SECONDS - started_at))
+  echo "${label}: ${elapsed}s (${result})"
+  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    printf '| %s | %ss | %s |\n' "${label}" "${elapsed}" "${result}" >> "${GITHUB_STEP_SUMMARY}"
+  fi
+
+  return "${status}"
+}
+
+initialize_timing_summary() {
+  if [[ -z "${GITHUB_STEP_SUMMARY:-}" ]]; then
+    return
+  fi
+
+  {
+    echo "### Go Check timings"
+    echo
+    echo "| Phase | Duration | Result |"
+    echo "| --- | ---: | --- |"
+  } >> "${GITHUB_STEP_SUMMARY}"
+}
+
 wait_for_container() {
   local container_name="$1"
   shift
@@ -119,17 +169,18 @@ build_services() {
     name="${service%%:*}"
     package="${service#*:}"
     echo "Building ${name}"
-    go build -o "${RUNTIME_DIR}/${name}" "${package}"
+    go build -o "${RUNTIME_DIR}/${name}" "${package}" || return
   done
 }
 
 cd "${REPO_ROOT}"
 start_etcd_if_needed
 start_postgres_if_needed
+initialize_timing_summary
 
-go mod download
-go mod verify
+run_timed "Download Go modules" go mod download
+run_timed "Verify Go modules" go mod verify
 # check_formatting
-go vet ./...
-go test -count=1 -race ./...
-build_services
+run_timed "Go vet" go vet ./...
+run_timed "Go race tests" go test -count=1 -race ./...
+run_timed "Build services" build_services
