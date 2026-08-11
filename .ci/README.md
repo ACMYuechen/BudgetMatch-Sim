@@ -11,11 +11,11 @@ Each check can also be run independently through the scripts in `.ci/scripts/`.
 The Go check starts temporary etcd and pgvector containers when `ETCD_HOSTS` and
 `RAG_TEST_PG_DSN` are not already set.
 
-Pull request and push workflows first run `detect-changes.sh`, then select the
-Go, web, security, and container jobs from the complete base-to-head diff.
-Changes to `.github/` or `.ci/`, manual workflow runs, initial branch pushes,
-and unclassified paths use the safe fallback of running the complete suite.
-Documentation-only changes skip the four expensive jobs.
+Pull request workflows first run `detect-changes.sh`, then select the Go, web,
+security, and container jobs from the complete base-to-head diff. Changes to
+`.github/` or `.ci/`, manual workflow runs, and unclassified paths use the safe
+fallback of running the complete suite. Documentation-only changes skip the
+four expensive jobs.
 
 Container checks build every image by default. To validate selected images
 locally, provide a space-separated target list:
