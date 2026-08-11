@@ -16,56 +16,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Records each phase duration while preserving the command's exit status.
-run_timed() {
-  local label="$1"
-  shift
-
-  local started_at="${SECONDS}"
-  local status
-  local result
-
-  if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
-    echo "::group::${label}"
-  fi
-
-  set +e
-  "$@"
-  status=$?
-  set -e
-
-  if [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
-    echo "::endgroup::"
-  fi
-
-  if ((status == 0)); then
-    result="passed"
-  else
-    result="failed (exit ${status})"
-  fi
-
-  local elapsed=$((SECONDS - started_at))
-  echo "${label}: ${elapsed}s (${result})"
-  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-    printf '| %s | %ss | %s |\n' "${label}" "${elapsed}" "${result}" >> "${GITHUB_STEP_SUMMARY}"
-  fi
-
-  return "${status}"
-}
-
-initialize_timing_summary() {
-  if [[ -z "${GITHUB_STEP_SUMMARY:-}" ]]; then
-    return
-  fi
-
-  {
-    echo "### Go Check timings"
-    echo
-    echo "| Phase | Duration | Result |"
-    echo "| --- | ---: | --- |"
-  } >> "${GITHUB_STEP_SUMMARY}"
-}
-
 wait_for_container() {
   local container_name="$1"
   shift
@@ -153,34 +103,38 @@ check_formatting() {
   fi
 }
 
-build_services() {
-  local -a services=(
-    "admin:./cmd/admin"
-    "app:./cmd/app"
-    "auth-rpc:./services/rpc/auth"
-    "seckill-rpc:./services/rpc/seckill"
-    "mall-rpc:./services/rpc/mall"
-    "agent-rpc:./services/rpc/agent"
-    "payment-rpc:./services/rpc/payment"
-  )
-  local service name package
+# Uses Go's package metadata so new packages with tests are included automatically.
+run_race_tests() {
+  local package_output
+  local package
+  local -a test_packages=()
 
-  for service in "${services[@]}"; do
-    name="${service%%:*}"
-    package="${service#*:}"
-    echo "Building ${name}"
-    go build -o "${RUNTIME_DIR}/${name}" "${package}" || return
-  done
+  package_output="$(
+    go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./...
+  )" || return
+
+  while IFS= read -r package; do
+    if [[ -n "${package}" ]]; then
+      test_packages+=("${package}")
+    fi
+  done <<< "${package_output}"
+
+  if ((${#test_packages[@]} == 0)); then
+    echo "No Go packages with tests were found"
+    return
+  fi
+
+  echo "Running race tests for ${#test_packages[@]} packages"
+  go test -race "${test_packages[@]}"
 }
 
 cd "${REPO_ROOT}"
 start_etcd_if_needed
 start_postgres_if_needed
-initialize_timing_summary
 
-run_timed "Download Go modules" go mod download
-run_timed "Verify Go modules" go mod verify
+go mod download
+go mod verify
 # check_formatting
-run_timed "Go vet" go vet ./...
-run_timed "Go race tests" go test -count=1 -race ./...
-run_timed "Build services" build_services
+go vet ./...
+run_race_tests
+go build ./...
