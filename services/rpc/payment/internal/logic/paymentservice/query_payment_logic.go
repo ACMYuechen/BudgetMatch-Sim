@@ -33,11 +33,15 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 		return nil, errors.Invalid
 	}
 
+	// 读取认证用户
+	userId, err := authenticatedUserId(l.ctx)
+	if err != nil {
+		l.Logger.Errorf("get authenticated user failed: %v", err)
+		return nil, err
+	}
+
 	// 定位本地流水。
-	var (
-		record *payments.Payments
-		err    error
-	)
+	var record *payments.Payments
 	if in.OutTradeNo != "" {
 		record, err = l.svcCtx.PaymentStore.FindByOutTradeNo(l.ctx, in.OutTradeNo)
 	} else {
@@ -49,6 +53,13 @@ func (l *QueryPaymentLogic) QueryPayment(in *pb.QueryPaymentReq) (*pb.QueryPayme
 	}
 	if record == nil {
 		l.Logger.Errorf("return error: %v", errors.NotFound)
+		return nil, errors.NotFound
+	}
+
+	// 归属校验
+	if record.UserId != userId {
+		l.Logger.Errorf("cross-user payment query rejected: authenticated_user_id=%s payment_user_id=%s",
+			userId, record.UserId)
 		return nil, errors.NotFound
 	}
 

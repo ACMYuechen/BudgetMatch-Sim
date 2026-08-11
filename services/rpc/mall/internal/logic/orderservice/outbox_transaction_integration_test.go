@@ -1,6 +1,8 @@
 package orderservicelogic
 
 import (
+	"budgetmatch-sim/infra/interceptor"
+	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	stderrors "errors"
 	"os"
@@ -72,7 +74,8 @@ func TestConfirmPaymentRollsBackWhenOutboxInsertFails(t *testing.T) {
 	require.NoError(t, err)
 	serviceContext.OrderOutboxStore = &failingOutboxStore{MallOrderOutboxModel: serviceContext.OrderOutboxStore}
 
-	_, err = NewConfirmPaymentLogic(context.Background(), serviceContext).ConfirmPayment(&pb.ConfirmPaymentReq{
+	paymentCtx := context.WithValue(context.Background(), interceptor.ContextKeyServiceName, serviceauth.ServicePayment)
+	_, err = NewConfirmPaymentLogic(paymentCtx, serviceContext).ConfirmPayment(&pb.ConfirmPaymentReq{
 		OrderId:    created.OrderId,
 		UserId:     "user-1",
 		Amount:     2000,

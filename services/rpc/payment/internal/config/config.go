@@ -5,15 +5,17 @@ import (
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/database"
 	"budgetmatch-sim/infra/redis"
+	"budgetmatch-sim/infra/serviceauth"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	JwtAuth    auth.Config `json:"jwtAuth"`
-	Database   database.Config
-	CacheRedis redis.Config  `json:"cacheRedis"`
-	Alipay     alipay.Config `json:"alipay"`
-	MallRpc    zrpc.RpcClientConf
+	JwtAuth     auth.Config `json:"jwtAuth"`
+	Database    database.Config
+	CacheRedis  redis.Config  `json:"cacheRedis"`
+	Alipay      alipay.Config `json:"alipay"`
+	MallRpc     zrpc.RpcClientConf
+	ServiceAuth serviceauth.Config `json:"serviceAuth"`
 }

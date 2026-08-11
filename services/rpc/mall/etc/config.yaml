@@ -46,3 +46,6 @@ RocketMQ:
   GroupName: "mall-rpc"
   RetryTimes: 2
   SendMsgTimeout: 3000
+
+ServiceAuth:
+  Secret: "${PAYMENT_MALL_SERVICE_SECRET}"

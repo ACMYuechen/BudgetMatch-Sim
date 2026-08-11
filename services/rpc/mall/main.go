@@ -1,6 +1,7 @@
 package main
 
 import (
+	"budgetmatch-sim/infra/serviceauth"
 	"flag"
 	"fmt"
 	"time"
@@ -47,7 +48,14 @@ func main() {
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
 		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-			Secret: c.JwtAuth.Secret,
+			Secret:        c.JwtAuth.Secret,
+			ServiceSecret: c.ServiceAuth.Secret,
+			ServiceMethods: map[string]interceptor.ServiceMethodPolicy{
+				"/mall.OrderService/ConfirmPayment": {
+					Caller:   serviceauth.ServicePayment,
+					Audience: serviceauth.ServiceMall,
+				},
+			},
 			AdminMethods: map[string]struct{}{
 				"/mall.ProductService/CreateProduct":     {},
 				"/mall.ProductService/UpdateProduct":     {},
