@@ -223,6 +223,75 @@ func TestManagerEmptyConversationId(t *testing.T) {
 	}
 }
 
+// TestInMemoryTTL 验证进程内实现具有与 Redis 一致的滑动 TTL，且读取不会刷新过期时间。
+func TestInMemoryTTL(t *testing.T) {
+	ctx := context.Background()
+	current := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	m := newInMemory(Conf{TTL: time.Minute}, func() time.Time { return current })
+
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "稳定标题"); err != nil {
+		t.Fatalf("GetOrCreateTitle() error = %v", err)
+	}
+	if err := m.Append(ctx, "u1", "c1", schema.UserMessage("第一轮")); err != nil {
+		t.Fatalf("Append() error = %v", err)
+	}
+
+	current = current.Add(30 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 1 {
+		t.Fatalf("History() before expiration = %v, %v", got, err)
+	}
+
+	// 追加消息刷新 TTL；单纯读取历史不刷新。
+	if err := m.Append(ctx, "u1", "c1", schema.AssistantMessage("仍然活跃", nil)); err != nil {
+		t.Fatalf("Append() refresh error = %v", err)
+	}
+	current = current.Add(59 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 2 {
+		t.Fatalf("History() within refreshed ttl = %v, %v", got, err)
+	}
+
+	current = current.Add(2 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 0 {
+		t.Fatalf("History() after expiration = %v, %v", got, err)
+	}
+	title, err := m.GetOrCreateTitle(ctx, "u1", "c1", "过期后新标题")
+	if err != nil {
+		t.Fatalf("GetOrCreateTitle() after expiration error = %v", err)
+	}
+	if title != "过期后新标题" {
+		t.Fatalf("expired title was not cleared, got %q", title)
+	}
+}
+
+// TestInMemorySweepsExpiredConversations 验证后续访问会全局回收不再访问的一次性会话。
+func TestInMemorySweepsExpiredConversations(t *testing.T) {
+	ctx := context.Background()
+	current := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	m := newInMemory(Conf{TTL: time.Minute}, func() time.Time { return current })
+
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "stale", "旧会话"); err != nil {
+		t.Fatalf("GetOrCreateTitle(stale) error = %v", err)
+	}
+	if err := m.Append(ctx, "u1", "stale", schema.UserMessage("只访问一次")); err != nil {
+		t.Fatalf("Append(stale) error = %v", err)
+	}
+
+	current = current.Add(2 * time.Minute)
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "active", "新会话"); err != nil {
+		t.Fatalf("GetOrCreateTitle(active) error = %v", err)
+	}
+
+	staleKey := conversationKey("u1", "stale")
+	m.mu.RLock()
+	_, hasMessages := m.conv[staleKey]
+	_, hasTitle := m.titles[staleKey]
+	_, hasExpiration := m.expiresAt[staleKey]
+	m.mu.RUnlock()
+	if hasMessages || hasTitle || hasExpiration {
+		t.Fatalf("stale conversation not fully swept: messages=%v title=%v expiration=%v", hasMessages, hasTitle, hasExpiration)
+	}
+}
+
 // TestRedisTTL 验证 Redis 实现设置了滑动 TTL，空闲超时后会话过期。
 func TestRedisTTL(t *testing.T) {
 	ctx := context.Background()
