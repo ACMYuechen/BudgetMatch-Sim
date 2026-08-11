@@ -25,3 +25,4 @@ CI_IMAGE_TARGETS="mall-rpc app" .ci/scripts/container-check.sh
 
 在 GitHub Actions 中，准备任务会验证 Compose 和 Dockerfile，并将公共 Go 依赖阶段导出到共享的 Buildx 缓存。
 随后，选中的镜像会作为相互独立的 matrix 任务并行运行；每个任务都会读取后端公共缓存，并维护自己的目标构建缓存。
+
