@@ -11,7 +11,7 @@ import (
 
 // Redis 是 Manager 的 Redis 实现，多实例部署时共享会话记忆。
 //
-// 存储结构：每个会话一个 LIST，key 为 agent:conv:{id}:msgs，元素为 JSON 编码的消息。
+// 存储结构：每个会话用 LIST 保存 JSON 编码的消息，另用 STRING 保存稳定标题。
 // 写入用 pipeline 执行 RPUSH + LTRIM + EXPIRE：写时截断保证窗口上限，滑动 TTL 让活跃会话不过期。
 // 只依赖 redis.UniversalClient 接口，便于用 miniredis 做单元测试。
 type Redis struct {
@@ -34,6 +34,11 @@ func NewRedis(client redis.UniversalClient, c Conf) *Redis {
 // convKey 必须包含用户标识，避免不同用户使用相同会话标识时发生冲突。
 func convKey(userId, conversationId string) string {
 	return "agent:user:" + userId + ":conv:" + conversationId + ":msgs"
+}
+
+// titleKey 返回会话稳定标题的 Redis key。
+func titleKey(userId, conversationId string) string {
+	return "agent:user:" + userId + ":conv:" + conversationId + ":title"
 }
 
 // Append 追加消息、按窗口截断并刷新 TTL，会话不存在时自动创建。
@@ -60,6 +65,7 @@ func (m *Redis) Append(ctx context.Context, userId, conversationId string, msgs 
 	pipe.RPush(ctx, key, values...)
 	pipe.LTrim(ctx, key, int64(-m.conf.MaxHistory), -1)
 	pipe.Expire(ctx, key, m.conf.TTL)
+	pipe.Expire(ctx, titleKey(userId, conversationId), m.conf.TTL)
 	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("memory: append to redis: %w", err)
 	}
@@ -89,9 +95,31 @@ func (m *Redis) History(ctx context.Context, userId, conversationId string, limi
 	return out, nil
 }
 
-// Clear 删除会话的全部历史。
+// GetOrCreateTitle 原子保存首个候选标题；已存在时返回原始标题。
+func (m *Redis) GetOrCreateTitle(ctx context.Context, userId, conversationId, candidate string) (string, error) {
+	if userId == "" || conversationId == "" {
+		return "", fmt.Errorf("memory: user id or conversation id is empty")
+	}
+
+	key := titleKey(userId, conversationId)
+	created, err := m.client.SetNX(ctx, key, candidate, m.conf.TTL).Result()
+	if err != nil {
+		return "", fmt.Errorf("memory: create conversation title: %w", err)
+	}
+	if created {
+		return candidate, nil
+	}
+
+	title, err := m.client.Get(ctx, key).Result()
+	if err != nil {
+		return "", fmt.Errorf("memory: read conversation title: %w", err)
+	}
+	return title, nil
+}
+
+// Clear 删除会话的全部历史与标题。
 func (m *Redis) Clear(ctx context.Context, userId, conversationId string) error {
-	if err := m.client.Del(ctx, convKey(userId, conversationId)).Err(); err != nil {
+	if err := m.client.Del(ctx, convKey(userId, conversationId), titleKey(userId, conversationId)).Err(); err != nil {
 		return fmt.Errorf("memory: clear conversation: %w", err)
 	}
 	return nil

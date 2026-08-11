@@ -131,6 +131,26 @@ func TestServiceWritesMemoryOnFallback(t *testing.T) {
 	}
 }
 
+// TestServiceKeepsTitleAfterHistoryTruncation 验证滚动窗口移除首轮消息后，会话标题仍保持首次值。
+func TestServiceKeepsTitleAfterHistoryTruncation(t *testing.T) {
+	mem := memory.NewInMemory(memory.Conf{MaxHistory: 2})
+	service := NewService(&stubAgent{name: "fallback", result: &agentcore.Result{Summary: "rule"}}, nil, mem)
+
+	for i, query := range []string{"第一轮需求", "第二轮追问", "第三轮追问"} {
+		result, err := service.Recommend(context.Background(), agentcore.Input{
+			Query:          query,
+			UserId:         "u1",
+			ConversationId: "c1",
+		})
+		if err != nil {
+			t.Fatalf("Recommend(round %d) error = %v", i+1, err)
+		}
+		if result.ConversationTitle != "第一轮需求" {
+			t.Fatalf("round %d title changed to %q", i+1, result.ConversationTitle)
+		}
+	}
+}
+
 // stubAgent 是用于测试的 agentcore.Agent 实现。
 type stubAgent struct {
 	name   string

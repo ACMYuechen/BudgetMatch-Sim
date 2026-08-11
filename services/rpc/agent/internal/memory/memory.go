@@ -1,7 +1,7 @@
 // Package memory 提供推荐 Agent 的跨请求会话记忆管理。
 //
-// 设计取舍：接口只保留推荐场景必需的三个操作（追加、窗口读取、清空），
-// 不引入会话元数据、按角色过滤等能力，避免为不存在的需求付出存储与索引成本。
+// 设计取舍：接口只保留推荐场景必需的消息操作与稳定标题操作，
+// 不引入通用会话元数据、按角色过滤等能力，避免为不存在的需求付出存储与索引成本。
 // 会话的"创建"由首次 Append 隐式完成，"过期"由实现层的 TTL 承担。
 package memory
 
@@ -20,9 +20,12 @@ import (
 //   - Append 追加消息（推荐场景按 user+assistant 成对写入），会话不存在时自动创建，并刷新过期时间；
 //   - History 返回最近 limit 条消息（时间正序），会话不存在或已过期时返回空切片而非错误；
 //   - History 返回的消息必须是深拷贝，调用方修改返回值不得影响存储内容。
+//   - GetOrCreateTitle 原子地保存首个候选标题，后续调用始终返回首次保存的标题；
+//   - Clear 同时清除消息与标题。
 type Manager interface {
 	Append(ctx context.Context, userId, conversationId string, msgs ...*schema.Message) error
 	History(ctx context.Context, userId, conversationId string, limit int) ([]*schema.Message, error)
+	GetOrCreateTitle(ctx context.Context, userId, conversationId, candidate string) (string, error)
 	Clear(ctx context.Context, userId, conversationId string) error
 }
 

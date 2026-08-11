@@ -17,7 +17,8 @@ type InMemory struct {
 
 	mu sync.RWMutex
 	// conv 以 userID:conversationID 为键，确保内存降级与 Redis 使用相同的隔离语义。
-	conv map[string][][]byte
+	conv   map[string][][]byte
+	titles map[string]string
 }
 
 // 确保 InMemory 实现 Manager。
@@ -26,8 +27,9 @@ var _ Manager = (*InMemory)(nil)
 // NewInMemory 创建进程内会话记忆。
 func NewInMemory(c Conf) *InMemory {
 	return &InMemory{
-		conf: c.normalize(),
-		conv: make(map[string][][]byte),
+		conf:   c.normalize(),
+		conv:   make(map[string][][]byte),
+		titles: make(map[string]string),
 	}
 }
 
@@ -88,11 +90,30 @@ func (m *InMemory) History(ctx context.Context, userId, conversationId string, l
 	return out, nil
 }
 
-// Clear 删除会话的全部历史。
+// GetOrCreateTitle 保存并返回会话的首个候选标题。
+func (m *InMemory) GetOrCreateTitle(ctx context.Context, userId, conversationId, candidate string) (string, error) {
+	_ = ctx
+	if userId == "" || conversationId == "" {
+		return "", fmt.Errorf("memory: user id or conversation id is empty")
+	}
+
+	key := conversationKey(userId, conversationId)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if title, ok := m.titles[key]; ok {
+		return title, nil
+	}
+	m.titles[key] = candidate
+	return candidate, nil
+}
+
+// Clear 删除会话的全部历史与标题。
 func (m *InMemory) Clear(ctx context.Context, userId, conversationId string) error {
 	_ = ctx
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.conv, conversationKey(userId, conversationId))
+	key := conversationKey(userId, conversationId)
+	delete(m.conv, key)
+	delete(m.titles, key)
 	return nil
 }

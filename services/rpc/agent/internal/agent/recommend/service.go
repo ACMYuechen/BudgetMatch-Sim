@@ -98,21 +98,18 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 	}
 }
 
-// conversationTitle 以首条用户问题作为稳定标题，后续轮次不会改变该标题。
+// conversationTitle 以首条用户问题作为稳定标题，并独立于滚动消息窗口持久化。
 func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) string {
+	candidate := shortTitle(input.Query)
 	if s.memory != nil {
-		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
+		title, err := s.memory.GetOrCreateTitle(ctx, input.UserId, input.ConversationId, candidate)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
-		} else {
-			for _, msg := range history {
-				if msg.Role == schema.User && strings.TrimSpace(msg.Content) != "" {
-					return shortTitle(msg.Content)
-				}
-			}
+			logx.WithContext(ctx).Errorw("load or create conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+		} else if strings.TrimSpace(title) != "" {
+			return title
 		}
 	}
-	return shortTitle(input.Query)
+	return candidate
 }
 
 // shortTitle 按字符截断，避免截断中文等多字节字符。

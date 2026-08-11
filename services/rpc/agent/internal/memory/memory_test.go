@@ -132,7 +132,35 @@ func TestManagerMissingConversation(t *testing.T) {
 	}
 }
 
-// TestManagerClear 验证清空会话后历史为空。
+// TestManagerStableTitle 验证标题独立于滚动消息窗口，始终保留首次候选值。
+func TestManagerStableTitle(t *testing.T) {
+	ctx := context.Background()
+	for name, m := range newManagers(t, Conf{MaxHistory: 2}) {
+		t.Run(name, func(t *testing.T) {
+			first, err := m.GetOrCreateTitle(ctx, "u1", "c1", "第一轮标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() error = %v", err)
+			}
+			if first != "第一轮标题" {
+				t.Fatalf("unexpected first title %q", first)
+			}
+
+			for _, q := range []string{"第一轮", "第二轮", "第三轮"} {
+				if err := m.Append(ctx, "u1", "c1", schema.UserMessage(q), schema.AssistantMessage("回答"+q, nil)); err != nil {
+					t.Fatalf("Append() error = %v", err)
+				}
+			}
+
+			again, err := m.GetOrCreateTitle(ctx, "u1", "c1", "第三轮标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() again error = %v", err)
+			}
+			if again != "第一轮标题" {
+				t.Fatalf("title changed after history truncation: %q", again)
+			}
+		})
+	}
+}
 
 func TestManagerUserIsolation(t *testing.T) {
 	ctx := context.Background()
@@ -156,6 +184,9 @@ func TestManagerClear(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
+			if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "旧标题"); err != nil {
+				t.Fatalf("GetOrCreateTitle() error = %v", err)
+			}
 			if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
@@ -168,6 +199,13 @@ func TestManagerClear(t *testing.T) {
 			}
 			if len(got) != 0 {
 				t.Fatalf("expected empty history after clear, got %d", len(got))
+			}
+			title, err := m.GetOrCreateTitle(ctx, "u1", "c1", "新标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() after clear error = %v", err)
+			}
+			if title != "新标题" {
+				t.Fatalf("expected title to be cleared, got %q", title)
 			}
 		})
 	}
@@ -193,11 +231,17 @@ func TestRedisTTL(t *testing.T) {
 	t.Cleanup(func() { _ = client.Close() })
 
 	m := NewRedis(client, Conf{TTL: time.Minute})
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "稳定标题"); err != nil {
+		t.Fatalf("GetOrCreateTitle() error = %v", err)
+	}
 	if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 		t.Fatalf("Append() error = %v", err)
 	}
 	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
 		t.Fatalf("expected ttl 1m, got %v", ttl)
+	}
+	if ttl := mr.TTL(titleKey("u1", "c1")); ttl != time.Minute {
+		t.Fatalf("expected title ttl 1m, got %v", ttl)
 	}
 	mr.FastForward(30 * time.Second)
 	if err := m.Append(ctx, "u1", "c1", schema.AssistantMessage("still active", nil)); err != nil {
@@ -205,6 +249,9 @@ func TestRedisTTL(t *testing.T) {
 	}
 	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
 		t.Fatalf("expected refreshed ttl 1m, got %v", ttl)
+	}
+	if ttl := mr.TTL(titleKey("u1", "c1")); ttl != time.Minute {
+		t.Fatalf("expected refreshed title ttl 1m, got %v", ttl)
 	}
 
 	mr.FastForward(2 * time.Minute)
@@ -214,6 +261,9 @@ func TestRedisTTL(t *testing.T) {
 	}
 	if len(got) != 0 {
 		t.Fatalf("expected expired conversation to be empty, got %d", len(got))
+	}
+	if mr.Exists(titleKey("u1", "c1")) {
+		t.Fatal("expected expired conversation title to be removed")
 	}
 }
 
