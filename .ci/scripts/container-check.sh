@@ -6,8 +6,19 @@ readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly BUILD_CONTEXT_DIR="$(mktemp -d)"
 readonly HADOLINT_IMAGE="hadolint/hadolint:v2.14.0-debian@sha256:158cd0184dcaa18bd8ec20b61f4c1cabdf8b32a592d062f57bdcb8e4c1d312e2"
 readonly TRIVY_IMAGE="aquasec/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c"
+readonly -a IMAGE_TARGETS=(
+  auth-rpc
+  seckill-rpc
+  mall-rpc
+  agent-rpc
+  payment-rpc
+  app
+  admin
+  web-ui
+)
 
 declare -a BUILT_IMAGES=()
+declare -A SELECTED_IMAGE_TARGETS=()
 TRIVY_CACHE_VOLUME=""
 CONTAINER_FAILED=0
 
@@ -47,6 +58,60 @@ ensure_image() {
 
   echo "Pulling ${image}"
   retry_command 3 docker pull "${image}"
+}
+
+select_image_targets() {
+  local raw_targets="${CI_IMAGE_TARGETS:-all}"
+  local image target
+  local -a requested_targets=()
+
+  raw_targets="${raw_targets//,/ }"
+  read -r -a requested_targets <<< "${raw_targets}"
+  if ((${#requested_targets[@]} == 0)); then
+    echo "CI_IMAGE_TARGETS must select at least one image" >&2
+    return 1
+  fi
+
+  for target in "${requested_targets[@]}"; do
+    if [[ "${target}" == "all" ]]; then
+      for image in "${IMAGE_TARGETS[@]}"; do
+        SELECTED_IMAGE_TARGETS["${image}"]=1
+      done
+      break
+    fi
+
+    case "${target}" in
+      auth-rpc|seckill-rpc|mall-rpc|agent-rpc|payment-rpc|app|admin|web-ui)
+        SELECTED_IMAGE_TARGETS["${target}"]=1
+        ;;
+      *)
+        echo "Unknown CI image target: ${target}" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  echo "Selected image targets:"
+  for target in "${IMAGE_TARGETS[@]}"; do
+    if [[ -n "${SELECTED_IMAGE_TARGETS[${target}]:-}" ]]; then
+      echo "- ${target}"
+    fi
+  done
+}
+
+image_target_selected() {
+  local target="$1"
+  [[ -n "${SELECTED_IMAGE_TARGETS[${target}]:-}" ]]
+}
+
+backend_target_selected() {
+  local target
+  for target in "${IMAGE_TARGETS[@]}"; do
+    if [[ "${target}" != "web-ui" ]] && image_target_selected "${target}"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 prepare_build_context() {
@@ -152,6 +217,7 @@ docker volume create "${TRIVY_CACHE_VOLUME}" >/dev/null
 IMAGE_TAG="${CI_IMAGE_TAG:-$(git rev-parse --short=12 HEAD)}"
 readonly IMAGE_TAG
 validate_image_tag "${IMAGE_TAG}"
+select_image_targets
 
 docker compose --env-file .env.ci config --quiet
 
@@ -160,19 +226,39 @@ ensure_image "${HADOLINT_IMAGE}"
 ensure_image "${TRIVY_IMAGE}"
 
 echo "Linting Dockerfiles"
-docker run --rm --interactive "${HADOLINT_IMAGE}" hadolint --failure-threshold error - < Dockerfile
-docker run --rm --interactive "${HADOLINT_IMAGE}" hadolint --failure-threshold error - < web-ui/Dockerfile
+if backend_target_selected; then
+  docker run --rm --interactive "${HADOLINT_IMAGE}" hadolint --failure-threshold error - < Dockerfile
+fi
+if image_target_selected web-ui; then
+  docker run --rm --interactive "${HADOLINT_IMAGE}" hadolint --failure-threshold error - < web-ui/Dockerfile
+fi
 
 prepare_build_context
 
-build_image auth-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/auth --build-arg PORT=10003 || CONTAINER_FAILED=1
-build_image seckill-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/seckill --build-arg PORT=10004 || CONTAINER_FAILED=1
-build_image mall-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/mall --build-arg PORT=10005 || CONTAINER_FAILED=1
-build_image agent-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/agent --build-arg PORT=10006 || CONTAINER_FAILED=1
-build_image payment-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/payment --build-arg PORT=10007 || CONTAINER_FAILED=1
-build_image app "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./cmd/app --build-arg PORT=10002 || CONTAINER_FAILED=1
-build_image admin "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./cmd/admin --build-arg PORT=10001 || CONTAINER_FAILED=1
-build_image web-ui "${BUILD_CONTEXT_DIR}/web-ui" "${BUILD_CONTEXT_DIR}/web-ui/Dockerfile" || CONTAINER_FAILED=1
+if image_target_selected auth-rpc; then
+  build_image auth-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/auth --build-arg PORT=10003 || CONTAINER_FAILED=1
+fi
+if image_target_selected seckill-rpc; then
+  build_image seckill-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/seckill --build-arg PORT=10004 || CONTAINER_FAILED=1
+fi
+if image_target_selected mall-rpc; then
+  build_image mall-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/mall --build-arg PORT=10005 || CONTAINER_FAILED=1
+fi
+if image_target_selected agent-rpc; then
+  build_image agent-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/agent --build-arg PORT=10006 || CONTAINER_FAILED=1
+fi
+if image_target_selected payment-rpc; then
+  build_image payment-rpc "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./services/rpc/payment --build-arg PORT=10007 || CONTAINER_FAILED=1
+fi
+if image_target_selected app; then
+  build_image app "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./cmd/app --build-arg PORT=10002 || CONTAINER_FAILED=1
+fi
+if image_target_selected admin; then
+  build_image admin "${BUILD_CONTEXT_DIR}" "${BUILD_CONTEXT_DIR}/Dockerfile" --build-arg SERVICE_PATH=./cmd/admin --build-arg PORT=10001 || CONTAINER_FAILED=1
+fi
+if image_target_selected web-ui; then
+  build_image web-ui "${BUILD_CONTEXT_DIR}/web-ui" "${BUILD_CONTEXT_DIR}/web-ui/Dockerfile" || CONTAINER_FAILED=1
+fi
 
 for image in "${BUILT_IMAGES[@]}"; do
   scan_image "${image}"

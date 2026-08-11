@@ -15,8 +15,33 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go_check: ${{ steps.detect.outputs.go_check }}
+      web_check: ${{ steps.detect.outputs.web_check }}
+      security_check: ${{ steps.detect.outputs.security_check }}
+      container_check: ${{ steps.detect.outputs.container_check }}
+      container_targets: ${{ steps.detect.outputs.container_targets }}
+    steps:
+      - name: Check out source with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Select checks for changed files
+        id: detect
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: .ci/scripts/detect-changes.sh
+
   go-check:
     name: Go Check
+    needs: changes
+    if: ${{ needs.changes.outputs.go_check == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -70,6 +95,8 @@ jobs:
 
   web-check:
     name: Web Check
+    needs: changes
+    if: ${{ needs.changes.outputs.web_check == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -86,6 +113,8 @@ jobs:
 
   security-check:
     name: Security Check
+    needs: changes
+    if: ${{ needs.changes.outputs.security_check == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -101,10 +130,13 @@ jobs:
 
   container-check:
     name: Container Check
+    needs: changes
+    if: ${{ needs.changes.outputs.container_check == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       CI_IMAGE_TAG: ${{ github.sha }}
+      CI_IMAGE_TARGETS: ${{ needs.changes.outputs.container_targets }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -116,10 +148,15 @@ jobs:
   ci-gate:
     name: CI Gate
     if: ${{ always() }}
-    needs: [go-check, web-check, security-check, container-check]
+    needs: [changes, go-check, web-check, security-check, container-check]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
+      CHANGES_RESULT: ${{ needs.changes.result }}
+      GO_REQUIRED: ${{ needs.changes.outputs.go_check }}
+      WEB_REQUIRED: ${{ needs.changes.outputs.web_check }}
+      SECURITY_REQUIRED: ${{ needs.changes.outputs.security_check }}
+      CONTAINER_REQUIRED: ${{ needs.changes.outputs.container_check }}
       GO_RESULT: ${{ needs.go-check.result }}
       WEB_RESULT: ${{ needs.web-check.result }}
       SECURITY_RESULT: ${{ needs.security-check.result }}
@@ -127,9 +164,30 @@ jobs:
     steps:
       - name: Require every CI job to succeed
         run: |
-          for result in "$GO_RESULT" "$WEB_RESULT" "$SECURITY_RESULT" "$CONTAINER_RESULT"; do
-            if [[ "$result" != "success" ]]; then
-              echo "Required CI job result: $result" >&2
-              exit 1
+          gate_failed=0
+
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "Change detection result: $CHANGES_RESULT" >&2
+            gate_failed=1
+          fi
+
+          require_result() {
+            local name="$1"
+            local required="$2"
+            local result="$3"
+
+            if [[ "$required" == "true" && "$result" != "success" ]]; then
+              echo "$name was selected but finished with: $result" >&2
+              gate_failed=1
+            elif [[ "$required" != "true" && "$result" != "skipped" ]]; then
+              echo "$name was not selected but finished with: $result" >&2
+              gate_failed=1
             fi
-          done
+          }
+
+          require_result "Go Check" "$GO_REQUIRED" "$GO_RESULT"
+          require_result "Web Check" "$WEB_REQUIRED" "$WEB_RESULT"
+          require_result "Security Check" "$SECURITY_REQUIRED" "$SECURITY_RESULT"
+          require_result "Container Check" "$CONTAINER_REQUIRED" "$CONTAINER_RESULT"
+
+          exit "$gate_failed"
