@@ -33,6 +33,7 @@ export default function RecommendPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AgentRecommendResp | null>(null)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [conversationId, setConversationId] = useState<string>()
 
   const handleRecommend = async (values: {
     query: string
@@ -56,6 +57,7 @@ export default function RecommendPage() {
           query: values.query,
           budget_cents: budgetCents,
           max_items: values.max_items,
+          conversation_id: conversationId,
         },
         controller.signal
       )
@@ -70,6 +72,9 @@ export default function RecommendPage() {
       }
 
       setResult(finalResult)
+      if (finalResult?.conversation_id) {
+        setConversationId(finalResult.conversation_id)
+      }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         message.error((err as Error).message || '推荐失败')

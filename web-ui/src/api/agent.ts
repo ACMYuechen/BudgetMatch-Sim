@@ -1,12 +1,19 @@
 import request from './request'
 import type { AgentRecommendResp } from '@/types/api'
 
-export function recommend(data: { query: string; budget_cents?: number; max_items?: number }) {
+export interface AgentRecommendReq {
+  query: string
+  budget_cents?: number
+  max_items?: number
+  conversation_id?: string
+}
+
+export function recommend(data: AgentRecommendReq) {
   return request.post<AgentRecommendResp>('/agent/recommend', data)
 }
 
 export async function* recommendStream(
-  data: { query: string; budget_cents?: number; max_items?: number },
+  data: AgentRecommendReq,
   signal?: AbortSignal
 ) {
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/agent/recommend/stream`, {
