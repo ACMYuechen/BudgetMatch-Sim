@@ -1,5 +1,5 @@
 # 构建阶段
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine AS dependencies
 
 WORKDIR /build
 
@@ -9,6 +9,9 @@ RUN apk add --no-cache git
 # 先复制 go.mod 和 go.sum，利用 Docker 缓存
 COPY go.mod go.sum ./
 RUN go mod download
+
+# 编译阶段复用独立的依赖层，供 CI 中的并行服务构建共享缓存
+FROM dependencies AS builder
 
 # 复制全部源代码
 COPY . .

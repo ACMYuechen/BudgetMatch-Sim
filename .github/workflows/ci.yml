@@ -1,0 +1,220 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go_check: ${{ steps.detect.outputs.go_check }}
+      web_check: ${{ steps.detect.outputs.web_check }}
+      security_check: ${{ steps.detect.outputs.security_check }}
+      container_check: ${{ steps.detect.outputs.container_check }}
+      container_targets: ${{ steps.detect.outputs.container_targets }}
+      container_matrix: ${{ steps.detect.outputs.container_matrix }}
+    steps:
+      - name: Check out source with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Select checks for changed files
+        id: detect
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: .ci/scripts/detect-changes.sh
+
+  go-check:
+    name: Go Check
+    needs: changes
+    if: ${{ needs.changes.outputs.go_check == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.15@sha256:0934690612905554eb61ddefb9faaaecb47c2f6931dbb453e694358092ee8990
+        env:
+          ETCD_NAME: budgetmatch-ci
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+          ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
+        ports:
+          - 2379:2379
+      postgres:
+        image: pgvector/pgvector:pg16@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_DB: budgetmatch_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username root --dbname budgetmatch_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ETCD_HOSTS: 127.0.0.1:2379
+      RAG_TEST_PG_DSN: host=127.0.0.1 user=root password=ci-postgres-password dbname=budgetmatch_ci port=5432 sslmode=disable
+      CI_EVENT_NAME: ${{ github.event_name }}
+      CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out source with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Wait for etcd
+        run: |
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:2379/health \
+              | grep --quiet '"health":"true"'; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "etcd did not become healthy" >&2
+          curl --silent --show-error http://127.0.0.1:2379/health >&2 || true
+          exit 1
+      - name: Set up Go from go.mod
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Run Go checks and build all packages
+        run: .ci/scripts/go-check.sh
+
+  web-check:
+    name: Web Check
+    needs: changes
+    if: ${{ needs.changes.outputs.web_check == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web-ui/package-lock.json
+      - name: Run frontend checks
+        run: .ci/scripts/web-check.sh
+
+  security-check:
+    name: Security Check
+    needs: changes
+    if: ${{ needs.changes.outputs.security_check == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go from go.mod
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Run source and dependency security checks
+        run: .ci/scripts/security-check.sh
+
+  container-prepare:
+    name: Container Prepare
+    needs: changes
+    if: ${{ needs.changes.outputs.container_check == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_IMAGE_TAG: ${{ github.sha }}
+      CI_IMAGE_TARGETS: ${{ needs.changes.outputs.container_targets }}
+      CI_CONTAINER_PHASE: prepare
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+      - name: Validate containers and prepare shared backend cache
+        run: .ci/scripts/container-check.sh
+
+  container-check:
+    name: Container Check (${{ matrix.target }})
+    needs: [changes, container-prepare]
+    if: ${{ needs.changes.outputs.container_check == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.changes.outputs.container_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI_IMAGE_TAG: ${{ github.sha }}
+      CI_IMAGE_TARGETS: ${{ matrix.target }}
+      CI_CONTAINER_PHASE: build-scan
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+      - name: Build and scan selected image
+        run: .ci/scripts/container-check.sh
+
+  ci-gate:
+    name: CI Gate
+    if: ${{ always() }}
+    needs: [changes, go-check, web-check, security-check, container-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CHANGES_RESULT: ${{ needs.changes.result }}
+      GO_REQUIRED: ${{ needs.changes.outputs.go_check }}
+      WEB_REQUIRED: ${{ needs.changes.outputs.web_check }}
+      SECURITY_REQUIRED: ${{ needs.changes.outputs.security_check }}
+      CONTAINER_REQUIRED: ${{ needs.changes.outputs.container_check }}
+      GO_RESULT: ${{ needs.go-check.result }}
+      WEB_RESULT: ${{ needs.web-check.result }}
+      SECURITY_RESULT: ${{ needs.security-check.result }}
+      CONTAINER_RESULT: ${{ needs.container-check.result }}
+    steps:
+      - name: Require every CI job to succeed
+        run: |
+          gate_failed=0
+
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "Change detection result: $CHANGES_RESULT" >&2
+            gate_failed=1
+          fi
+
+          require_result() {
+            local name="$1"
+            local required="$2"
+            local result="$3"
+
+            if [[ "$required" == "true" && "$result" != "success" ]]; then
+              echo "$name was selected but finished with: $result" >&2
+              gate_failed=1
+            elif [[ "$required" != "true" && "$result" != "skipped" ]]; then
+              echo "$name was not selected but finished with: $result" >&2
+              gate_failed=1
+            fi
+          }
+
+          require_result "Go Check" "$GO_REQUIRED" "$GO_RESULT"
+          require_result "Web Check" "$WEB_REQUIRED" "$WEB_RESULT"
+          require_result "Security Check" "$SECURITY_REQUIRED" "$SECURITY_RESULT"
+          require_result "Container Check" "$CONTAINER_REQUIRED" "$CONTAINER_RESULT"
+
+          exit "$gate_failed"
