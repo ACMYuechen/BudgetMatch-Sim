@@ -339,7 +339,7 @@ func TestRedisTTL(t *testing.T) {
 // TestConfNormalize 验证配置归一化：默认值回填、窗口取偶。
 func TestConfNormalize(t *testing.T) {
 	got := Conf{}.normalize()
-	if got.MaxHistory != defaultMaxHistory || got.TTL != defaultTTL {
+	if got.MaxHistory != defaultMaxHistory || got.MaxContextTokens != defaultMaxContextTokens || got.TTL != defaultTTL {
 		t.Fatalf("zero conf not normalized to defaults: %+v", got)
 	}
 	if got := (Conf{MaxHistory: 7}).normalize(); got.MaxHistory != 6 {
@@ -347,5 +347,8 @@ func TestConfNormalize(t *testing.T) {
 	}
 	if got := (Conf{MaxHistory: 1}).normalize(); got.MaxHistory != 2 {
 		t.Fatalf("window below 2 should clamp to 2, got %d", got.MaxHistory)
+	}
+	if got := (Conf{MaxContextTokens: 1234}).ContextTokens(); got != 1234 {
+		t.Fatalf("MaxContextTokens = %d, want 1234", got)
 	}
 }

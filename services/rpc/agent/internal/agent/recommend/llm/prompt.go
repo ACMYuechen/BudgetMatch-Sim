@@ -42,13 +42,99 @@ Expected result:
 
 // buildMessages 根据用户输入、解析意图与会话历史构建 Eino 对话消息列表。
 // 结构为 [system, ...history, currentUser]：历史消息是既往轮次的裸问答对，
-// 意图脚手架只拼在当前轮的 user 消息里，不会随历史逐轮累积。
-func buildMessages(input agentcore.Input, intent agentcore.Intent, history []*schema.Message) []*schema.Message {
-	messages := make([]*schema.Message, 0, len(history)+2)
-	messages = append(messages, schema.SystemMessage(systemPrompt))
-	messages = append(messages, history...)
-	messages = append(messages, schema.UserMessage(buildUserPrompt(input, intent)))
+// 意图脚手架只拼在当前轮的 user 消息里，不会随历史逐轮累积；历史按近似 token
+// 预算从最新完整问答轮次向前保留，系统提示词和当前问题不参与淘汰。
+func buildMessages(input agentcore.Input, intent agentcore.Intent, history []*schema.Message, maxContextTokens int) []*schema.Message {
+	systemMessage := schema.SystemMessage(systemPrompt)
+	currentMessage := schema.UserMessage(buildUserPrompt(input, intent))
+	historyBudget := maxContextTokens - estimateMessageTokens(systemMessage) - estimateMessageTokens(currentMessage)
+	trimmedHistory := trimHistoryByTokenBudget(history, historyBudget)
+
+	messages := make([]*schema.Message, 0, len(trimmedHistory)+2)
+	messages = append(messages, systemMessage)
+	messages = append(messages, trimmedHistory...)
+	messages = append(messages, currentMessage)
 	return messages
+}
+
+// trimHistoryByTokenBudget 从最近一轮开始保留完整对话轮次，预算不足时丢弃更早历史。
+func trimHistoryByTokenBudget(history []*schema.Message, budget int) []*schema.Message {
+	if budget <= 0 || len(history) == 0 {
+		return nil
+	}
+
+	turns := splitHistoryTurns(history)
+	start := len(turns)
+	used := 0
+	for index := len(turns) - 1; index >= 0; index-- {
+		cost := estimateMessagesTokens(turns[index])
+		if used+cost > budget {
+			break
+		}
+		used += cost
+		start = index
+	}
+
+	var selected []*schema.Message
+	for _, turn := range turns[start:] {
+		selected = append(selected, turn...)
+	}
+	return selected
+}
+
+// splitHistoryTurns 以 user 消息为每轮起点，确保裁剪不会留下孤立的 assistant/tool 消息。
+func splitHistoryTurns(history []*schema.Message) [][]*schema.Message {
+	turns := make([][]*schema.Message, 0, len(history)/2)
+	for _, msg := range history {
+		if msg == nil {
+			continue
+		}
+		if msg.Role == schema.User {
+			turns = append(turns, []*schema.Message{msg})
+			continue
+		}
+		if len(turns) > 0 {
+			last := len(turns) - 1
+			turns[last] = append(turns[last], msg)
+		}
+	}
+	return turns
+}
+
+// estimateMessagesTokens 返回消息切片的模型无关近似 token 数。
+func estimateMessagesTokens(messages []*schema.Message) int {
+	total := 0
+	for _, msg := range messages {
+		total += estimateMessageTokens(msg)
+	}
+	return total
+}
+
+// estimateMessageTokens 通过消息 JSON 估算 token，覆盖文本、角色与工具调用参数。
+func estimateMessageTokens(msg *schema.Message) int {
+	if msg == nil {
+		return 0
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return estimateTextTokens(msg.Content) + 4
+	}
+	return estimateTextTokens(string(data)) + 4
+}
+
+// estimateTextTokens 使用“ASCII 约 4 字符/token、非 ASCII 约 1 字符/token”的保守近似。
+// 实际 tokenizer 因模型而异，因此该预算用于稳定裁剪，不作为计费统计。
+func estimateTextTokens(text string) int {
+	ascii := 0
+	tokens := 0
+	for _, value := range text {
+		if value <= 0x7f {
+			ascii++
+		} else {
+			tokens++
+		}
+	}
+	return tokens + (ascii+3)/4
 }
 
 // buildUserPrompt 将用户请求与解析意图拼接为结构化用户提示，引导模型调用工具。

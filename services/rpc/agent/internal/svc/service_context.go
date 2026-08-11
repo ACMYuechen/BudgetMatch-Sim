@@ -144,5 +144,6 @@ func newLLMAgent(c config.Config, productProvider tools.ProductProvider, bundleS
 		return nil
 	}
 	return llm.NewAgent(model, productProvider, bundleSelector, c.MCP, c.FileTools).
-		WithMemory(mem, c.Memory.Window())
+		WithMemory(mem, c.Memory.Window()).
+		WithMaxContextTokens(c.Memory.ContextTokens())
 }
