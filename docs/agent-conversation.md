@@ -35,7 +35,28 @@ HTTP 网关从已认证的请求上下文读取用户身份，并将其传给 Ag
 
 ## 记忆边界
 
-Memory.MaxHistory 控制存储与读取的消息窗口；窗口满后会从最早消息开始截断，不会无限增长。Memory.MaxContextTokens 进一步限制发送给 LLM 的消息上下文近似 token 数，优先保留最近的完整问答轮次。Memory.TTL 是 Redis 与进程内记忆共同使用的滑动过期时间，创建标题或追加消息时刷新；未配置 Redis 时自动降级为进程内记忆，适用于本地开发和单实例运行。
+Memory.MaxHistory 控制每次读取的最近消息窗口；Memory.MaxContextTokens 进一步限制发送给 LLM 的消息上下文近似 token 数，优先保留最近的完整问答轮次。PostgreSQL 会保留窗口之外的完整消息，不会因为窗口滚动而删除旧记录。
+
+## PostgreSQL 持久化
+
+配置 Database.DSN 后，agent-rpc 使用 PostgreSQL 作为会话记忆的长期数据源，并与 RAG 复用同一个连接池。Database.AutoMigrate 为 true 时，服务启动会幂等创建；关闭自动迁移时会检查所需表是否已由外部迁移创建，缺表会直接阻止服务启动：
+
+- agent_conversations：以 user_id + conversation_id 为主键，保存稳定标题、缓存版本及会话时间；
+- agent_conversation_messages：顺序保存完整消息 JSON，删除会话时级联清理。
+
+PostgreSQL 会话不应用 Memory.TTL，因此服务重启或间隔数天后，只要认证用户和 conversation_id 保持一致，仍能读取最近上下文。Memory.TTL 只作用于 Redis 快照、独立 Redis 记忆和 InMemory 降级实现。
+
+## PostgreSQL + Redis 两级记忆
+
+同时配置 Database.DSN 与 CacheRedis 时，PostgreSQL 是唯一持久化事实源，Redis 缓存最近 MaxHistory 条消息、稳定标题和对应的 PostgreSQL 会话版本：
+
+    写入：提交 PostgreSQL 事务 → 会话版本递增 → 删除 Redis 旧快照
+    首次读取：查询 PostgreSQL 版本 → Redis 未命中 → 从 PostgreSQL 读取窗口 → 回填 Redis
+    后续读取：查询 PostgreSQL 版本 → Redis 版本一致 → 直接使用 Redis 快照
+
+如果数据库提交后 Redis 删除失败，下一次读取也会因版本不一致而回源 PostgreSQL，不会返回陈旧记忆。Redis 读取、写入或清理失败时会记录日志并直接使用 PostgreSQL，推荐请求和持久化结果不受缓存故障影响。
+
+只配置 Database 时直接使用 PostgreSQL；只配置 CacheRedis 时使用 Redis 共享短期记忆；两者都未配置时使用 InMemory。Redis 不是第二份持久数据，也不会反向覆盖 PostgreSQL。
 
 ## 并发边界
 

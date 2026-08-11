@@ -23,10 +23,10 @@ type Config struct {
 	Embedding  model.EmbeddingConfig `json:"embedding,optional"`  // Embedding 向量模型配置，未配置时 RAG 关闭
 	MCP        mcp.Config            `json:"mcp,optional"`        // MCP MCP 服务器配置
 	FileTools  filetools.Config      `json:"fileTools,optional"`  // FileTools LLM 文件工具的受限工作目录与访问限制
-	CacheRedis iredis.Config         `json:"cacheRedis,optional"` // CacheRedis 会话记忆存储，Address 为空时用进程内记忆
+	CacheRedis iredis.Config         `json:"cacheRedis,optional"` // CacheRedis PostgreSQL 会话的一级缓存；无数据库时可独立保存短期记忆
 	Memory     memory.Conf           `json:"memory,optional"`     // Memory 会话记忆行为配置（窗口/TTL）
 	MallRpc    zrpc.RpcClientConf    `json:"mallRpc,optional"`    // MallRpc 商城 RPC 客户端，未配置时商品数据用内存 mock
-	Database   database.Config       `json:"database,optional"`   // Database 商品向量表所在库，DSN 为空时 RAG 关闭
+	Database   database.Config       `json:"database,optional"`   // Database 会话持久化与商品向量表所在库；DSN 为空时记忆降级且 RAG 关闭
 	RAG        rag.Config            `json:"rag,optional"`        // RAG 检索与同步行为配置
 }
 

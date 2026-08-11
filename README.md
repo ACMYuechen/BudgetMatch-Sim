@@ -182,7 +182,7 @@ make docker-down
 - LLM 链路使用 Eino ReAct Agent，入口在 `services/rpc/agent/internal/agent/recommend/llm/agent.go`。
 - 内置 Eino 工具在 `services/rpc/agent/internal/agent/recommend/llm/tools.go`，包括 `search_products`、`select_bundle`、`read_file`、`write_file`。
 - 支持 MCP 工具注入，配置在 `services/rpc/agent/etc/config.yaml` 的 `MCP` 段，适配代码在 `services/rpc/agent/internal/agent/recommend/llm/mcp.go`。
-- 支持多轮对话，`conversation_id` 首轮可为空，由服务端生成并回传；Redis 可用时会话记忆存 Redis DB 6，否则退回进程内实现。
+- 支持多轮对话，`conversation_id` 首轮可为空，由服务端生成并回传；配置 PostgreSQL 时长期保存完整会话，Redis 可作为最近窗口缓存，未配置外部存储时退回进程内实现。调用方式和记忆边界见 [Agent 多轮会话文档](docs/agent-conversation.md)。
 
 ## 错误处理与日志规范
 

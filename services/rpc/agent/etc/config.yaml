@@ -31,7 +31,8 @@ Embedding:
   APIKey: "${EMBEDDING_API_KEY}"
   Dimensions: 1536                   # 向量维度；改动会触发向量表重建与全量重嵌入
 
-# 商品向量表所在库（复用主库）。DSN 留空则 RAG 关闭。
+# Agent 会话与商品向量表所在库（复用主库）。
+# 配置 DSN 后，会话完整历史长期保存到 PostgreSQL；DSN 留空时才降级到 Redis/InMemory。
 Database:
   LogLevel: 4
   Driver: "Postgres"
@@ -79,7 +80,8 @@ MallRpc:
     - 127.0.0.1:10005
   NonBlock: true
 
-# 会话记忆存储；注释掉整个块则退回进程内记忆（仅限本地单实例）
+# PostgreSQL 会话的 Redis 一级缓存；未配置 PostgreSQL 时可独立保存短期记忆。
+# 注释掉整个块后，有 Database 则直接读写 PostgreSQL，否则退回进程内记忆。
 CacheRedis:
   Address: "127.0.0.1:6379"
   Password: "12345678"
@@ -94,6 +96,6 @@ CacheRedis:
 
 # 会话记忆行为
 Memory:
-  MaxHistory: 20        # 存储与读取的最大历史消息数（10 轮问答），奇数向下取偶
+  MaxHistory: 20        # 每次读取的最大历史消息数（10 轮问答），奇数向下取偶；PostgreSQL 仍保存完整历史
   MaxContextTokens: 8000 # 发送给 LLM 的消息上下文近似 token 上限，优先保留最近完整问答轮次
-  TTL: 24h              # 会话空闲过期时间，每次写入刷新
+  TTL: 24h              # Redis 快照/独立记忆与 InMemory 的过期时间；PostgreSQL 会话不自动过期
