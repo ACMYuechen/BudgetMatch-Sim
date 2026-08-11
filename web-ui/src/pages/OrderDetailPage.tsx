@@ -16,7 +16,7 @@ export default function OrderDetailPage() {
   const [payLoading, setPayLoading] = useState(false)
   const [qrCode, setQrCode] = useState('')
   const [outTradeNo, setOutTradeNo] = useState('')
-  const paymentCheckTimer = useRef<NodeJS.Timeout | null>(null)
+  const paymentCheckTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!id) return

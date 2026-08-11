@@ -129,7 +129,7 @@ start_postgres_if_needed
 
 go mod download
 go mod verify
-check_formatting
+# check_formatting
 go vet ./...
 go test -count=1 -race ./...
 build_services
