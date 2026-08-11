@@ -198,6 +198,22 @@ join_selected_images() {
   printf '%s' "${joined}"
 }
 
+selected_images_json() {
+  local image
+  local separator=""
+  local json="["
+
+  for image in "${ALL_IMAGES[@]}"; do
+    if [[ -n "${SELECTED_IMAGES[${image}]:-}" ]]; then
+      json+="${separator}\"${image}\""
+      separator=","
+    fi
+  done
+
+  json+="]"
+  printf '%s' "${json}"
+}
+
 write_output() {
   local name="$1"
   local value="$2"
@@ -258,12 +274,15 @@ fi
 
 CONTAINER_TARGETS="$(join_selected_images)"
 readonly CONTAINER_TARGETS
+CONTAINER_MATRIX="$(selected_images_json)"
+readonly CONTAINER_MATRIX
 
 write_output go_check "${GO_CHECK}"
 write_output web_check "${WEB_CHECK}"
 write_output security_check "${SECURITY_CHECK}"
 write_output container_check "${CONTAINER_CHECK}"
 write_output container_targets "${CONTAINER_TARGETS}"
+write_output container_matrix "${CONTAINER_MATRIX}"
 
 echo "Selected checks: go=${GO_CHECK} web=${WEB_CHECK} security=${SECURITY_CHECK} container=${CONTAINER_CHECK}"
 echo "Selected container targets: ${CONTAINER_TARGETS:-none}"

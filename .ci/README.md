@@ -26,3 +26,8 @@ CI_IMAGE_TARGETS="mall-rpc app" .ci/scripts/container-check.sh
 
 Supported targets are `auth-rpc`, `seckill-rpc`, `mall-rpc`, `agent-rpc`,
 `payment-rpc`, `app`, `admin`, and `web-ui`.
+
+In GitHub Actions, a preparation job validates Compose and Dockerfiles and
+exports the common Go dependency stage to a shared Buildx cache. The selected
+images then run as independent matrix jobs; each job imports that backend cache
+and keeps a separate target-specific build cache.

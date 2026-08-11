@@ -25,6 +25,7 @@ jobs:
       security_check: ${{ steps.detect.outputs.security_check }}
       container_check: ${{ steps.detect.outputs.container_check }}
       container_targets: ${{ steps.detect.outputs.container_targets }}
+      container_matrix: ${{ steps.detect.outputs.container_matrix }}
     steps:
       - name: Check out source with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -128,21 +129,44 @@ jobs:
       - name: Run source and dependency security checks
         run: .ci/scripts/security-check.sh
 
-  container-check:
-    name: Container Check
+  container-prepare:
+    name: Container Prepare
     needs: changes
     if: ${{ needs.changes.outputs.container_check == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     env:
       CI_IMAGE_TAG: ${{ github.sha }}
       CI_IMAGE_TARGETS: ${{ needs.changes.outputs.container_targets }}
+      CI_CONTAINER_PHASE: prepare
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
-      - name: Validate Compose and build, lint, and scan all images
+      - name: Validate containers and prepare shared backend cache
+        run: .ci/scripts/container-check.sh
+
+  container-check:
+    name: Container Check (${{ matrix.target }})
+    needs: [changes, container-prepare]
+    if: ${{ needs.changes.outputs.container_check == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.changes.outputs.container_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI_IMAGE_TAG: ${{ github.sha }}
+      CI_IMAGE_TARGETS: ${{ matrix.target }}
+      CI_CONTAINER_PHASE: build-scan
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+      - name: Build and scan selected image
         run: .ci/scripts/container-check.sh
 
   ci-gate:
