@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Redis 是 Manager 的 Redis 实现，多实例部署时共享会话记忆。
+// Redis 是 ConversationStore 的 Redis 实现，多实例部署时共享短期会话记忆。
 //
 // 独立 Redis 模式下，每个会话用 LIST 保存 JSON 编码的消息，另用 STRING 保存稳定标题。
 // 写入用 pipeline 执行 RPUSH + LTRIM + EXPIRE：写时截断保证窗口上限，滑动 TTL 让活跃会话不过期。
@@ -23,7 +23,7 @@ type Redis struct {
 	client redis.UniversalClient
 }
 
-// 确保 Redis 实现 Manager。
+// 确保 Redis 实现包含完整会话能力的 ConversationStore。
 var _ ConversationStore = (*Redis)(nil)
 
 // NewRedis 基于已建立的 Redis 客户端创建会话记忆。

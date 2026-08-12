@@ -8,6 +8,7 @@
 infra/errors/
 ├── errors.go         # 错误码常量 ECxxx 与 AppError 变量定义
 ├── apperror.go       # AppError 结构体与方法
+├── http.go           # gRPC 错误还原与统一 HTTP 响应转换
 ├── localizer.go      # 中文文案加载器
 ├── localizer_test.go # Localizer 单元测试
 ├── locale.zh.toml    # 中文错误文案
@@ -120,9 +121,20 @@ err := errors.InvalidEmail
 err.Code()            // 400001
 err.MsgId()           // "invalid.invalid_email"
 err.HTTPStatusCode()  // 400
+err.GRPCStatus()      // codes.InvalidArgument + "400001:invalid.invalid_email"
 err.Message()         // "邮箱地址格式不正确"
 err.Error()           // "400001:invalid.invalid_email"
 ```
+
+## RPC 与 HTTP 错误传输
+
+RPC logic 应直接返回 `AppError`，不要额外包装。`AppError.GRPCStatus()` 会把错误族映射为对应的 gRPC code，并用稳定的 `code:msgId` 作为内部传输格式。App/Admin 入口统一注册 `HTTPErrorHandler`，网关收到错误后还原业务错误码、HTTP 状态和中文文案；未知 gRPC 错误统一返回通用 500，避免泄露内部错误文本。SSE 的 `error` 事件也复用同一转换规则。
+
+```go
+httpx.SetErrorHandler(errors.HTTPErrorHandler)
+```
+
+普通的 go-zero 参数校验错误仍返回 HTTP 400，并保留校验器给出的可修正提示。
 
 ## 注意事项
 
@@ -131,3 +143,4 @@ err.Error()           // "400001:invalid.invalid_email"
 3. **`msgId` 必须在 `locale.zh.toml` 中存在**。
 4. 变量声明时统一使用 `newAppError(code, msgId)`；需要携带动态数据时使用 `newAppErrorData(code, msgId, data)`。
 5. 如需向后端日志传递更多信息，可在业务层通过 `newAppErrorData` 传入 `data`。
+6. RPC logic 返回 `AppError` 时不要用 `fmt.Errorf` 包装；需要记录上下文时写日志后原样返回。

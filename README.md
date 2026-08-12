@@ -193,10 +193,12 @@ make docker-down
 - API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
 - logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
 
-各层详细规范见：
-- [cmd/README.md](cmd/README.md)
-- [services/README.md](services/README.md)
-- [infra/README.md](infra/README.md)
+相关开发规范见：
+
+- [本地开发与代码生成](docs/dev.md)
+- [Git 提交规范](docs/git.md)
+- [CI 说明](docs/ci.md)
+- [错误库规范](infra/errors/README.md)
 
 ## 接口文档
 

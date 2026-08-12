@@ -11,10 +11,10 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// InMemory 是 Manager 的进程内实现，用于未配置 Redis 的本地开发与单元测试。
+// InMemory 是 ConversationStore 的进程内实现，用于未配置外部存储的本地开发与单元测试。
 // 消息以 JSON 编码字节存储，读取时解码出全新对象，与 Redis 实现语义一致；
 // 创建标题或追加消息时刷新滑动 TTL，后续读写会惰性清理过期会话。
-// 多实例部署下会话彼此不可见，生产环境仍应使用 Redis 实现。
+// 多实例部署下会话彼此不可见，生产环境应使用 Redis 或 PostgreSQL 实现。
 type InMemory struct {
 	conf Conf
 	now  func() time.Time
@@ -29,7 +29,7 @@ type InMemory struct {
 	nextCleanup   time.Time
 }
 
-// 确保 InMemory 实现 Manager。
+// 确保 InMemory 实现包含完整会话能力的 ConversationStore。
 var _ ConversationStore = (*InMemory)(nil)
 
 // NewInMemory 创建进程内会话记忆。

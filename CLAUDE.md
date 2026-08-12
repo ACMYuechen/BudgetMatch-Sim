@@ -87,7 +87,7 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 | `services/rpc/agent/internal/agent/recommend/llm/session.go` | 单次请求状态管理 |
 | `services/rpc/agent/internal/agent/recommend/planner.go` | 意图解析器 |
 | `services/rpc/agent/internal/recommend/bundle_selector.go` | 商品套装选择器 |
-| `services/rpc/agent/internal/memory/` | 会话记忆（Manager 接口 + InMemory/Redis 实现，多轮对话） |
+| `services/rpc/agent/internal/memory/` | 会话记忆（ConversationStore + InMemory/Redis/PostgreSQL/两级缓存实现） |
 | `services/rpc/agent/internal/einolog/` | Eino 组件统一日志回调（模型/工具/检索/嵌入观测） |
 | `services/rpc/agent/internal/rag/` | RAG：Loader/Indexer/Retriever（Eino 官方组件接口）+ 同步流水线 |
 | `services/rpc/agent/model/product_vectors/` | 商品向量表（pgvector，派生数据可安全重建） |
@@ -185,9 +185,10 @@ agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
 | 配置缺失 | 行为 |
 |------|------|
 | `Model`（LLM） | 推荐走确定性规则，不请求外部模型 |
-| `Embedding` 或 `Database` | RAG 关闭，商品检索走关键词模式 |
+| `Embedding` | RAG 关闭，商品检索走关键词模式 |
 | `MallRpc` | 商品数据用内存 mock（配置了 mall 则绝不混用 mock） |
-| `CacheRedis` | 会话记忆退回进程内实现（仅限本地单实例） |
+| `Database` | RAG 关闭；会话记忆使用 Redis，Redis 也未配置时退回进程内实现 |
+| `CacheRedis` | PostgreSQL 可用时只关闭一级缓存；PostgreSQL 未配置时退回进程内实现 |
 
 - **Embedding 与 LLM 是两套独立配置**（`EMBEDDING_*` 环境变量）：DeepSeek 无 embeddings 接口，RAG 需要 OpenAI / DashScope 等兼容服务。
 - **商品向量表是派生数据**：`product_vectors` 表可随时删除，同步器会自动回填；换 embedding 模型或维度会触发删表重建 + 全量重嵌入（有 token 成本）。
@@ -265,12 +266,12 @@ curl -X POST http://localhost:10002/api/agent/recommend/stream \
 
 ## 分层规范
 
-各层详细规范见：
+相关开发规范见：
 
-- [cmd/README.md](cmd/README.md)
-- [services/README.md](services/README.md)
-- [infra/README.md](infra/README.md)
-- [scripts/README.md](scripts/README.md)
+- [本地开发与代码生成](docs/dev.md)
+- [Git 提交规范](docs/git.md)
+- [CI 说明](docs/ci.md)
+- [错误库规范](infra/errors/README.md)
 
 ## 接口文档
 
