@@ -97,5 +97,5 @@ CacheRedis:
 # 会话记忆行为
 Memory:
   MaxHistory: 20        # 每次读取的最大历史消息数（10 轮问答），奇数向下取偶；PostgreSQL 仍保存完整历史
-  MaxContextTokens: 8000 # 发送给 LLM 的消息上下文近似 token 上限，优先保留最近完整问答轮次
+  MaxContextTokens: 8000 # 系统提示、当前请求和历史的严格近似 token 总上限；历史优先保留最近完整轮次
   TTL: 24h              # Redis 快照/独立记忆与 InMemory 的过期时间；PostgreSQL 会话不自动过期

@@ -43,18 +43,23 @@ Expected result:
 // buildMessages 根据用户输入、解析意图与会话历史构建 Eino 对话消息列表。
 // 结构为 [system, ...history, currentUser]：历史消息是既往轮次的裸问答对，
 // 意图脚手架只拼在当前轮的 user 消息里，不会随历史逐轮累积；历史按近似 token
-// 预算从最新完整问答轮次向前保留，系统提示词和当前问题不参与淘汰。
-func buildMessages(input agentcore.Input, intent agentcore.Intent, history []*schema.Message, maxContextTokens int) []*schema.Message {
+// 预算从最新完整问答轮次向前保留。系统提示词和当前问题不会被静默截断；
+// 二者自身已超过上限时直接返回 ErrContextTooLarge，使配置成为严格总上限。
+func buildMessages(input agentcore.Input, intent agentcore.Intent, history []*schema.Message, maxContextTokens int) ([]*schema.Message, error) {
 	systemMessage := schema.SystemMessage(systemPrompt)
 	currentMessage := schema.UserMessage(buildUserPrompt(input, intent))
-	historyBudget := maxContextTokens - estimateMessageTokens(systemMessage) - estimateMessageTokens(currentMessage)
+	fixedCost := estimateMessageTokens(systemMessage) + estimateMessageTokens(currentMessage)
+	if maxContextTokens > 0 && fixedCost > maxContextTokens {
+		return nil, fmt.Errorf("%w: estimated %d tokens, limit %d", agentcore.ErrContextTooLarge, fixedCost, maxContextTokens)
+	}
+	historyBudget := maxContextTokens - fixedCost
 	trimmedHistory := trimHistoryByTokenBudget(history, historyBudget)
 
 	messages := make([]*schema.Message, 0, len(trimmedHistory)+2)
 	messages = append(messages, systemMessage)
 	messages = append(messages, trimmedHistory...)
 	messages = append(messages, currentMessage)
-	return messages
+	return messages, nil
 }
 
 // trimHistoryByTokenBudget 从最近一轮开始保留完整对话轮次，预算不足时丢弃更早历史。

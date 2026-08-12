@@ -134,7 +134,10 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	}
 
 	history := a.loadHistory(ctx, input)
-	messages := buildMessages(input, intent, history, a.maxContextTokens)
+	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
+	if err != nil {
+		return nil, err
+	}
 	keptHistory := max(len(messages)-2, 0)
 	if keptHistory < len(history) {
 		logx.WithContext(ctx).Infow("conversation history trimmed by context token budget",

@@ -121,6 +121,17 @@ func TestPlannerParseWithHistory(t *testing.T) {
 	})
 }
 
+func TestPlannerInheritsStructuredStateOutsideTextWindow(t *testing.T) {
+	planner := NewPlanner()
+	prior := agent.Intent{BudgetCents: 420000, MaxItems: 2, Keywords: []string{"耳机"}, Preferences: []string{"续航"}}
+	intent := planner.Parse(agent.Input{Query: "再便携一点", PriorIntent: &prior})
+	if intent.BudgetCents != 420000 || intent.MaxItems != 2 {
+		t.Fatalf("structured constraints were not inherited: %+v", intent)
+	}
+	assertContainsAll(t, intent.Keywords, []string{"耳机"})
+	assertContainsAll(t, intent.Preferences, []string{"续航", "便携"})
+}
+
 // TestPlannerExtractKeywords 验证常见商品类别与使用场景的中英文关键词识别。
 func TestPlannerExtractKeywords(t *testing.T) {
 	tests := []struct {

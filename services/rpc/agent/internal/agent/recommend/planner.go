@@ -44,6 +44,22 @@ func (p *Planner) ParseWithHistory(input agent.Input, historyQueries []string) a
 		}
 		inherited.Preferences = mergeUnique(inherited.Preferences, parsed.Preferences)
 	}
+	// 结构化状态不依赖历史文本是否仍在短期窗口中，因此优先作为继承基线。
+	if input.PriorIntent != nil {
+		structured := cloneIntent(*input.PriorIntent)
+		// 历史文本仍可补充旧缓存中的缺失字段，但不能覆盖持久化状态。
+		if structured.BudgetCents <= 0 {
+			structured.BudgetCents = inherited.BudgetCents
+		}
+		if structured.MaxItems <= 0 {
+			structured.MaxItems = inherited.MaxItems
+		}
+		if len(structured.Keywords) == 0 {
+			structured.Keywords = append([]string(nil), inherited.Keywords...)
+		}
+		structured.Preferences = mergeUnique(inherited.Preferences, structured.Preferences)
+		inherited = structured
+	}
 
 	current := p.parsePartial(input)
 	if current.BudgetCents <= 0 {
@@ -57,6 +73,12 @@ func (p *Planner) ParseWithHistory(input agent.Input, historyQueries []string) a
 	}
 	current.Preferences = mergeUnique(inherited.Preferences, current.Preferences)
 	return withIntentDefaults(current)
+}
+
+func cloneIntent(intent agent.Intent) agent.Intent {
+	intent.Keywords = append([]string(nil), intent.Keywords...)
+	intent.Preferences = append([]string(nil), intent.Preferences...)
+	return intent
 }
 
 // parsePartial 只提取输入中明确存在的约束，不填充默认值，供多轮意图合并使用。

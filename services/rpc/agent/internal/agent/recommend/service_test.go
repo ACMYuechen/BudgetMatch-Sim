@@ -195,11 +195,49 @@ func TestServiceFallbackUsesConversationHistory(t *testing.T) {
 	}
 }
 
+func TestServiceTurnIdIsIdempotent(t *testing.T) {
+	mem := memory.NewInMemory(memory.Conf{})
+	agent := &countingAgent{result: &agentcore.Result{Intent: agentcore.Intent{BudgetCents: 300000, MaxItems: 3}, Summary: "first"}}
+	service := NewService(agent, nil, mem)
+	input := agentcore.Input{Query: "预算3000买耳机", UserId: "u1", ConversationId: "c1", TurnId: "turn-1"}
+
+	first, err := service.Recommend(context.Background(), input)
+	if err != nil {
+		t.Fatalf("first Recommend() error = %v", err)
+	}
+	agent.result.Summary = "should not replace"
+	retried, err := service.Recommend(context.Background(), input)
+	if err != nil {
+		t.Fatalf("retried Recommend() error = %v", err)
+	}
+	if agent.calls != 1 || first.Summary != "first" || retried.Summary != "first" || retried.TurnId != "turn-1" {
+		t.Fatalf("idempotent replay failed: calls=%d first=%+v retried=%+v", agent.calls, first, retried)
+	}
+	_, turns, total, exists, err := mem.ListTurns(context.Background(), "u1", "c1", 1, 20)
+	if err != nil || !exists || total != 1 || len(turns) != 1 {
+		t.Fatalf("stored turns = %d/%d exists=%v err=%v", len(turns), total, exists, err)
+	}
+}
+
 // stubAgent 是用于测试的 agentcore.Agent 实现。
 type stubAgent struct {
 	name   string
 	result *agentcore.Result
 	err    error
+}
+
+type countingAgent struct {
+	calls  int
+	result *agentcore.Result
+}
+
+func (a *countingAgent) Name() string { return "counting" }
+
+func (a *countingAgent) Run(context.Context, agentcore.Input) (*agentcore.Result, error) {
+	a.calls++
+	clone := *a.result
+	clone.Intent.Keywords = append([]string(nil), a.result.Intent.Keywords...)
+	return &clone, nil
 }
 
 // Name 返回测试 Agent 名称。

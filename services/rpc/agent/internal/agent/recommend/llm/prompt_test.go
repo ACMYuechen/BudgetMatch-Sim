@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -58,7 +59,10 @@ func TestBuildMessagesReservesSystemAndCurrentInput(t *testing.T) {
 	fixedCost := estimateMessageTokens(schema.SystemMessage(systemPrompt)) +
 		estimateMessageTokens(schema.UserMessage(buildUserPrompt(input, intent)))
 	latestCost := estimateMessagesTokens(history[2:])
-	messages := buildMessages(input, intent, history, fixedCost+latestCost)
+	messages, err := buildMessages(input, intent, history, fixedCost+latestCost)
+	if err != nil {
+		t.Fatalf("buildMessages() error = %v", err)
+	}
 	if len(messages) != 4 {
 		t.Fatalf("expected [system, latest user, latest assistant, current user], got %d", len(messages))
 	}
@@ -66,9 +70,8 @@ func TestBuildMessagesReservesSystemAndCurrentInput(t *testing.T) {
 		t.Fatalf("unexpected message order: %+v", messages)
 	}
 
-	messages = buildMessages(input, intent, history, fixedCost-1)
-	if len(messages) != 2 || messages[0].Role != schema.System || messages[1].Role != schema.User {
-		t.Fatalf("fixed messages must remain when budget is exhausted: %+v", messages)
+	if _, err = buildMessages(input, intent, history, fixedCost-1); !errors.Is(err, agentcore.ErrContextTooLarge) {
+		t.Fatalf("oversized fixed input error = %v, want ErrContextTooLarge", err)
 	}
 }
 
