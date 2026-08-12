@@ -10,7 +10,7 @@ import (
 // durableMemory 是两级记忆依赖的 PostgreSQL 能力。
 // 独立接口让缓存编排可以在不连接真实数据库的情况下完整测试。
 type durableMemory interface {
-	Manager
+	ConversationStore
 	Version(ctx context.Context, userId, conversationId string) (version int64, exists bool, err error)
 	LoadSnapshot(ctx context.Context, userId, conversationId string, limit int) (snapshot Snapshot, exists bool, err error)
 }
@@ -34,13 +34,61 @@ type Tiered struct {
 	cache   snapshotCache
 }
 
-var _ Manager = (*Tiered)(nil)
+var _ ConversationStore = (*Tiered)(nil)
 
 // NewTiered 创建 PostgreSQL + Redis 两级会话记忆。
 func NewTiered(durable *Postgres, cache *Redis, c Conf) *Tiered {
 	return newTiered(durable, cache, c)
 }
 
+// WithConversationLock 复用 PostgreSQL 会话锁，使完整读写链路固定在同一持锁连接上。
+func (m *Tiered) WithConversationLock(ctx context.Context, userId, conversationId string, fn func(context.Context) error) error {
+	return m.durable.WithConversationLock(ctx, userId, conversationId, fn)
+}
+
+// GetConversation 直接读取长期事实源，避免缓存中的旧元数据参与业务判断。
+func (m *Tiered) GetConversation(ctx context.Context, userId, conversationId string) (Conversation, bool, error) {
+	return m.durable.GetConversation(ctx, userId, conversationId)
+}
+
+// FindTurn 从事实源检查幂等轮次，确保 Redis 丢失后仍能安全重放结果。
+func (m *Tiered) FindTurn(ctx context.Context, userId, conversationId, turnId string) (Turn, bool, error) {
+	return m.durable.FindTurn(ctx, userId, conversationId, turnId)
+}
+
+// SaveTurn 先提交 PostgreSQL，再使 Redis 快照失效；缓存失败不会回滚事实数据。
+func (m *Tiered) SaveTurn(ctx context.Context, req SaveTurnReq) (Conversation, Turn, error) {
+	conversation, turn, err := m.durable.SaveTurn(ctx, req)
+	if err != nil {
+		return Conversation{}, Turn{}, err
+	}
+	m.invalidateSnapshot(ctx, req.UserId, req.ConversationId)
+	return conversation, turn, nil
+}
+
+// ListConversations 从 PostgreSQL 返回完整、不会因 Redis TTL 消失的会话列表。
+func (m *Tiered) ListConversations(ctx context.Context, userId string, page, pageSize int) ([]Conversation, int64, error) {
+	return m.durable.ListConversations(ctx, userId, page, pageSize)
+}
+
+// ListTurns 从 PostgreSQL 分页读取完整历史，Redis 仅缓存模型所需的短窗口。
+func (m *Tiered) ListTurns(ctx context.Context, userId, conversationId string, page, pageSize int) (Conversation, []Turn, int64, bool, error) {
+	return m.durable.ListTurns(ctx, userId, conversationId, page, pageSize)
+}
+
+// DeleteConversation 先删除 PostgreSQL 会话，再尽力清理相关 Redis 数据。
+func (m *Tiered) DeleteConversation(ctx context.Context, userId, conversationId string) (bool, error) {
+	deleted, err := m.durable.DeleteConversation(ctx, userId, conversationId)
+	if err != nil {
+		return false, err
+	}
+	if err := m.cache.Clear(ctx, userId, conversationId); err != nil {
+		m.logCacheError(ctx, "clear conversation cache failed", userId, conversationId, err)
+	}
+	return deleted, nil
+}
+
+// newTiered 接受最小接口依赖，便于在没有真实 PostgreSQL/Redis 时验证缓存一致性。
 func newTiered(durable durableMemory, cache snapshotCache, c Conf) *Tiered {
 	return &Tiered{
 		conf:    c.normalize(),
@@ -126,15 +174,11 @@ func (m *Tiered) GetOrCreateTitle(ctx context.Context, userId, conversationId, c
 
 // Clear 先删除 PostgreSQL 会话，再尽力清理 Redis 的快照及兼容键。
 func (m *Tiered) Clear(ctx context.Context, userId, conversationId string) error {
-	if err := m.durable.Clear(ctx, userId, conversationId); err != nil {
-		return err
-	}
-	if err := m.cache.Clear(ctx, userId, conversationId); err != nil {
-		m.logCacheError(ctx, "clear conversation cache failed", userId, conversationId, err)
-	}
-	return nil
+	_, err := m.DeleteConversation(ctx, userId, conversationId)
+	return err
 }
 
+// loadAndCacheSnapshot 从事实源加载标准窗口，并尽力回填 Redis。
 func (m *Tiered) loadAndCacheSnapshot(ctx context.Context, userId, conversationId string) (Snapshot, bool, error) {
 	snapshot, exists, err := m.durable.LoadSnapshot(ctx, userId, conversationId, m.conf.MaxHistory)
 	if err != nil {
@@ -150,12 +194,14 @@ func (m *Tiered) loadAndCacheSnapshot(ctx context.Context, userId, conversationI
 	return snapshot, true, nil
 }
 
+// invalidateSnapshot 采用 best-effort 失效；版本校验可阻止未删掉的旧快照命中。
 func (m *Tiered) invalidateSnapshot(ctx context.Context, userId, conversationId string) {
 	if err := m.cache.DeleteSnapshot(ctx, userId, conversationId); err != nil {
 		m.logCacheError(ctx, "invalidate conversation snapshot failed", userId, conversationId, err)
 	}
 }
 
+// logCacheError 记录缓存降级原因，但不把 Redis 故障升级为长期记忆失败。
 func (m *Tiered) logCacheError(ctx context.Context, message, userId, conversationId string, err error) {
 	logx.WithContext(ctx).Errorw(message,
 		logx.Field("user_id", userId),

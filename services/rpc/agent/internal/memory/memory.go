@@ -1,9 +1,7 @@
 // Package memory 提供推荐 Agent 的跨请求会话记忆管理。
-//
-// 设计取舍：接口只保留推荐场景必需的消息操作与稳定标题操作，
-// 不引入通用会话元数据、按角色过滤等能力，避免为不存在的需求付出存储与索引成本。
-// 会话的"创建"由首次 Append 或 GetOrCreateTitle 隐式完成。
-// Redis/InMemory 可按 TTL 回收短期数据，PostgreSQL 实现则长期保留，直到显式 Clear。
+// Manager 保留模型上下文所需的消息窗口能力；ConversationStore 在其上增加
+// 可恢复会话、完整轮次、结构化状态、幂等与会话级串行控制。
+// Redis/InMemory 可按 TTL 回收短期数据，PostgreSQL 实现长期保留直到显式删除。
 package memory
 
 import (
@@ -15,7 +13,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// Manager 定义会话级消息记忆的操作接口。
+// Manager 定义注入模型上下文所需的消息记忆兼容接口。
 //
 // 实现约定：
 //   - Append 追加消息（推荐场景按 user+assistant 成对写入），会话不存在时自动创建；
