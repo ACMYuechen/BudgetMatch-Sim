@@ -3,6 +3,7 @@ package recommend
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
@@ -216,6 +217,63 @@ func TestServiceTurnIdIsIdempotent(t *testing.T) {
 	_, turns, total, exists, err := mem.ListTurns(context.Background(), "u1", "c1", 1, 20)
 	if err != nil || !exists || total != 1 || len(turns) != 1 {
 		t.Fatalf("stored turns = %d/%d exists=%v err=%v", len(turns), total, exists, err)
+	}
+}
+
+func TestServiceTurnIdRejectsDifferentRequest(t *testing.T) {
+	mem := memory.NewInMemory(memory.Conf{})
+	agent := &countingAgent{result: &agentcore.Result{Intent: agentcore.Intent{BudgetCents: 300000, MaxItems: 3}, Summary: "first"}}
+	service := NewService(agent, nil, mem)
+	first := agentcore.Input{Query: "预算3000买耳机", BudgetCents: 300000, MaxItems: 3, UserId: "u1", ConversationId: "c1", TurnId: "turn-1"}
+	if _, err := service.Recommend(context.Background(), first); err != nil {
+		t.Fatalf("first Recommend() error = %v", err)
+	}
+
+	changed := first
+	changed.Query = "预算3000买键盘"
+	if _, err := service.Recommend(context.Background(), changed); !errors.Is(err, agentcore.ErrTurnConflict) {
+		t.Fatalf("changed Recommend() error = %v, want ErrTurnConflict", err)
+	}
+	if agent.calls != 1 {
+		t.Fatalf("conflicting request executed agent, calls = %d", agent.calls)
+	}
+}
+
+func TestServiceRejectsInvalidInput(t *testing.T) {
+	service := NewService(&stubAgent{name: "fallback", result: &agentcore.Result{Summary: "rule"}}, nil, nil)
+	tests := []struct {
+		name  string
+		input agentcore.Input
+	}{
+		{name: "blank query", input: agentcore.Input{Query: " \n\t"}},
+		{name: "query too long", input: agentcore.Input{Query: strings.Repeat("问", maxQueryRunes+1)}},
+		{name: "negative budget", input: agentcore.Input{Query: "耳机", BudgetCents: -1}},
+		{name: "budget too large", input: agentcore.Input{Query: "耳机", BudgetCents: maxBudgetCents + 1}},
+		{name: "negative items", input: agentcore.Input{Query: "耳机", MaxItems: -1}},
+		{name: "too many items", input: agentcore.Input{Query: "耳机", MaxItems: maxRequestItems + 1}},
+		{name: "blank conversation id", input: agentcore.Input{Query: "耳机", ConversationId: "   "}},
+		{name: "conversation id too long", input: agentcore.Input{Query: "耳机", ConversationId: strings.Repeat("c", maxIDRunes+1)}},
+		{name: "turn id with surrounding whitespace", input: agentcore.Input{Query: "耳机", TurnId: " turn-1"}},
+		{name: "turn id too long", input: agentcore.Input{Query: "耳机", TurnId: strings.Repeat("t", maxIDRunes+1)}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := service.Recommend(context.Background(), test.input); !errors.Is(err, agentcore.ErrInvalidInput) {
+				t.Fatalf("Recommend() error = %v, want ErrInvalidInput", err)
+			}
+		})
+	}
+}
+
+func TestServiceConversationOperationsRejectInvalidID(t *testing.T) {
+	service := NewService(&stubAgent{name: "fallback"}, nil, memory.NewInMemory(memory.Conf{}))
+	for _, conversationId := range []string{"", "   ", " conversation-1", strings.Repeat("c", maxIDRunes+1)} {
+		if _, _, _, _, err := service.ListTurns(context.Background(), "u1", conversationId, 1, 20); !errors.Is(err, agentcore.ErrInvalidInput) {
+			t.Fatalf("ListTurns(%q) error = %v, want ErrInvalidInput", conversationId, err)
+		}
+		if _, err := service.DeleteConversation(context.Background(), "u1", conversationId); !errors.Is(err, agentcore.ErrInvalidInput) {
+			t.Fatalf("DeleteConversation(%q) error = %v, want ErrInvalidInput", conversationId, err)
+		}
 	}
 }
 

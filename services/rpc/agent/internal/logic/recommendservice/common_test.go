@@ -27,8 +27,20 @@ func TestAuthenticatedUserIdOnlyUsesInterceptorContext(t *testing.T) {
 }
 
 func TestMapRecommendError(t *testing.T) {
-	wrapped := errors.Join(agent.ErrContextTooLarge, errors.New("estimated 9000 tokens"))
-	if got := mapRecommendError(wrapped); !errors.Is(got, apperrors.AgentContextTooLarge) {
-		t.Fatalf("mapRecommendError() = %v", got)
+	tests := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{name: "invalid input", err: agent.ErrInvalidInput, want: apperrors.Invalid},
+		{name: "context too large", err: errors.Join(agent.ErrContextTooLarge, errors.New("estimated 9000 tokens")), want: apperrors.AgentContextTooLarge},
+		{name: "turn conflict", err: agent.ErrTurnConflict, want: apperrors.AgentTurnConflict},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := mapRecommendError(test.err); !errors.Is(got, test.want) {
+				t.Fatalf("mapRecommendError() = %v, want %v", got, test.want)
+			}
+		})
 	}
 }
