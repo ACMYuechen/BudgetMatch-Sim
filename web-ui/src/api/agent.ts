@@ -28,9 +28,15 @@ export function listConversations(page = 1, pageSize = 100) {
 }
 
 /** 分页读取指定会话按时间正序排列的完整轮次。 */
-export function listConversationTurns(conversationId: string, page = 1, pageSize = 100) {
+export function listConversationTurns(
+  conversationId: string,
+  page = 1,
+  pageSize = 100,
+  signal?: AbortSignal
+) {
   return request.get<AgentConversationTurnsResp>(`/agent/conversations/${conversationId}/turns`, {
     params: { page, page_size: pageSize },
+    signal,
   })
 }
 

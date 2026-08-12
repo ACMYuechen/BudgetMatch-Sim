@@ -43,6 +43,9 @@ import type {
 
 const { Title, Paragraph, Text } = Typography
 
+// 与后端 budget_cents 上限（10 亿元）保持一致，前端金额单位为元。
+const MAX_BUDGET_YUAN = 1_000_000_000
+
 interface RecommendFormValues {
   query: string
   budget?: number
@@ -134,6 +137,7 @@ export default function RecommendPage() {
   const [submitting, setSubmitting] = useState(false)
   const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const historyAbortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   // 后端接口分页返回；页面首次进入时拉取全部摘要，保证侧栏不会静默漏掉旧会话。
@@ -156,25 +160,28 @@ export default function RecommendPage() {
   }, [])
 
   // 历史轮次同样逐页恢复，结果按后端 sequence 正序直接展示。
-  const loadHistory = useCallback(async (id: string) => {
+  const loadHistory = useCallback(async (id: string, signal: AbortSignal) => {
     setHistoryLoading(true)
     try {
-      const firstPage = await listConversationTurns(id)
+      const firstPage = await listConversationTurns(id, 1, 100, signal)
       const allTurns = [...(firstPage.list || [])]
       const totalPages = Math.ceil(firstPage.total / firstPage.page_size)
       for (let page = 2; page <= totalPages; page += 1) {
-        const nextPage = await listConversationTurns(id, page, firstPage.page_size)
+        const nextPage = await listConversationTurns(id, page, firstPage.page_size, signal)
         allTurns.push(...(nextPage.list || []))
       }
+      if (signal.aborted) return
       setConversation(firstPage.conversation)
       setTurns(allTurns)
     } catch (error) {
+      if (signal.aborted) return
       setConversation(null)
       setTurns([])
       message.error((error as Error).message || '加载对话历史失败')
       navigate('/recommend', { replace: true })
     } finally {
-      setHistoryLoading(false)
+      // 只有当前请求可以结束 loading，防止旧请求先返回时解除新请求的加载状态。
+      if (!signal.aborted) setHistoryLoading(false)
     }
   }, [navigate])
 
@@ -184,13 +191,20 @@ export default function RecommendPage() {
 
   useEffect(() => {
     abortRef.current?.abort()
+    historyAbortRef.current?.abort()
     setStreamStatus(null)
     form.resetFields()
     if (conversationId) {
-      void loadHistory(conversationId)
+      const controller = new AbortController()
+      historyAbortRef.current = controller
+      void loadHistory(conversationId, controller.signal)
     } else {
       setConversation(null)
       setTurns([])
+      setHistoryLoading(false)
+    }
+    return () => {
+      historyAbortRef.current?.abort()
     }
   }, [conversationId, form, loadHistory])
 
@@ -249,7 +263,12 @@ export default function RecommendPage() {
       if (!conversationId || conversationId !== nextId) {
         navigate(`/recommend/${nextId}`, { replace: true })
       } else {
-        await loadHistory(nextId)
+        // 当前路由不变时不会触发上方 effect，显式刷新并纳入同一套竞态取消机制。
+        historyAbortRef.current?.abort()
+        const historyController = new AbortController()
+        historyAbortRef.current = historyController
+        await loadHistory(nextId, historyController.signal)
+        if (historyAbortRef.current === historyController) historyAbortRef.current = null
       }
       await loadConversationList()
     } catch (error) {
@@ -353,7 +372,7 @@ export default function RecommendPage() {
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <Space wrap align="end">
                   <Form.Item label="本轮预算（元）" name="budget" className="!mb-0">
-                    <InputNumber min={1} precision={2} prefix="¥" placeholder={state?.budget_cents ? `继承 ¥${(state.budget_cents / 100).toFixed(2)}` : '留空自动解析'} />
+                    <InputNumber min={1} max={MAX_BUDGET_YUAN} precision={2} prefix="¥" placeholder={state?.budget_cents ? `继承 ¥${(state.budget_cents / 100).toFixed(2)}` : '留空自动解析'} />
                   </Form.Item>
                   <Form.Item label="最多件数" name="max_items" className="!mb-0">
                     <InputNumber min={1} max={10} placeholder={state?.max_items ? `继承 ${state.max_items}` : '默认 3'} />
