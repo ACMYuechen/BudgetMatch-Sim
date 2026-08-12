@@ -1,10 +1,14 @@
 package conversation_memory
 
 import (
+	"database/sql/driver"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
@@ -14,62 +18,84 @@ func TestConversationMemorySchemaMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse conversation schema: %v", err)
 	}
-	primaryColumns := make([]string, 0, len(conversationSchema.PrimaryFields))
-	for _, field := range conversationSchema.PrimaryFields {
-		primaryColumns = append(primaryColumns, field.DBName)
-	}
+	primaryColumns := fieldNames(conversationSchema.PrimaryFields)
 	if want := []string{"user_id", "conversation_id"}; !reflect.DeepEqual(primaryColumns, want) {
 		t.Fatalf("conversation primary columns = %v, want %v", primaryColumns, want)
 	}
 
-	messageSchema, err := schema.Parse(&AgentConversationMessage{}, cache, schema.NamingStrategy{})
+	turnSchema, err := schema.Parse(&AgentConversationTurn{}, cache, schema.NamingStrategy{})
 	if err != nil {
-		t.Fatalf("parse message schema: %v", err)
+		t.Fatalf("parse turn schema: %v", err)
 	}
-	relation := messageSchema.Relationships.Relations["Conversation"]
-	if relation == nil {
-		t.Fatal("message conversation relationship is missing")
+	if want := []string{"user_id", "conversation_id", "turn_id"}; !reflect.DeepEqual(fieldNames(turnSchema.PrimaryFields), want) {
+		t.Fatalf("turn primary columns = %v, want %v", fieldNames(turnSchema.PrimaryFields), want)
+	}
+	relation := turnSchema.Relationships.Relations["Conversation"]
+	if relation == nil || relation.ParseConstraint() == nil {
+		t.Fatal("turn conversation relationship is missing")
 	}
 	constraint := relation.ParseConstraint()
-	if constraint == nil {
-		t.Fatal("message conversation constraint is missing")
-	}
-	if constraint.Name != messageConversationFK || constraint.OnDelete != "CASCADE" {
+	if constraint.Name != turnConversationFK || constraint.OnDelete != "CASCADE" {
 		t.Fatalf("constraint = %s on delete %s", constraint.Name, constraint.OnDelete)
 	}
-	foreignColumns := make([]string, 0, len(constraint.ForeignKeys))
-	for _, field := range constraint.ForeignKeys {
-		foreignColumns = append(foreignColumns, field.DBName)
-	}
-	referenceColumns := make([]string, 0, len(constraint.References))
-	for _, field := range constraint.References {
-		referenceColumns = append(referenceColumns, field.DBName)
-	}
-	if want := []string{"user_id", "conversation_id"}; !reflect.DeepEqual(foreignColumns, want) {
-		t.Fatalf("constraint foreign columns = %v, want %v", foreignColumns, want)
-	}
-	if want := []string{"user_id", "conversation_id"}; !reflect.DeepEqual(referenceColumns, want) {
-		t.Fatalf("constraint reference columns = %v, want %v", referenceColumns, want)
+	if want := []string{"user_id", "conversation_id"}; !reflect.DeepEqual(fieldNames(constraint.ForeignKeys), want) {
+		t.Fatalf("constraint foreign columns = %v, want %v", fieldNames(constraint.ForeignKeys), want)
 	}
 
-	var recentIndex *schema.Index
-	for _, index := range messageSchema.ParseIndexes() {
-		if index.Name == recentMessageIndex {
-			recentIndex = index
+	var sequenceIndex *schema.Index
+	for _, index := range turnSchema.ParseIndexes() {
+		if index.Name == turnSequenceIdx {
+			sequenceIndex = index
 			break
 		}
 	}
-	if recentIndex == nil {
-		t.Fatalf("index %s is missing", recentMessageIndex)
+	if sequenceIndex == nil || sequenceIndex.Class != "UNIQUE" {
+		t.Fatalf("unique index %s is missing", turnSequenceIdx)
 	}
-	indexColumns := make([]string, 0, len(recentIndex.Fields))
-	for _, field := range recentIndex.Fields {
-		indexColumns = append(indexColumns, field.Field.DBName)
+	columns := make([]string, 0, len(sequenceIndex.Fields))
+	for _, field := range sequenceIndex.Fields {
+		columns = append(columns, field.Field.DBName)
 	}
-	if want := []string{"user_id", "conversation_id", "id"}; !reflect.DeepEqual(indexColumns, want) {
-		t.Fatalf("recent index columns = %v, want %v", indexColumns, want)
+	if want := []string{"user_id", "conversation_id", "sequence"}; !reflect.DeepEqual(columns, want) {
+		t.Fatalf("sequence index columns = %v, want %v", columns, want)
 	}
-	if recentIndex.Fields[2].Sort != "desc" {
-		t.Fatalf("recent index id sort = %q, want desc", recentIndex.Fields[2].Sort)
+}
+
+func TestJSONDocumentScannerValuer(t *testing.T) {
+	document := JSONDocument(`{"budget_cents":300000}`)
+	value, err := document.Value()
+	if err != nil || value != driver.Value(`{"budget_cents":300000}`) {
+		t.Fatalf("Value() = %v, %v", value, err)
 	}
+	var scanned JSONDocument
+	if err := scanned.Scan([]byte(`{"max_items":3}`)); err != nil || string(scanned) != `{"max_items":3}` {
+		t.Fatalf("Scan() = %q, %v", scanned, err)
+	}
+	if _, err := (JSONDocument(`not-json`)).Value(); err == nil {
+		t.Fatal("invalid JSON should fail Value()")
+	}
+}
+
+func TestJSONDocumentUsesPostgresCast(t *testing.T) {
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: "host=127.0.0.1 user=test dbname=test", PreferSimpleProtocol: true}), &gorm.Config{
+		DryRun: true, DisableAutomaticPing: true, SkipDefaultTransaction: true,
+	})
+	if err != nil {
+		t.Fatalf("open dry-run postgres: %v", err)
+	}
+	statement := db.Create(&AgentConversation{UserId: "u1", ConversationId: "c1", Title: "title", State: JSONDocument(`{}`)})
+	if statement.Error != nil {
+		t.Fatalf("create dry-run statement: %v", statement.Error)
+	}
+	if !strings.Contains(statement.Statement.SQL.String(), "AS JSONB)") {
+		t.Fatalf("JSONB cast missing from SQL: %s", statement.Statement.SQL.String())
+	}
+}
+
+func fieldNames(fields []*schema.Field) []string {
+	names := make([]string, 0, len(fields))
+	for _, field := range fields {
+		names = append(names, field.DBName)
+	}
+	return names
 }

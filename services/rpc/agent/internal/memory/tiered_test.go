@@ -196,6 +196,46 @@ type fakeDurableMemory struct {
 	clearCalls   int
 }
 
+func (m *fakeDurableMemory) WithConversationLock(ctx context.Context, _, _ string, fn func(context.Context) error) error {
+	return fn(ctx)
+}
+
+func (m *fakeDurableMemory) GetConversation(context.Context, string, string) (Conversation, bool, error) {
+	if !m.exists {
+		return Conversation{}, false, nil
+	}
+	return Conversation{ConversationId: "c1", Title: m.snapshot.Title, Version: m.snapshot.Version}, true, nil
+}
+
+func (m *fakeDurableMemory) FindTurn(context.Context, string, string, string) (Turn, bool, error) {
+	return Turn{}, false, nil
+}
+
+func (m *fakeDurableMemory) SaveTurn(_ context.Context, req SaveTurnReq) (Conversation, Turn, error) {
+	m.exists = true
+	m.snapshot.Version++
+	return Conversation{UserId: req.UserId, ConversationId: req.ConversationId, Title: req.Title, Version: m.snapshot.Version},
+		Turn{UserId: req.UserId, ConversationId: req.ConversationId, TurnId: req.TurnId}, nil
+}
+
+func (m *fakeDurableMemory) ListConversations(context.Context, string, int, int) ([]Conversation, int64, error) {
+	return nil, 0, nil
+}
+
+func (m *fakeDurableMemory) ListTurns(context.Context, string, string, int, int) (Conversation, []Turn, int64, bool, error) {
+	return Conversation{}, nil, 0, m.exists, nil
+}
+
+func (m *fakeDurableMemory) DeleteConversation(context.Context, string, string) (bool, error) {
+	m.clearCalls++
+	if m.clearErr != nil {
+		return false, m.clearErr
+	}
+	existed := m.exists
+	m.exists = false
+	return existed, nil
+}
+
 func (m *fakeDurableMemory) Version(context.Context, string, string) (int64, bool, error) {
 	m.versionCalls++
 	if m.versionErr != nil {

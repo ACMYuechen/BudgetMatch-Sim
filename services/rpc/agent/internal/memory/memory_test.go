@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -19,6 +20,67 @@ func newManagers(t *testing.T, conf Conf) map[string]Manager {
 	return map[string]Manager{
 		"inmemory": NewInMemory(conf),
 		"redis":    NewRedis(client, conf),
+	}
+}
+
+func TestConversationStoreRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	for name, manager := range newManagers(t, Conf{MaxHistory: 4}) {
+		t.Run(name, func(t *testing.T) {
+			store, ok := manager.(ConversationStore)
+			if !ok {
+				t.Fatalf("%T does not implement ConversationStore", manager)
+			}
+			resultJSON, _ := json.Marshal(map[string]any{
+				"summary": "已选耳机", "conversation_id": "c1", "turn_id": "t1",
+			})
+			var conversation Conversation
+			var turn Turn
+			err := store.WithConversationLock(ctx, "u1", "c1", func(lockedCtx context.Context) error {
+				var saveErr error
+				conversation, turn, saveErr = store.SaveTurn(lockedCtx, SaveTurnReq{
+					UserId: "u1", ConversationId: "c1", TurnId: "t1", Title: "通勤耳机",
+					Query: "预算3000买通勤耳机", BudgetCents: 300000, MaxItems: 2,
+					Intent:     IntentState{BudgetCents: 300000, MaxItems: 2, Keywords: []string{"耳机"}},
+					ResultJSON: resultJSON, Summary: "已选耳机",
+				})
+				return saveErr
+			})
+			if err != nil {
+				t.Fatalf("SaveTurn() error = %v", err)
+			}
+			if conversation.Title != "通勤耳机" || conversation.TurnCount != 1 || turn.Sequence != 1 {
+				t.Fatalf("unexpected saved conversation/turn: %+v %+v", conversation, turn)
+			}
+
+			// 相同 turn_id 不新增轮次，也不覆盖首次结果。
+			_, retried, err := store.SaveTurn(ctx, SaveTurnReq{
+				UserId: "u1", ConversationId: "c1", TurnId: "t1", Title: "不应覆盖",
+				Query: "重复", ResultJSON: json.RawMessage(`{"summary":"重复"}`), Summary: "重复",
+			})
+			if err != nil || retried.Query != "预算3000买通勤耳机" {
+				t.Fatalf("idempotent SaveTurn() = %+v, %v", retried, err)
+			}
+
+			items, total, err := store.ListConversations(ctx, "u1", 1, 20)
+			if err != nil || total != 1 || len(items) != 1 || items[0].State.BudgetCents != 300000 {
+				t.Fatalf("ListConversations() = %+v total=%d err=%v", items, total, err)
+			}
+			loadedConversation, turns, total, exists, err := store.ListTurns(ctx, "u1", "c1", 1, 20)
+			if err != nil || !exists || total != 1 || len(turns) != 1 || loadedConversation.Title != "通勤耳机" {
+				t.Fatalf("ListTurns() = %+v %+v total=%d exists=%v err=%v", loadedConversation, turns, total, exists, err)
+			}
+			if _, found, err := store.FindTurn(ctx, "u2", "c1", "t1"); err != nil || found {
+				t.Fatalf("turn leaked across users: found=%v err=%v", found, err)
+			}
+			deleted, err := store.DeleteConversation(ctx, "u1", "c1")
+			if err != nil || !deleted {
+				t.Fatalf("DeleteConversation() = %v, %v", deleted, err)
+			}
+			if _, _, _, exists, err := store.ListTurns(ctx, "u1", "c1", 1, 20); err != nil || exists {
+				t.Fatalf("deleted turns still exist: exists=%v err=%v", exists, err)
+			}
+		})
 	}
 }
 
