@@ -7,8 +7,10 @@ message RecommendReq {
   string query           = 1;
   int64  budget_cents    = 2;
   int32  max_items       = 3;
-  string user_id         = 4;
+  reserved 4;
+  reserved "user_id";
   string conversation_id = 5; // 多轮对话会话 ID，为空时由服务端生成并在响应中回传
+  string turn_id         = 6; // 客户端生成的轮次幂等 ID，为空时由服务端生成
 }
 
 message Intent {
@@ -43,8 +45,67 @@ message RecommendResp {
   repeated ToolCall   tools_used        = 5;
   string              conversation_id    = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
   string              conversation_title = 7; // 会话稳定展示标题
+  string              turn_id             = 8; // 本轮幂等 ID
+}
+
+message ConversationSummary {
+  string conversation_id    = 1;
+  string conversation_title = 2;
+  Intent state              = 3;
+  int64 turn_count          = 4;
+  int64 created_at_ms       = 5;
+  int64 updated_at_ms       = 6;
+}
+
+message ConversationTurn {
+  string turn_id        = 1;
+  int64 sequence        = 2;
+  string query          = 3;
+  int64 budget_cents    = 4;
+  int32 max_items       = 5;
+  Intent intent         = 6;
+  RecommendResp result  = 7;
+  int64 created_at_ms   = 8;
+  int64 completed_at_ms = 9;
+}
+
+message ListConversationsReq {
+  int32 page      = 1; // 从 1 开始
+  int32 page_size = 2; // 1-100
+}
+
+message ListConversationsResp {
+  repeated ConversationSummary list = 1;
+  int32 page                         = 2;
+  int32 page_size                    = 3;
+  int64 total                        = 4;
+}
+
+message ListConversationTurnsReq {
+  string conversation_id = 1;
+  int32 page              = 2; // 从 1 开始
+  int32 page_size         = 3; // 1-100
+}
+
+message ListConversationTurnsResp {
+  ConversationSummary conversation = 1;
+  repeated ConversationTurn list    = 2;
+  int32 page                         = 3;
+  int32 page_size                    = 4;
+  int64 total                        = 5;
+}
+
+message DeleteConversationReq {
+  string conversation_id = 1;
+}
+
+message DeleteConversationResp {
+  bool deleted = 1;
 }
 
 service RecommendService {
   rpc Recommend(RecommendReq) returns (RecommendResp) {}
+  rpc ListConversations(ListConversationsReq) returns (ListConversationsResp) {}
+  rpc ListConversationTurns(ListConversationTurnsReq) returns (ListConversationTurnsResp) {}
+  rpc DeleteConversation(DeleteConversationReq) returns (DeleteConversationResp) {}
 }

@@ -8,6 +8,7 @@ const (
 	ECCodeExpired
 	ECSeckillActivityNotStart
 	ECMallPaymentAmountMismatch
+	ECAgentContextTooLarge
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -71,6 +72,7 @@ var (
 	CodeExpired               = newAppError(ECCodeExpired, "invalid.code_expired")
 	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
 	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
+	AgentContextTooLarge      = newAppError(ECAgentContextTooLarge, "agent.context_too_large")
 )
 
 var (

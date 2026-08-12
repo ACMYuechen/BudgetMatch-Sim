@@ -184,7 +184,7 @@ type MallSkuItem struct {
 type MallProductListReq struct {
 	Page     int    `form:"page,default=1"`
 	PageSize int    `form:"page_size,default=10"`
-	Keyword  string `form:"keyword,optional"`
+	Keyword  string `form:"keyword"`
 	Status   int32  `form:"status,default=1"`
 	UserId   string `form:"user_id,optional"`
 }
@@ -324,6 +324,7 @@ type AgentRecommendReq struct {
 	BudgetCents    int64  `json:"budget_cents,optional"`
 	MaxItems       int    `json:"max_items,optional"`
 	ConversationId string `json:"conversation_id,optional"`
+	TurnId         string `json:"turn_id,optional"`
 }
 
 type AgentIntent struct {
@@ -358,4 +359,60 @@ type AgentRecommendResp struct {
 	ToolsUsed         []AgentToolCall   `json:"tools_used"`
 	ConversationId    string            `json:"conversation_id"`
 	ConversationTitle string            `json:"conversation_title"`
+	TurnId            string            `json:"turn_id"`
+}
+
+type AgentConversationSummary struct {
+	ConversationId    string      `json:"conversation_id"`
+	ConversationTitle string      `json:"conversation_title"`
+	State             AgentIntent `json:"state"`
+	TurnCount         int64       `json:"turn_count"`
+	CreatedAtMs       int64       `json:"created_at_ms"`
+	UpdatedAtMs       int64       `json:"updated_at_ms"`
+}
+
+type AgentConversationTurn struct {
+	TurnId        string             `json:"turn_id"`
+	Sequence      int64              `json:"sequence"`
+	Query         string             `json:"query"`
+	BudgetCents   int64              `json:"budget_cents"`
+	MaxItems      int32              `json:"max_items"`
+	Intent        AgentIntent        `json:"intent"`
+	Result        AgentRecommendResp `json:"result"`
+	CreatedAtMs   int64              `json:"created_at_ms"`
+	CompletedAtMs int64              `json:"completed_at_ms"`
+}
+
+type AgentConversationListReq struct {
+	Page     int `form:"page,default=1" validate:"min=1"`
+	PageSize int `form:"page_size,default=20" validate:"min=1,max=100"`
+}
+
+type AgentConversationListResp struct {
+	List     []AgentConversationSummary `json:"list"`
+	Page     int                        `json:"page"`
+	PageSize int                        `json:"page_size"`
+	Total    int64                      `json:"total"`
+}
+
+type AgentConversationTurnsReq struct {
+	ConversationId string `path:"conversation_id" validate:"required"`
+	Page           int    `form:"page,default=1" validate:"min=1"`
+	PageSize       int    `form:"page_size,default=50" validate:"min=1,max=100"`
+}
+
+type AgentConversationTurnsResp struct {
+	Conversation AgentConversationSummary `json:"conversation"`
+	List         []AgentConversationTurn  `json:"list"`
+	Page         int                      `json:"page"`
+	PageSize     int                      `json:"page_size"`
+	Total        int64                    `json:"total"`
+}
+
+type AgentConversationDeleteReq struct {
+	ConversationId string `path:"conversation_id" validate:"required"`
+}
+
+type AgentConversationDeleteResp struct {
+	Deleted bool `json:"deleted"`
 }

@@ -217,6 +217,24 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/recommend/stream",
 					Handler: agent.AgentRecommendStreamHandler(serverCtx),
 				},
+				{
+					// Agent 会话列表
+					Method:  http.MethodGet,
+					Path:    "/conversations",
+					Handler: agent.AgentConversationListHandler(serverCtx),
+				},
+				{
+					// Agent 会话轮次
+					Method:  http.MethodGet,
+					Path:    "/conversations/:conversation_id/turns",
+					Handler: agent.AgentConversationTurnsHandler(serverCtx),
+				},
+				{
+					// 删除 Agent 会话
+					Method:  http.MethodDelete,
+					Path:    "/conversations/:conversation_id",
+					Handler: agent.AgentConversationDeleteHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/agent"),

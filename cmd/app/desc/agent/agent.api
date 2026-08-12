@@ -5,6 +5,7 @@ type AgentRecommendReq {
 	BudgetCents    int64  `json:"budget_cents,optional"`
 	MaxItems       int    `json:"max_items,optional"`
 	ConversationId string `json:"conversation_id,optional"`
+	TurnId         string `json:"turn_id,optional"`
 }
 
 type AgentIntent {
@@ -39,6 +40,62 @@ type AgentRecommendResp {
 	ToolsUsed         []AgentToolCall   `json:"tools_used"`
 	ConversationId    string            `json:"conversation_id"`
 	ConversationTitle string            `json:"conversation_title"`
+	TurnId             string            `json:"turn_id"`
+}
+
+type AgentConversationSummary {
+	ConversationId    string      `json:"conversation_id"`
+	ConversationTitle string      `json:"conversation_title"`
+	State             AgentIntent `json:"state"`
+	TurnCount         int64       `json:"turn_count"`
+	CreatedAtMs       int64       `json:"created_at_ms"`
+	UpdatedAtMs       int64       `json:"updated_at_ms"`
+}
+
+type AgentConversationTurn {
+	TurnId        string             `json:"turn_id"`
+	Sequence      int64              `json:"sequence"`
+	Query         string             `json:"query"`
+	BudgetCents   int64              `json:"budget_cents"`
+	MaxItems      int32              `json:"max_items"`
+	Intent        AgentIntent        `json:"intent"`
+	Result        AgentRecommendResp `json:"result"`
+	CreatedAtMs   int64              `json:"created_at_ms"`
+	CompletedAtMs int64              `json:"completed_at_ms"`
+}
+
+type AgentConversationListReq {
+	Page     int `form:"page,default=1" validate:"min=1"`
+	PageSize int `form:"page_size,default=20" validate:"min=1,max=100"`
+}
+
+type AgentConversationListResp {
+	List     []AgentConversationSummary `json:"list"`
+	Page     int                        `json:"page"`
+	PageSize int                        `json:"page_size"`
+	Total    int64                      `json:"total"`
+}
+
+type AgentConversationTurnsReq {
+	ConversationId string `path:"conversation_id" validate:"required"`
+	Page           int    `form:"page,default=1" validate:"min=1"`
+	PageSize       int    `form:"page_size,default=50" validate:"min=1,max=100"`
+}
+
+type AgentConversationTurnsResp {
+	Conversation AgentConversationSummary `json:"conversation"`
+	List         []AgentConversationTurn   `json:"list"`
+	Page         int                       `json:"page"`
+	PageSize     int                       `json:"page_size"`
+	Total        int64                     `json:"total"`
+}
+
+type AgentConversationDeleteReq {
+	ConversationId string `path:"conversation_id" validate:"required"`
+}
+
+type AgentConversationDeleteResp {
+	Deleted bool `json:"deleted"`
 }
 
 @server (
@@ -55,4 +112,16 @@ service app {
 	@doc "Agent 推荐 SSE"
 	@handler AgentRecommendStream
 	post /recommend/stream (AgentRecommendReq)
+
+	@doc "Agent 会话列表"
+	@handler AgentConversationList
+	get /conversations (AgentConversationListReq) returns (AgentConversationListResp)
+
+	@doc "Agent 会话轮次"
+	@handler AgentConversationTurns
+	get /conversations/:conversation_id/turns (AgentConversationTurnsReq) returns (AgentConversationTurnsResp)
+
+	@doc "删除 Agent 会话"
+	@handler AgentConversationDelete
+	delete /conversations/:conversation_id (AgentConversationDeleteReq) returns (AgentConversationDeleteResp)
 }
