@@ -53,3 +53,4 @@ payment_confirmation_conflict = "订单已由另一笔支付确认"
 
 [agent]
 context_too_large = "当前问题过长，请精简后重试"
+turn_conflict = "本轮请求标识已被其他内容使用，请重新发送"

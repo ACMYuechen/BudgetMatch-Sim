@@ -48,8 +48,14 @@ func toPBTurn(turn memory.Turn) (*pb.ConversationTurn, error) {
 
 // mapRecommendError 将领域错误收敛为网关可本地化的统一业务错误。
 func mapRecommendError(err error) error {
+	if errors.Is(err, agentcore.ErrInvalidInput) {
+		return apperrors.Invalid
+	}
 	if errors.Is(err, agentcore.ErrContextTooLarge) {
 		return apperrors.AgentContextTooLarge
+	}
+	if errors.Is(err, agentcore.ErrTurnConflict) {
+		return apperrors.AgentTurnConflict
 	}
 	return err
 }

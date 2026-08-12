@@ -34,6 +34,7 @@ func (l *DeleteConversationLogic) DeleteConversation(in *pb.DeleteConversationRe
 	}
 	deleted, err := l.svcCtx.RecommendService.DeleteConversation(l.ctx, userId, in.ConversationId)
 	if err != nil {
+		err = mapRecommendError(err)
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}

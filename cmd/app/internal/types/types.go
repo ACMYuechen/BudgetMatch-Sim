@@ -320,11 +320,11 @@ type MallQueryPaymentResp struct {
 }
 
 type AgentRecommendReq struct {
-	Query          string `json:"query" validate:"required"`
-	BudgetCents    int64  `json:"budget_cents,optional"`
-	MaxItems       int    `json:"max_items,optional"`
-	ConversationId string `json:"conversation_id,optional"`
-	TurnId         string `json:"turn_id,optional"`
+	Query          string `json:"query" validate:"required,max=2000"`
+	BudgetCents    int64  `json:"budget_cents,optional" validate:"min=0,max=100000000000"`
+	MaxItems       int    `json:"max_items,optional" validate:"min=0,max=10"`
+	ConversationId string `json:"conversation_id,optional" validate:"max=128"`
+	TurnId         string `json:"turn_id,optional" validate:"max=128"`
 }
 
 type AgentIntent struct {
@@ -396,7 +396,7 @@ type AgentConversationListResp struct {
 }
 
 type AgentConversationTurnsReq struct {
-	ConversationId string `path:"conversation_id" validate:"required"`
+	ConversationId string `path:"conversation_id" validate:"required,max=128"`
 	Page           int    `form:"page,default=1" validate:"min=1"`
 	PageSize       int    `form:"page_size,default=50" validate:"min=1,max=100"`
 }
@@ -410,7 +410,7 @@ type AgentConversationTurnsResp struct {
 }
 
 type AgentConversationDeleteReq struct {
-	ConversationId string `path:"conversation_id" validate:"required"`
+	ConversationId string `path:"conversation_id" validate:"required,max=128"`
 }
 
 type AgentConversationDeleteResp struct {

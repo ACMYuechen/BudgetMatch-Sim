@@ -16,6 +16,14 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+const (
+	maxQueryRunes   = 2000
+	maxIDRunes      = 128
+	maxRequestItems = 10
+	// maxBudgetCents 为显式预算提供宽松但有限的传输边界，避免异常大整数进入检索与提示词。
+	maxBudgetCents int64 = 100_000_000_000
+)
+
 // Service 编排推荐流程。
 //
 // 它持有两个实现了 agentcore.Agent 的推荐器：
@@ -49,6 +57,9 @@ func NewService(fallback, primary agentcore.Agent, mem memory.Manager) *Service 
 func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
 	if s == nil || s.fallback == nil {
 		return nil, agentcore.ErrAgentNotFound
+	}
+	if err := validateInput(input); err != nil {
+		return nil, err
 	}
 	if input.ConversationId == "" {
 		input.ConversationId = uuid.NewString()
@@ -100,12 +111,62 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	return result, nil
 }
 
+// validateInput 在业务服务入口兜底校验，使直接 RPC 或内部调用无法绕过 HTTP 参数规则。
+func validateInput(input agentcore.Input) error {
+	query := strings.TrimSpace(input.Query)
+	if query == "" {
+		return fmt.Errorf("%w: query is blank", agentcore.ErrInvalidInput)
+	}
+	if utf8.RuneCountInString(input.Query) > maxQueryRunes {
+		return fmt.Errorf("%w: query exceeds %d characters", agentcore.ErrInvalidInput, maxQueryRunes)
+	}
+	if input.BudgetCents < 0 || input.BudgetCents > maxBudgetCents {
+		return fmt.Errorf("%w: budget_cents is outside 0..%d", agentcore.ErrInvalidInput, maxBudgetCents)
+	}
+	if input.MaxItems < 0 || input.MaxItems > maxRequestItems {
+		return fmt.Errorf("%w: max_items is outside 0..%d", agentcore.ErrInvalidInput, maxRequestItems)
+	}
+	if err := validateOptionalID("conversation_id", input.ConversationId); err != nil {
+		return err
+	}
+	if err := validateOptionalID("turn_id", input.TurnId); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateOptionalID 校验客户端可选标识；空字符串表示由服务端生成。
+func validateOptionalID(field, value string) error {
+	if value == "" {
+		return nil
+	}
+	return validateRequiredID(field, value)
+}
+
+// validateRequiredID 拒绝空白、首尾空格和超长标识，避免生成不可稳定寻址的存储键。
+func validateRequiredID(field, value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return fmt.Errorf("%w: %s is blank", agentcore.ErrInvalidInput, field)
+	}
+	if trimmed != value {
+		return fmt.Errorf("%w: %s contains surrounding whitespace", agentcore.ErrInvalidInput, field)
+	}
+	if utf8.RuneCountInString(value) > maxIDRunes {
+		return fmt.Errorf("%w: %s exceeds %d characters", agentcore.ErrInvalidInput, field, maxIDRunes)
+	}
+	return nil
+}
+
 // recommendWithStore 在会话锁内完成幂等检查、状态恢复、Agent 执行和原子保存。
 // 这四步不能拆开，否则并发请求可能生成重复轮次或读取过期约束。
 func (s *Service) recommendWithStore(ctx context.Context, store memory.ConversationStore, input agentcore.Input) (*agentcore.Result, error) {
 	if saved, found, err := store.FindTurn(ctx, input.UserId, input.ConversationId, input.TurnId); err != nil {
 		return nil, err
 	} else if found {
+		if !sameTurnRequest(saved, input) {
+			return nil, agentcore.ErrTurnConflict
+		}
 		return decodeSavedResult(saved)
 	}
 	if conversation, exists, err := store.GetConversation(ctx, input.UserId, input.ConversationId); err != nil {
@@ -127,6 +188,14 @@ func (s *Service) recommendWithStore(ctx context.Context, store memory.Conversat
 	}
 	result.ConversationTitle = storedConversation.Title
 	return result, nil
+}
+
+// sameTurnRequest 确保幂等重放只复用首次请求的原始输入。
+// 允许结构化字段保持零值，因为零值本身表示“交给文本解析或继承上一轮”。
+func sameTurnRequest(saved memory.Turn, input agentcore.Input) bool {
+	return saved.Query == input.Query &&
+		saved.BudgetCents == input.BudgetCents &&
+		saved.MaxItems == input.MaxItems
 }
 
 // run 按 primary 优先、失败降级的顺序执行推荐。
@@ -193,6 +262,9 @@ func (s *Service) ListConversations(ctx context.Context, userId string, page, pa
 
 // ListTurns 返回会话元数据和按时间正序排列的完整轮次。
 func (s *Service) ListTurns(ctx context.Context, userId, conversationId string, page, pageSize int) (memory.Conversation, []memory.Turn, int64, bool, error) {
+	if err := validateRequiredID("conversation_id", conversationId); err != nil {
+		return memory.Conversation{}, nil, 0, false, err
+	}
 	store, ok := s.memory.(memory.ConversationStore)
 	if !ok {
 		return memory.Conversation{}, nil, 0, false, fmt.Errorf("conversation store is not configured")
@@ -202,6 +274,9 @@ func (s *Service) ListTurns(ctx context.Context, userId, conversationId string, 
 
 // DeleteConversation 删除当前用户拥有的指定会话及其轮次。
 func (s *Service) DeleteConversation(ctx context.Context, userId, conversationId string) (bool, error) {
+	if err := validateRequiredID("conversation_id", conversationId); err != nil {
+		return false, err
+	}
 	store, ok := s.memory.(memory.ConversationStore)
 	if !ok {
 		return false, fmt.Errorf("conversation store is not configured")

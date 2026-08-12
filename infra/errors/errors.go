@@ -42,6 +42,7 @@ const (
 	ECMallOrderCannotCancel
 	ECMallDuplicateOrder
 	ECMallPaymentConfirmationConflict
+	ECAgentTurnConflict
 )
 
 // 410xxx: 资源曾经存在但已不再可用。
@@ -103,6 +104,7 @@ var (
 	MallOrderCannotCancel           = newAppError(ECMallOrderCannotCancel, "mall.order_cannot_cancel")
 	MallDuplicateOrder              = newAppError(ECMallDuplicateOrder, "mall.duplicate_order")
 	MallPaymentConfirmationConflict = newAppError(ECMallPaymentConfirmationConflict, "mall.payment_confirmation_conflict")
+	AgentTurnConflict               = newAppError(ECAgentTurnConflict, "agent.turn_conflict")
 )
 
 var (

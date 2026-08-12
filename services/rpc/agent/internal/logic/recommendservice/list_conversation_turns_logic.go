@@ -35,6 +35,7 @@ func (l *ListConversationTurnsLogic) ListConversationTurns(in *pb.ListConversati
 	}
 	conversation, turns, total, exists, err := l.svcCtx.RecommendService.ListTurns(l.ctx, userId, in.ConversationId, int(in.Page), int(in.PageSize))
 	if err != nil {
+		err = mapRecommendError(err)
 		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
