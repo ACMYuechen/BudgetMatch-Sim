@@ -84,6 +84,9 @@ type AgentConversation struct {
 	TurnCount      int64        `json:"turn_count" gorm:"column:turn_count;type:bigint;not null;default:0"`
 	CreatedAt      time.Time    `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
 	UpdatedAt      time.Time    `json:"updated_at" gorm:"column:updated_at;type:timestamptz;not null;index:idx_agent_conversations_user_updated,priority:2,sort:desc"`
+
+	// Turns 在 GORM 中声明父子关系，确保复合外键创建在轮次表并指向会话表。
+	Turns []AgentConversationTurn `json:"-" gorm:"foreignKey:UserId,ConversationId;references:UserId,ConversationId;constraint:fk_agent_conversation_turns_conversation,OnDelete:CASCADE"`
 }
 
 // TableName 返回会话元数据表名。
@@ -104,8 +107,6 @@ type AgentConversationTurn struct {
 	Summary        string       `json:"summary" gorm:"column:summary;type:text;not null"`
 	CreatedAt      time.Time    `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
 	CompletedAt    *time.Time   `json:"completed_at" gorm:"column:completed_at;type:timestamptz"`
-
-	Conversation *AgentConversation `json:"-" gorm:"foreignKey:UserId,ConversationId;references:UserId,ConversationId;constraint:fk_agent_conversation_turns_conversation,OnDelete:CASCADE"`
 }
 
 // TableName 返回完整推荐轮次表名。

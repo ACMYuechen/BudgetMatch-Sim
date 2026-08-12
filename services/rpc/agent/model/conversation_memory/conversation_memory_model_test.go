@@ -30,13 +30,19 @@ func TestConversationMemorySchemaMetadata(t *testing.T) {
 	if want := []string{"user_id", "conversation_id", "turn_id"}; !reflect.DeepEqual(fieldNames(turnSchema.PrimaryFields), want) {
 		t.Fatalf("turn primary columns = %v, want %v", fieldNames(turnSchema.PrimaryFields), want)
 	}
-	relation := turnSchema.Relationships.Relations["Conversation"]
+	relation := conversationSchema.Relationships.Relations["Turns"]
 	if relation == nil || relation.ParseConstraint() == nil {
-		t.Fatal("turn conversation relationship is missing")
+		t.Fatal("conversation turns relationship is missing")
 	}
 	constraint := relation.ParseConstraint()
 	if constraint.Name != turnConversationFK || constraint.OnDelete != "CASCADE" {
 		t.Fatalf("constraint = %s on delete %s", constraint.Name, constraint.OnDelete)
+	}
+	if constraint.Schema.Table != turnTable {
+		t.Fatalf("constraint table = %s, want %s", constraint.Schema.Table, turnTable)
+	}
+	if constraint.ReferenceSchema.Table != conversationTable {
+		t.Fatalf("constraint reference table = %s, want %s", constraint.ReferenceSchema.Table, conversationTable)
 	}
 	if want := []string{"user_id", "conversation_id"}; !reflect.DeepEqual(fieldNames(constraint.ForeignKeys), want) {
 		t.Fatalf("constraint foreign columns = %v, want %v", fieldNames(constraint.ForeignKeys), want)
