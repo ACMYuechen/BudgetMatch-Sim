@@ -132,8 +132,9 @@ tail -f logs/admin.log
 
 # 测试推荐接口
 curl -X POST http://localhost:10002/api/agent/recommend \
+	-H "Authorization: Bearer <登录返回的token>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3}'
+	-d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3,"turn_id":"<本轮UUID>"}'
 
 # Docker 全量部署
 make docker-up
@@ -182,7 +183,7 @@ make docker-down
 - LLM 链路使用 Eino ReAct Agent，入口在 `services/rpc/agent/internal/agent/recommend/llm/agent.go`。
 - 内置 Eino 工具在 `services/rpc/agent/internal/agent/recommend/llm/tools.go`，包括 `search_products`、`select_bundle`、`read_file`、`write_file`。
 - 支持 MCP 工具注入，配置在 `services/rpc/agent/etc/config.yaml` 的 `MCP` 段，适配代码在 `services/rpc/agent/internal/agent/recommend/llm/mcp.go`。
-- 支持多轮对话，`conversation_id` 首轮可为空，由服务端生成并回传；配置 PostgreSQL 时长期保存完整会话，Redis 可作为最近窗口缓存，未配置外部存储时退回进程内实现。调用方式和记忆边界见 [Agent 多轮会话文档](docs/agent-conversation.md)。
+- 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。调用与数据模型见 [Agent 会话文档](docs/agent-conversation.md)。
 
 ## 错误处理与日志规范
 

@@ -1,63 +1,82 @@
-# Agent 多轮会话调用
+# Agent 会话与长期记忆
 
-推荐接口使用 conversation_id 关联同一用户的多轮上下文。首次请求可以不传该字段，服务端会生成 UUID 并在响应中稳定返回；后续请求应原样携带该值。
+推荐接口使用 `conversation_id` 关联同一认证用户的多轮上下文，并使用 `turn_id` 保证单轮请求幂等。首次请求可不传 `conversation_id`，服务端生成后返回；前端应为每次发送生成新的 `turn_id`，网络重试沿用原值。
 
-HTTP 网关从已认证的请求上下文读取用户身份，并将其传给 Agent RPC。客户端不传、也不能指定 user_id；相同的 conversation_id 在不同用户下会映射为彼此隔离的记忆。
+RPC 不再接受 `user_id`。Agent RPC 只信任认证拦截器写入的用户身份；即使两个用户使用相同 `conversation_id`，数据也按 `user_id + conversation_id` 隔离。
 
-## 首次调用
+## 调用示例
 
-    POST /api/agent/recommend
-    {
-      "query": "预算 3000 元，想配一套学习桌面",
-      "budget_cents": 300000,
-      "max_items": 3
-    }
+首次请求：
 
-响应中的 conversation_id 与 conversation_title 应由客户端保存：
+```http
+POST /api/agent/recommend
+Authorization: Bearer <token>
+Content-Type: application/json
 
-    {
-      "conversation_id": "4f73fd97-7a89-41ae-90cb-4a9e27de941c",
-      "conversation_title": "预算 3000 元，想配一套学习桌面",
-      "summary": "..."
-    }
+{
+  "query": "预算 3000 元，想配一套学习桌面",
+  "budget_cents": 300000,
+  "max_items": 3,
+  "turn_id": "1f2e1ad7-cb89-47bb-b64b-4f86f6e99077"
+}
+```
 
-## 继续同一会话
+响应会返回稳定的会话与轮次标识：
 
-    POST /api/agent/recommend
-    {
-      "query": "预算增加到 5000 元，优先考虑机械键盘",
-      "budget_cents": 500000,
-      "max_items": 4,
-      "conversation_id": "4f73fd97-7a89-41ae-90cb-4a9e27de941c"
-    }
+```json
+{
+  "conversation_id": "4f73fd97-7a89-41ae-90cb-4a9e27de941c",
+  "conversation_title": "预算 3000 元，想配一套学习桌面",
+  "turn_id": "1f2e1ad7-cb89-47bb-b64b-4f86f6e99077",
+  "summary": "..."
+}
+```
 
-服务会读取该用户此会话最近的历史偏好，并继续返回同一个 conversation_id 和首次生成的 conversation_title。
+继续同一会话时只填写本轮需要覆盖的结构化约束。下面没有传 `max_items`，所以会继承上一轮的 3 件：
 
-## 记忆边界
+```json
+{
+  "query": "预算增加到 5000 元，优先机械键盘",
+  "budget_cents": 500000,
+  "conversation_id": "4f73fd97-7a89-41ae-90cb-4a9e27de941c",
+  "turn_id": "c026238c-710f-45d6-952a-fbb44f3c761c"
+}
+```
 
-Memory.MaxHistory 控制每次读取的最近消息窗口；Memory.MaxContextTokens 进一步限制发送给 LLM 的消息上下文近似 token 数，优先保留最近的完整问答轮次。PostgreSQL 会保留窗口之外的完整消息，不会因为窗口滚动而删除旧记录。
+重复提交相同 `turn_id` 时，服务直接返回已保存的完整结果，不会再次调用模型或新增轮次。
 
-## PostgreSQL 持久化
+## 管理接口
 
-配置 Database.DSN 后，agent-rpc 使用 PostgreSQL 作为会话记忆的长期数据源，并与 RAG 复用同一个连接池。Database.AutoMigrate 为 true 时，服务启动会幂等创建；关闭自动迁移时会检查所需表是否已由外部迁移创建，缺表会直接阻止服务启动：
+- `GET /api/agent/conversations?page=1&page_size=20`：按最近更新时间倒序列出当前用户会话。
+- `GET /api/agent/conversations/:conversation_id/turns?page=1&page_size=50`：恢复会话状态与完整轮次。
+- `DELETE /api/agent/conversations/:conversation_id`：删除当前用户的会话和全部轮次。
+- `POST /api/agent/recommend/stream`：与同步接口使用相同鉴权、`conversation_id` 和 `turn_id` 语义。
 
-- agent_conversations：以 user_id + conversation_id 为主键，保存稳定标题、缓存版本及会话时间；
-- agent_conversation_messages：顺序保存完整消息 JSON，删除会话时级联清理。
+前端路由 `/recommend/:conversationId` 会在刷新或跨设备打开时重新加载服务端历史；未登录访问会先跳转登录页。
 
-PostgreSQL 会话不应用 Memory.TTL，因此服务重启或间隔数天后，只要认证用户和 conversation_id 保持一致，仍能读取最近上下文。Memory.TTL 只作用于 Redis 快照、独立 Redis 记忆和 InMemory 降级实现。
+## PostgreSQL 数据模型
 
-## PostgreSQL + Redis 两级记忆
+数据库尚未投入使用，因此本次直接采用新结构，不兼容旧的消息表：
 
-同时配置 Database.DSN 与 CacheRedis 时，PostgreSQL 是唯一持久化事实源，Redis 缓存最近 MaxHistory 条消息、稳定标题和对应的 PostgreSQL 会话版本：
+- `agent_conversations`：复合主键为 `user_id + conversation_id`，保存稳定标题、最新结构化 `state`、版本、轮次数与时间；
+- `agent_conversation_turns`：复合主键为 `user_id + conversation_id + turn_id`，保存轮次序号、原始请求、输入预算/件数、解析意图、完整推荐结果和完成时间；
+- `user_id + conversation_id + sequence` 有唯一索引，删除会话时轮次通过复合外键级联清理。
 
-    写入：提交 PostgreSQL 事务 → 会话版本递增 → 删除 Redis 旧快照
-    首次读取：查询 PostgreSQL 版本 → Redis 未命中 → 从 PostgreSQL 读取窗口 → 回填 Redis
-    后续读取：查询 PostgreSQL 版本 → Redis 版本一致 → 直接使用 Redis 快照
+PostgreSQL 模式不应用 `Memory.TTL`，因此服务重启或间隔数天后仍能恢复。只配置 Redis 或未配置外部存储时仍是短期记忆，分别受 Redis TTL 或进程生命周期约束。
 
-如果数据库提交后 Redis 删除失败，下一次读取也会因版本不一致而回源 PostgreSQL，不会返回陈旧记忆。Redis 读取、写入或清理失败时会记录日志并直接使用 PostgreSQL，推荐请求和持久化结果不受缓存故障影响。
+## 两级缓存
 
-只配置 Database 时直接使用 PostgreSQL；只配置 CacheRedis 时使用 Redis 共享短期记忆；两者都未配置时使用 InMemory。Redis 不是第二份持久数据，也不会反向覆盖 PostgreSQL。
+同时配置 `Database.DSN` 与 `CacheRedis` 时，PostgreSQL 是唯一事实源，Redis 只缓存最近 `MaxHistory` 条消息快照：
 
-## 并发边界
+```text
+写入：同会话锁 → PostgreSQL 事务保存会话与轮次 → 版本递增 → Redis 快照失效
+读取：查询 PostgreSQL 版本 → 命中同版本 Redis 快照；否则回源并回填
+```
 
-同一 agent-rpc 实例内，相同 user_id 与 conversation_id 的请求会串行完成“读取历史、执行推荐、写回历史”全过程；不同用户或不同会话仍可并行。等待中的请求会响应超时或主动取消。多实例部署如需保持同样语义，还需要接入分布式会话锁或带序号的 turn_id。
+Redis 故障只降低缓存命中率，不覆盖 PostgreSQL。只配置 Database 时直接读写 PostgreSQL；只配置 CacheRedis 时使用 Redis 短期会话；均未配置时使用 InMemory。
+
+## 状态、上下文与并发边界
+
+- 预算、最多件数、关键词和偏好以结构化状态持久化，不依赖旧文本是否还在短期窗口；当前轮明确值优先。
+- `Memory.MaxHistory` 控制注入模型的最近文本消息数；`Memory.MaxContextTokens` 是系统提示、当前请求和历史消息的严格近似总上限。历史按完整轮次从旧到新淘汰；系统提示与当前请求自身超限时返回 400，不会截断问题或悄悄降级。
+- InMemory 使用进程内会话锁，Redis 使用带令牌的分布式锁，PostgreSQL 使用连接级 advisory lock。相同用户的同一会话按顺序执行与删除，不同用户或不同会话可并行。

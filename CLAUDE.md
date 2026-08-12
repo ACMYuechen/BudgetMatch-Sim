@@ -191,7 +191,7 @@ agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
 
 - **Embedding 与 LLM 是两套独立配置**（`EMBEDDING_*` 环境变量）：DeepSeek 无 embeddings 接口，RAG 需要 OpenAI / DashScope 等兼容服务。
 - **商品向量表是派生数据**：`product_vectors` 表可随时删除，同步器会自动回填；换 embedding 模型或维度会触发删表重建 + 全量重嵌入（有 token 成本）。
-- **多轮对话**：请求带 `conversation_id`（首轮留空由服务端生成并回传），历史存 Redis DB 6，窗口/TTL 见 `Memory` 配置。
+- **多轮对话**：`conversation_id` 标识会话，`turn_id` 保证请求幂等；PostgreSQL 可长期保存 Conversation/Turn 和结构化状态，Redis 仅作两级缓存或短期降级，窗口/TTL 见 `Memory` 配置。
 
 ### MCP 配置
 
@@ -235,18 +235,21 @@ tail -f logs/agent-rpc.log
 ```bash
 # 同步推荐（响应中的 conversation_id 用于发起下一轮）
 curl -X POST http://localhost:10002/api/agent/recommend \
+	-H "Authorization: Bearer <登录返回的token>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3}'
+	-d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3,"turn_id":"<本轮UUID>"}'
 
 # 多轮对话：携带上一轮返回的 conversation_id
 curl -X POST http://localhost:10002/api/agent/recommend \
+	-H "Authorization: Bearer <登录返回的token>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"预算加到8000，换个屏幕好点的","conversation_id":"<上一轮返回的ID>"}'
+	-d '{"query":"预算加到8000，换个屏幕好点的","conversation_id":"<上一轮返回的ID>","turn_id":"<新的本轮UUID>"}'
 
 # SSE 阶段事件流
 curl -X POST http://localhost:10002/api/agent/recommend/stream \
+	-H "Authorization: Bearer <登录返回的token>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"预算5000买手机"}'
+	-d '{"query":"预算5000买手机","turn_id":"<本轮UUID>"}'
 ```
 
 ## 注意事项
