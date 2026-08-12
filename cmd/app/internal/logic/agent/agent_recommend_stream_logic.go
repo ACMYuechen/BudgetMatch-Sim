@@ -7,6 +7,7 @@ import (
 
 	"budgetmatch-sim/cmd/app/internal/svc"
 	"budgetmatch-sim/cmd/app/internal/types"
+	apperrors "budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/services/rpc/agent/client/recommendservice"
 
@@ -70,9 +71,7 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		TurnId:         req.TurnId,
 	})
 	if err != nil {
-		_ = emit(StreamEvent{Event: "error", Data: map[string]any{
-			"message": err.Error(),
-		}})
+		_ = emit(StreamEvent{Event: "error", Data: publicStreamError(err)})
 		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
@@ -91,4 +90,10 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 	}
 
 	return nil
+}
+
+// publicStreamError 复用普通 HTTP 接口的错误转换，避免把 gRPC 内部错误文本暴露给前端。
+func publicStreamError(err error) any {
+	_, response := apperrors.HTTPErrorHandler(err)
+	return response
 }

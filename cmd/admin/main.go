@@ -6,6 +6,7 @@ import (
 	"budgetmatch-sim/cmd/admin/internal/config"
 	"budgetmatch-sim/cmd/admin/internal/handler"
 	"budgetmatch-sim/cmd/admin/internal/svc"
+	apperrors "budgetmatch-sim/infra/errors"
 
 	"budgetmatch-sim/infra/middleware"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/rest"
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 var configFile = flag.String("f", "etc/config.yaml", "the config file")
@@ -33,6 +35,8 @@ func main() {
 
 	// 创建REST服务器
 	server := rest.MustNewServer(c.RestConf)
+	// admin 同样通过 RPC 获取业务错误，复用统一的 HTTP 错误恢复规则。
+	httpx.SetErrorHandler(apperrors.HTTPErrorHandler)
 	// 注册全局请求日志中间件（admin 走 RPC 鉴权，不解析 JWT，user_id 省略）
 	server.Use(middleware.NewLoggingMiddleware("").Handle)
 	sg.Add(server)
