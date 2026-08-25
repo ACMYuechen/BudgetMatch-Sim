@@ -13,13 +13,14 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// AgentRecommendLogic 负责普通 HTTP 推荐请求的鉴权和 RPC 转发。
 type AgentRecommendLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-// Agent 推荐
+// NewAgentRecommendLogic 创建非流式 Agent 推荐逻辑。
 func NewAgentRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AgentRecommendLogic {
 	return &AgentRecommendLogic{
 		Logger: logx.WithContext(ctx),
@@ -28,10 +29,12 @@ func NewAgentRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ag
 	}
 }
 
+// AgentRecommend 将 HTTP 请求转换为 RPC 请求，并返回完整推荐结果。
 func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp *types.AgentRecommendResp, err error) {
-	// 仅信任认证中间件写入的上下文，不接受 HTTP 请求体提供的用户标识。
-	userID, err := request.MustUserId(l.ctx)
+	// 在网关先确认登录状态；RPC 服务会再次从认证拦截器上下文读取用户身份。
+	_, err = request.MustUserId(l.ctx)
 	if err != nil {
+		l.Logger.Errorf("return error: %v", err)
 		return nil, err
 	}
 	rpcResp, err := l.svcCtx.AgentClient.Recommend(l.ctx, &recommendservice.RecommendReq{
@@ -39,7 +42,7 @@ func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp
 		BudgetCents:    req.BudgetCents,
 		MaxItems:       int32(req.MaxItems),
 		ConversationId: req.ConversationId,
-		UserId:         userID,
+		TurnId:         req.TurnId,
 	})
 	if err != nil {
 		l.Logger.Errorf("return error: %v", err)
@@ -49,6 +52,7 @@ func (l *AgentRecommendLogic) AgentRecommend(req *types.AgentRecommendReq) (resp
 	return mapRecommendResp(rpcResp), nil
 }
 
+// mapRecommendResp 将 protobuf 推荐结果转换为 HTTP API 响应类型。
 func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommendResp {
 	if resp == nil {
 		return &types.AgentRecommendResp{}
@@ -91,5 +95,6 @@ func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommen
 		ToolsUsed:         toolsUsed,
 		ConversationId:    resp.GetConversationId(),
 		ConversationTitle: resp.GetConversationTitle(),
+		TurnId:            resp.GetTurnId(),
 	}
 }

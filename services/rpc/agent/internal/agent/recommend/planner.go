@@ -24,25 +24,106 @@ func NewPlanner() *Planner {
 //  2. 若仍未提取到预算，则使用默认预算 300000（即 3000 元）；
 //  3. 若未指定最大商品数，则使用默认值 3。
 func (p *Planner) Parse(input agent.Input) agent.Intent {
+	return p.ParseWithHistory(input, nil)
+}
+
+// ParseWithHistory 结合历史用户问题解析意图。
+// 当前轮明确给出的预算、数量和商品关键词优先；缺失项继承最近一轮有效历史，偏好跨轮累积。
+func (p *Planner) ParseWithHistory(input agent.Input, historyQueries []string) agent.Intent {
+	var inherited agent.Intent
+	for _, query := range historyQueries {
+		parsed := p.parsePartial(agent.Input{Query: query})
+		if parsed.BudgetCents > 0 {
+			inherited.BudgetCents = parsed.BudgetCents
+		}
+		if parsed.MaxItems > 0 {
+			inherited.MaxItems = parsed.MaxItems
+		}
+		if len(parsed.Keywords) > 0 {
+			inherited.Keywords = append([]string(nil), parsed.Keywords...)
+		}
+		inherited.Preferences = mergeUnique(inherited.Preferences, parsed.Preferences)
+	}
+	// 结构化状态不依赖历史文本是否仍在短期窗口中，因此优先作为继承基线。
+	if input.PriorIntent != nil {
+		structured := cloneIntent(*input.PriorIntent)
+		// 历史文本仍可补充旧缓存中的缺失字段，但不能覆盖持久化状态。
+		if structured.BudgetCents <= 0 {
+			structured.BudgetCents = inherited.BudgetCents
+		}
+		if structured.MaxItems <= 0 {
+			structured.MaxItems = inherited.MaxItems
+		}
+		if len(structured.Keywords) == 0 {
+			structured.Keywords = append([]string(nil), inherited.Keywords...)
+		}
+		structured.Preferences = mergeUnique(inherited.Preferences, structured.Preferences)
+		inherited = structured
+	}
+
+	current := p.parsePartial(input)
+	if current.BudgetCents <= 0 {
+		current.BudgetCents = inherited.BudgetCents
+	}
+	if current.MaxItems <= 0 {
+		current.MaxItems = inherited.MaxItems
+	}
+	if len(current.Keywords) == 0 {
+		current.Keywords = append([]string(nil), inherited.Keywords...)
+	}
+	current.Preferences = mergeUnique(inherited.Preferences, current.Preferences)
+	return withIntentDefaults(current)
+}
+
+func cloneIntent(intent agent.Intent) agent.Intent {
+	intent.Keywords = append([]string(nil), intent.Keywords...)
+	intent.Preferences = append([]string(nil), intent.Preferences...)
+	return intent
+}
+
+// parsePartial 只提取输入中明确存在的约束，不填充默认值，供多轮意图合并使用。
+func (p *Planner) parsePartial(input agent.Input) agent.Intent {
 	budget := input.BudgetCents
 	if budget <= 0 {
 		budget = parseBudget(input.Query)
 	}
-	if budget <= 0 {
-		budget = 300000
-	}
-
-	maxItems := input.MaxItems
-	if maxItems <= 0 {
-		maxItems = 3
-	}
 
 	return agent.Intent{
 		BudgetCents: budget,
-		MaxItems:    maxItems,
+		MaxItems:    input.MaxItems,
 		Keywords:    extractKeywords(input.Query),
 		Preferences: extractPreferences(input.Query),
 	}
+}
+
+// withIntentDefaults 为合并后仍缺失的约束填充默认值。
+func withIntentDefaults(intent agent.Intent) agent.Intent {
+	if intent.BudgetCents <= 0 {
+		intent.BudgetCents = 300000
+	}
+	if intent.MaxItems <= 0 {
+		intent.MaxItems = 3
+	}
+	if len(intent.Keywords) == 0 {
+		intent.Keywords = []string{"study"}
+	}
+	return intent
+}
+
+// mergeUnique 按首次出现顺序合并字符串切片并去重。
+func mergeUnique(base, additions []string) []string {
+	seen := make(map[string]struct{}, len(base)+len(additions))
+	merged := make([]string, 0, len(base)+len(additions))
+	for _, values := range [][]string{base, additions} {
+		for _, value := range values {
+			if _, ok := seen[value]; ok {
+				continue
+			}
+			seen[value] = struct{}{}
+			merged = append(merged, value)
+		}
+	}
+	return merged
 }
 
 const budgetUnitExpression = `k|w|万|千|人民币|块钱|元|块|rmb|cny|yuan|usd|dollars?`
@@ -61,7 +142,7 @@ var (
 	// budgetPrefixPattern 匹配预算、不超过、under、around 等位于金额前的限定语。
 	budgetPrefixPattern = regexp.MustCompile(
 		`(?i)(?:` +
-			`预算(?:为|是|在|约|大概|控制在|不超过|不要超过|不超|最多|上限(?:为|是)?)?` +
+			`预算(?:为|是|在|约|大概|控制在|不超过|不要超过|不超|最多|上限(?:为|是)?|(?:提高|增加|加|调整|改)(?:到|至|为)?)?` +
 			`|(?:不超过|不要超过|不超|最多|上限(?:为|是)?)\s*(?:预算)?` +
 			`|budget(?:\s+(?:is|around|about|under|below|within|up\s+to|max(?:imum)?))?` +
 			`|(?:under|below|within|around|about|up\s+to|no\s+more\s+than|less\s+than)(?:\s+budget)?` +
@@ -170,7 +251,6 @@ func budgetAmountToCents(amount, unit string) (int64, bool) {
 
 // extractKeywords 从用户查询中提取商品类别关键词。
 // 预定义关键词列表包含中英文常见商品与场景词。
-// 若未匹配到任何关键词，默认返回 "study"。
 func extractKeywords(query string) []string {
 	lower := strings.ToLower(query)
 	candidates := []string{
@@ -184,9 +264,6 @@ func extractKeywords(query string) []string {
 		if containsTerm(lower, candidate) {
 			keywords = append(keywords, candidate)
 		}
-	}
-	if len(keywords) == 0 {
-		keywords = append(keywords, "study")
 	}
 	return keywords
 }

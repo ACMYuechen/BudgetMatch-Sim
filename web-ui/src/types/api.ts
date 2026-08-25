@@ -122,6 +122,7 @@ export interface SeckillSku {
   status: number
 }
 
+/** 可跨轮继承的结构化推荐约束。 */
 export interface AgentIntent {
   budget_cents: number
   max_items: number
@@ -146,12 +147,48 @@ export interface AgentToolCall {
   detail: string
 }
 
+/** 一轮推荐的完整结果，同时携带会话和幂等轮次标识。 */
 export interface AgentRecommendResp {
   intent: AgentIntent
   items: AgentBundleItem[]
   total_price_cents: number
   summary: string
   tools_used: AgentToolCall[]
+	conversation_id: string
+	conversation_title: string
+	turn_id: string
+}
+
+/** 会话侧栏及历史页使用的轻量摘要。 */
+export interface AgentConversationSummary {
+	conversation_id: string
+	conversation_title: string
+	state: AgentIntent
+	turn_count: number
+	created_at_ms: number
+	updated_at_ms: number
+}
+
+/** 一轮不可变历史，包含原始问题、当轮意图和保存的完整结果。 */
+export interface AgentConversationTurn {
+	turn_id: string
+	sequence: number
+	query: string
+	budget_cents: number
+	max_items: number
+	intent: AgentIntent
+	result: AgentRecommendResp
+	created_at_ms: number
+	completed_at_ms: number
+}
+
+/** 会话历史分页响应，并附带当前最新的结构化状态。 */
+export interface AgentConversationTurnsResp {
+	conversation: AgentConversationSummary
+	list: AgentConversationTurn[]
+	page: number
+	page_size: number
+	total: number
 }
 
 export interface ListResp<T> {

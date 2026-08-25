@@ -132,8 +132,9 @@ tail -f logs/admin.log
 
 # 测试推荐接口
 curl -X POST http://localhost:10002/api/agent/recommend \
+	-H "Authorization: Bearer <登录返回的token>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3}'
+	-d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3,"turn_id":"<本轮UUID>"}'
 
 # Docker 全量部署
 make docker-up
@@ -182,7 +183,7 @@ make docker-down
 - LLM 链路使用 Eino ReAct Agent，入口在 `services/rpc/agent/internal/agent/recommend/llm/agent.go`。
 - 内置 Eino 工具在 `services/rpc/agent/internal/agent/recommend/llm/tools.go`，包括 `search_products`、`select_bundle`、`read_file`、`write_file`。
 - 支持 MCP 工具注入，配置在 `services/rpc/agent/etc/config.yaml` 的 `MCP` 段，适配代码在 `services/rpc/agent/internal/agent/recommend/llm/mcp.go`。
-- 支持多轮对话，`conversation_id` 首轮可为空，由服务端生成并回传；Redis 可用时会话记忆存 Redis DB 6，否则退回进程内实现。
+- 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。调用与数据模型见 [Agent 会话文档](docs/agent-conversation.md)。
 
 ## 错误处理与日志规范
 
@@ -192,10 +193,12 @@ make docker-down
 - API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
 - logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
 
-各层详细规范见：
-- [cmd/README.md](cmd/README.md)
-- [services/README.md](services/README.md)
-- [infra/README.md](infra/README.md)
+相关开发规范见：
+
+- [本地开发与代码生成](docs/dev.md)
+- [Git 提交规范](docs/git.md)
+- [CI 说明](docs/ci.md)
+- [错误库规范](infra/errors/README.md)
 
 ## 接口文档
 

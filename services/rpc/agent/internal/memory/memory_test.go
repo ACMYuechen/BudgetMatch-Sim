@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -19,6 +20,67 @@ func newManagers(t *testing.T, conf Conf) map[string]Manager {
 	return map[string]Manager{
 		"inmemory": NewInMemory(conf),
 		"redis":    NewRedis(client, conf),
+	}
+}
+
+func TestConversationStoreRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	for name, manager := range newManagers(t, Conf{MaxHistory: 4}) {
+		t.Run(name, func(t *testing.T) {
+			store, ok := manager.(ConversationStore)
+			if !ok {
+				t.Fatalf("%T does not implement ConversationStore", manager)
+			}
+			resultJSON, _ := json.Marshal(map[string]any{
+				"summary": "已选耳机", "conversation_id": "c1", "turn_id": "t1",
+			})
+			var conversation Conversation
+			var turn Turn
+			err := store.WithConversationLock(ctx, "u1", "c1", func(lockedCtx context.Context) error {
+				var saveErr error
+				conversation, turn, saveErr = store.SaveTurn(lockedCtx, SaveTurnReq{
+					UserId: "u1", ConversationId: "c1", TurnId: "t1", Title: "通勤耳机",
+					Query: "预算3000买通勤耳机", BudgetCents: 300000, MaxItems: 2,
+					Intent:     IntentState{BudgetCents: 300000, MaxItems: 2, Keywords: []string{"耳机"}},
+					ResultJSON: resultJSON, Summary: "已选耳机",
+				})
+				return saveErr
+			})
+			if err != nil {
+				t.Fatalf("SaveTurn() error = %v", err)
+			}
+			if conversation.Title != "通勤耳机" || conversation.TurnCount != 1 || turn.Sequence != 1 {
+				t.Fatalf("unexpected saved conversation/turn: %+v %+v", conversation, turn)
+			}
+
+			// 相同 turn_id 不新增轮次，也不覆盖首次结果。
+			_, retried, err := store.SaveTurn(ctx, SaveTurnReq{
+				UserId: "u1", ConversationId: "c1", TurnId: "t1", Title: "不应覆盖",
+				Query: "重复", ResultJSON: json.RawMessage(`{"summary":"重复"}`), Summary: "重复",
+			})
+			if err != nil || retried.Query != "预算3000买通勤耳机" {
+				t.Fatalf("idempotent SaveTurn() = %+v, %v", retried, err)
+			}
+
+			items, total, err := store.ListConversations(ctx, "u1", 1, 20)
+			if err != nil || total != 1 || len(items) != 1 || items[0].State.BudgetCents != 300000 {
+				t.Fatalf("ListConversations() = %+v total=%d err=%v", items, total, err)
+			}
+			loadedConversation, turns, total, exists, err := store.ListTurns(ctx, "u1", "c1", 1, 20)
+			if err != nil || !exists || total != 1 || len(turns) != 1 || loadedConversation.Title != "通勤耳机" {
+				t.Fatalf("ListTurns() = %+v %+v total=%d exists=%v err=%v", loadedConversation, turns, total, exists, err)
+			}
+			if _, found, err := store.FindTurn(ctx, "u2", "c1", "t1"); err != nil || found {
+				t.Fatalf("turn leaked across users: found=%v err=%v", found, err)
+			}
+			deleted, err := store.DeleteConversation(ctx, "u1", "c1")
+			if err != nil || !deleted {
+				t.Fatalf("DeleteConversation() = %v, %v", deleted, err)
+			}
+			if _, _, _, exists, err := store.ListTurns(ctx, "u1", "c1", 1, 20); err != nil || exists {
+				t.Fatalf("deleted turns still exist: exists=%v err=%v", exists, err)
+			}
+		})
 	}
 }
 
@@ -132,7 +194,35 @@ func TestManagerMissingConversation(t *testing.T) {
 	}
 }
 
-// TestManagerClear 验证清空会话后历史为空。
+// TestManagerStableTitle 验证标题独立于滚动消息窗口，始终保留首次候选值。
+func TestManagerStableTitle(t *testing.T) {
+	ctx := context.Background()
+	for name, m := range newManagers(t, Conf{MaxHistory: 2}) {
+		t.Run(name, func(t *testing.T) {
+			first, err := m.GetOrCreateTitle(ctx, "u1", "c1", "第一轮标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() error = %v", err)
+			}
+			if first != "第一轮标题" {
+				t.Fatalf("unexpected first title %q", first)
+			}
+
+			for _, q := range []string{"第一轮", "第二轮", "第三轮"} {
+				if err := m.Append(ctx, "u1", "c1", schema.UserMessage(q), schema.AssistantMessage("回答"+q, nil)); err != nil {
+					t.Fatalf("Append() error = %v", err)
+				}
+			}
+
+			again, err := m.GetOrCreateTitle(ctx, "u1", "c1", "第三轮标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() again error = %v", err)
+			}
+			if again != "第一轮标题" {
+				t.Fatalf("title changed after history truncation: %q", again)
+			}
+		})
+	}
+}
 
 func TestManagerUserIsolation(t *testing.T) {
 	ctx := context.Background()
@@ -156,6 +246,9 @@ func TestManagerClear(t *testing.T) {
 	ctx := context.Background()
 	for name, m := range newManagers(t, Conf{}) {
 		t.Run(name, func(t *testing.T) {
+			if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "旧标题"); err != nil {
+				t.Fatalf("GetOrCreateTitle() error = %v", err)
+			}
 			if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
@@ -168,6 +261,13 @@ func TestManagerClear(t *testing.T) {
 			}
 			if len(got) != 0 {
 				t.Fatalf("expected empty history after clear, got %d", len(got))
+			}
+			title, err := m.GetOrCreateTitle(ctx, "u1", "c1", "新标题")
+			if err != nil {
+				t.Fatalf("GetOrCreateTitle() after clear error = %v", err)
+			}
+			if title != "新标题" {
+				t.Fatalf("expected title to be cleared, got %q", title)
 			}
 		})
 	}
@@ -185,6 +285,75 @@ func TestManagerEmptyConversationId(t *testing.T) {
 	}
 }
 
+// TestInMemoryTTL 验证进程内实现具有与 Redis 一致的滑动 TTL，且读取不会刷新过期时间。
+func TestInMemoryTTL(t *testing.T) {
+	ctx := context.Background()
+	current := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	m := newInMemory(Conf{TTL: time.Minute}, func() time.Time { return current })
+
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "稳定标题"); err != nil {
+		t.Fatalf("GetOrCreateTitle() error = %v", err)
+	}
+	if err := m.Append(ctx, "u1", "c1", schema.UserMessage("第一轮")); err != nil {
+		t.Fatalf("Append() error = %v", err)
+	}
+
+	current = current.Add(30 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 1 {
+		t.Fatalf("History() before expiration = %v, %v", got, err)
+	}
+
+	// 追加消息刷新 TTL；单纯读取历史不刷新。
+	if err := m.Append(ctx, "u1", "c1", schema.AssistantMessage("仍然活跃", nil)); err != nil {
+		t.Fatalf("Append() refresh error = %v", err)
+	}
+	current = current.Add(59 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 2 {
+		t.Fatalf("History() within refreshed ttl = %v, %v", got, err)
+	}
+
+	current = current.Add(2 * time.Second)
+	if got, err := m.History(ctx, "u1", "c1", 0); err != nil || len(got) != 0 {
+		t.Fatalf("History() after expiration = %v, %v", got, err)
+	}
+	title, err := m.GetOrCreateTitle(ctx, "u1", "c1", "过期后新标题")
+	if err != nil {
+		t.Fatalf("GetOrCreateTitle() after expiration error = %v", err)
+	}
+	if title != "过期后新标题" {
+		t.Fatalf("expired title was not cleared, got %q", title)
+	}
+}
+
+// TestInMemorySweepsExpiredConversations 验证后续访问会全局回收不再访问的一次性会话。
+func TestInMemorySweepsExpiredConversations(t *testing.T) {
+	ctx := context.Background()
+	current := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	m := newInMemory(Conf{TTL: time.Minute}, func() time.Time { return current })
+
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "stale", "旧会话"); err != nil {
+		t.Fatalf("GetOrCreateTitle(stale) error = %v", err)
+	}
+	if err := m.Append(ctx, "u1", "stale", schema.UserMessage("只访问一次")); err != nil {
+		t.Fatalf("Append(stale) error = %v", err)
+	}
+
+	current = current.Add(2 * time.Minute)
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "active", "新会话"); err != nil {
+		t.Fatalf("GetOrCreateTitle(active) error = %v", err)
+	}
+
+	staleKey := conversationKey("u1", "stale")
+	m.mu.RLock()
+	_, hasMessages := m.conv[staleKey]
+	_, hasTitle := m.titles[staleKey]
+	_, hasExpiration := m.expiresAt[staleKey]
+	m.mu.RUnlock()
+	if hasMessages || hasTitle || hasExpiration {
+		t.Fatalf("stale conversation not fully swept: messages=%v title=%v expiration=%v", hasMessages, hasTitle, hasExpiration)
+	}
+}
+
 // TestRedisTTL 验证 Redis 实现设置了滑动 TTL，空闲超时后会话过期。
 func TestRedisTTL(t *testing.T) {
 	ctx := context.Background()
@@ -193,11 +362,17 @@ func TestRedisTTL(t *testing.T) {
 	t.Cleanup(func() { _ = client.Close() })
 
 	m := NewRedis(client, Conf{TTL: time.Minute})
+	if _, err := m.GetOrCreateTitle(ctx, "u1", "c1", "稳定标题"); err != nil {
+		t.Fatalf("GetOrCreateTitle() error = %v", err)
+	}
 	if err := m.Append(ctx, "u1", "c1", schema.UserMessage("hi")); err != nil {
 		t.Fatalf("Append() error = %v", err)
 	}
 	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
 		t.Fatalf("expected ttl 1m, got %v", ttl)
+	}
+	if ttl := mr.TTL(titleKey("u1", "c1")); ttl != time.Minute {
+		t.Fatalf("expected title ttl 1m, got %v", ttl)
 	}
 	mr.FastForward(30 * time.Second)
 	if err := m.Append(ctx, "u1", "c1", schema.AssistantMessage("still active", nil)); err != nil {
@@ -205,6 +380,9 @@ func TestRedisTTL(t *testing.T) {
 	}
 	if ttl := mr.TTL(convKey("u1", "c1")); ttl != time.Minute {
 		t.Fatalf("expected refreshed ttl 1m, got %v", ttl)
+	}
+	if ttl := mr.TTL(titleKey("u1", "c1")); ttl != time.Minute {
+		t.Fatalf("expected refreshed title ttl 1m, got %v", ttl)
 	}
 
 	mr.FastForward(2 * time.Minute)
@@ -215,12 +393,15 @@ func TestRedisTTL(t *testing.T) {
 	if len(got) != 0 {
 		t.Fatalf("expected expired conversation to be empty, got %d", len(got))
 	}
+	if mr.Exists(titleKey("u1", "c1")) {
+		t.Fatal("expected expired conversation title to be removed")
+	}
 }
 
 // TestConfNormalize 验证配置归一化：默认值回填、窗口取偶。
 func TestConfNormalize(t *testing.T) {
 	got := Conf{}.normalize()
-	if got.MaxHistory != defaultMaxHistory || got.TTL != defaultTTL {
+	if got.MaxHistory != defaultMaxHistory || got.MaxContextTokens != defaultMaxContextTokens || got.TTL != defaultTTL {
 		t.Fatalf("zero conf not normalized to defaults: %+v", got)
 	}
 	if got := (Conf{MaxHistory: 7}).normalize(); got.MaxHistory != 6 {
@@ -228,5 +409,8 @@ func TestConfNormalize(t *testing.T) {
 	}
 	if got := (Conf{MaxHistory: 1}).normalize(); got.MaxHistory != 2 {
 		t.Fatalf("window below 2 should clamp to 2, got %d", got.MaxHistory)
+	}
+	if got := (Conf{MaxContextTokens: 1234}).ContextTokens(); got != 1234 {
+		t.Fatalf("MaxContextTokens = %d, want 1234", got)
 	}
 }

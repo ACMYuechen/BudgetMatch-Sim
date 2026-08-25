@@ -92,6 +92,46 @@ func TestPlannerPrefersExplicitBudget(t *testing.T) {
 	}
 }
 
+// TestPlannerParseWithHistory 验证当前轮缺失的商品上下文会从历史继承，而当前轮新约束优先。
+func TestPlannerParseWithHistory(t *testing.T) {
+	planner := NewPlanner()
+
+	t.Run("预算追问继承商品上下文", func(t *testing.T) {
+		intent := planner.ParseWithHistory(agent.Input{Query: "预算提高到5000"}, []string{
+			"预算3000买通勤耳机",
+			"希望续航好一点",
+		})
+		if intent.BudgetCents != 500000 {
+			t.Fatalf("BudgetCents = %d, want 500000", intent.BudgetCents)
+		}
+		assertContainsAll(t, intent.Keywords, []string{"通勤", "耳机"})
+		assertContainsAll(t, intent.Preferences, []string{"续航"})
+	})
+
+	t.Run("当前商品类别覆盖历史类别", func(t *testing.T) {
+		intent := planner.ParseWithHistory(agent.Input{Query: "换成平板，预算2000元"}, []string{
+			"预算5000买手机",
+		})
+		if intent.BudgetCents != 200000 {
+			t.Fatalf("BudgetCents = %d, want 200000", intent.BudgetCents)
+		}
+		if !containsString(intent.Keywords, "平板") || containsString(intent.Keywords, "手机") {
+			t.Fatalf("current keywords should replace historical category, got %v", intent.Keywords)
+		}
+	})
+}
+
+func TestPlannerInheritsStructuredStateOutsideTextWindow(t *testing.T) {
+	planner := NewPlanner()
+	prior := agent.Intent{BudgetCents: 420000, MaxItems: 2, Keywords: []string{"耳机"}, Preferences: []string{"续航"}}
+	intent := planner.Parse(agent.Input{Query: "再便携一点", PriorIntent: &prior})
+	if intent.BudgetCents != 420000 || intent.MaxItems != 2 {
+		t.Fatalf("structured constraints were not inherited: %+v", intent)
+	}
+	assertContainsAll(t, intent.Keywords, []string{"耳机"})
+	assertContainsAll(t, intent.Preferences, []string{"续航", "便携"})
+}
+
 // TestPlannerExtractKeywords 验证常见商品类别与使用场景的中英文关键词识别。
 func TestPlannerExtractKeywords(t *testing.T) {
 	tests := []struct {

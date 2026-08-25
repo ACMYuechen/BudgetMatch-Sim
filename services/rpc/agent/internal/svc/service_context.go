@@ -21,6 +21,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
+	"gorm.io/gorm"
 )
 
 // ServiceContext 保存服务运行所需的全部依赖。
@@ -35,7 +36,10 @@ type ServiceContext struct {
 // 依赖降级矩阵（任意缺失都能启动）：
 //   - 无 MallRpc：商品数据用内存 mock（配置了 mall 则绝不混用 mock）；
 //   - 无 Embedding 或无 Database：RAG 关闭，provider 走关键词模式；
-//   - 无 CacheRedis：会话记忆退回进程内实现；
+//   - Database + CacheRedis：PostgreSQL 长期保存，Redis 缓存最近窗口；
+//   - 仅有 Database：会话记忆直接使用 PostgreSQL；
+//   - 仅有 CacheRedis：会话记忆使用 Redis 短期保存；
+//   - Database/CacheRedis 都没有：会话记忆退回进程内实现；
 //   - 无 Model：LLM Agent 不启用，推荐走确定性规则。
 func NewServiceContext(c config.Config) *ServiceContext {
 	var mallClient productservice.ProductService
@@ -44,13 +48,20 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			zrpc.WithUnaryClientInterceptor(interceptor.UnaryClientInterceptor())))
 	}
 
+	db := maybeOpenDatabase(c)
+	var conn *gorm.DB
+	if db != nil {
+		conn = db.DB()
+	}
+
+	mem := newMemoryManager(c, conn)
 	productProvider := newProductProvider(mallClient)
-	productProvider, syncer := maybeEnableRAG(c, mallClient, productProvider)
+	productProvider, syncer := maybeEnableRAG(c, mallClient, productProvider, conn)
 
 	bundleSelector := recommend.NewBundleSelector()
-	mem := newMemoryManager(c)
 
-	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector)
+	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector).
+		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
 
 	return &ServiceContext{
@@ -58,6 +69,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem),
 		Syncer:           syncer,
 	}
+}
+
+// maybeOpenDatabase 在配置了 DSN 时只创建一个数据库连接池，供会话持久化与 RAG 共同复用。
+func maybeOpenDatabase(c config.Config) *database.Database {
+	if c.Database.DSN == "" {
+		return nil
+	}
+	db, err := database.NewDatabase(c.Database)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 // newProductProvider 按配置选择商品数据源：配置了 mall-rpc 用真实商品，否则用内存 mock。
@@ -74,33 +97,32 @@ func newProductProvider(mallClient productservice.ProductService) tools.ProductP
 // 并把关键词 provider 包装为"向量优先、关键词回退"的 RAG provider。
 // 依赖不齐时原样返回入参 provider，并说明缺了什么。
 func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
-	fallback tools.ProductProvider) (tools.ProductProvider, *rag.Syncer) {
+	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, *rag.Syncer) {
 	if !c.RAGConfigured() {
 		logx.Infow("rag disabled",
-			logx.Field("database", c.Database.DSN != ""),
+			logx.Field("database", conn != nil),
 			logx.Field("embedding", c.Embedding.Enabled()),
 			logx.Field("mall", mallClient != nil),
 		)
 		return fallback, nil
 	}
 
-	// 配置即意图：声明了 RAG 依赖却初始化失败，直接 panic 阻止带病启动。
-	db, err := database.NewDatabase(c.Database)
-	if err != nil {
-		panic(err)
+	if conn == nil {
+		panic("rag configured without database connection")
 	}
+	// 配置即意图：声明了 RAG 依赖却初始化失败，直接 panic 阻止带病启动。
 	embedder, err := rag.NewEmbedder(context.Background(), c.Embedding)
 	if err != nil {
 		panic(err)
 	}
 
-	store, err := rag.NewStore(product_vectors.NewProductVectorsModel(db.DB()), embedder, c.RAG, c.Embedding.Dim())
+	store, err := rag.NewStore(product_vectors.NewProductVectorsModel(conn), embedder, c.RAG, c.Embedding.Dim())
 	if err != nil {
 		panic(err)
 	}
 	loader := rag.NewMallProductLoader(mallClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
-		product_vectors.NewProductVectorsModel(db.DB()), store.Fingerprint(c.Embedding.Model))
+		product_vectors.NewProductVectorsModel(conn), store.Fingerprint(c.Embedding.Model))
 	if err != nil {
 		panic(err)
 	}
@@ -117,19 +139,50 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	return tools.NewRAGProductProvider(rag.NewRetriever(store), fallback, verify, c.RAG.Normalize().TopK), syncer
 }
 
-// newMemoryManager 根据配置创建会话记忆：
-// 配置了 CacheRedis 用 Redis 实现（多实例共享），否则退回进程内实现（本地开发）。
-// Redis 配置了却连不上视为部署错误，直接 panic 阻止带病启动。
-func newMemoryManager(c config.Config) memory.Manager {
-	if c.CacheRedis.Address == "" {
-		logx.Info("cacheRedis not configured, conversation memory falls back to in-process store")
+// newMemoryManager 根据可用依赖组装会话记忆：PostgreSQL 是持久层，Redis 是一级缓存；
+// 只有一个外部依赖时使用其单层实现，两者都没有时退回进程内存储。
+// PostgreSQL 可用时 Redis 故障只会关闭缓存；没有 PostgreSQL 时 Redis 是唯一外部存储，初始化失败必须阻止启动。
+func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
+	var durable *memory.Postgres
+	if conn != nil {
+		durable = memory.NewPostgres(conn, c.Memory)
+		if c.Database.AutoMigrate {
+			if err := durable.CreateTable(); err != nil {
+				panic(err)
+			}
+		} else if err := durable.CheckSchema(); err != nil {
+			panic(err)
+		}
+	}
+
+	var cache *memory.Redis
+	if c.CacheRedis.Address != "" {
+		rdb, err := iredis.NewRedisDB(c.CacheRedis)
+		if err != nil {
+			if durable == nil {
+				panic(err)
+			}
+			logx.Errorw("redis conversation cache unavailable, using PostgreSQL only",
+				logx.Field("error", err.Error()))
+		} else {
+			cache = memory.NewRedis(rdb.Client(), c.Memory)
+		}
+	}
+
+	switch {
+	case durable != nil && cache != nil:
+		logx.Info("conversation memory uses PostgreSQL durable store with Redis cache")
+		return memory.NewTiered(durable, cache, c.Memory)
+	case durable != nil:
+		logx.Info("conversation memory uses PostgreSQL durable store without cache")
+		return durable
+	case cache != nil:
+		logx.Info("database not configured, conversation memory uses Redis short-term store")
+		return cache
+	default:
+		logx.Info("database and cacheRedis not configured, conversation memory falls back to in-process store")
 		return memory.NewInMemory(c.Memory)
 	}
-	rdb, err := iredis.NewRedisDB(c.CacheRedis)
-	if err != nil {
-		panic(err)
-	}
-	return memory.NewRedis(rdb.Client(), c.Memory)
 }
 
 // newLLMAgent 根据配置创建 Eino ReAct LLM 推荐 Agent。
@@ -143,5 +196,6 @@ func newLLMAgent(c config.Config, productProvider tools.ProductProvider, bundleS
 		return nil
 	}
 	return llm.NewAgent(model, productProvider, bundleSelector, c.MCP, c.FileTools).
-		WithMemory(mem, c.Memory.Window())
+		WithMemory(mem, c.Memory.Window()).
+		WithMaxContextTokens(c.Memory.ContextTokens())
 }

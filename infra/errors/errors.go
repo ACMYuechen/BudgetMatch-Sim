@@ -8,6 +8,7 @@ const (
 	ECCodeExpired
 	ECSeckillActivityNotStart
 	ECMallPaymentAmountMismatch
+	ECAgentContextTooLarge
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -41,6 +42,7 @@ const (
 	ECMallOrderCannotCancel
 	ECMallDuplicateOrder
 	ECMallPaymentConfirmationConflict
+	ECAgentTurnConflict
 )
 
 // 410xxx: 资源曾经存在但已不再可用。
@@ -71,6 +73,7 @@ var (
 	CodeExpired               = newAppError(ECCodeExpired, "invalid.code_expired")
 	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
 	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
+	AgentContextTooLarge      = newAppError(ECAgentContextTooLarge, "agent.context_too_large")
 )
 
 var (
@@ -101,6 +104,7 @@ var (
 	MallOrderCannotCancel           = newAppError(ECMallOrderCannotCancel, "mall.order_cannot_cancel")
 	MallDuplicateOrder              = newAppError(ECMallDuplicateOrder, "mall.duplicate_order")
 	MallPaymentConfirmationConflict = newAppError(ECMallPaymentConfirmationConflict, "mall.payment_confirmation_conflict")
+	AgentTurnConflict               = newAppError(ECAgentTurnConflict, "agent.turn_conflict")
 )
 
 var (

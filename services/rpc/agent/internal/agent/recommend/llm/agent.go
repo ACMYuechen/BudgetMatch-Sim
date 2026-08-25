@@ -39,15 +39,16 @@ const defaultMaxStep = 8
 // 结构化商品结果由工具回填到 session，避免模型编造商品、价格与库存。
 // 模型未产出套装时回落到确定性选择，保证响应始终 grounded。
 type Agent struct {
-	model      model.ToolCallingChatModel
-	planner    *recommendagent.Planner
-	provider   tools.ProductProvider
-	selector   *selector.BundleSelector
-	mcpCfg     mcpconfig.Config
-	fileTools  *filetools.Workspace
-	maxStep    int
-	memory     memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
-	maxHistory int            // maxHistory 单次读取的最大历史条数
+	model            model.ToolCallingChatModel
+	planner          *recommendagent.Planner
+	provider         tools.ProductProvider
+	selector         *selector.BundleSelector
+	mcpCfg           mcpconfig.Config
+	fileTools        *filetools.Workspace
+	maxStep          int
+	memory           memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
+	maxHistory       int            // maxHistory 单次读取的最大历史条数
+	maxContextTokens int            // maxContextTokens 发送给模型的消息上下文近似 token 上限
 }
 
 // 确保 Agent 实现 agentcore.Agent。
@@ -61,13 +62,14 @@ func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel 
 		panic(err)
 	}
 	return &Agent{
-		model:     m,
-		planner:   recommendagent.NewPlanner(),
-		provider:  provider,
-		selector:  sel,
-		mcpCfg:    mcpCfg,
-		fileTools: workspace,
-		maxStep:   defaultMaxStep,
+		model:            m,
+		planner:          recommendagent.NewPlanner(),
+		provider:         provider,
+		selector:         sel,
+		mcpCfg:           mcpCfg,
+		fileTools:        workspace,
+		maxStep:          defaultMaxStep,
+		maxContextTokens: memory.Conf{}.ContextTokens(),
 	}
 }
 
@@ -83,6 +85,14 @@ func (a *Agent) WithMaxStep(maxStep int) *Agent {
 func (a *Agent) WithMemory(mem memory.Manager, maxHistory int) *Agent {
 	a.memory = mem
 	a.maxHistory = maxHistory
+	return a
+}
+
+// WithMaxContextTokens 设置发送给模型的消息上下文近似 token 上限，仅接受正值。
+func (a *Agent) WithMaxContextTokens(maxContextTokens int) *Agent {
+	if maxContextTokens > 0 {
+		a.maxContextTokens = maxContextTokens
+	}
 	return a
 }
 
@@ -123,7 +133,22 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
 
-	final, err := reactAgent.Generate(ctx, buildMessages(input, intent, a.loadHistory(ctx, input)),
+	history := a.loadHistory(ctx, input)
+	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
+	if err != nil {
+		return nil, err
+	}
+	keptHistory := max(len(messages)-2, 0)
+	if keptHistory < len(history) {
+		logx.WithContext(ctx).Infow("conversation history trimmed by context token budget",
+			logx.Field("conversation_id", input.ConversationId),
+			logx.Field("loaded_messages", len(history)),
+			logx.Field("kept_messages", keptHistory),
+			logx.Field("max_context_tokens", a.maxContextTokens),
+		)
+	}
+
+	final, err := reactAgent.Generate(ctx, messages,
 		einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
 	if err != nil {
 		return nil, err

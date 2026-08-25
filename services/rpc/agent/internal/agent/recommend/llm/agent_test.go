@@ -163,6 +163,10 @@ func (f *failingMemory) History(ctx context.Context, userId, conversationId stri
 	return nil, errors.New("memory down")
 }
 
+func (f *failingMemory) GetOrCreateTitle(ctx context.Context, userId, conversationId, candidate string) (string, error) {
+	return "", errors.New("memory down")
+}
+
 func (f *failingMemory) Clear(ctx context.Context, userId, conversationId string) error {
 	return errors.New("memory down")
 }
