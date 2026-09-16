@@ -6,22 +6,27 @@ interface AuthState {
   token: string | null
   userInfo: UserInfo | null
   isAuthenticated: boolean
-  setAuth: (token: string, userInfo: UserInfo) => void
+  setAuth: (token: string, userInfo: UserInfo | null) => void
   clearAuth: () => void
 }
 
 function getStoredToken() {
-  return getItem<string>('token') || null
+  const token = getItem<unknown>('token')
+  return typeof token === 'string' && token.trim() ? token : null
 }
 
 function getStoredUserInfo() {
-  return getItem<UserInfo>('userInfo') || null
+  const user = getItem<UserInfo>('userInfo')
+  // 忽略旧版本中存下的 { user: ... } 或临时用户结构。
+  return user && typeof user.id === 'string' && typeof user.username === 'string' ? user : null
 }
 
+const storedToken = getStoredToken()
+
 export const useAuthStore = create<AuthState>()((set) => ({
-  token: getStoredToken(),
-  userInfo: getStoredUserInfo(),
-  isAuthenticated: !!getStoredToken(),
+  token: storedToken,
+  userInfo: storedToken ? getStoredUserInfo() : null,
+  isAuthenticated: !!storedToken,
   setAuth: (token, userInfo) => {
     setItem('token', token)
     setItem('userInfo', userInfo)

@@ -16,46 +16,25 @@ export interface RegisterResp {
 }
 
 export interface UserInfo {
-  user_id: string
+  id: string
   username: string
   email: string
   avatar: string
   phone: string
   role: number
-}
-
-export interface UserProfile {
-  user_id: string
-  real_name: string
-  school: string
-  major: string
-  grade: string
-  gender: number
-  expected_city: string
-  expected_position: string
-  self_introduction: string
-}
-
-export interface UpdateUserProfileReq {
-  real_name?: string
-  school?: string
-  major?: string
-  grade?: string
-  gender?: number
-  expected_city?: string
-  expected_position?: string
-  self_introduction?: string
+  status: number
+  remark: string
 }
 
 export interface Product {
   id: string
-  spu_code: string
+  user_id: string
   name: string
-  category_id: string
-  brand: string
+  content: string
+  image: string
+  providor: string
   status: number
-  main_image: string
-  detail: string
+  agent_comment: string
   created_at: string
   updated_at: string
 }
@@ -63,12 +42,13 @@ export interface Product {
 export interface Sku {
   id: string
   product_id: string
-  sku_code: string
   name: string
+  specs: string
   price: number
   stock: number
+  sold: number
   status: number
-  attributes: Record<string, string>
+  agent_comment: string
   created_at: string
   updated_at: string
 }
@@ -79,6 +59,7 @@ export interface OrderItem {
   sku_name: string
   price: number
   quantity: number
+  discount_amount: number
   total_amount: number
   snapshot: string
 }
@@ -102,24 +83,39 @@ export interface Order {
 
 export interface Activity {
   id: string
-  name: string
+  title: string
   description: string
-  start_time: string
-  end_time: string
+  banner_url: string
+  start_time: number
+  end_time: number
   status: number
-  created_at: string
-  updated_at: string
+  created_at: number
+  updated_at?: number
 }
 
 export interface SeckillSku {
   id: string
   activity_id: string
-  sku_id: string
-  sku_name: string
+  title: string
+  subtitle: string
+  pic: string
+  original_price: number
   seckill_price: number
   stock: number
-  limit: number
+  sold: number
+  sort: number
   status: number
+  lock_stock?: number
+}
+
+export interface SeckillOrder {
+  order_id: string
+  activity_id: string
+  sku_id: string
+  quantity: number
+  total_amount: number
+  status: number
+  created_at: number
 }
 
 /** 可跨轮继承的结构化推荐约束。 */

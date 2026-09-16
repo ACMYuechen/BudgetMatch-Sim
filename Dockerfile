@@ -1,5 +1,5 @@
 # 构建阶段
-FROM golang:1.26-alpine AS dependencies
+FROM golang:1.26.8-alpine AS dependencies
 
 WORKDIR /build
 

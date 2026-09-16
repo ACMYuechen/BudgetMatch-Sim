@@ -4,9 +4,10 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 
 ## 技术栈
 
-- **语言**: Go 1.22+
+- **语言**: Go 1.26.8（版本以 [go.mod](go.mod) 为准）
 - **Web 框架**: [go-zero](https://github.com/zeromicro/go-zero)
 - **RPC**: gRPC + Protocol Buffers
+- **前端**: React + Vite + Ant Design（`web-ui`）
 - **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
 - **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)（通过 `mark3labs/mcp-go` 接入）
 - **数据库**: PostgreSQL 16
@@ -17,6 +18,8 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 - **代码生成**: goctl
 
 ## 服务架构
+
+下图使用 `make dev` 的默认宿主机访问端口；容器内端口与全容器模式的区别见下表。
 
 ```
             ┌─────────────┐      ┌─────────────┐
@@ -39,7 +42,7 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
               │               │               │
      ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
      │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
-     │    :5432        │  │ :12379 │ │ :9876 / :10911   │
+     │    :15432       │  │ :22379 │ │ :19876 / :10911  │
      │  Redis :6379    │  │        │ │                  │
      └─────────────────┘  └────────┘ └──────────────────┘
 ```
@@ -53,18 +56,24 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 | `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
 | `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
 | `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
-| `postgres` | 5432 | 主数据库 |
+| `web-ui` | 5173 / 8080 | Vite 开发服务器 / Compose 中的前端入口 |
+| `postgres` | 15432 | 主数据库，容器内为 5432 |
 | `redis` | 6379 | 缓存与限流 |
-| `etcd` | 12379 | 服务注册与动态配置 |
-| `rocketmq` | 9876 / 10911 | 消息队列 |
+| `etcd` | 22379 / 12379 | `make dev` / Compose 默认宿主机端口，容器内为 2379 |
+| `rocketmq` | 19876 / 9876；10911 | NameServer 的 `make dev` / Compose 默认宿主机端口；Broker 端口 |
+
+容器之间使用 `postgres:5432`、`etcd:2379`、`rocketmq-namesrv:9876` 等服务地址。etcd 和 NameServer 的宿主机端口可受环境变量覆盖，以 [开发脚本](scripts/dev.sh) 和 [Compose 配置](docker-compose.yml) 为准。
 
 ## 快速开始
 
 ### 1. 前置依赖
 
-- Go 1.22+
+- Go 1.26.8，版本与 `go.mod` 保持一致
 - Docker & Docker Compose
+- Node.js 20 和 npm（运行或构建前端时需要，与当前 CI 保持一致）
 - [goctl](https://go-zero.dev/docs/tasks/installation/goctl)（生成代码时需要）
+
+项目工具链、gRPC 依赖与容器构建版本的维护方式见 [开发文档](Contributors.md#工具链与依赖版本)。
 
 ### 2. 配置环境变量
 
@@ -84,7 +93,7 @@ cp .env.example .env
 | `LLM_BASE_URL` | 模型 API 地址（如 `https://api.openai.com/v1`） |
 | `LLM_API_KEY` | 模型 API 密钥 |
 
-> 完整密钥说明见 [docs/SECRETS.md](docs/SECRETS.md)。`.env` 已加入 `.gitignore`，不会提交到仓库。
+> 完整密钥说明见 [密钥配置指南](SECRETS.md)。`.env` 已加入 `.gitignore`，不会提交到仓库。
 
 ### 3. 一键启动
 
@@ -93,17 +102,34 @@ make dev
 ```
 
 该命令会：
+
 1. 加载 `.env` 环境变量
 2. 启动 PostgreSQL、Redis、etcd、RocketMQ 等基础设施
 3. 启动 auth-rpc、seckill-rpc、mall-rpc、agent-rpc、payment-rpc、app、admin 七个服务
 
-### 4. 验证
+### 4. 启动前端
+
+`make dev` 只启动基础设施和七个后端服务。另开一个终端：
+
+```bash
+cd web-ui
+npm ci
+npm run dev
+```
+
+用户端地址为 `http://localhost:5173`，管理端为 `http://localhost:5173/admin`，需要管理员账户。Vite 将 `/api/admin` 代理到 `10001`，其余 `/api` 代理到 `10002`。
+
+四个阶段的前端实现与模拟 API 验证已完成，真实服务联调仍待完成；详细边界与浏览器测试命令见 [前端路线图](docs/frontend-roadmap.md)。
+
+### 5. 验证
 
 ```bash
 make smoke-test
 ```
 
-### 5. 停止
+### 6. 停止
+
+前台运行的 Vite 用 `Ctrl+C` 停止，后端与基础设施使用：
 
 ```bash
 make dev-stop
@@ -118,7 +144,7 @@ make help
 # 生成所有 API/RPC 代码
 make api-all
 
-# 运行单元测试
+# 运行 Go 测试（需配置独立测试环境，见 docs/ci.md）
 make test
 
 # 查看服务日志
@@ -156,6 +182,7 @@ make docker-down
 │       ├── agent/      # 推荐 Agent 服务
 │       └── payment/    # 支付服务（支付宝沙箱当面付）
 ├── infra/              # 基础设施封装（数据库、Redis、JWT、OSS、限流等）
+├── web-ui/             # 用户端、管理端与 Playwright 浏览器测试
 ├── docs/               # 文档与生成的 Swagger
 ├── scripts/            # 开发脚本
 ├── tpls/               # goctl 模板
@@ -195,19 +222,19 @@ make docker-down
 
 相关开发规范见：
 
-- [本地开发与代码生成](docs/dev.md)
-- [Git 提交规范](docs/git.md)
+- [开发与 Git 提交规范](Contributors.md)
 - [CI 说明](docs/ci.md)
+- [前端进度与验证](docs/frontend-roadmap.md)
 - [错误库规范](infra/errors/README.md)
 
 ## 接口文档
 
-go-zero API 定义生成 Swagger 后存放于 `docs/`：
+接口契约以仓库中的 go-zero API 定义为准：
 
-- Admin API: [docs/admin-api.json](docs/admin-api.json)
-- App API: [docs/app-api.json](docs/app-api.json)
+- Admin API: [cmd/admin/desc/admin.api](cmd/admin/desc/admin.api)
+- App API: [cmd/app/desc/app.api](cmd/app/desc/app.api)
 
-可通过 Swagger UI 或导入 Postman 查看。
+需要 Swagger 时运行 `make api-all`，生成 `docs/admin-api.json` 和 `docs/app-api.json`，可通过 Swagger UI 或导入 Postman 查看。这些 JSON 属于被 Git 忽略的生成产物，干净检出中不保证存在；该命令还会重新生成 API/RPC 代码，执行后应检查差异。
 
 ## 开发注意
 

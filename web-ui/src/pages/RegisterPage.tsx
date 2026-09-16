@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { Card, Form, Input, Button, message, Space } from 'antd'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Alert, Form, Input, Button, message, Space } from 'antd'
 import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-design/icons'
 import { register, sendCode } from '@/api/auth'
+import { AuthLayout } from '@/components/AuthLayout'
+import { authPath, getReturnTo } from '@/utils/authNavigation'
 
 interface RegisterForm {
   username: string
@@ -14,40 +16,35 @@ interface RegisterForm {
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const { search } = useLocation()
+  const returnTo = getReturnTo(search)
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [countdown, setCountdown] = useState(0)
-  const [form] = Form.useForm()
+  const [error, setError] = useState('')
+  const [form] = Form.useForm<RegisterForm>()
 
   useEffect(() => {
     if (countdown <= 0) return
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
+    const timer = window.setTimeout(() => setCountdown((value) => value - 1), 1000)
+    return () => window.clearTimeout(timer)
   }, [countdown])
 
   const handleSendCode = async () => {
-    const email = form.getFieldValue('email')
-    if (!email) {
-      message.error('请先输入邮箱')
+    try {
+      await form.validateFields(['email'])
+    } catch {
       return
     }
     setSending(true)
+    setError('')
     try {
-      await sendCode(email)
-      message.success('验证码已发送')
+      const result = await sendCode(form.getFieldValue('email'))
+      if (!result.success) throw new Error('验证码发送失败，请稍后重试')
+      message.success('验证码已发送，请查看邮箱')
       setCountdown(60)
     } catch (err) {
-      message.error((err as Error).message)
+      setError((err as Error).message)
     } finally {
       setSending(false)
     }
@@ -55,112 +52,65 @@ export default function RegisterPage() {
 
   const handleRegister = async (values: RegisterForm) => {
     setLoading(true)
+    setError('')
     try {
-      await register({
-        username: values.username,
-        email: values.email,
-        password: values.password,
-        code: values.code,
+      const result = await register({
+        username: values.username, email: values.email,
+        password: values.password, code: values.code,
       })
+      if (!result.success) throw new Error('注册未完成，请稍后重试')
       message.success('注册成功，请登录')
-      navigate('/login')
+      navigate(authPath('login', returnTo), { replace: true })
     } catch (err) {
-      message.error((err as Error).message)
+      setError((err as Error).message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
-      <Card title="用户注册" className="w-[480px]">
-        <Form
-          form={form}
-          name="register"
-          onFinish={handleRegister}
-          autoComplete="off"
-          layout="vertical"
-        >
-          <Form.Item
-            label="用户名"
-            name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="用户名" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label="邮箱"
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '邮箱格式不正确' },
-            ]}
-          >
-            <Input prefix={<MailOutlined />} placeholder="邮箱" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label="密码"
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label="确认密码"
-            name="confirmPassword"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: '请确认密码' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve()
-                  }
-                  return Promise.reject(new Error('两次输入的密码不一致'))
-                },
-              }),
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="确认密码" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label="验证码"
-            name="code"
-            rules={[{ required: true, message: '请输入验证码' }]}
-          >
-            <Space.Compact className="w-full">
-              <Input
-                prefix={<SafetyOutlined />}
-                placeholder="验证码"
-                size="large"
-                className="flex-1"
-              />
-              <Button
-                size="large"
-                loading={sending}
-                disabled={countdown > 0}
-                onClick={handleSendCode}
-              >
-                {countdown > 0 ? `${countdown}s 后重试` : '获取验证码'}
-              </Button>
-            </Space.Compact>
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block size="large">
-              注册
+    <AuthLayout title="创建你的账户" description="把喜欢的选择，放进合适的预算里。">
+      {error && <Alert type="error" showIcon message={error} className="form-alert" />}
+      <Form form={form} name="register" onFinish={handleRegister} layout="vertical" disabled={loading}>
+        <Form.Item label="用户名" name="username" normalize={(value: string) => value.trim()} rules={[
+          { required: true, whitespace: true, message: '请输入用户名' },
+          { min: 2, message: '用户名至少 2 个字符' },
+        ]}>
+          <Input prefix={<UserOutlined />} placeholder="至少 2 个字符" autoComplete="username" size="large" />
+        </Form.Item>
+        <Form.Item label="邮箱" name="email" normalize={(value: string) => value.trim()} rules={[
+          { required: true, message: '请输入邮箱' }, { type: 'email', message: '请输入有效的邮箱地址' },
+        ]}>
+          <Input prefix={<MailOutlined />} placeholder="用于接收注册验证码" autoComplete="email" size="large" />
+        </Form.Item>
+        <Form.Item label="邮箱验证码" required>
+          <Space.Compact className="w-full">
+            <Form.Item name="code" noStyle rules={[
+              { required: true, message: '请输入验证码' }, { len: 6, message: '验证码为 6 位字符' },
+            ]}>
+              <Input aria-label="邮箱验证码" prefix={<SafetyOutlined />} placeholder="6 位验证码" maxLength={6} autoComplete="one-time-code" size="large" />
+            </Form.Item>
+            <Button size="large" loading={sending} disabled={countdown > 0 || loading} onClick={handleSendCode}>
+              {countdown > 0 ? `${countdown}s 后重试` : '获取验证码'}
             </Button>
+          </Space.Compact>
+        </Form.Item>
+        <div className="password-fields">
+          <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }, { min: 6, message: '密码至少 6 个字符' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="至少 6 个字符" autoComplete="new-password" size="large" />
           </Form.Item>
-        </Form>
-
-        <div className="text-center">
-          已有账号？<Link to="/login" className="text-blue-600">立即登录</Link>
+          <Form.Item label="确认密码" name="confirmPassword" dependencies={['password']} rules={[
+            { required: true, message: '请再次输入密码' },
+            ({ getFieldValue }) => ({ validator(_, value) {
+              return !value || getFieldValue('password') === value ? Promise.resolve() : Promise.reject(new Error('两次输入的密码不一致'))
+            } }),
+          ]}>
+            <Input.Password placeholder="再次输入密码" autoComplete="new-password" size="large" />
+          </Form.Item>
         </div>
-      </Card>
-    </div>
+        <Button type="primary" htmlType="submit" loading={loading} block size="large">创建账户</Button>
+      </Form>
+      <p className="auth-switch">已经有账户？<Link to={authPath('login', returnTo)}>去登录</Link></p>
+    </AuthLayout>
   )
 }

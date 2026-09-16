@@ -19,7 +19,11 @@ export function getItem<T>(key: string, defaultValue?: T): T | undefined {
 }
 
 export function removeItem(key: string): void {
-  localStorage.removeItem(`${PREFIX}${key}`)
+  try {
+    localStorage.removeItem(`${PREFIX}${key}`)
+  } catch {
+    // 浏览器禁用持久存储时，仍允许清理内存中的会话。
+  }
 }
 
 export function clear(): void {

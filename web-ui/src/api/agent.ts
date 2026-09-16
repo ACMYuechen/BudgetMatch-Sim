@@ -1,5 +1,7 @@
 import request from './request'
-import { getItem, removeItem } from '@/utils/storage'
+import { readServerEvents } from '@/utils/sse'
+import { useAuthStore } from '@/stores/authStore'
+import { expireSession } from '@/utils/session'
 import type {
   AgentConversationSummary,
   AgentConversationTurnsResp,
@@ -21,9 +23,10 @@ export function recommend(data: AgentRecommendReq) {
 }
 
 /** 分页读取当前登录用户的会话摘要。 */
-export function listConversations(page = 1, pageSize = 100) {
+export function listConversations(page = 1, pageSize = 100, signal?: AbortSignal) {
   return request.get<ListResp<AgentConversationSummary>>('/agent/conversations', {
     params: { page, page_size: pageSize },
+    signal,
   })
 }
 
@@ -34,15 +37,15 @@ export function listConversationTurns(
   pageSize = 100,
   signal?: AbortSignal
 ) {
-  return request.get<AgentConversationTurnsResp>(`/agent/conversations/${conversationId}/turns`, {
+  return request.get<AgentConversationTurnsResp>(`/agent/conversations/${encodeURIComponent(conversationId)}/turns`, {
     params: { page, page_size: pageSize },
     signal,
   })
 }
 
 /** 删除指定会话及其所有轮次，用户归属由后端鉴权上下文决定。 */
-export function deleteConversation(conversationId: string) {
-  return request.delete<{ deleted: boolean }>(`/agent/conversations/${conversationId}`)
+export function deleteConversation(conversationId: string, signal?: AbortSignal) {
+  return request.delete<{ deleted: boolean }>(`/agent/conversations/${encodeURIComponent(conversationId)}`, { signal })
 }
 
 /**
@@ -53,7 +56,7 @@ export async function* recommendStream(
   data: AgentRecommendReq,
   signal?: AbortSignal
 ) {
-  const token = getItem<string>('token')
+  const token = useAuthStore.getState().token
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/agent/recommend/stream`, {
     method: 'POST',
     headers: {
@@ -66,9 +69,7 @@ export async function* recommendStream(
 
   if (!res.ok) {
     if (res.status === 401) {
-      removeItem('token')
-      removeItem('userInfo')
-      window.location.href = '/login'
+      expireSession(token)
     }
     let detail = `请求失败 (${res.status})`
     try {
@@ -84,61 +85,35 @@ export async function* recommendStream(
     throw new Error('响应体为空')
   }
 
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let eventName = ''
-  let eventData: string[] = []
-
-  try {
-    // TextDecoder 的 stream 模式避免多字节中文恰好跨 chunk 时产生乱码。
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const rawLine of lines) {
-        const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine
-        if (line.startsWith('event: ')) {
-          eventName = line.slice(7).trim()
-        } else if (line.startsWith('data: ')) {
-          eventData.push(line.slice(6).trim())
-        } else if (line === '' && eventName) {
-          const joinedData = eventData.join('\n')
-          let parsed: unknown = joinedData
-          try {
-            parsed = JSON.parse(joinedData)
-          } catch {
-            // keep raw string
-          }
-          yield { event: eventName, data: parsed }
-          eventName = ''
-          eventData = []
-        }
-      }
-    }
-
-    // 服务端关闭连接时可能没有发送最后一个空行，因此手动冲刷剩余事件。
-    buffer += decoder.decode()
-    for (const rawLine of buffer.split('\n')) {
-      const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine
-      if (line.startsWith('event: ')) eventName = line.slice(7).trim()
-      else if (line.startsWith('data: ')) eventData.push(line.slice(6).trim())
-    }
-    if (eventName) {
-      const joinedData = eventData.join('\n')
-      let parsed: unknown = joinedData
-      try {
-        parsed = JSON.parse(joinedData)
-      } catch {
-        // keep raw string
-      }
-      yield { event: eventName, data: parsed }
-    }
-  } finally {
-    reader.releaseLock()
+  if (!res.headers.get('content-type')?.includes('text/event-stream')) {
+    await res.body.cancel()
+    throw new Error('服务未返回推荐事件流，请稍后重试')
   }
+  yield* readServerEvents(res.body)
+}
+
+/** 全量摘要按最近更新排序，所有分页复用同一个取消信号。 */
+export async function getConversationList(signal: AbortSignal) {
+  const first = await listConversations(1, 100, signal)
+  const items = [...(first.list || [])]
+  const size = first.page_size > 0 ? first.page_size : 100
+  for (let page = 2; page <= Math.ceil(first.total / size); page++) {
+    const next = await listConversations(page, size, signal)
+    items.push(...(next.list || []))
+    if (!next.list?.length) break
+  }
+  return [...new Map(items.map((item) => [item.conversation_id, item])).values()].sort((a, b) => b.updated_at_ms - a.updated_at_ms)
+}
+
+export async function getConversationHistory(id: string, signal: AbortSignal) {
+  const first = await listConversationTurns(id, 1, 100, signal)
+  if (first.conversation?.conversation_id !== id) throw new Error('会话信息不匹配，请重试')
+  const turns = [...(first.list || [])]
+  const size = first.page_size > 0 ? first.page_size : 100
+  for (let page = 2; page <= Math.ceil(first.total / size); page++) {
+    const next = await listConversationTurns(id, page, size, signal)
+    turns.push(...(next.list || []))
+    if (!next.list?.length) break
+  }
+  return { conversation: first.conversation, turns: [...new Map(turns.map((turn) => [turn.turn_id, turn])).values()].sort((a, b) => a.sequence - b.sequence) }
 }

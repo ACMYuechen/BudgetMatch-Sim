@@ -1,80 +1,66 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Layout, Menu, Button, Space, Avatar, Dropdown } from 'antd'
-import {
-  HomeOutlined,
-  ShoppingOutlined,
-  ThunderboltOutlined,
-  RobotOutlined,
-  UserOutlined,
-  LogoutOutlined,
-  ShoppingCartOutlined,
-} from '@ant-design/icons'
-import { useAuthStore } from '@/stores/authStore'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link, NavLink, useLocation, useNavigation } from 'react-router-dom'
+import { Avatar, Button, Drawer, Dropdown, Spin } from 'antd'
+import { HomeOutlined, ShoppingOutlined, ThunderboltOutlined, RobotOutlined, UserOutlined, LogoutOutlined, ProfileOutlined, MenuOutlined, DownOutlined } from '@ant-design/icons'
+import { Brand } from './Brand'
+import { useAuth } from '@/hooks/useAuth'
+import { authPath } from '@/utils/authNavigation'
+import { isAdmin } from '@/utils/admin'
 
-const { Header, Content, Footer } = Layout
+const navigation = [
+  { to: '/', label: '首页', icon: <HomeOutlined /> },
+  { to: '/recommend', label: '预算推荐', icon: <RobotOutlined /> },
+  { to: '/products', label: '发现商品', icon: <ShoppingOutlined /> },
+  { to: '/seckill', label: '限时秒杀', icon: <ThunderboltOutlined /> },
+  { to: '/orders', label: '我的订单', icon: <ProfileOutlined /> },
+]
 
-interface AppLayoutProps {
-  children: ReactNode
-}
-
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation()
-  const navigate = useNavigate()
-  const { userInfo, isAuthenticated, clearAuth } = useAuthStore()
-
-  const menuItems = [
-    { key: '/', icon: <HomeOutlined />, label: <Link to="/">首页</Link> },
-    { key: '/products', icon: <ShoppingOutlined />, label: <Link to="/products">商城</Link> },
-    { key: '/orders', icon: <ShoppingCartOutlined />, label: <Link to="/orders">我的订单</Link> },
-    { key: '/seckill', icon: <ThunderboltOutlined />, label: <Link to="/seckill">秒杀</Link> },
-    { key: '/recommend', icon: <RobotOutlined />, label: <Link to="/recommend">AI推荐</Link> },
-  ]
-
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login')
-  }
-
-  const userMenuItems = [
-    { key: 'profile', icon: <UserOutlined />, label: <Link to="/profile">个人中心</Link> },
-    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
-  ]
+  const { state: navigationState } = useNavigation()
+  const { userInfo, isAuthenticated, clearAuth } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const returnTo = `${location.pathname}${location.search}${location.hash}`
+  const links = navigation.map(({ to, label, icon }) => (
+    <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} onClick={() => setMenuOpen(false)}>
+      {icon}<span>{label}</span>
+    </NavLink>
+  ))
 
   return (
-    <Layout className="min-h-screen">
-      <Header className="flex items-center justify-between bg-white shadow-sm px-6">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="text-xl font-bold text-blue-600">
-            BudgetMatch Sim
-          </Link>
-          <Menu
-            mode="horizontal"
-            selectedKeys={[location.pathname]}
-            items={menuItems}
-            className="border-b-0"
-          />
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">跳到主要内容</a>
+      <header className="site-header">
+        <div className="header-inner">
+          <Brand />
+          <nav className="desktop-nav" aria-label="主导航">{links}</nav>
+          <div className="header-actions">
+            {isAuthenticated ? (
+              <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: [
+                { key: 'profile', icon: <UserOutlined />, label: <Link to="/profile">个人中心</Link> },
+                ...(isAdmin(userInfo?.role) ? [{ key: 'admin', icon: <ProfileOutlined />, label: <Link to="/admin">管理工作台</Link> }] : []),
+                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: clearAuth },
+              ] }}>
+                <button type="button" className="account-button" aria-label="账户菜单">
+                  <Avatar size={30} src={userInfo?.avatar || undefined} icon={<UserOutlined />} />
+                  <span className="account-name">{userInfo?.username || '我的账户'}</span><DownOutlined />
+                </button>
+              </Dropdown>
+            ) : (
+              <Link to={authPath('login', returnTo)}><Button type="primary">登录 / 注册</Button></Link>
+            )}
+            <Button className="mobile-menu-button" icon={<MenuOutlined />} aria-label="打开导航菜单" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)} />
+          </div>
         </div>
-        <div>
-          {isAuthenticated ? (
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <Space className="cursor-pointer">
-                <Avatar icon={<UserOutlined />} />
-                <span>{userInfo?.username || '用户'}</span>
-              </Space>
-            </Dropdown>
-          ) : (
-            <Space>
-              <Button type="primary" onClick={() => navigate('/login')}>登录</Button>
-              <Button onClick={() => navigate('/register')}>注册</Button>
-            </Space>
-          )}
-        </div>
-      </Header>
-      <Content className="p-6 max-w-7xl mx-auto w-full">{children}</Content>
-      <Footer className="text-center text-gray-500">
-        BudgetMatch-Sim ©{new Date().getFullYear()} - 智能预算推荐实验平台
-      </Footer>
-    </Layout>
+      </header>
+      <Drawer title="探索 BudgetMatch" open={menuOpen} onClose={() => setMenuOpen(false)} width="min(320px, 100vw)">
+        <nav className="mobile-nav" aria-label="移动端导航">{links}</nav>
+      </Drawer>
+      <main id="main-content" tabIndex={-1} className="site-content" aria-busy={navigationState === 'loading'}>
+        {navigationState === 'loading' && <div className="navigation-progress" role="status"><Spin size="small" /> 正在打开页面…</div>}
+        {children}
+      </main>
+      <footer className="site-footer"><span>BudgetMatch © {new Date().getFullYear()}</span><span>让每一份预算，都有更好的选择。</span></footer>
+    </div>
   )
 }

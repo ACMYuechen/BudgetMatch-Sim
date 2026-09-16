@@ -6,6 +6,8 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 
 ## 服务拓扑
 
+下图使用 `make dev` 的默认宿主机访问端口；容器内地址和全容器模式见 [README](README.md#服务架构)。
+
 ```
             ┌─────────────┐      ┌─────────────┐
             │  Admin API  │      │   App API   │   REST Gateway (cmd/)
@@ -27,7 +29,7 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
               │               │               │
      ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
      │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
-     │    :5432        │  │ :12379 │ │ :9876 / :10911   │
+     │    :15432       │  │ :22379 │ │ :19876 / :10911  │
      │  Redis :6379    │  │        │ │                  │
      └─────────────────┘  └────────┘ └──────────────────┘
 ```
@@ -41,16 +43,18 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 | `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
 | `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
 | `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
-| `postgres` | 5432 | 主数据库 |
+| `web-ui` | 5173 / 8080 | Vite 开发入口 / Compose 前端入口 |
+| `postgres` | 15432 | 主数据库，容器内为 5432 |
 | `redis` | 6379 | 缓存与限流 |
-| `etcd` | 12379 | 服务注册与动态配置 |
-| `rocketmq` | 9876 / 10911 | 消息队列 |
+| `etcd` | 22379 / 12379 | `make dev` / Compose 默认宿主机端口，容器内为 2379 |
+| `rocketmq` | 19876 / 9876；10911 | NameServer 的 `make dev` / Compose 默认宿主机端口；Broker 端口 |
 
 ## 技术栈
 
-- **语言**: Go 1.22+
+- **语言**: Go 1.26.8（以 `go.mod` 为准，工具链维护见 [开发文档](Contributors.md#工具链与依赖版本)）
 - **Web 框架**: [go-zero](https://github.com/zeromicro/go-zero)
 - **RPC**: gRPC + Protocol Buffers
+- **前端**: React + Vite + Ant Design；Node.js 20 与 npm（与当前 CI 保持一致）
 - **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
 - **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)，通过 `mark3labs/mcp-go` 接入
 - **数据库**: PostgreSQL 16（pgvector 镜像，含向量扩展）
@@ -132,6 +136,8 @@ make dev
 
 启动顺序：基础设施（postgres / redis / rocketmq / etcd）→ auth-rpc → seckill-rpc → mall-rpc → agent-rpc → payment-rpc → app → admin。
 
+该命令不启动前端；另开终端在 `web-ui` 下运行 `npm ci`、`npm run dev`。用户端入口为 `http://localhost:5173`，管理端为 `/admin`。开发代理区分 `/api/admin` → `10001` 与其余 `/api` → `10002`。前端实现进度、接口边界与模拟测试见 [前端路线图](docs/frontend-roadmap.md)。
+
 ### 3. 生成代码
 
 ```bash
@@ -143,7 +149,7 @@ make api-all
 ### 4. 测试
 
 ```bash
-# 单元测试
+# Go 测试（需配置独立测试环境，见 docs/ci.md）
 make test
 
 # 冒烟测试（验证端口与健康检查）
@@ -214,8 +220,8 @@ MCP:
 ### 如何调试 agent-rpc
 
 ```bash
-cd services/rpc/agent
-go run . -f etc/config.yaml
+# 从仓库根目录运行，并提前配置服务所需环境变量
+go run -C services/rpc/agent . -f etc/config.yaml
 # 或查看日志
 tail -f logs/agent-rpc.log
 ```
@@ -268,12 +274,14 @@ curl -X POST http://localhost:10002/api/agent/recommend/stream \
 
 相关开发规范见：
 
-- [本地开发与代码生成](docs/dev.md)
-- [Git 提交规范](docs/git.md)
+- [开发与 Git 提交规范](Contributors.md)
 - [CI 说明](docs/ci.md)
+- [前端进度与验证](docs/frontend-roadmap.md)
 - [错误库规范](infra/errors/README.md)
 
 ## 接口文档
 
-- Admin API: [docs/admin-api.json](docs/admin-api.json)
-- App API: [docs/app-api.json](docs/app-api.json)
+- Admin API 定义：[cmd/admin/desc/admin.api](cmd/admin/desc/admin.api)
+- App API 定义：[cmd/app/desc/app.api](cmd/app/desc/app.api)
+
+`make api-all` 会生成 `docs/admin-api.json`、`docs/app-api.json`，这些 JSON 被 Git 忽略，干净检出中不保证存在。命令同时重新生成 API/RPC 代码，执行后需检查差异。

@@ -46,24 +46,7 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-		Secret: c.JwtAuth.Secret,
-		AdminMethods: map[string]struct{}{
-			"/seckill.ActivityService/CreateActivity":  {},
-			"/seckill.ActivityService/UpdateActivity":  {},
-			"/seckill.ActivityService/GetActivity":     {},
-			"/seckill.ActivityService/ListActivities":  {},
-			"/seckill.ActivityService/DeleteActivity":  {},
-			"/seckill.ActivityService/PreheatActivity": {},
-			"/seckill.ActivityService/OnlineActivity":  {},
-			"/seckill.ActivityService/OfflineActivity": {},
-			"/seckill.SkuService/CreateSku":            {},
-			"/seckill.SkuService/UpdateSku":            {},
-			"/seckill.SkuService/GetSku":               {},
-			"/seckill.SkuService/ListSkusByActivity":   {},
-			"/seckill.SkuService/DeleteSku":            {},
-		},
-	}))
+		interceptor.UnaryServerInterceptor(seckillAuthConfig(c.JwtAuth.Secret)))
 
 	sg.Add(s)
 

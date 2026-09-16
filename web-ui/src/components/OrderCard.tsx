@@ -1,49 +1,16 @@
-import { Card, Tag, Button, Space } from 'antd'
+import { Link } from 'react-router-dom'
+import { Card, Tag } from 'antd'
 import { PriceDisplay } from './PriceDisplay'
+import { OrderItems } from './OrderItems'
+import { CancelOrderButton } from './CancelOrderButton'
 import { formatDateTime, getOrderStatusText, getOrderStatusColor, OrderStatus } from '@/utils/format'
 import type { Order } from '@/types/api'
 
-interface OrderCardProps {
-  order: Order
-  onCancel?: (order: Order) => void
-  onView?: (order: Order) => void
-}
-
-export function OrderCard({ order, onCancel, onView }: OrderCardProps) {
-  return (
-    <Card
-      title={
-        <Space>
-          <span>订单号: {order.id}</span>
-          <Tag color={getOrderStatusColor(order.status)}>{getOrderStatusText(order.status)}</Tag>
-        </Space>
-      }
-      extra={
-        <Space>
-          <Button type="link" onClick={() => onView?.(order)}>查看详情</Button>
-          {order.status === OrderStatus.PENDING && (
-            <Button danger type="link" onClick={() => onCancel?.(order)}>取消</Button>
-          )}
-        </Space>
-      }
-    >
-      <div className="space-y-3">
-        {order.items.map((item, idx) => (
-          <div key={idx} className="flex justify-between items-center">
-            <div>
-              <div className="font-medium">{item.sku_name}</div>
-              <div className="text-gray-500 text-sm">数量: {item.quantity}</div>
-            </div>
-            <PriceDisplay cents={item.total_amount} />
-          </div>
-        ))}
-        <div className="flex justify-between items-center pt-3 border-t">
-          <div className="text-gray-500 text-sm">创建时间: {formatDateTime(order.created_at)}</div>
-          <div className="text-lg">
-            总计: <PriceDisplay cents={order.pay_amount} />
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
+export function OrderCard({ order, returnTo, onCancelled }: { order: Order; returnTo: string; onCancelled: () => void }) {
+  return <Card className="order-card">
+    <div className="order-card-heading"><div><span className="commerce-note">订单号</span><p className="break-anywhere">{order.id}</p></div><Tag color={getOrderStatusColor(order.status)}>{getOrderStatusText(order.status)}</Tag></div>
+    <OrderItems items={order.items} />
+    <div className="order-card-total"><span className="commerce-note">{formatDateTime(order.created_at)}</span><span>应付金额 <PriceDisplay cents={order.pay_amount} /></span></div>
+    <div className="order-actions">{order.status === OrderStatus.PENDING && <CancelOrderButton orderId={order.id} onCancelled={onCancelled} />}<Link className="order-detail-link" to={`/orders/${encodeURIComponent(order.id)}`} state={{ orderList: returnTo }}>{order.status === OrderStatus.PENDING ? '查看并支付' : '查看详情'} →</Link></div>
+  </Card>
 }

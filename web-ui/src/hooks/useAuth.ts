@@ -6,16 +6,18 @@ export function useAuth() {
   const { token, userInfo, isAuthenticated, setAuth, clearAuth } = useAuthStore()
 
   useEffect(() => {
+    const controller = new AbortController()
     if (token && !userInfo) {
-      fetchUserInfo()
+      fetchUserInfo(controller.signal)
         .then((data) => {
-          setAuth(token, data)
+          if (!controller.signal.aborted && useAuthStore.getState().token === token) setAuth(token, data)
         })
         .catch(() => {
-          clearAuth()
+          // 401 统一由请求层处理；网络故障不清除已有登录状态。
         })
     }
-  }, [token, userInfo, setAuth, clearAuth])
+    return () => controller.abort()
+  }, [token, userInfo, setAuth])
 
   return {
     token,
