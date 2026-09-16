@@ -56,13 +56,17 @@ instance.interceptors.response.use(
     const status = error.response?.status
     const data = error.response?.data
 
-    if (status === 401 && !error.config?.url?.startsWith('/auth/')) {
+    // 一次性秒杀令牌过期是业务错误，不是登录 JWT 失效。
+    const seckillTokenExpired = error.config?.url === '/seckill/orders' && (data as ErrorResponse | undefined)?.code === 401003
+    if (status === 401 && !seckillTokenExpired && !error.config?.url?.startsWith('/auth/')) {
       const authorization = error.config?.headers?.Authorization
       expireSession(typeof authorization === 'string' ? authorization.replace(/^Bearer\s+/i, '') : null)
     }
 
     const backendMsg = extractErrorMessage(data)
-    const fallback = status === 401 ? '登录信息无效或已过期，请重新登录'
+    const fallback = seckillTokenExpired ? '秒杀令牌已失效，请核对提交结果后重新尝试'
+      : status === 401 ? '登录信息无效或已过期，请重新登录'
+      : status === 429 ? '操作过于频繁，请稍后再试'
       : error.code === 'ECONNABORTED' ? '请求超时，请稍后重试'
         : !error.response ? '暂时无法连接服务，请检查网络后重试'
           : status && status >= 500 ? '服务暂时不可用，请稍后重试' : '请求失败，请稍后重试'

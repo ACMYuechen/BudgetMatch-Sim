@@ -5,6 +5,7 @@ import { HomeOutlined, ShoppingOutlined, ThunderboltOutlined, RobotOutlined, Use
 import { Brand } from './Brand'
 import { useAuth } from '@/hooks/useAuth'
 import { authPath } from '@/utils/authNavigation'
+import { isAdmin } from '@/utils/admin'
 
 const navigation = [
   { to: '/', label: '首页', icon: <HomeOutlined /> },
@@ -37,6 +38,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {isAuthenticated ? (
               <Dropdown trigger={['click']} placement="bottomRight" menu={{ items: [
                 { key: 'profile', icon: <UserOutlined />, label: <Link to="/profile">个人中心</Link> },
+                ...(isAdmin(userInfo?.role) ? [{ key: 'admin', icon: <ProfileOutlined />, label: <Link to="/admin">管理工作台</Link> }] : []),
                 { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: clearAuth },
               ] }}>
                 <button type="button" className="account-button" aria-label="账户菜单">

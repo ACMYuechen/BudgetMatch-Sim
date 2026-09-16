@@ -1,96 +1,31 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Card, List, Tag, Button, Spin, Empty, Statistic } from 'antd'
-import { ThunderboltOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { useCallback } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Button, Empty, Tag } from 'antd'
 import { getActivityList } from '@/api/seckill'
-import { formatDateTime } from '@/utils/format'
-import type { Activity } from '@/types/api'
-
-const { Countdown } = Statistic
+import { Pagination } from '@/components/Pagination'
+import { ProductImage } from '@/components/ProductImage'
+import { ResourceState } from '@/components/ResourceState'
+import { useResource } from '@/hooks/useResource'
+import { useNow } from '@/hooks/useNow'
+import { readPage, readPageSize } from '@/utils/mall'
+import { activityState, countdown, formatMilliseconds } from '@/utils/seckill'
 
 export default function SeckillListPage() {
-  const navigate = useNavigate()
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setLoading(true)
-    getActivityList({ page: 1, page_size: 100 })
-      .then((res) => setActivities(res.list || []))
-      .finally(() => setLoading(false))
-  }, [])
-
-  const getStatusTag = (activity: Activity) => {
-    const now = new Date().getTime()
-    const start = new Date(activity.start_time).getTime()
-    const end = new Date(activity.end_time).getTime()
-
-    if (now < start) return <Tag color="blue">即将开始</Tag>
-    if (now > end) return <Tag color="default">已结束</Tag>
-    return <Tag color="red">进行中</Tag>
-  }
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">限时秒杀</h1>
-
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Spin size="large" />
-        </div>
-      ) : activities.length === 0 ? (
-        <Empty description="暂无秒杀活动" />
-      ) : (
-        <List
-          grid={{ gutter: 24, column: 2 }}
-          dataSource={activities}
-          renderItem={(activity) => {
-            const now = new Date().getTime()
-            const start = new Date(activity.start_time).getTime()
-            const end = new Date(activity.end_time).getTime()
-            const isOngoing = now >= start && now <= end
-            const deadline = isOngoing ? end : start
-
-            return (
-              <List.Item>
-                <Card
-                  title={
-                    <div className="flex items-center gap-2">
-                      <ThunderboltOutlined className="text-red-500" />
-                      {activity.name}
-                    </div>
-                  }
-                  extra={getStatusTag(activity)}
-                >
-                  <div className="space-y-4">
-                    <p className="text-gray-600">{activity.description || '暂无活动描述'}</p>
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>开始: {formatDateTime(activity.start_time)}</span>
-                      <span>结束: {formatDateTime(activity.end_time)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-gray-500">
-                          {isOngoing ? '距离结束还剩' : '距离开始还剩'}
-                        </div>
-                        <Countdown value={deadline} format="HH:mm:ss" />
-                      </div>
-                      <Button
-                        type="primary"
-                        disabled={!isOngoing}
-                        icon={<ArrowRightOutlined />}
-                        onClick={() => navigate(`/seckill/${activity.id}`)}
-                      >
-                        立即参与
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </List.Item>
-            )
-          }}
-        />
-      )}
-    </div>
-  )
+  const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const page = readPage(params.get('page'))
+  const size = readPageSize(params.get('page_size'), [10, 20, 50])
+  const load = useCallback((signal: AbortSignal) => getActivityList({ page, page_size: size }, signal), [page, size])
+  const { data, loading, error, reload } = useResource(load)
+  const now = useNow()
+  return <div className="commerce-page">
+    <div className="commerce-heading"><div><span className="eyebrow">好东西，也有好时机</span><h1>限时秒杀</h1><p>先看清活动，再决定是否参与。抢购结果以服务端确认为准。</p></div><Button onClick={reload} loading={loading}>刷新活动</Button></div>
+    <ResourceState loading={loading} error={error} retry={reload} />
+    {data && <>{data.list?.length ? <div className="seckill-grid">{data.list.map((activity) => {
+      const state = activityState(activity, now)
+      return <article className="seckill-card" key={activity.id}><ProductImage src={activity.banner_url} name={activity.title} /><div className="seckill-card-body"><Tag color={state.open ? 'green' : 'default'}>{state.label}</Tag><h2>{activity.title}</h2><p>{activity.description || '活动详情待补充'}</p><div className="seckill-times"><span>开始：{formatMilliseconds(activity.start_time)}</span><span>结束：{formatMilliseconds(activity.end_time)}</span></div>{state.deadline > 0 && <div className="seckill-countdown"><span>{state.open ? '距离结束' : '距离开始'}</span><strong>{countdown(state.deadline, now)}</strong></div>}<Link to={`/seckill/${encodeURIComponent(activity.id)}`} state={{ activityList: `${location.pathname}${location.search}` }}><Button type={state.open ? 'primary' : 'default'} block>查看活动</Button></Link></div></article>
+    })}</div> : <Empty description="暂无秒杀活动">{page > 1 && <Button onClick={() => setParams({})}>回到第一页</Button>}</Empty>}<Pagination page={page} pageSize={size} total={data.total} onChange={(value, nextSize) => setParams({ page: String(size === nextSize ? value : 1), page_size: String(nextSize) })} /></>}
+    <p className="commerce-note">倒计时使用设备时间，仅供参考。秒杀订单与商城订单分开查询。</p>
+    <Link className="commerce-text-link" to="/seckill/orders">已有秒杀订单号？查询结果 →</Link>
+  </div>
 }

@@ -83,24 +83,39 @@ export interface Order {
 
 export interface Activity {
   id: string
-  name: string
+  title: string
   description: string
-  start_time: string
-  end_time: string
+  banner_url: string
+  start_time: number
+  end_time: number
   status: number
-  created_at: string
-  updated_at: string
+  created_at: number
+  updated_at?: number
 }
 
 export interface SeckillSku {
   id: string
   activity_id: string
-  sku_id: string
-  sku_name: string
+  title: string
+  subtitle: string
+  pic: string
+  original_price: number
   seckill_price: number
   stock: number
-  limit: number
+  sold: number
+  sort: number
   status: number
+  lock_stock?: number
+}
+
+export interface SeckillOrder {
+  order_id: string
+  activity_id: string
+  sku_id: string
+  quantity: number
+  total_amount: number
+  status: number
+  created_at: number
 }
 
 /** 可跨轮继承的结构化推荐约束。 */
