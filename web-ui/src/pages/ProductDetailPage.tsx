@@ -1,174 +1,99 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import {
-  Card,
-  Button,
-  Descriptions,
-  Radio,
-  InputNumber,
-  Spin,
-  Empty,
-  message,
-  Tag,
-} from 'antd'
-import { ShoppingCartOutlined } from '@ant-design/icons'
-import { getProductDetail, getSkuList, createOrder } from '@/api/mall'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Alert, Button, Card, Empty, Input, InputNumber, Modal, Radio, Tag } from 'antd'
+import { getProductDetail, getAllProductSkus, createOrder } from '@/api/mall'
+import { ProductImage } from '@/components/ProductImage'
 import { PriceDisplay } from '@/components/PriceDisplay'
-import { formatDateTime, generateIdempotencyKey } from '@/utils/format'
+import { ResourceState } from '@/components/ResourceState'
+import { useResource } from '@/hooks/useResource'
+import { formatPrice, generateIdempotencyKey } from '@/utils/format'
+import { formatSpecs } from '@/utils/mall'
 import type { Product, Sku } from '@/types/api'
 
-export default function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>()
+function PurchasePanel({ product, skus }: { product: Product; skus: Sku[] }) {
+  const [params] = useSearchParams()
   const navigate = useNavigate()
-  const [product, setProduct] = useState<Product | null>(null)
-  const [skus, setSkus] = useState<Sku[]>([])
-  const [loading, setLoading] = useState(false)
-  const [selectedSku, setSelectedSku] = useState<string | null>(null)
-  const [quantity, setQuantity] = useState(1)
+  const available = (sku: Sku) => sku.status === 1 && sku.stock > 0
+  const [selectedId, setSelectedId] = useState(() => skus.find((sku) => sku.id === params.get('sku') && available(sku))?.id || skus.find(available)?.id)
+  const [quantity, setQuantity] = useState<number | null>(1)
+  const [remark, setRemark] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const requestRef = useRef<AbortController | null>(null)
+  const keys = useRef(new Map<string, string>())
+  useEffect(() => () => requestRef.current?.abort(), [])
+  const selected = skus.find((sku) => sku.id === selectedId)
+  const maxQuantity = Math.min(selected?.stock || 0, 99)
+  const total = (selected?.price || 0) * (quantity || 0)
+  const valid = product.status === 1 && selected && available(selected) && quantity !== null && Number.isInteger(quantity) && quantity >= 1 && quantity <= maxQuantity && Number.isSafeInteger(total)
 
-  useEffect(() => {
-    if (!id) return
-    setLoading(true)
-    Promise.all([getProductDetail(id), getSkuList({ product_id: id, page: 1, page_size: 100 })])
-      .then(([productRes, skuRes]) => {
-        setProduct(productRes.product)
-        setSkus(skuRes.list || [])
-        if (skuRes.list?.length > 0) {
-          setSelectedSku(skuRes.list[0].id)
-        }
-      })
-      .finally(() => setLoading(false))
-  }, [id])
-
-  const selectedSkuInfo = skus.find((s) => s.id === selectedSku)
-
-  const handleCreateOrder = async () => {
-    if (!selectedSkuInfo) {
-      message.warning('请选择 SKU')
-      return
-    }
-    if (quantity <= 0) {
-      message.warning('请输入购买数量')
-      return
-    }
-    if (quantity > selectedSkuInfo.stock) {
-      message.warning('库存不足')
-      return
-    }
-
+  const submit = async () => {
+    if (!valid || !selected || quantity === null || requestRef.current) return
+    const controller = new AbortController()
+    requestRef.current = controller
     setSubmitting(true)
+    setError('')
+    // 同一购买内容重试时复用幂等键，避免超时后再次创建订单。
+    const signature = JSON.stringify([selected.id, quantity, remark.trim()])
+    const key = keys.current.get(signature) || generateIdempotencyKey()
+    keys.current.set(signature, key)
     try {
-      const res = await createOrder({
-        sku_id: selectedSkuInfo.id,
-        quantity,
-        remark: '',
-        idempotency_key: generateIdempotencyKey(),
-      })
-      message.success('下单成功')
-      navigate(`/orders/${res.order_id}`)
+      const result = await createOrder({ sku_id: selected.id, quantity, remark: remark.trim(), idempotency_key: key }, controller.signal)
+      if (!result.order_id) throw new Error('服务未返回订单号，请先到我的订单确认结果')
+      if (!controller.signal.aborted) navigate(`/orders/${encodeURIComponent(result.order_id)}`)
     } catch (err) {
-      message.error((err as Error).message)
+      if (!controller.signal.aborted) setError((err as Error).message)
     } finally {
-      setSubmitting(false)
+      if (!controller.signal.aborted) { requestRef.current = null; setSubmitting(false) }
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spin size="large" />
-      </div>
-    )
-  }
-
-  if (!product) {
-    return <Empty description="商品不存在" />
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <div className="flex gap-8">
-          <div className="w-80 h-80 bg-gray-100 flex items-center justify-center rounded-lg overflow-hidden">
-            {product.main_image ? (
-              <img src={product.main_image} alt={product.name} className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-gray-400">暂无图片</span>
-            )}
-          </div>
-          <div className="flex-1 space-y-6">
-            <h1 className="text-2xl font-bold">{product.name}</h1>
-            <Descriptions column={2}>
-              <Descriptions.Item label="品牌">{product.brand || '-'}</Descriptions.Item>
-              <Descriptions.Item label="状态">
-                <Tag color={product.status === 1 ? 'green' : 'default'}>
-                  {product.status === 1 ? '在售' : '下架'}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="创建时间">{formatDateTime(product.created_at)}</Descriptions.Item>
-            </Descriptions>
-            <div className="text-gray-600">{product.detail || '暂无商品详情'}</div>
-          </div>
+  return <Card title="选一个适合你的规格" className="purchase-panel">
+    {product.status !== 1 && <Alert type="warning" showIcon message="商品已下架，暂时无法购买" />}
+    {!skus.length ? <Empty description="暂时没有可购买的规格" /> : <>
+      <Radio.Group aria-label="商品规格" className="sku-options" value={selectedId} disabled={submitting || product.status !== 1} onChange={(event) => { setSelectedId(event.target.value); setQuantity(1) }}>
+        {skus.map((sku) => <Radio key={sku.id} value={sku.id} disabled={!available(sku)} className="sku-option">
+          <span className="sku-option-name">{sku.name} <span>{formatPrice(sku.price)}</span></span>
+          <span className="sku-specs">{formatSpecs(sku.specs)}{sku.status !== 1 ? ' · 已下架' : sku.stock <= 0 ? ' · 暂时缺货' : ''}</span>
+        </Radio>)}
+      </Radio.Group>
+      {selected ? <>
+        <div className="purchase-quantity"><div><label htmlFor="purchase-quantity">购买数量</label><span>库存 {selected.stock} 件 · 每单最多 {maxQuantity} 件</span></div>
+          <InputNumber id="purchase-quantity" value={quantity} min={1} max={maxQuantity} precision={0} disabled={submitting || product.status !== 1} onChange={setQuantity} />
         </div>
-      </Card>
+        <label className="purchase-remark">订单备注（选填）<Input.TextArea value={remark} maxLength={200} showCount autoSize={{ minRows: 2, maxRows: 4 }} disabled={submitting} onChange={(event) => setRemark(event.target.value)} placeholder="有什么需要告诉我们的吗？" /></label>
+        <div className="purchase-total"><span>商品合计</span><PriceDisplay cents={total} /></div>
+        <Button type="primary" size="large" block disabled={!valid} onClick={() => { setConfirmOpen(true); setError('') }}>确认购买</Button>
+        <p className="commerce-note">确认后创建待支付订单，实际成交信息以订单为准。</p>
+      </> : <Alert type="info" showIcon message="所有规格暂时缺货，请稍后再来看看" />}
+    </>}
+    <Modal title="确认订单" open={confirmOpen} okText={error ? '重试提交' : '提交订单'} cancelText="再想想" confirmLoading={submitting} okButtonProps={{ disabled: !valid }} cancelButtonProps={{ disabled: submitting }} closable={!submitting} maskClosable={!submitting} keyboard={!submitting} onCancel={() => setConfirmOpen(false)} onOk={submit}>
+      <div className="checkout-summary"><h3>{product.name}</h3><p>{selected?.name} · {quantity} 件</p><p>{selected && formatSpecs(selected.specs)}</p>{remark.trim() && <p>备注：{remark.trim()}</p>}<div className="purchase-total"><span>应付金额</span><PriceDisplay cents={total} /></div></div>
+      {error && <Alert type="error" showIcon message={error} description={<span>若提交结果不确定，请先<Link to="/orders">查看我的订单</Link>。在本页重试同一购买内容会复用请求标识。</span>} />}
+    </Modal>
+  </Card>
+}
 
-      <Card title="选择规格">
-        {skus.length === 0 ? (
-          <Empty description="暂无 SKU" />
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <div className="mb-2 font-medium">SKU:</div>
-              <Radio.Group
-                value={selectedSku}
-                onChange={(e) => setSelectedSku(e.target.value)}
-                optionType="button"
-                buttonStyle="solid"
-              >
-                {skus.map((sku) => (
-                  <Radio.Button key={sku.id} value={sku.id} disabled={sku.status !== 1}>
-                    {sku.name}
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
-            </div>
-
-            {selectedSkuInfo && (
-              <div className="flex items-center gap-8">
-                <div>
-                  <div className="text-gray-500">价格</div>
-                  <PriceDisplay cents={selectedSkuInfo.price} className="text-2xl" />
-                </div>
-                <div>
-                  <div className="text-gray-500">库存</div>
-                  <div className="text-lg">{selectedSkuInfo.stock}</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">数量</div>
-                  <InputNumber
-                    min={1}
-                    max={selectedSkuInfo.stock}
-                    value={quantity}
-                    onChange={(v) => setQuantity(v || 1)}
-                    size="large"
-                  />
-                </div>
-              </div>
-            )}
-
-            <Button
-              type="primary"
-              size="large"
-              icon={<ShoppingCartOutlined />}
-              loading={submitting}
-              onClick={handleCreateOrder}
-            >
-              立即下单
-            </Button>
-          </div>
-        )}
-      </Card>
-    </div>
-  )
+export default function ProductDetailPage() {
+  const { id = '' } = useParams()
+  const { state } = useLocation()
+  const listTarget = typeof state?.productList === 'string' && /^\/products(?:\?|$)/.test(state.productList) ? state.productList : '/products'
+  const load = useCallback(async (signal: AbortSignal) => {
+    const [result, skus] = await Promise.all([getProductDetail(id, signal), getAllProductSkus(id, signal)])
+    return { product: result.product, skus }
+  }, [id])
+  const { data, loading, error, reload } = useResource(load)
+  return <div className="commerce-page">
+    <Link className="commerce-text-link" to={listTarget}>← 返回商品列表</Link>
+    <ResourceState loading={loading} error={error} retry={reload} />
+    {data?.product ? <div className="product-detail-grid">
+      <div className="product-story"><ProductImage src={data.product.image} name={data.product.name} /><div className="product-description">
+        <span className="eyebrow">{data.product.providor || '来源未标注'}</span><h1>{data.product.name}</h1>
+        <Tag color={data.product.status === 1 ? 'green' : 'default'}>{data.product.status === 1 ? '在售' : '已下架'}</Tag>
+        <h2>关于这件商品</h2><p>{data.product.content || '商品详情待补充。'}</p>
+      </div></div>
+      <PurchasePanel key={id} product={data.product} skus={data.skus} />
+    </div> : data && <Empty description="商品不存在或已被移除" />}
+  </div>
 }

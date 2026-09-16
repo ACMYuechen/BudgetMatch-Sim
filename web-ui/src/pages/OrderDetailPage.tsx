@@ -1,185 +1,80 @@
-import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Button, Spin, Empty, Tag, message, Modal, QRCode, Space } from 'antd'
-import { ArrowLeftOutlined, PayCircleOutlined } from '@ant-design/icons'
-import { getOrderDetail, cancelOrder, createPayment, queryPayment } from '@/api/mall'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { Alert, Button, Card, Descriptions, Empty, Tag } from 'antd'
+import { getOrderDetail, createPayment, type PaymentSession } from '@/api/mall'
 import { PriceDisplay } from '@/components/PriceDisplay'
+import { OrderItems } from '@/components/OrderItems'
+import { CancelOrderButton } from '@/components/CancelOrderButton'
+import { PaymentDialog } from '@/components/PaymentDialog'
+import { ResourceState } from '@/components/ResourceState'
+import { useResource } from '@/hooks/useResource'
+import { PaymentStatus } from '@/constants/paymentStatus'
 import { formatDateTime, getOrderStatusText, getOrderStatusColor, OrderStatus } from '@/utils/format'
-import type { Order } from '@/types/api'
+
+function OrderDetail({ id }: { id: string }) {
+  const { state } = useLocation()
+  const listTarget = typeof state?.orderList === 'string' && /^\/orders(?:\?|$)/.test(state.orderList) ? state.orderList : '/orders'
+  const load = useCallback((signal: AbortSignal) => getOrderDetail(id, signal), [id])
+  const { data, loading, error, reload } = useResource(load)
+  const order = data?.order
+  const [payment, setPayment] = useState<PaymentSession | null>(null)
+  const [payLoading, setPayLoading] = useState(false)
+  const [payError, setPayError] = useState('')
+  const [settledStatus, setSettledStatus] = useState<number | null>(null)
+  const requestRef = useRef<AbortController | null>(null)
+  useEffect(() => () => requestRef.current?.abort(), [])
+  const settled = useCallback((status: number) => { setSettledStatus(status); reload() }, [reload])
+
+  const pay = async () => {
+    if (requestRef.current || order?.status !== OrderStatus.PENDING || settledStatus !== null) return
+    const controller = new AbortController()
+    requestRef.current = controller
+    setPayLoading(true)
+    setPayError('')
+    try {
+      const result = await createPayment(id, controller.signal)
+      if (!controller.signal.aborted) setPayment(result)
+    } catch (err) {
+      if (!controller.signal.aborted) setPayError((err as Error).message)
+    } finally {
+      if (!controller.signal.aborted) { requestRef.current = null; setPayLoading(false) }
+    }
+  }
+
+  return <div className="commerce-page order-detail-page">
+    <Link className="commerce-text-link" to={listTarget}>← 返回订单列表</Link>
+    <div className="commerce-heading"><div><span className="eyebrow">你的购物记录</span><h1>订单详情</h1></div><Button loading={loading} disabled={payLoading || !!payment} onClick={reload}>刷新订单</Button></div>
+    {payError && <Alert type="error" showIcon message="发起支付失败" description={payError} />}
+    {settledStatus === PaymentStatus.SUCCESS && order?.status === OrderStatus.PENDING && <Alert type="info" showIcon message="已确认支付成功，订单状态同步中" description="请稍后刷新订单，勿重复付款。" />}
+    {settledStatus === PaymentStatus.CLOSED && <Alert type="warning" showIcon message="该支付已关闭" description="请刷新订单确认状态。如需重新购买，请先确认原订单已取消。" />}
+    <ResourceState loading={loading} error={error} retry={reload} />
+    {order ? <>
+      <Card>
+        <div className="order-detail-heading"><Tag color={getOrderStatusColor(order.status)}>{getOrderStatusText(order.status)}</Tag>
+          {order.status === OrderStatus.PENDING && <div className="order-actions">
+            <CancelOrderButton orderId={order.id} disabled={payLoading || !!payment || settledStatus === PaymentStatus.SUCCESS} onCancelled={reload} />
+            <Button type="primary" loading={payLoading} disabled={!!payment || settledStatus !== null} onClick={pay}>去支付</Button>
+          </div>}
+        </div>
+        <Descriptions column={{ xs: 1, sm: 2 }} items={[
+          { key: 'id', label: '订单号', children: <span className="break-anywhere">{order.id}</span>, span: 2 },
+          { key: 'created', label: '创建时间', children: formatDateTime(order.created_at) },
+          { key: 'updated', label: '更新时间', children: formatDateTime(order.updated_at) },
+          { key: 'type', label: '支付方式', children: order.pay_type || '尚未支付' },
+          { key: 'paid', label: '支付时间', children: formatDateTime(order.pay_time) },
+          { key: 'remark', label: '订单备注', children: <span className="break-anywhere">{order.remark || '无'}</span>, span: 2 },
+        ]} />
+      </Card>
+      <Card title="商品清单"><OrderItems items={order.items} />
+        <div className="order-amounts"><div><span>商品原价</span><PriceDisplay cents={order.original_amount} /></div><div><span>优惠金额</span><span>− <PriceDisplay cents={order.discount_amount} /></span></div><div className="purchase-total"><span>应付金额</span><PriceDisplay cents={order.pay_amount} /></div></div>
+      </Card>
+    </> : data && <Empty description="订单不存在或无法访问" />}
+    {payment && <PaymentDialog orderId={id} payment={payment} onClose={() => setPayment(null)} onSettled={settled} />}
+  </div>
+}
 
 export default function OrderDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [payModalOpen, setPayModalOpen] = useState(false)
-  const [payLoading, setPayLoading] = useState(false)
-  const [qrCode, setQrCode] = useState('')
-  const [outTradeNo, setOutTradeNo] = useState('')
-  const paymentCheckTimer = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    if (!id) return
-    setLoading(true)
-    getOrderDetail(id)
-      .then((res) => setOrder(res.order))
-      .finally(() => setLoading(false))
-  }, [id])
-
-  useEffect(() => {
-    return () => {
-      if (paymentCheckTimer.current) {
-        clearInterval(paymentCheckTimer.current)
-      }
-    }
-  }, [])
-
-  const handleCancel = async () => {
-    if (!id) return
-    try {
-      await cancelOrder(id)
-      message.success('取消成功')
-      const res = await getOrderDetail(id)
-      setOrder(res.order)
-    } catch (err) {
-      message.error((err as Error).message)
-    }
-  }
-
-  const handlePay = async () => {
-    if (!id) return
-    setPayLoading(true)
-    try {
-      const res = await createPayment(id)
-      setQrCode(res.qr_code)
-      setOutTradeNo(res.out_trade_no)
-      setPayModalOpen(true)
-      startPaymentCheck()
-    } catch (err) {
-      message.error((err as Error).message)
-    } finally {
-      setPayLoading(false)
-    }
-  }
-
-  const startPaymentCheck = () => {
-    if (paymentCheckTimer.current) {
-      clearInterval(paymentCheckTimer.current)
-    }
-    paymentCheckTimer.current = setInterval(async () => {
-      try {
-        const res = await queryPayment(id!)
-        if (res.status === OrderStatus.PAID || res.status === 2) {
-          if (paymentCheckTimer.current) {
-            clearInterval(paymentCheckTimer.current)
-          }
-          setPayModalOpen(false)
-          message.success('支付成功！')
-          const orderRes = await getOrderDetail(id!)
-          setOrder(orderRes.order)
-        }
-      } catch (err) {
-        // 忽略查询错误，继续轮询
-      }
-    }, 3000)
-  }
-
-  const handlePayModalClose = () => {
-    if (paymentCheckTimer.current) {
-      clearInterval(paymentCheckTimer.current)
-    }
-    setPayModalOpen(false)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spin size="large" />
-      </div>
-    )
-  }
-
-  if (!order) {
-    return <Empty description="订单不存在" />
-  }
-
-  return (
-    <div className="space-y-6">
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/orders')}>
-        返回订单列表
-      </Button>
-
-      <Card
-        title={
-          <div className="flex items-center gap-4">
-            <span>订单详情</span>
-            <Tag color={getOrderStatusColor(order.status)}>
-              {getOrderStatusText(order.status)}
-            </Tag>
-          </div>
-        }
-        extra={
-          order.status === OrderStatus.PENDING && (
-            <Space>
-              <Button
-                type="primary"
-                icon={<PayCircleOutlined />}
-                loading={payLoading}
-                onClick={handlePay}
-              >
-                去支付
-              </Button>
-              <Button danger onClick={handleCancel}>取消订单</Button>
-            </Space>
-          )
-        }
-      >
-        <Descriptions column={2}>
-          <Descriptions.Item label="订单号">{order.id}</Descriptions.Item>
-          <Descriptions.Item label="创建时间">{formatDateTime(order.created_at)}</Descriptions.Item>
-          <Descriptions.Item label="支付方式">{order.pay_type || '-'}</Descriptions.Item>
-          <Descriptions.Item label="支付时间">{formatDateTime(order.pay_time)}</Descriptions.Item>
-          <Descriptions.Item label="备注">{order.remark || '-'}</Descriptions.Item>
-          <Descriptions.Item label="更新时间">{formatDateTime(order.updated_at)}</Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      <Card title="商品清单">
-        <div className="space-y-4">
-          {order.items.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex justify-between items-center p-4 bg-gray-50 rounded"
-            >
-              <div>
-                <div className="font-medium">{item.sku_name}</div>
-                <div className="text-gray-500 text-sm">数量: {item.quantity}</div>
-              </div>
-              <PriceDisplay cents={item.total_amount} />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end items-center mt-6 pt-4 border-t text-xl">
-          订单总计: <PriceDisplay cents={order.pay_amount} />
-        </div>
-      </Card>
-
-      <Modal
-        title="支付宝扫码支付"
-        open={payModalOpen}
-        onCancel={handlePayModalClose}
-        footer={null}
-        width={320}
-        centered
-      >
-        <div className="flex flex-col items-center py-4">
-          <QRCode value={qrCode} size={200} />
-          <p className="mt-4 text-gray-500">请使用支付宝扫描二维码支付</p>
-          <p className="text-sm text-gray-400">订单号: {outTradeNo}</p>
-          <p className="text-sm text-orange-500 mt-2">二维码有效期 15 分钟</p>
-        </div>
-      </Modal>
-    </div>
-  )
+  const { id = '' } = useParams()
+  // 详情地址变化时，清理原订单的支付请求和弹窗状态。
+  return <OrderDetail key={id} id={id} />
 }

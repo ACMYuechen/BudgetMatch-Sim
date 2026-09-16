@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid'
+
 export function formatPrice(cents: number): string {
   if (cents === undefined || cents === null) return '¥0.00'
   return `¥${(cents / 100).toFixed(2)}`
@@ -26,5 +28,5 @@ export function formatDate(iso: string): string {
 export { getOrderStatusText, getOrderStatusColor, OrderStatus } from '@/constants/orderStatus'
 
 export function generateIdempotencyKey(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  return uuidv4()
 }

@@ -28,13 +28,13 @@ export interface UserInfo {
 
 export interface Product {
   id: string
-  spu_code: string
+  user_id: string
   name: string
-  category_id: string
-  brand: string
+  content: string
+  image: string
+  providor: string
   status: number
-  main_image: string
-  detail: string
+  agent_comment: string
   created_at: string
   updated_at: string
 }
@@ -42,12 +42,13 @@ export interface Product {
 export interface Sku {
   id: string
   product_id: string
-  sku_code: string
   name: string
+  specs: string
   price: number
   stock: number
+  sold: number
   status: number
-  attributes: Record<string, string>
+  agent_comment: string
   created_at: string
   updated_at: string
 }
@@ -58,6 +59,7 @@ export interface OrderItem {
   sku_name: string
   price: number
   quantity: number
+  discount_amount: number
   total_amount: number
   snapshot: string
 }
