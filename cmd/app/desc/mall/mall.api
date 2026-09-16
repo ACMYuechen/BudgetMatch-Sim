@@ -66,6 +66,14 @@ type MallSkuListResp {
 	PageSize int           `json:"page_size"`
 }
 
+type MallSkuDetailReq {
+	Id string `path:"id" validate:"required"`
+}
+
+type MallSkuDetailResp {
+	Sku MallSkuItem `json:"sku"`
+}
+
 // ========== Order Types ==========
 
 type MallOrderItem {
@@ -191,6 +199,10 @@ service app {
 	@doc "SKU列表"
 	@handler SkuList
 	get /skus (MallSkuListReq) returns (MallSkuListResp)
+
+	@doc "SKU详情，用于推荐结果定位商品"
+	@handler SkuDetail
+	get /skus/:id (MallSkuDetailReq) returns (MallSkuDetailResp)
 
 	@doc "创建订单"
 	@handler CreateOrder

@@ -218,6 +218,14 @@ type MallSkuListResp struct {
 	PageSize int           `json:"page_size"`
 }
 
+type MallSkuDetailReq struct {
+	Id string `path:"id" validate:"required"`
+}
+
+type MallSkuDetailResp struct {
+	Sku MallSkuItem `json:"sku"`
+}
+
 type MallOrderItem struct {
 	ProductId      string `json:"product_id"`
 	SkuId          string `json:"sku_id"`

@@ -149,6 +149,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: mall.SkuListHandler(serverCtx),
 				},
 				{
+					// SKU详情，用于推荐结果定位商品
+					Method:  http.MethodGet,
+					Path:    "/skus/:id",
+					Handler: mall.SkuDetailHandler(serverCtx),
+				},
+				{
 					// 创建订单
 					Method:  http.MethodPost,
 					Path:    "/orders",

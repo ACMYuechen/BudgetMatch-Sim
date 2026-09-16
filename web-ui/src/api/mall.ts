@@ -14,6 +14,10 @@ export function getProductDetail(id: string, signal?: AbortSignal) {
   return request.get<{ product: Product }>(`/mall/products/${encodeURIComponent(id)}`, { signal })
 }
 
+export function getSkuDetail(id: string, signal?: AbortSignal) {
+  return request.get<{ sku: Sku }>(`/mall/skus/${encodeURIComponent(id)}`, { signal })
+}
+
 export function getSkuList(params: { product_id: string; page?: number; page_size?: number; status?: number }, signal?: AbortSignal) {
   return request.get<ListResp<Sku>>('/mall/skus', { params, signal })
 }
