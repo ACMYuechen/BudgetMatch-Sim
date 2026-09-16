@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Button,
@@ -129,6 +129,7 @@ export default function RecommendPage() {
   const [form] = Form.useForm<RecommendFormValues>()
   const navigate = useNavigate()
   const { conversationId } = useParams<{ conversationId: string }>()
+  const [searchParams] = useSearchParams()
   const [conversations, setConversations] = useState<AgentConversationSummary[]>([])
   const [conversation, setConversation] = useState<AgentConversationSummary | null>(null)
   const [turns, setTurns] = useState<AgentConversationTurn[]>([])
@@ -202,11 +203,17 @@ export default function RecommendPage() {
       setConversation(null)
       setTurns([])
       setHistoryLoading(false)
+      const budgetCents = Number(searchParams.get('budget_cents'))
+      form.setFieldsValue({
+        query: (searchParams.get('query') || '').slice(0, 2000),
+        budget: Number.isFinite(budgetCents) && budgetCents >= 100 && budgetCents <= MAX_BUDGET_YUAN * 100
+          ? budgetCents / 100 : undefined,
+      })
     }
     return () => {
       historyAbortRef.current?.abort()
     }
-  }, [conversationId, form, loadHistory])
+  }, [conversationId, form, loadHistory, searchParams])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: turns.length > 0 ? 'smooth' : 'auto', block: 'end' })

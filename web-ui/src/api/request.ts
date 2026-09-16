@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
-import { getItem, removeItem } from '@/utils/storage'
+import { useAuthStore } from '@/stores/authStore'
+import { expireSession } from '@/utils/session'
 
 interface CustomAxiosInstance extends AxiosInstance {
   get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>
@@ -22,6 +23,16 @@ function extractErrorMessage(data: unknown): string | null {
   return err.message || err.msg || err.error || null
 }
 
+export class ApiError extends Error {
+  status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 30000,
@@ -31,8 +42,8 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use((config) => {
-  const token = getItem<string>('token')
-  if (token && config.headers) {
+  const token = useAuthStore.getState().token
+  if (token && !config.headers.Authorization && !config.url?.startsWith('/auth/')) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -41,25 +52,21 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use(
   (response) => response.data,
   (error: AxiosError) => {
+    if (axios.isCancel(error)) return Promise.reject(error)
     const status = error.response?.status
     const data = error.response?.data
 
-    console.error('[API Error]', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status,
-      data,
-    })
-
-    if (status === 401) {
-      removeItem('token')
-      removeItem('userInfo')
-      window.location.href = '/login'
+    if (status === 401 && !error.config?.url?.startsWith('/auth/')) {
+      const authorization = error.config?.headers?.Authorization
+      expireSession(typeof authorization === 'string' ? authorization.replace(/^Bearer\s+/i, '') : null)
     }
 
     const backendMsg = extractErrorMessage(data)
-    const msg = backendMsg || error.message || `请求失败 (${status})`
-    return Promise.reject(new Error(msg))
+    const fallback = status === 401 ? '登录信息无效或已过期，请重新登录'
+      : error.code === 'ECONNABORTED' ? '请求超时，请稍后重试'
+        : !error.response ? '暂时无法连接服务，请检查网络后重试'
+          : status && status >= 500 ? '服务暂时不可用，请稍后重试' : '请求失败，请稍后重试'
+    return Promise.reject(new ApiError(backendMsg || fallback, status))
   }
 )
 

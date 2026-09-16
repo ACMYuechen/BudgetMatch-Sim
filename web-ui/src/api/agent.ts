@@ -1,5 +1,6 @@
 import request from './request'
-import { getItem, removeItem } from '@/utils/storage'
+import { useAuthStore } from '@/stores/authStore'
+import { expireSession } from '@/utils/session'
 import type {
   AgentConversationSummary,
   AgentConversationTurnsResp,
@@ -53,7 +54,7 @@ export async function* recommendStream(
   data: AgentRecommendReq,
   signal?: AbortSignal
 ) {
-  const token = getItem<string>('token')
+  const token = useAuthStore.getState().token
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/agent/recommend/stream`, {
     method: 'POST',
     headers: {
@@ -66,9 +67,7 @@ export async function* recommendStream(
 
   if (!res.ok) {
     if (res.status === 401) {
-      removeItem('token')
-      removeItem('userInfo')
-      window.location.href = '/login'
+      expireSession(token)
     }
     let detail = `请求失败 (${res.status})`
     try {

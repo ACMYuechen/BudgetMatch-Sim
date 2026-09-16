@@ -1,124 +1,55 @@
 import { useEffect, useState } from 'react'
-import { Card, Form, Input, Button, Radio, message, Spin } from 'antd'
-import { SaveOutlined } from '@ant-design/icons'
-import { getUserInfo, getUserProfile, updateUserProfile } from '@/api/user'
-import type { UpdateUserProfileReq, UserInfo, UserProfile } from '@/types/api'
+import { Link } from 'react-router-dom'
+import { Alert, Avatar, Button, Card, Descriptions, Skeleton, Space, Tag } from 'antd'
+import { UserOutlined, ReloadOutlined, ProfileOutlined, RobotOutlined } from '@ant-design/icons'
+import { getUserInfo } from '@/api/user'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function ProfilePage() {
-  const [form] = Form.useForm()
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const { token, userInfo, setAuth } = useAuthStore()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
+    if (!token) return
+    const controller = new AbortController()
     setLoading(true)
-    Promise.all([getUserInfo(), getUserProfile()])
-      .then(([infoRes, profileRes]) => {
-        setUserInfo(infoRes)
-        form.setFieldsValue(profileRes)
+    setError('')
+    getUserInfo(controller.signal)
+      .then((user) => {
+        if (!controller.signal.aborted && useAuthStore.getState().token === token) setAuth(token, user)
       })
-      .finally(() => setLoading(false))
-  }, [form])
-
-  const handleSubmit = async (values: UserProfile) => {
-    setSubmitting(true)
-    try {
-      const payload: UpdateUserProfileReq = {
-        real_name: values.real_name,
-        school: values.school,
-        major: values.major,
-        grade: values.grade,
-        gender: values.gender,
-        expected_city: values.expected_city,
-        expected_position: values.expected_position,
-        self_introduction: values.self_introduction,
-      }
-      await updateUserProfile(payload)
-      message.success('保存成功')
-    } catch (err) {
-      message.error((err as Error).message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spin size="large" />
-      </div>
-    )
-  }
+      .catch((err: Error) => {
+        if (!controller.signal.aborted) setError(err.message)
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [token, setAuth, revision])
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">个人中心</h1>
-
-      <Card title="基本信息">
-        {userInfo && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">用户名: </span>{userInfo.username}
-            </div>
-            <div>
-              <span className="text-gray-500">邮箱: </span>{userInfo.email}
-            </div>
-            <div>
-              <span className="text-gray-500">手机号: </span>{userInfo.phone || '-'}
-            </div>
-          </div>
-        )}
+    <div className="profile-page">
+      <div className="page-heading"><div><span className="eyebrow">你的 BudgetMatch</span><h1>个人中心</h1><p>查看账户信息，继续你的购物计划。</p></div>
+        <Button icon={<ReloadOutlined />} loading={loading} onClick={() => setRevision((value) => value + 1)}>刷新信息</Button>
+      </div>
+      {error && <Alert className="form-alert" type="error" showIcon message="账户信息加载失败" description={error} action={<Button onClick={() => setRevision((value) => value + 1)}>重试</Button>} />}
+      <Card>
+        {loading ? <Skeleton avatar active paragraph={{ rows: 4 }} /> : userInfo ? (
+          <>
+            <div className="profile-identity"><Avatar size={64} src={userInfo.avatar || undefined} icon={<UserOutlined />} /><div><h2>{userInfo.username}</h2><Tag color="green">{userInfo.role >= 1 && userInfo.role <= 99 ? '管理员' : '普通用户'}</Tag></div></div>
+            <Descriptions column={{ xs: 1, sm: 2 }} items={[
+              { key: 'email', label: '邮箱', children: userInfo.email || '未设置' },
+              { key: 'phone', label: '手机号', children: userInfo.phone || '未设置' },
+              { key: 'id', label: '账户 ID', children: <span className="account-id">{userInfo.id}</span>, span: 2 },
+            ]} />
+          </>
+        ) : <p>暂时没有可显示的账户信息，请点击刷新重试。</p>}
       </Card>
-
-      <Card title="编辑资料">
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item label="真实姓名" name="real_name">
-            <Input placeholder="真实姓名" />
-          </Form.Item>
-
-          <Form.Item label="学校" name="school">
-            <Input placeholder="学校" />
-          </Form.Item>
-
-          <Form.Item label="专业" name="major">
-            <Input placeholder="专业" />
-          </Form.Item>
-
-          <Form.Item label="年级" name="grade">
-            <Input placeholder="年级" />
-          </Form.Item>
-
-          <Form.Item label="性别" name="gender">
-            <Radio.Group>
-              <Radio value={0}>未知</Radio>
-              <Radio value={1}>男</Radio>
-              <Radio value={2}>女</Radio>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item label="期望城市" name="expected_city">
-            <Input placeholder="期望城市" />
-          </Form.Item>
-
-          <Form.Item label="期望岗位" name="expected_position">
-            <Input placeholder="期望岗位" />
-          </Form.Item>
-
-          <Form.Item label="个人简介" name="self_introduction">
-            <Input.TextArea rows={4} placeholder="介绍一下自己" />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              icon={<SaveOutlined />}
-              loading={submitting}
-            >
-              保存资料
-            </Button>
-          </Form.Item>
-        </Form>
+      <Card title="继续你的计划">
+        <Space wrap size="middle">
+          <Link to="/recommend"><Button type="primary" icon={<RobotOutlined />}>打开预算推荐</Button></Link>
+          <Link to="/orders"><Button icon={<ProfileOutlined />}>查看我的订单</Button></Link>
+        </Space>
       </Card>
     </div>
   )

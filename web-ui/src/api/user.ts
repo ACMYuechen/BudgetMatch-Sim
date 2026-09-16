@@ -1,14 +1,11 @@
 import request from './request'
-import type { UpdateUserProfileReq, UserInfo, UserProfile } from '@/types/api'
+import type { UserInfo } from '@/types/api'
 
-export function getUserInfo() {
-  return request.get<UserInfo>('/user/info')
-}
-
-export function getUserProfile() {
-  return request.get<UserProfile>('/user/profile')
-}
-
-export function updateUserProfile(data: UpdateUserProfileReq) {
-  return request.put<void>('/user/profile', data)
+export async function getUserInfo(signal?: AbortSignal, token?: string) {
+  const response = await request.get<{ user: UserInfo }>('/user/info', {
+    signal,
+    ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+  })
+  if (!response.user?.id) throw new Error('暂时无法获取账户信息，请稍后重试')
+  return response.user
 }

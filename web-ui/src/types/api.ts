@@ -16,35 +16,14 @@ export interface RegisterResp {
 }
 
 export interface UserInfo {
-  user_id: string
+  id: string
   username: string
   email: string
   avatar: string
   phone: string
   role: number
-}
-
-export interface UserProfile {
-  user_id: string
-  real_name: string
-  school: string
-  major: string
-  grade: string
-  gender: number
-  expected_city: string
-  expected_position: string
-  self_introduction: string
-}
-
-export interface UpdateUserProfileReq {
-  real_name?: string
-  school?: string
-  major?: string
-  grade?: string
-  gender?: number
-  expected_city?: string
-  expected_position?: string
-  self_introduction?: string
+  status: number
+  remark: string
 }
 
 export interface Product {
