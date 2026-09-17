@@ -211,7 +211,8 @@ make docker-down
 - 默认 Eino 工具为 `search_products`、`select_bundle`。文件工具默认关闭；启用后按认证用户隔离，写入另需 `AllowWrite` 和本轮 `/save <相对路径>` 指令，只创建、不覆盖。
 - MCP 默认关闭，只注入精确白名单内且声明只读的工具；配置在 `services/rpc/agent/etc/config.yaml`。日志与公开工具记录只保留执行元数据，不记录正文或原始错误。
 - 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。
-- 接口用法、会话数据模型、优化计划与验证记录统一见 [Agent 开发文档](docs/agent.md)（M1 业务约束与工具权限边界已完成本地验证；下一步 M2 离线评测，真实流式等仍待完善）。
+- 已提供无外部依赖的离线规则评测：`go run ./services/rpc/agent/cmd/eval -format markdown`，包含 64 条合成用例与固定快照。首版报告保留解析和推荐质量缺口，全量评测目前退出码为 1；真实向量/模型对照未运行。
+- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M1 和 M2.1 本地实现已完成；M2 仍待人工复核、脚本模型评测及后续对照，真实流式等尚未完成）。
 
 ## 错误处理与日志规范
 
