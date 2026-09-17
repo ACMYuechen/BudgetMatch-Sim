@@ -1,7 +1,11 @@
 // Package tools 提供推荐 Agent 所需的外部工具与数据提供者抽象。
 package tools
 
-import "context"
+import (
+	"context"
+
+	"budgetmatch-sim/services/rpc/agent/internal/agent"
+)
 
 // SearchProductsReq 表示搜索商品请求的参数。
 type SearchProductsReq struct {
@@ -12,16 +16,7 @@ type SearchProductsReq struct {
 }
 
 // ProductCandidate 表示一个候选商品的信息。
-type ProductCandidate struct {
-	Id         string   // Id 商品唯一标识
-	Name       string   // Name 商品名称
-	Category   string   // Category 商品分类
-	Source     string   // Source 商品来源
-	PriceCents int64    // PriceCents 商品价格，单位为分
-	Stock      int64    // Stock 库存数量
-	Sold       int64    // Sold 历史销量
-	Tags       []string // Tags 商品标签
-}
+type ProductCandidate = agent.ProductCandidate
 
 // ProductProvider 定义商品数据提供者的接口。
 type ProductProvider interface {

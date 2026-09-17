@@ -103,6 +103,9 @@ func (a *Agent) Name() string {
 
 // Run 执行一次完整的 ReAct 推荐流程。
 func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if a == nil || a.model == nil {
 		return nil, errors.New("llm chat model is not configured")
 	}
@@ -110,7 +113,10 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		return nil, errors.New("product provider and bundle selector are required")
 	}
 
-	intent := a.planner.Parse(input)
+	intent, err := a.planner.Resolve(input, nil)
+	if err != nil {
+		return nil, err
+	}
 	s := newSession(a.provider, a.selector, intent)
 
 	reactTools, err := businessTools(s, a.fileTools)
@@ -147,18 +153,20 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 			logx.Field("max_context_tokens", a.maxContextTokens),
 		)
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
-	final, err := reactAgent.Generate(ctx, messages,
+	_, err = reactAgent.Generate(ctx, messages,
 		einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
 	if err != nil {
 		return nil, err
 	}
 
-	var finalText string
-	if final != nil {
-		finalText = final.Content
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	return a.assemble(ctx, input, intent, s, finalText), nil
+	return a.assemble(ctx, input, intent, s)
 }
 
 // loadHistory 读取会话历史。记忆未启用或读取失败时返回空——
@@ -179,25 +187,20 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 }
 
 // assemble 把 session 中累积的类型化结果组装为业务响应。
-func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session, finalText string) *agentcore.Result {
+func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) (*agentcore.Result, error) {
 	items, total, calls := s.snapshot()
-	if len(items) == 0 {
+	if !s.hasSelection() {
 		var items2Err error
 		items, total, items2Err = a.fallbackSelect(ctx, input, intent, s)
 		detail := "model produced no bundle; used deterministic selection"
 		if items2Err != nil {
-			detail = "deterministic fallback failed: " + items2Err.Error()
+			return nil, items2Err
 		}
 		calls = append(calls, agentcore.ToolCall{
 			Name:    "selector.fallback",
 			Success: len(items) > 0,
 			Detail:  detail,
 		})
-	}
-
-	summaryText := strings.TrimSpace(finalText)
-	if summaryText == "" {
-		summaryText = deterministicSummary(len(items), total, intent.BudgetCents)
 	}
 
 	toolsUsed := make([]agentcore.ToolCall, 0, len(calls)+1)
@@ -208,18 +211,30 @@ func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agen
 	})
 	toolsUsed = append(toolsUsed, calls...)
 
-	return &agentcore.Result{
+	result := &agentcore.Result{
+		Candidates:      s.filterCandidates(nil),
 		Intent:          intent,
 		Items:           items,
 		TotalPriceCents: total,
-		Summary:         summaryText,
+		Summary:         agentcore.BundleSummary(len(items), total, intent.BudgetCents),
 		ToolsUsed:       toolsUsed,
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	limits, _ := agentcore.NewConstraints(intent)
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // fallbackSelect 在模型未给出套装时做确定性兜底：必要时先检索候选，再用选择器挑选。
-// 检索失败时返回错误详情，由调用方记入工具记录，便于排查"为什么没选出商品"。
+// 检索失败原样返回错误，不能把失败包装成一次成功的空推荐。
 func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) ([]agentcore.BundleItem, int64, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
 	if !s.hasCandidates() {
 		products, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
 			Query:       input.Query,
@@ -244,15 +259,4 @@ func (a *Agent) modelLabel() string {
 		}
 	}
 	return "model"
-}
-
-// deterministicSummary 生成无模型文本时的兜底摘要。
-func deterministicSummary(count int, total, budget int64) string {
-	if count == 0 {
-		return "No bundle was found within the current budget."
-	}
-	if budget <= 0 {
-		return fmt.Sprintf("Selected %d items with total price %.2f.", count, float64(total)/100)
-	}
-	return fmt.Sprintf("Selected %d items with total price %.2f, within budget %.2f.", count, float64(total)/100, float64(budget)/100)
 }

@@ -4,6 +4,7 @@ package recommend
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
@@ -11,6 +12,25 @@ import (
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
+
+type staticProductProvider []tools.ProductCandidate
+
+func (p staticProductProvider) Name() string { return "test.products" }
+func (p staticProductProvider) SearchProducts(context.Context, tools.SearchProductsReq) ([]tools.ProductCandidate, error) {
+	return p, nil
+}
+
+func TestRuleAgentRejectsUnsafeCandidateData(t *testing.T) {
+	provider := staticProductProvider{
+		{Id: "good", PriceCents: 100, Stock: 1}, {Id: "good", PriceCents: 100, Stock: 1},
+		{Id: "negative", PriceCents: -1, Stock: 1}, {Id: "overflow", PriceCents: math.MaxInt64, Stock: 1},
+		{Id: "", PriceCents: 1, Stock: 1}, {Id: "no-stock", PriceCents: 10, Stock: 0},
+	}
+	result, err := NewAgent(provider, selector.NewBundleSelector()).Run(context.Background(), agentcore.Input{Query: "keyboard", BudgetCents: 150, MaxItems: 3})
+	if err != nil || len(result.Items) != 1 || result.Items[0].Id != "good" || result.TotalPriceCents != 100 {
+		t.Fatalf("rule path accepted invalid candidates: %+v, %v", result, err)
+	}
+}
 
 // TestAgent_RunReturnsBundle 验证 Agent 能正确返回一个符合预算的商品组合。
 // 测试场景：用户输入中文查询"预算3000，帮我配一套性价比高的学习用品"，

@@ -7,7 +7,6 @@ import (
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 
 	"github.com/cloudwego/eino/components/tool"
-	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
 )
 
@@ -17,8 +16,8 @@ const detailLimit = 512
 // decorate 为工具统一套上「调用记录」与「错误转 JSON」两层装饰。
 //
 //   - 记录层：把每次工具调用（成功/失败）写入 session.calls，业务工具与 MCP 工具一视同仁；
-//   - 错误层：utils.WrapToolWithErrorHandler 把工具错误转成 JSON 反馈给模型，
-//     让 ReAct 能据此重试或降级，而不是让单个工具失败中断整个推理链。
+//   - 错误层：可恢复错误转为 JSON，允许模型修正工具参数；
+//     取消、超时和认证错误原样返回，不能被吞掉后继续推理。
 //
 // name 留空时（如 MCP 工具）由工具自身 Info() 解析。
 func decorate(s *session, name string, base tool.BaseTool) tool.BaseTool {
@@ -26,7 +25,7 @@ func decorate(s *session, name string, base tool.BaseTool) tool.BaseTool {
 	if !ok {
 		return base
 	}
-	return utils.WrapToolWithErrorHandler(&recordingTool{inner: inv, name: name, session: s}, toolErrorJSON)
+	return &recordingTool{inner: inv, name: name, session: s}
 }
 
 // recordingTool 是一层透明装饰器，在调用底层工具前后把结果记录到 session。
@@ -43,11 +42,20 @@ func (t *recordingTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 
 // InvokableRun 执行底层工具并记录一条工具调用。
 func (t *recordingTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	out, err := t.inner.InvokableRun(ctx, argumentsInJSON, opts...)
+	if stopped := ctx.Err(); stopped != nil {
+		return "", stopped
+	}
 	name := "tool." + t.resolveName(ctx)
 	if err != nil {
 		t.session.recordCall(agentcore.ToolCall{Name: name, Success: false, Detail: err.Error()})
-		return out, err
+		if agentcore.IsExecutionStopped(err) {
+			return "", err
+		}
+		return toolErrorJSON(ctx, err), nil
 	}
 	t.session.recordCall(agentcore.ToolCall{Name: name, Success: true, Detail: truncate(out)})
 	return out, nil

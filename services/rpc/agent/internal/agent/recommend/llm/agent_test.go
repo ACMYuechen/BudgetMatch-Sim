@@ -36,7 +36,7 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if result.Summary != "最终推荐结果" {
+	if result.Summary != agentcore.BundleSummary(len(result.Items), result.TotalPriceCents, result.Intent.BudgetCents) {
 		t.Fatalf("unexpected summary %q", result.Summary)
 	}
 	if len(result.Items) == 0 {
@@ -147,7 +147,7 @@ func TestAgentToleratesHistoryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
-	if result.Summary != "ok" {
+	if len(result.Items) == 0 || result.Summary != agentcore.BundleSummary(len(result.Items), result.TotalPriceCents, result.Intent.BudgetCents) {
 		t.Fatalf("expected run to succeed without history, got %+v", result)
 	}
 }

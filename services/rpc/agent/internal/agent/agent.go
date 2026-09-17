@@ -22,6 +22,18 @@ type Intent struct {
 	Preferences []string `json:"preferences"`  // Preferences 用户偏好标签列表
 }
 
+// ProductCandidate 是商品数据源提供的事实快照，不从模型回答中反序列化。
+type ProductCandidate struct {
+	Id         string
+	Name       string
+	Category   string
+	Source     string
+	PriceCents int64
+	Stock      int64
+	Sold       int64
+	Tags       []string
+}
+
 // BundleItem 表示推荐结果中的一个商品条目。
 type BundleItem struct {
 	Id         string  `json:"id"`          // Id 商品唯一标识
@@ -43,14 +55,16 @@ type ToolCall struct {
 
 // Result 表示 Agent 执行一次推荐后的完整结果。
 type Result struct {
-	Intent            Intent       `json:"intent"`             // Intent 解析出的用户意图
-	Items             []BundleItem `json:"items"`              // Items 推荐的商品列表
-	TotalPriceCents   int64        `json:"total_price_cents"`  // TotalPriceCents 推荐商品总价，单位为分
-	Summary           string       `json:"summary"`            // Summary 推荐结果摘要
-	ToolsUsed         []ToolCall   `json:"tools_used"`         // ToolsUsed 执行过程中使用的工具记录
-	ConversationId    string       `json:"conversation_id"`    // ConversationID 本次对话的会话标识，客户端携带它发起下一轮
-	ConversationTitle string       `json:"conversation_title"` // ConversationTitle 会话的稳定展示标题
-	TurnId            string       `json:"turn_id"`            // TurnId 本轮幂等标识，重试相同标识返回同一结果
+	// Candidates 仅供本轮最终校验，不暴露到 JSON、RPC 或会话持久化结果。
+	Candidates        []ProductCandidate `json:"-"`
+	Intent            Intent             `json:"intent"`             // Intent 解析出的用户意图
+	Items             []BundleItem       `json:"items"`              // Items 推荐的商品列表
+	TotalPriceCents   int64              `json:"total_price_cents"`  // TotalPriceCents 推荐商品总价，单位为分
+	Summary           string             `json:"summary"`            // Summary 推荐结果摘要
+	ToolsUsed         []ToolCall         `json:"tools_used"`         // ToolsUsed 执行过程中使用的工具记录
+	ConversationId    string             `json:"conversation_id"`    // ConversationID 本次对话的会话标识，客户端携带它发起下一轮
+	ConversationTitle string             `json:"conversation_title"` // ConversationTitle 会话的稳定展示标题
+	TurnId            string             `json:"turn_id"`            // TurnId 本轮幂等标识，重试相同标识返回同一结果
 }
 
 // Agent 是推荐 Agent 的抽象接口，每个实现代表一种推荐策略。

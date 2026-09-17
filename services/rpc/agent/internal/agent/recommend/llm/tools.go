@@ -3,6 +3,8 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/filetools"
@@ -147,45 +149,95 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 
 // searchProducts 是 search_products 的执行逻辑：检索候选商品并缓存到 session。
 func (s *session) searchProducts(ctx context.Context, args searchArgs) (*searchResult, error) {
-	if args.MaxItems <= 0 {
-		args.MaxItems = s.intent.MaxItems
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	limits, err := s.toolConstraints(args.BudgetCents, args.MaxItems)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(args.Query) == "" || utf8.RuneCountInString(args.Query) > agentcore.MaxQueryRunes || len(args.Keywords) > agentcore.MaxKeywords {
+		return nil, fmt.Errorf("%w: tool query or keyword count outside allowed range", agentcore.ErrInvalidInput)
+	}
+	for _, keyword := range args.Keywords {
+		if utf8.RuneCountInString(keyword) > agentcore.MaxKeywordRunes {
+			return nil, fmt.Errorf("%w: tool keyword is too long", agentcore.ErrInvalidInput)
+		}
 	}
 	products, err := s.provider.SearchProducts(ctx, tools.SearchProductsReq{
 		Query:       args.Query,
 		Keywords:    args.Keywords,
-		BudgetCents: args.BudgetCents,
-		MaxItems:    args.MaxItems,
+		BudgetCents: limits.BudgetCents,
+		MaxItems:    limits.MaxItems,
 	})
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	s.storeCandidates(products)
+	// 原始快照先入会话，使后来的缺货/非法快照也能使旧候选失效。
+	products = agentcore.NormalizeCandidates(products)
+	filtered := make([]tools.ProductCandidate, 0, len(products))
+	for _, product := range products {
+		if product.PriceCents <= limits.BudgetCents {
+			filtered = append(filtered, product)
+		}
+	}
 	return &searchResult{
-		Products: products,
-		Count:    len(products),
+		Products: filtered,
+		Count:    len(filtered),
 		Source:   s.provider.Name(),
 	}, nil
 }
 
 // selectBundle 是 select_bundle 的执行逻辑：从缓存候选中挑选套装并写回 session。
 func (s *session) selectBundle(ctx context.Context, args selectArgs) (*selectResult, error) {
-	_ = ctx
-	if args.MaxItems <= 0 {
-		args.MaxItems = s.intent.MaxItems
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	// 与 MaxItems 同等回落：模型按 schema 提示传 0 时用解析意图的预算兜底，
-	// 否则预算约束会被静默绕过。
-	if args.BudgetCents <= 0 {
-		args.BudgetCents = s.intent.BudgetCents
+	limits, err := s.toolConstraints(args.BudgetCents, args.MaxItems)
+	if err != nil {
+		return nil, err
+	}
+	if len(args.CandidateIds) > agentcore.MaxCandidateIDs {
+		return nil, fmt.Errorf("%w: too many candidate IDs", agentcore.ErrInvalidInput)
+	}
+	// 未知 ID 整次拒绝，而不是静默剔除后假装完成了模型请求。
+	known := make(map[string]struct{})
+	for _, candidate := range s.filterCandidates(nil) {
+		known[candidate.Id] = struct{}{}
+	}
+	for _, id := range args.CandidateIds {
+		if _, ok := known[id]; !ok {
+			return nil, fmt.Errorf("%w: unknown candidate ID", agentcore.ErrInvalidInput)
+		}
 	}
 	candidates := s.filterCandidates(args.CandidateIds)
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no product candidates available; call %s first", toolSearchProducts)
 	}
 	items, total := s.selector.Select(candidates, agentcore.Intent{
-		BudgetCents: args.BudgetCents,
-		MaxItems:    args.MaxItems,
+		BudgetCents: limits.BudgetCents,
+		MaxItems:    limits.MaxItems,
 	})
 	s.setBundle(items, total)
 	return &selectResult{Items: items, TotalPriceCents: total}, nil
+}
+
+// toolConstraints 是搜索和选择的唯一约束入口，调整记录不包含原始工具参数。
+func (s *session) toolConstraints(budget int64, count int32) (agentcore.Constraints, error) {
+	limits, err := agentcore.NewConstraints(s.intent)
+	if err != nil {
+		return agentcore.Constraints{}, err
+	}
+	limits, adjusted, err := limits.Restrict(budget, count)
+	if err != nil {
+		return agentcore.Constraints{}, err
+	}
+	if adjusted {
+		s.recordCall(agentcore.ToolCall{Name: "constraints.adjusted", Success: true, Detail: "tool limits capped by user constraints"})
+	}
+	return limits, nil
 }

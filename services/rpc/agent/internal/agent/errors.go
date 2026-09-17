@@ -1,6 +1,12 @@
 package agent
 
-import "errors"
+import (
+	"context"
+	"errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
 
 // ErrAgentNotFound 表示未找到指定名称的 Agent。
 var ErrAgentNotFound = errors.New("agent not found")
@@ -15,3 +21,19 @@ var ErrTurnConflict = errors.New("agent turn id is already bound to a different 
 
 // ErrInvalidInput 表示推荐请求未满足 Agent 业务入口的参数边界。
 var ErrInvalidInput = errors.New("invalid agent recommendation input")
+
+// ErrUnsafeResult 表示 Agent 结果违反业务约束或与商品事实不符，禁止保存和返回。
+var ErrUnsafeResult = errors.New("unsafe agent recommendation result")
+
+// IsExecutionStopped 识别不得转为工具自我恢复或规则降级的终止/权限错误。
+func IsExecutionStopped(err error) bool {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	switch status.Code(err) {
+	case codes.Canceled, codes.DeadlineExceeded, codes.Unauthenticated, codes.PermissionDenied:
+		return true
+	default:
+		return false
+	}
+}

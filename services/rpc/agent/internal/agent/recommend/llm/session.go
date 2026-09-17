@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"strings"
 	"sync"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
@@ -26,6 +27,7 @@ type session struct {
 	byId       map[string]tools.ProductCandidate
 	bundle     []agentcore.BundleItem
 	total      int64
+	selected   bool
 	calls      []agentcore.ToolCall
 }
 
@@ -46,6 +48,10 @@ func (s *session) storeCandidates(products []tools.ProductCandidate) {
 	defer s.mu.Unlock()
 
 	for _, product := range products {
+		if product.Id == "" || strings.TrimSpace(product.Id) != product.Id {
+			continue
+		}
+		product.Tags = append([]string(nil), product.Tags...)
 		if _, ok := s.byId[product.Id]; ok {
 			for i := range s.candidates {
 				if s.candidates[i].Id == product.Id {
@@ -69,7 +75,12 @@ func (s *session) filterCandidates(ids []string) []tools.ProductCandidate {
 		return append([]tools.ProductCandidate(nil), s.candidates...)
 	}
 	out := make([]tools.ProductCandidate, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
+		if _, duplicate := seen[id]; duplicate {
+			continue
+		}
+		seen[id] = struct{}{}
 		if candidate, ok := s.byId[id]; ok {
 			out = append(out, candidate)
 		}
@@ -90,6 +101,13 @@ func (s *session) setBundle(items []agentcore.BundleItem, total int64) {
 	defer s.mu.Unlock()
 	s.bundle = append([]agentcore.BundleItem(nil), items...)
 	s.total = total
+	s.selected = true
+}
+
+func (s *session) hasSelection() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.selected
 }
 
 // recordCall 追加一条工具调用记录。

@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	maxQueryRunes   = 2000
+	maxQueryRunes   = agentcore.MaxQueryRunes
 	maxIDRunes      = 128
-	maxRequestItems = 10
+	maxRequestItems = agentcore.MaxItems
 	// maxBudgetCents 为显式预算提供宽松但有限的传输边界，避免异常大整数进入检索与提示词。
-	maxBudgetCents int64 = 100_000_000_000
+	maxBudgetCents int64 = agentcore.MaxBudgetCents
 )
 
 // Service 编排推荐流程。
@@ -200,22 +200,74 @@ func sameTurnRequest(saved memory.Turn, input agentcore.Input) bool {
 
 // run 按 primary 优先、失败降级的顺序执行推荐。
 func (s *Service) run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var queries []string
+	// 旧的纯文本记忆可补充状态；已有结构化状态时不重复拉取整个窗口。
+	if input.PriorIntent == nil && s.memory != nil {
+		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
+		if err != nil {
+			logx.WithContext(ctx).Errorw("load intent history failed", logx.Field("error", err.Error()))
+		} else {
+			for _, msg := range history {
+				if msg != nil && msg.Role == schema.User {
+					queries = append(queries, msg.Content)
+				}
+			}
+		}
+	}
+	intent, err := NewPlanner().Resolve(input, queries)
+	if err != nil {
+		return nil, err
+	}
+	// 只覆盖传给 Agent 的执行副本；Recommend/saveTurn 仍保存原始输入以判定幂等。
+	input.BudgetCents, input.MaxItems = intent.BudgetCents, intent.MaxItems
 	if s.primary == nil {
-		return s.fallback.Run(ctx, input)
+		return s.runChecked(ctx, s.fallback, input, intent)
 	}
 
-	result, err := s.primary.Run(ctx, input)
+	result, err := s.runChecked(ctx, s.primary, input, intent)
 	if err == nil {
 		return result, nil
 	}
-	if errors.Is(err, agentcore.ErrContextTooLarge) {
+	if agentcore.IsExecutionStopped(err) || errors.Is(err, agentcore.ErrContextTooLarge) || errors.Is(err, agentcore.ErrInvalidInput) {
 		return nil, err
 	}
-	return s.fallbackAfterFailure(ctx, input, err)
+	return s.fallbackAfterFailure(ctx, input, intent, err)
+}
+
+// runChecked 在共享编排边界校验两条路径；异常结果不会进入 SaveTurn。
+func (s *Service) runChecked(ctx context.Context, runner agentcore.Agent, input agentcore.Input, intent agentcore.Intent) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	// 每次执行隔离可变切片，primary 不能污染 fallback 的有效约束。
+	prior := cloneIntent(intent)
+	input.PriorIntent = &prior
+	result, err := runner.Run(ctx, input)
+	if stopped := ctx.Err(); stopped != nil {
+		return nil, stopped
+	}
+	if err != nil {
+		return nil, err
+	}
+	limits, err := agentcore.NewConstraints(intent)
+	if err != nil {
+		return nil, err
+	}
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	result.Intent = cloneIntent(intent)
+	return result, nil
 }
 
 // saveTurn 将领域结果序列化后，与当前结构化意图一并原子持久化。
 func (s *Service) saveTurn(ctx context.Context, store memory.ConversationStore, input agentcore.Input, result *agentcore.Result) (memory.Conversation, memory.Turn, error) {
+	if err := ctx.Err(); err != nil {
+		return memory.Conversation{}, memory.Turn{}, err
+	}
 	resultJSON, err := json.Marshal(result)
 	if err != nil {
 		return memory.Conversation{}, memory.Turn{}, fmt.Errorf("encode recommendation result: %w", err)
@@ -351,15 +403,19 @@ func shortTitle(text string) string {
 }
 
 // fallbackAfterFailure 在 primary 失败时降级到 fallback，并附加一条失败工具记录。
-func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Input, cause error) (*agentcore.Result, error) {
-	result, err := s.fallback.Run(ctx, input)
+func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Input, intent agentcore.Intent, cause error) (*agentcore.Result, error) {
+	result, err := s.runChecked(ctx, s.fallback, input, intent)
 	if err != nil {
 		return nil, err
+	}
+	detail := "primary execution failed; used validated fallback"
+	if errors.Is(cause, agentcore.ErrUnsafeResult) {
+		detail = "primary result rejected by constraints; used validated fallback"
 	}
 	result.ToolsUsed = append(result.ToolsUsed, agentcore.ToolCall{
 		Name:    "primary." + s.primary.Name(),
 		Success: false,
-		Detail:  cause.Error(),
+		Detail:  detail,
 	})
 	return result, nil
 }

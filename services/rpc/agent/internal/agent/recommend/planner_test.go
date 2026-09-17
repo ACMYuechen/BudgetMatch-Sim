@@ -1,10 +1,33 @@
 package recommend
 
 import (
+	"errors"
 	"testing"
 
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
 )
+
+func TestPlannerResolveDecimalAndBoundaryBudgets(t *testing.T) {
+	for _, test := range []struct {
+		query string
+		want  int64
+	}{
+		{"预算 19.99 元买鼠标", 1999},
+		{"预算 0.29 元买笔", 29},
+		{"预算 1.001 千元买键盘", 100100},
+		{"预算 1000000000 元买电脑", agent.MaxBudgetCents},
+	} {
+		intent, err := NewPlanner().Resolve(agent.Input{Query: test.query}, nil)
+		if err != nil || intent.BudgetCents != test.want {
+			t.Fatalf("Resolve(%q) = %+v, %v; want %d", test.query, intent, err, test.want)
+		}
+	}
+	for _, query := range []string{"预算 1000000000.01 元", "预算 1-9999999999999999999999999 万元"} {
+		if _, err := NewPlanner().Resolve(agent.Input{Query: query}, nil); !errors.Is(err, agent.ErrInvalidInput) {
+			t.Fatalf("oversized text budget accepted: %q, %v", query, err)
+		}
+	}
+}
 
 // TestPlannerParseBudgetExpressions 验证 Planner 能解析中文、英文和缩写预算表达。
 func TestPlannerParseBudgetExpressions(t *testing.T) {

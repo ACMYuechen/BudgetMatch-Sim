@@ -56,8 +56,17 @@ func (a *Agent) Name() string {
 //  2. 候选搜索：调用 provider 根据意图关键词和预算搜索候选商品；
 //  3. 商品选择：通过 selector 从候选商品中按评分选出最优组合，确保总价不超出预算。
 func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	historyQueries := a.loadHistoryQueries(ctx, input)
-	intent := a.planner.ParseWithHistory(input, historyQueries)
+	intent, err := a.planner.Resolve(input, historyQueries)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	candidates, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
 		Query:       input.Query,
 		Keywords:    intent.Keywords,
@@ -73,13 +82,22 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		{Name: a.provider.Name(), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
 	}
 
-	return &agentcore.Result{
+	result := &agentcore.Result{
+		Candidates:      candidates,
 		Intent:          intent,
 		Items:           items,
 		TotalPriceCents: total,
-		Summary:         summary(len(items), total, intent.BudgetCents),
+		Summary:         agentcore.BundleSummary(len(items), total, intent.BudgetCents),
 		ToolsUsed:       toolsUsed,
-	}, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	constraints, _ := agentcore.NewConstraints(intent)
+	if err := constraints.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loadHistoryQueries 提取历史中的用户原始问题；读取失败时降级为单轮规则推荐。
@@ -103,15 +121,4 @@ func (a *Agent) loadHistoryQueries(ctx context.Context, input agentcore.Input) [
 		}
 	}
 	return queries
-}
-
-// summary 根据选中的商品数量、总价和预算生成结果摘要文本。
-func summary(count int, total, budget int64) string {
-	if count == 0 {
-		return "No bundle was found within the current budget."
-	}
-	if budget <= 0 {
-		return fmt.Sprintf("Selected %d items with total price %.2f.", count, float64(total)/100)
-	}
-	return fmt.Sprintf("Selected %d items with total price %.2f, within budget %.2f.", count, float64(total)/100, float64(budget)/100)
 }

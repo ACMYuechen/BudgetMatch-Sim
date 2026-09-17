@@ -3,8 +3,9 @@
 package recommend
 
 import (
+	"fmt"
+	"math/big"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
@@ -25,6 +26,25 @@ func NewPlanner() *Planner {
 //  3. 若未指定最大商品数，则使用默认值 3。
 func (p *Planner) Parse(input agent.Input) agent.Intent {
 	return p.ParseWithHistory(input, nil)
+}
+
+// Resolve 是运行时入口：解析前检查显式/持久化边界，解析后检查文本得到的有效值。
+// Parse 保留为纯解析辅助；业务执行不能绕过 Resolve 的最终边界校验。
+func (p *Planner) Resolve(input agent.Input, historyQueries []string) (agent.Intent, error) {
+	if input.BudgetCents < 0 || input.BudgetCents > agent.MaxBudgetCents ||
+		input.MaxItems < 0 || input.MaxItems > agent.MaxItems {
+		return agent.Intent{}, fmt.Errorf("%w: explicit constraints outside allowed range", agent.ErrInvalidInput)
+	}
+	if prior := input.PriorIntent; prior != nil {
+		if prior.BudgetCents < 0 || prior.BudgetCents > agent.MaxBudgetCents || prior.MaxItems < 0 || prior.MaxItems > agent.MaxItems {
+			return agent.Intent{}, fmt.Errorf("%w: stored constraints outside allowed range", agent.ErrInvalidInput)
+		}
+	}
+	intent := p.ParseWithHistory(input, historyQueries)
+	if _, err := agent.NewConstraints(intent); err != nil {
+		return agent.Intent{}, err
+	}
+	return intent, nil
 }
 
 // ParseWithHistory 结合历史用户问题解析意图。
@@ -232,21 +252,27 @@ func parseMatchedBudget(matches [][]string, amountIndex, unitIndex int) int64 {
 
 // budgetAmountToCents 将金额文本按单位换算为分。
 func budgetAmountToCents(amount, unit string) (int64, bool) {
-	value, err := strconv.ParseFloat(amount, 64)
-	if err != nil || value <= 0 {
+	// 十进制精确换算，避免 float64 舍入及超大金额转 int64 后变负、误用默认预算。
+	value, ok := new(big.Rat).SetString(amount)
+	if !ok || value.Sign() <= 0 {
 		return 0, false
 	}
-	if unit == "" && value < 10 {
+	if unit == "" && value.Cmp(big.NewRat(10, 1)) < 0 {
 		return 0, false
 	}
-
+	multiplier := int64(100)
 	switch strings.ToLower(unit) {
 	case "w", "万":
-		value *= 10000
+		multiplier *= 10000
 	case "k", "千":
-		value *= 1000
+		multiplier *= 1000
 	}
-	return int64(value * 100), true
+	value.Mul(value, big.NewRat(multiplier, 1))
+	if value.Cmp(big.NewRat(agent.MaxBudgetCents, 1)) > 0 {
+		// 保留“已识别但越界”，由 Resolve 拒绝，不能伪装成未识别。
+		return agent.MaxBudgetCents + 1, true
+	}
+	return new(big.Int).Quo(value.Num(), value.Denom()).Int64(), true
 }
 
 // extractKeywords 从用户查询中提取商品类别关键词。
