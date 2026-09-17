@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pgvector/pgvector-go"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -29,6 +30,58 @@ func newTestModel(t *testing.T) ProductVectorsModel {
 		_ = conn.Migrator().DropTable(&ProductVectors{})
 	})
 	return NewProductVectorsModel(conn)
+}
+
+// Requires the same disposable Postgres/pgvector database as newTestModel.
+// Without explicit RAG_TEST_PG_DSN this test skips; offline SQL traces are not
+// substituted for a claim about persisted database state.
+func TestPgVectorSyncPublicationRollback(t *testing.T) {
+	m := newTestModel(t)
+	ctx := context.Background()
+	require.NoError(t, m.CreateTable(3))
+	rows := []ProductVectors{preparedRow("same"), preparedRow("stale")}
+	for i := range rows {
+		rows[i].ContentHash = "old-hash"
+	}
+	require.NoError(t, m.Upsert(ctx, rows))
+	before, err := m.ListHashes(ctx)
+	require.NoError(t, err)
+	// The upsert succeeds inside the transaction; a missing metadata refresh
+	// target must roll it back and preserve the stale row instead of pruning it.
+	batch := preparedBatch(1)
+	batch.MetadataUpdates = append(batch.MetadataUpdates, MetadataUpdate{SkuId: "missing", Metadata: `{}`})
+	batch.KeepIDs = append(batch.KeepIDs, "missing")
+	pruned, err := m.PublishSync(ctx, batch)
+	require.ErrorContains(t, err, "refresh target changed")
+	require.Zero(t, pruned)
+	after, err := m.ListHashes(ctx)
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+	actual, err := m.SearchByVector(ctx, []float32{1, 0, 0}, 10)
+	require.NoError(t, err)
+	for _, row := range actual {
+		require.JSONEq(t, `{"stock":3}`, row.Metadata)
+	}
+	// The same scan succeeds when every refresh target exists.
+	pruned, err = m.PublishSync(ctx, preparedBatch(1))
+	require.NoError(t, err)
+	require.EqualValues(t, 1, pruned)
+	after, err = m.ListHashes(ctx)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"same": "old-hash", "sku-000": "new-hash"}, after)
+	actual, err = m.SearchByVector(ctx, []float32{1, 0, 0}, 10)
+	require.NoError(t, err)
+	for _, row := range actual {
+		if row.SkuId == "same" {
+			require.JSONEq(t, `{"stock":2}`, row.Metadata)
+		}
+	}
+	pruned, err = m.PublishSync(ctx, SyncBatch{Complete: true})
+	require.NoError(t, err)
+	require.EqualValues(t, 2, pruned)
+	after, err = m.ListHashes(ctx)
+	require.NoError(t, err)
+	require.Empty(t, after)
 }
 
 // TestPgVectorRoundTrip 验证建表幂等、维度变更重建、upsert 与余弦排序。

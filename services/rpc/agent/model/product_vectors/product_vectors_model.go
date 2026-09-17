@@ -54,6 +54,8 @@ type (
 		ListHashes(ctx context.Context) (map[string]string, error)
 		// DeleteNotIn 删除不在保留列表中的行（下架/删除的商品），返回删除行数。
 		DeleteNotIn(ctx context.Context, keepSkuIds []string) (int64, error)
+		// PublishSync atomically applies a complete prepared scan; no external I/O inside the transaction.
+		PublishSync(ctx context.Context, batch SyncBatch) (int64, error)
 		// SearchByVector 余弦相似度检索 topK 条，结果按相似度降序。
 		SearchByVector(ctx context.Context, vec []float32, topK int) ([]ScoredProductVector, error)
 	}

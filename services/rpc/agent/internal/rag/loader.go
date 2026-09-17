@@ -32,7 +32,7 @@ type mallCatalog interface {
 // MallProductLoader 实现 eino document.Loader：分页拉取 mall 全量上架商品与 SKU，
 // 每个上架 SKU 产出一个 Document（Content 为语义文本，业务快照进 MetaData）。
 // 只接受严格前进的游标与显式末页标志；失败返回 nil 而非部分文档。
-// 全量扫描不设页数截断；跨页快照一致性与同步取消由后续 M3.2 完善。
+// 全量扫描不设页数截断，受同步轮次 context 期限约束；跨页快照一致性仍待完善。
 type MallProductLoader struct {
 	client   mallCatalog
 	pageSize int32

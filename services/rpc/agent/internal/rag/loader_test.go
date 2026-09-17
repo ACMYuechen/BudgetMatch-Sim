@@ -165,3 +165,20 @@ func TestIndexDocumentTruncatesDetailsByRune(t *testing.T) {
 	text := strings.Repeat("中", detailLimit+10)
 	require.Len(t, []rune(truncateRunes(text, detailLimit)), detailLimit)
 }
+
+func TestMallCatalogCarriesExplicitCompletion(t *testing.T) {
+	for _, complete := range []bool{false, true} {
+		catalog := indexCatalogFunc(func(context.Context, *pb.ListProductIndexReq) (*pb.ListProductIndexResp, error) {
+			return &pb.ListProductIndexResp{Complete: complete}, nil
+		})
+		scan, err := NewMallProductLoader(catalog, 100).LoadCatalog(context.Background())
+		if complete {
+			require.NoError(t, err)
+			require.True(t, scan.Complete)
+			require.Empty(t, scan.Documents)
+		} else {
+			require.Error(t, err)
+			require.Equal(t, CatalogScan{}, scan)
+		}
+	}
+}

@@ -3,6 +3,7 @@ package rag
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"budgetmatch-sim/services/rpc/agent/model/product_vectors"
 
@@ -36,8 +37,6 @@ func NewIndexer(store *Store) *Indexer {
 
 // Store 索引文档，返回成功入库的文档 ID。
 func (i *Indexer) Store(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) (ids []string, err error) {
-	co := indexer.GetCommonOptions(&indexer.Options{Embedding: i.store.embedder}, opts...)
-
 	ctx = callbacks.EnsureRunInfo(ctx, i.GetType(), components.ComponentOfIndexer)
 	ctx = callbacks.OnStart(ctx, &indexer.CallbackInput{Docs: docs})
 	defer func() {
@@ -46,8 +45,45 @@ func (i *Indexer) Store(ctx context.Context, docs []*schema.Document, opts ...in
 		}
 	}()
 
+	rows, err := i.Prepare(ctx, docs, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err = ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err = i.store.model.Upsert(ctx, rows); err != nil {
+		return nil, err
+	}
+
+	ids = make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.SkuId)
+	}
+	callbacks.OnEnd(ctx, &indexer.CallbackOutput{IDs: ids})
+	return ids, nil
+}
+
+// Prepare embeds and validates all changed documents without writing the live
+// index. Pipeline publishes these rows together with metadata and pruning in one
+// short DB transaction; no database transaction spans external embedding calls.
+// It does not emit a Store-success callback before the rows are actually saved.
+func (i *Indexer) Prepare(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]product_vectors.ProductVectors, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if _, err := validateCatalogDocuments(docs); err != nil {
+		return nil, err
+	}
+	co := indexer.GetCommonOptions(&indexer.Options{Embedding: i.store.embedder}, opts...)
+	if co.Embedding == nil {
+		return nil, fmt.Errorf("rag: embedder is required")
+	}
 	rows := make([]product_vectors.ProductVectors, 0, len(docs))
 	for batchStart := 0; batchStart < len(docs); batchStart += embedBatchSize {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		batch := docs[batchStart:min(batchStart+embedBatchSize, len(docs))]
 
 		texts := make([]string, 0, len(batch))
@@ -57,6 +93,9 @@ func (i *Indexer) Store(ctx context.Context, docs []*schema.Document, opts ...in
 		vectors, embedErr := co.Embedding.EmbedStrings(ctx, texts)
 		if embedErr != nil {
 			return nil, fmt.Errorf("rag: embed %d documents: %w", len(batch), embedErr)
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
 		if len(vectors) != len(batch) {
 			return nil, fmt.Errorf("rag: expected %d vectors, got %d", len(batch), len(vectors))
@@ -71,20 +110,24 @@ func (i *Indexer) Store(ctx context.Context, docs []*schema.Document, opts ...in
 		}
 	}
 
-	if err = i.store.model.Upsert(ctx, rows); err != nil {
-		return nil, err
-	}
-
-	ids = make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row.SkuId)
-	}
-	callbacks.OnEnd(ctx, &indexer.CallbackOutput{IDs: ids})
-	return ids, nil
+	return rows, nil
 }
 
 // buildRow 把带业务快照的文档转换为向量表行。
 func (i *Indexer) buildRow(doc *schema.Document, vec []float64) (product_vectors.ProductVectors, error) {
+	if len(vec) != i.store.dim || i.store.dim <= 0 {
+		return product_vectors.ProductVectors{}, fmt.Errorf("rag: unexpected embedding dimension")
+	}
+	nonzero := false
+	for _, value := range vec {
+		if math.IsNaN(value) || math.IsInf(value, 0) || math.Abs(value) > math.MaxFloat32 {
+			return product_vectors.ProductVectors{}, fmt.Errorf("rag: invalid embedding value")
+		}
+		nonzero = nonzero || float32(value) != 0
+	}
+	if !nonzero {
+		return product_vectors.ProductVectors{}, fmt.Errorf("rag: zero embedding cannot support cosine retrieval")
+	}
 	meta, ok := CandidateFromDocument(doc)
 	if !ok {
 		return product_vectors.ProductVectors{}, fmt.Errorf("rag: document %s missing candidate metadata", doc.ID)

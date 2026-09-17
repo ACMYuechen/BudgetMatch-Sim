@@ -136,7 +136,7 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 		panic(safety.Protect(err))
 	}
 
-	syncer := rag.NewSyncer(pipeline, c.RAG.Normalize().SyncIntervalSeconds)
+	syncer := rag.NewSyncer(pipeline, c.RAG)
 	syncer.Start()
 	proc.AddShutdownListener(syncer.Stop)
 
