@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16。范围：`cmd/app`、`cmd/admin` 和当前 5 个 RPC 服务。
+核对日期：2026-09-16；Agent 工具边界更新至 2026-09-17 M1.3。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -18,7 +18,7 @@
 | `seckill-rpc`（10004） | 活动/SKU 配置写入及 `GetSku` 要求管理员，其余要求用户 | 查订单绑定 JWT 用户 | 领令牌、下单仍信任请求 `UserId`；一次性令牌未绑定用户 |
 | `mall-rpc`（10005） | 商品写入、Outbox 管理要求管理员；支付确认要求服务身份 | 普通订单接口依赖请求中的 `UserId` | 订单归属未绑定认证上下文；`UpdateOrderStatus` 未列入管理员方法 |
 | `payment-rpc`（10007） | 创建/查询支付要求用户；回调不要求用户 JWT | 支付流水绑定 JWT 用户；回写订单使用独立服务 JWT | 沿用通用用户 JWT 的角色时效与撤销限制 |
-| `agent-rpc`（10006） | 全部推荐/会话 RPC 要求用户 | 会话按认证用户隔离，无管理员跨用户特权 | 后台 RAG 同步没有服务凭据；文件工作区不按用户隔离 |
+| `agent-rpc`（10006） | 全部推荐/会话 RPC 要求用户 | 会话、可选文件工具按认证用户隔离，无管理员跨用户特权 | 后台 RAG 同步没有服务凭据；MCP 尚无 OS/网络沙箱 |
 
 后文的权限标签：
 
@@ -248,10 +248,11 @@ RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user
 
 LLM 工具权限需与会话权限分开理解：
 
-- `read_file`、`write_file` 使用统一的配置工作区，默认 `workspace/agent`；检查相对路径、目录穿越和符号链接逃逸，限制单次读取大小，写入后缀默认只允许 `.json`、`.md`、`.txt`。
-- 文件工作区没有按 `user_id` / `conversation_id` 分目录授权，也没有管理员专属工具判断。“会话隔离”不能推出“文件工具按用户隔离”。
-- MCP 配置默认关闭；开启后按照配置启动 stdio 子进程，并将服务端返回的工具加入模型工具集。当前适配层没有逐用户/逐角色的工具权限清单或调用审批。
-- 以上目录检查不是独立操作系统沙箱，MCP 工具也不会自动继承本地 `Workspace` 的文件限制。
+- 文件工具默认关闭；Linux 下启用后使用 `<Workspace>/users/<SHA-256(user_id)>`，身份仅来自认证上下文。请求持有目录根句柄，拒绝路径越界、非普通文件、末级符号链接和硬链接读取；读写只允许 `.json/.md/.txt` 子集，均有大小上限，目录/新文件权限分别为 0700/0600。
+- `write_file` 另需操作员 `AllowWrite` 和本轮原始消息首行 `/save <相对路径>`，只能一次创建指定文件、不覆盖。历史、模型和工具结果不能产生保存授权。同用户不同会话共享文件；管理员没有跨用户特权。文件发布与会话事务分离，不保证副作用 exactly-once。
+- MCP 默认关闭；只有非空精确 `AllowedTools` 白名单且工具声明只读时才暴露。启动经审计的绝对路径程序，不继承服务密钥、不转发认证 Header/Meta；临时目录、超时与进程组清理减少泄露及残留风险。没有按用户/角色细分的 MCP 清单或独立调用审批。
+- 以上不是独立操作系统/出网沙箱；只读声明需要信任服务端，MCP 不继承本地文件限制，仍可访问服务 OS 身份可访问的资源。文件正文会进入配置的模型上下文，不应放入凭据。旧共享文件不自动迁移，删除会话不清理用户文件。
+- Agent 工具记录和自有日志不再记录正文、原始错误；历史响应/幂等重放也过滤旧工具详情，但不追溯改写数据库或旧日志。其他服务日志的凭据风险仍保留。具体配置与限制见 [Agent 开发文档](agent.md#28-文件工具与-mcp-权限)。
 
 依据：[认证身份提取](../services/rpc/agent/internal/logic/recommendservice/common.go)、[会话 RPC 逻辑](../services/rpc/agent/internal/logic/recommendservice/)、[会话模型](../services/rpc/agent/model/conversation_memory/conversation_memory_model.go)、[依赖组装](../services/rpc/agent/internal/svc/service_context.go)、[后台同步](../services/rpc/agent/internal/rag/syncer.go)、[文件工作区](../services/rpc/agent/internal/filetools/workspace.go)、[MCP 适配](../services/rpc/agent/internal/agent/recommend/llm/mcp.go)。
 
@@ -304,7 +305,7 @@ RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 u
 
 ## 7. 待补齐事项（建议，不是现有能力）
 
-优先级用于后续排期：P0 为上线前应优先闭合的越权边界，P1 为重要权限一致性/身份控制，P2 为治理能力。以下均没有在本次文档变更中修复。
+优先级用于后续排期：P0 为上线前应优先闭合的越权边界，P1 为重要权限一致性/身份控制，P2 为治理能力。表中保留当前剩余缺口；Agent M1.3 已完成的用户文件隔离与工具白名单见第 4.5 节，不代表其他服务问题已解决。
 
 | 编号 | 优先级 | 当前问题 | 建议补齐方式 |
 | --- | --- | --- | --- |
@@ -318,7 +319,7 @@ RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 u
 | AUTH-04 | P1 | 部分认证日志包含原始 Token/验证码 | 敏感字段脱敏，补充日志回归测试；不要将凭据作为诊断文本 |
 | SERVICE-01 | P1 | 后台 RAG 没有服务身份，其他链路主要靠用户透传 | 为后台任务提供仅商品读取权限的服务身份，不使用伪造管理员用户 Token |
 | NETWORK-01 | P1 | RPC 对宿主机发布，缺少仓库级网络隔离配置 | 限制开发端口绑定；部署时收敛 RPC 暴露范围、配置网络策略与传输安全 |
-| AGENT-01 | P1 | 文件/MCP 工具没有用户级授权 | 按用户/会话隔离文件空间，限制工具清单、子进程权限及出网范围 |
+| AGENT-01 | P1 | MCP 缺少 OS/网络隔离及角色级授权，文件无累计容量配额 | 在已有用户文件隔离、精确白名单基础上补进程并发/资源配额、角色策略与部署隔离 |
 | GOVERNANCE-01 | P2 | 缺少统一权限点、服务矩阵、角色变更审计及 MQ 身份控制 | 在具体业务需求确定后设计细粒度权限，并补充自动化权限回归矩阵 |
 
 在这些缺口闭合前，建议只将当前配置用于受控开发环境；不能仅凭网关或前端的管理员判断认定已满足生产权限要求。
@@ -332,9 +333,9 @@ RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 u
 | [秒杀方法权限](../services/rpc/seckill/auth_test.go)、[秒杀订单归属](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic_test.go) | 已列方法的角色边界、查订单绑定身份 | 领令牌与提交订单已绑定身份 |
 | [支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)、[商城支付入口](../cmd/app/internal/logic/mall/payment_logic_test.go) | 部分跨用户/金额/通知检查 | 已真实调用支付宝、或完整支付链路无缺口 |
 | [支付确认身份](../services/rpc/mall/internal/logic/orderservice/confirm_payment_auth_test.go) | logic 拒绝缺失/错误服务身份，正确身份进入参数校验 | 完成了真实数据库支付确认事务测试 |
-| [Agent 身份提取](../services/rpc/agent/internal/logic/recommendservice/common_test.go)、[文件工作区](../services/rpc/agent/internal/filetools/workspace_test.go) | 私有 context 身份来源、路径/后缀/读取大小检查 | MCP 已沙箱化或文件已按用户隔离 |
+| [Agent 身份提取与历史脱敏](../services/rpc/agent/internal/logic/recommendservice/common_test.go)、[文件隔离](../services/rpc/agent/internal/filetools/security_linux_test.go)、[MCP 策略](../services/rpc/agent/internal/agent/recommend/llm/mcp_test.go) | 可信身份、用户私有文件、保存授权、路径竞态、工具白名单和元数据脱敏 | MCP 已被 OS/网络沙箱化、外部服务端确实只读或真实部署已验收 |
 
-本次执行并通过以下现有测试，未修改业务代码，也未运行真实跨服务越权请求或生产数据操作：
+2026-09-16 文档初次核对执行并通过以下现有测试，当时未修改业务代码，也未运行真实跨服务越权请求或生产数据操作；后续 M1.3 验证见 [Agent 执行记录](agent.md#14-执行记录)：
 
 ```bash
 go test ./infra/auth ./infra/interceptor ./infra/serviceauth \

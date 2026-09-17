@@ -85,7 +85,7 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 | `services/rpc/agent/internal/agent/recommend/agent.go` | 确定性规则推荐 Agent（兜底） |
 | `services/rpc/agent/internal/agent/recommend/llm/agent.go` | Eino ReAct LLM Agent，LLM 链路唯一编排入口 |
 | `services/rpc/agent/internal/agent/recommend/llm/chatmodel.go` | 模型工厂，封装 eino-ext 官方 OpenAI `ToolCallingChatModel` |
-| `services/rpc/agent/internal/agent/recommend/llm/tools.go` | Eino 工具定义：`search_products`、`select_bundle`、`read_file`、`write_file` |
+| `services/rpc/agent/internal/agent/recommend/llm/tools.go` | 默认注册商品搜索/选择；文件工具默认关闭，启用后按用户与当前保存指令授权 |
 | `services/rpc/agent/internal/agent/recommend/llm/mcp.go` | MCP 工具适配，把 MCP server 工具转成一等 Eino 工具 |
 | `services/rpc/agent/internal/agent/recommend/llm/prompt.go` | System prompt 与用户上下文 prompt |
 | `services/rpc/agent/internal/agent/recommend/llm/session.go` | 单次请求状态管理 |
@@ -205,15 +205,13 @@ agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
 ```yaml
 MCP:
   Enabled: false
-  Command: npx
-  Args:
-    - -y
-    - @modelcontextprotocol/server-everything
-    - stdio
+  Command: ""       # 已安装、经审计的服务端可执行文件绝对路径
+  Args: []
+  AllowedTools: []   # 空列表不启动；只允许精确名称且 readOnlyHint=true 的工具
   Timeout: 5000
 ```
 
-启用后，MCP server 暴露的工具会作为一等 Eino 工具注入 ReAct 工具集。
+启用后只注入白名单工具，模型名称加 `mcp_` 前缀。子进程不继承服务密钥，使用私有临时目录、超时和进程组清理；不是文件系统/网络沙箱，启用前必须审计服务端。文件工具另由 `FileTools.Enabled` 控制，写入还需 `AllowWrite` 与本轮首行 `/save <相对路径>`，只创建当前用户文件、不覆盖。具体配置与限制见 [Agent 开发文档](docs/agent.md#28-文件工具与-mcp-权限)。
 
 ## 常见任务
 
@@ -268,7 +266,7 @@ curl -X POST http://localhost:10002/api/agent/recommend/stream \
 - **RAG 首轮同步有延迟**：服务启动后商品向量在后台异步索引，完成前检索回退关键词模式，日志出现 `rag sync completed` 即就绪。
 - **SSE 是阶段事件流**：`POST /api/agent/recommend/stream` 目前是网关侧包装的阶段事件流，底层 agent-rpc 仍是 unary RPC，不是 token 级或工具调用级真实流式。
 - **不要编辑生成代码**：`pb/`、`client/`、`types.go`、`routes.go` 等由 goctl 生成，修改会被 `make api-all` 覆盖。
-- **MCP client 尚未复用**：当前每次请求启动新的 stdio MCP 子进程，高并发场景需引入连接池。
+- **MCP 并发治理待补**：启用且白名单非空时，每请求启动独立 stdio 子进程；已有超时与回收，尚无进程并发配额。是否池化应依据耗时证据，并防止跨用户状态串用。
 
 ## 分层规范
 
