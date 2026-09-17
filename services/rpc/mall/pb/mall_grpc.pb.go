@@ -826,3 +826,86 @@ var _OrderService_serviceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/rpc/mall/proto/mall.proto",
 }
+
+// ProductIndexServiceClient is the client API for ProductIndexService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProductIndexServiceClient interface {
+	ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error)
+}
+
+type productIndexServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProductIndexServiceClient(cc grpc.ClientConnInterface) ProductIndexServiceClient {
+	return &productIndexServiceClient{cc}
+}
+
+func (c *productIndexServiceClient) ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error) {
+	out := new(ListProductIndexResp)
+	err := c.cc.Invoke(ctx, "/mall.ProductIndexService/ListProductIndex", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ProductIndexServiceServer is the server API for ProductIndexService service.
+// All implementations must embed UnimplementedProductIndexServiceServer
+// for forward compatibility
+type ProductIndexServiceServer interface {
+	ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error)
+	mustEmbedUnimplementedProductIndexServiceServer()
+}
+
+// UnimplementedProductIndexServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedProductIndexServiceServer struct {
+}
+
+func (UnimplementedProductIndexServiceServer) ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProductIndex not implemented")
+}
+func (UnimplementedProductIndexServiceServer) mustEmbedUnimplementedProductIndexServiceServer() {}
+
+// UnsafeProductIndexServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProductIndexServiceServer will
+// result in compilation errors.
+type UnsafeProductIndexServiceServer interface {
+	mustEmbedUnimplementedProductIndexServiceServer()
+}
+
+func RegisterProductIndexServiceServer(s *grpc.Server, srv ProductIndexServiceServer) {
+	s.RegisterService(&_ProductIndexService_serviceDesc, srv)
+}
+
+func _ProductIndexService_ListProductIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProductIndexReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductIndexServiceServer).ListProductIndex(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mall.ProductIndexService/ListProductIndex",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductIndexServiceServer).ListProductIndex(ctx, req.(*ListProductIndexReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _ProductIndexService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "mall.ProductIndexService",
+	HandlerType: (*ProductIndexServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListProductIndex",
+			Handler:    _ProductIndexService_ListProductIndex_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/rpc/mall/proto/mall.proto",
+}

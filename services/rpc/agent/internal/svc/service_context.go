@@ -17,6 +17,7 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 	"budgetmatch-sim/services/rpc/agent/model/product_vectors"
+	"budgetmatch-sim/services/rpc/mall/client/productindexservice"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,7 +35,7 @@ type ServiceContext struct {
 
 // NewServiceContext 根据配置初始化服务上下文。
 //
-// 依赖降级矩阵（任意缺失都能启动）：
+// 依赖降级矩阵（未声明可选依赖时可以降级；已声明 RAG 必须有独立索引凭据）：
 //   - 无 MallRpc：商品数据用内存 mock（配置了 mall 则绝不混用 mock）；
 //   - 无 Embedding 或无 Database：RAG 关闭，provider 走关键词模式；
 //   - Database + CacheRedis：PostgreSQL 长期保存，Redis 缓存最近窗口；
@@ -43,6 +44,10 @@ type ServiceContext struct {
 //   - Database/CacheRedis 都没有：会话记忆退回进程内实现；
 //   - 无 Model：LLM Agent 不启用，推荐走确定性规则。
 func NewServiceContext(c config.Config) *ServiceContext {
+	// Validate before opening databases, creating tables or initializing external models.
+	if err := c.ValidateIndexAuth(); err != nil {
+		panic(err)
+	}
 	var mallClient productservice.ProductService
 	if c.MallConfigured() {
 		mallClient = productservice.NewProductService(zrpc.MustNewClient(c.MallRpc,
@@ -121,7 +126,10 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	if err != nil {
 		panic(safety.Protect(err))
 	}
-	loader := rag.NewMallProductLoader(mallClient, c.RAG.Normalize().SyncPageSize)
+	// Background indexing and online user search must never share auth interceptors.
+	indexClient := productindexservice.NewProductIndexService(zrpc.MustNewClient(c.MallRpc,
+		zrpc.WithUnaryClientInterceptor(rag.IndexAuthInterceptor(c.IndexAuth.Secret))))
+	loader := rag.NewMallProductLoader(indexClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
 		product_vectors.NewProductVectorsModel(conn), store.Fingerprint(c.Embedding.Model))
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/database"
 	iredis "budgetmatch-sim/infra/redis"
+	"budgetmatch-sim/infra/serviceauth"
 	"budgetmatch-sim/services/rpc/agent/internal/filetools"
 	"budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
@@ -16,6 +17,7 @@ import (
 // Config 是 agent-rpc 服务的总配置。
 // Model/Embedding/Database/MallRpc/CacheRedis 均可选，任意缺失都能启动，
 // 服务按可用依赖自动降级（见 svc.NewServiceContext 的组装逻辑）。
+// 已声明 RAG 依赖时，IndexAuth 缺失或不合法会阻止启动，不静默降级。
 type Config struct {
 	zrpc.RpcServerConf
 	JwtAuth    auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
@@ -28,6 +30,7 @@ type Config struct {
 	MallRpc    zrpc.RpcClientConf    `json:"mallRpc,optional"`    // MallRpc 商城 RPC 客户端，未配置时商品数据用内存 mock
 	Database   database.Config       `json:"database,optional"`   // Database 会话持久化与商品向量表所在库；DSN 为空时记忆降级且 RAG 关闭
 	RAG        rag.Config            `json:"rag,optional"`        // RAG 检索与同步行为配置
+	IndexAuth  serviceauth.Config    `json:"indexAuth,optional"`  // IndexAuth 后台索引专用凭据，不用于在线用户搜索
 }
 
 // MallConfigured 返回是否配置了 mall-rpc 数据源。
@@ -35,8 +38,16 @@ func (c Config) MallConfigured() bool {
 	return len(c.MallRpc.Etcd.Hosts) > 0 || len(c.MallRpc.Endpoints) > 0 || c.MallRpc.Target != ""
 }
 
-// RAGConfigured 返回 RAG 链路的全部前置依赖是否就绪：
-// 需要数据库（向量表）、embedding 模型（向量化）与 mall 数据源（可索引的真实商品）。
+// RAGConfigured 返回是否声明数据库、embedding 和 Mall 数据源。
+// 这表示启用意图，不代表依赖健康或鉴权就绪；凭据另由 ValidateIndexAuth 强制校验。
 func (c Config) RAGConfigured() bool {
 	return c.Database.DSN != "" && c.Embedding.Enabled() && c.MallConfigured()
+}
+
+// ValidateIndexAuth 不把缺少凭据的已配置 RAG 静默降级，也不尝试用户或 Payment 密钥。
+func (c Config) ValidateIndexAuth() error {
+	if !c.RAGConfigured() {
+		return nil
+	}
+	return serviceauth.ValidateDedicatedSecret(c.IndexAuth.Secret, c.JwtAuth.Secret)
 }

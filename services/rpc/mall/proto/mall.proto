@@ -336,6 +336,35 @@ message ReplayOrderOutboxResp {
   bool success = 1;
 }
 
+// ========== Agent 专用只读索引（不返回用户、订单或内部评价字段） ==========
+
+message ProductIndexEntry {
+  string sku_id          = 1;
+  string product_id      = 2;
+  string product_name    = 3;
+  string product_content = 4;
+  string provider        = 5;
+  string sku_name        = 6;
+  string specs           = 7;
+  int64 price            = 8;
+  int64 stock            = 9;
+  int64 sold             = 10;
+}
+
+message ListProductIndexReq {
+  // 首次为空；后续原样传回上一页 next_cursor（SKU ID）。
+  string cursor   = 1;
+  // 0 使用默认 100；有效范围为 1～200。
+  int32 page_size = 2;
+}
+
+message ListProductIndexResp {
+  repeated ProductIndexEntry list = 1;
+  string next_cursor = 2;
+  // 只有服务端明确确认读到末页才置 true；默认空响应不能代表扫描成功。
+  bool complete = 3;
+}
+
 // ========== Services ==========
 
 service ProductService {
@@ -363,4 +392,9 @@ service OrderService {
   rpc ListOrderOutbox(ListOrderOutboxReq) returns (ListOrderOutboxResp) {}
   rpc GetOrderOutbox(GetOrderOutboxReq) returns (GetOrderOutboxResp) {}
   rpc ReplayOrderOutbox(ReplayOrderOutboxReq) returns (ReplayOrderOutboxResp) {}
+}
+
+// 只接受 Agent 索引服务身份；用户商品接口的鉴权策略保持不变。
+service ProductIndexService {
+  rpc ListProductIndex(ListProductIndexReq) returns (ListProductIndexResp) {}
 }

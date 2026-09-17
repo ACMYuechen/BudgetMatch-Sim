@@ -159,6 +159,7 @@ services:
       - ROCKETMQ_NAMESERVERS=rocketmq-namesrv:9876
       - ETCD_HOSTS=etcd:2379
       - PAYMENT_MALL_SERVICE_SECRET=${PAYMENT_MALL_SERVICE_SECRET:-}
+      - AGENT_MALL_INDEX_SECRET=${AGENT_MALL_INDEX_SECRET:-}
     ports:
       - "10005:10005"
     depends_on:
@@ -200,6 +201,7 @@ services:
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
       - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
       - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - AGENT_MALL_INDEX_SECRET=${AGENT_MALL_INDEX_SECRET:-}
     ports:
       - "10006:10006"
     depends_on:

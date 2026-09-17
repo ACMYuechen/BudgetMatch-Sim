@@ -49,3 +49,8 @@ RocketMQ:
 
 ServiceAuth:
   Secret: "${PAYMENT_MALL_SERVICE_SECRET}"
+
+# 留空时索引服务拒绝全部调用，不影响原用户接口或支付确认。
+# 启用时使用独立随机密钥（至少 32 字节），必须与 Agent 的 IndexAuth 相同。
+IndexAuth:
+  Secret: "${AGENT_MALL_INDEX_SECRET}"

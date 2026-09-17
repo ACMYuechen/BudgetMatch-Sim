@@ -52,6 +52,10 @@ RAG:
   SyncPageSize: 100
   VerifySku: false          # true 时检索结果逐条经 mall GetSku 实时校验
 
+# 独立于 JWT_SECRET / PAYMENT_MALL_SERVICE_SECRET；启用 RAG 时必填，至少 32 字节。
+IndexAuth:
+  Secret: "${AGENT_MALL_INDEX_SECRET}"
+
 MCP:
   Enabled: false
   Command: ""           # 已安装且经审计的服务端可执行文件绝对路径；不自动下载
