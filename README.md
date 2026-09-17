@@ -212,7 +212,8 @@ make docker-down
 - MCP 默认关闭，只注入精确白名单内且声明只读的工具；配置在 `services/rpc/agent/etc/config.yaml`。日志与公开工具记录只保留执行元数据，不记录正文或原始错误。
 - 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。
 - 已提供无外部依赖的离线规则评测：`go run ./services/rpc/agent/cmd/eval -format markdown`，64 条合成用例的终态门禁通过，可满足任务成功率为 25/40；原始失败基线保留，可用 `-compare` 对比。`-suite scripted` 另运行 16 个 Fake Model + 真实 ReAct 容错场景，不调用付费 API；真实向量/模型对照未运行。
-- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M1、M2.1 和 M2.2 本地实现已完成；M2 仍待独立人工复核等后续工作，真实流式等尚未完成）。
+- 人工复核准备入口：`go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001`，输出全量工作单与待填写记录；`-check <review.json>` 校验数据版本和完整性，不认证人工身份、不自动通过验收。
+- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M1、M2.1、M2.2 和 M2.3a 本地准备已完成；M2 仍待人工复核与目标确认，真实流式等尚未完成）。
 
 ## 错误处理与日志规范
 

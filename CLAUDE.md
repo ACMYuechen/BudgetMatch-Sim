@@ -219,6 +219,8 @@ MCP:
 
 离线规则评测可先执行 `go run ./services/rpc/agent/cmd/eval -format markdown`：不加载 `.env`，不连接模型/数据库。64 条合成用例尚待独立人工复核；M2.2 修复两条预算变更反例，当前门禁退出 0，但可满足任务仍只有 25/40 成功。`-compare services/rpc/agent/testdata/eval/baseline.v1/report.json` 保留同数据版本对比；`-suite scripted` 另跑 16 个 Fake Model + 真实 ReAct 容错场景，不调用外部模型。指标、划分和未运行项见 [Agent M2 文档](docs/agent.md#7-m2评测集与可重复基线)。不要改写原始报告/答案或移动保留集掩盖失败；已知 holdout 只作为回归集，不再当作盲测证据。
 
+M2.3a 可用 `go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001` 生成独立复核材料，再用 `-check <review.json>` 校验记录。归档 `review.v1` 只保留全 pending 模板，实际人工记录另存；不得代填人工身份或将 records_complete 视为人工验收。M3/M4 目标目前为待确认草案，真实模型/Embedding 调用与费用默认均为 0，未获授权不得启动。
+
 ```bash
 # 从仓库根目录运行，并提前配置服务所需环境变量
 go run -C services/rpc/agent . -f etc/config.yaml
