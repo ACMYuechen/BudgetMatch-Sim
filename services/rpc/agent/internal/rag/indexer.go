@@ -44,15 +44,23 @@ func (i *Indexer) Store(ctx context.Context, docs []*schema.Document, opts ...in
 			callbacks.OnError(ctx, err)
 		}
 	}()
+	if indexer.GetCommonOptions(&indexer.Options{}, opts...).Embedding != nil {
+		return nil, fmt.Errorf("rag: a bound index does not allow embedding overrides")
+	}
 
-	rows, err := i.Prepare(ctx, docs, opts...)
+	var rows []product_vectors.ProductVectors
+	err = i.store.model.WithSync(ctx, i.store.fingerprint, func(model product_vectors.SyncStore) error {
+		var prepareErr error
+		rows, prepareErr = i.Prepare(ctx, docs, opts...)
+		if prepareErr != nil {
+			return prepareErr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return model.Upsert(ctx, rows)
+	})
 	if err != nil {
-		return nil, err
-	}
-	if err = ctx.Err(); err != nil {
-		return nil, err
-	}
-	if err = i.store.model.Upsert(ctx, rows); err != nil {
 		return nil, err
 	}
 
@@ -74,6 +82,9 @@ func (i *Indexer) Prepare(ctx context.Context, docs []*schema.Document, opts ...
 	}
 	if _, err := validateCatalogDocuments(docs); err != nil {
 		return nil, err
+	}
+	if indexer.GetCommonOptions(&indexer.Options{}, opts...).Embedding != nil {
+		return nil, fmt.Errorf("rag: a bound index does not allow embedding overrides")
 	}
 	co := indexer.GetCommonOptions(&indexer.Options{Embedding: i.store.embedder}, opts...)
 	if co.Embedding == nil {

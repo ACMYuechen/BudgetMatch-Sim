@@ -106,14 +106,16 @@ func (c *traceTx) Rollback() error {
 	return nil
 }
 
-func recordingModel(t *testing.T, trace *txTrace) ProductVectorsModel {
+func recordingModel(t *testing.T, trace *txTrace) *defaultProductVectorsModel {
 	t.Helper()
 	pool := &tracePool{&traceConn{trace: trace}}
 	db, err := gorm.Open(postgres.New(postgres.Config{Conn: pool}), &gorm.Config{
 		DisableAutomaticPing: true, Logger: logger.Discard,
 	})
 	require.NoError(t, err)
-	return NewProductVectorsModel(db)
+	// These tests start at publication inside an already owned session. Session
+	// admission/connection lifetime are exercised separately using database/sql.
+	return &defaultProductVectorsModel{conn: db, ownedSession: true}
 }
 
 func TestPublishSyncSingleTransactionIncludesAllWrites(t *testing.T) {

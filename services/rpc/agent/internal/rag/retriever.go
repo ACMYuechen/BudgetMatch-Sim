@@ -55,6 +55,12 @@ func (r *Retriever) Retrieve(ctx context.Context, query string, opts ...retrieve
 			callbacks.OnError(ctx, err)
 		}
 	}()
+	if retriever.GetCommonOptions(&retriever.Options{}, opts...).Embedding != nil {
+		return nil, fmt.Errorf("rag: a bound index does not allow embedding overrides")
+	}
+	if co.Embedding == nil {
+		return nil, fmt.Errorf("rag: embedder is required")
+	}
 
 	vectors, err := co.Embedding.EmbedStrings(ctx, []string{query})
 	if err != nil {

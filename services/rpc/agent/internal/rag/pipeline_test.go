@@ -71,7 +71,16 @@ type fakeVectorModel struct {
 	batch           product_vectors.SyncBatch
 }
 
-func (f *fakeVectorModel) CreateTable(dim int) error { return nil }
+func (f *fakeVectorModel) IndexProfile() product_vectors.Profile {
+	return product_vectors.Profile{Fingerprint: strings.Repeat("a", 64), Dimensions: 3}
+}
+func (f *fakeVectorModel) Initialize(context.Context) error { return nil }
+func (f *fakeVectorModel) WithSync(ctx context.Context, _ string, fn func(product_vectors.SyncStore) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return fn(f)
+}
 
 func (f *fakeVectorModel) Upsert(ctx context.Context, rows []product_vectors.ProductVectors) error {
 	f.upsertCalls++

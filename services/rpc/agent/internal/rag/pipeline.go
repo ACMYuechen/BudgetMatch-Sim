@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"maps"
 	"strings"
@@ -26,19 +25,18 @@ type Pipeline struct {
 	transformer document.Transformer
 	indexer     RowPreparer
 	model       SyncModel
-	fingerprint string     // fingerprint 内容指纹盐值（embedding 模型+维度），变更即触发全量重嵌入
+	fingerprint string     // 模型身份指纹，真实切换受模型绑定保护，不自动重建
 	running     sync.Mutex // Only guards this Pipeline; not a distributed lock.
 }
 
-var ErrSyncBusy = errors.New("rag: synchronization already running")
+var ErrSyncBusy = product_vectors.ErrSyncBusy
 
 type RowPreparer interface {
 	Prepare(context.Context, []*schema.Document, ...indexer.Option) ([]product_vectors.ProductVectors, error)
 }
 
 type SyncModel interface {
-	ListHashes(context.Context) (map[string]string, error)
-	PublishSync(context.Context, product_vectors.SyncBatch) (int64, error)
+	WithSync(context.Context, string, func(product_vectors.SyncStore) error) error
 }
 
 // SyncStats 是一次同步的统计结果。
@@ -74,7 +72,21 @@ func (p *Pipeline) Sync(ctx context.Context) (SyncStats, error) {
 		return stats, ErrSyncBusy
 	}
 	defer p.running.Unlock()
+	err := p.model.WithSync(ctx, p.fingerprint, func(model product_vectors.SyncStore) error {
+		var err error
+		stats, err = p.syncOwned(ctx, model)
+		return err
+	})
+	return stats, err
+}
 
+// The coordinator must own the index before the first source read, not merely
+// before publication. Use only its connection-bound store throughout this run.
+func (p *Pipeline) syncOwned(ctx context.Context, model product_vectors.SyncStore) (SyncStats, error) {
+	var stats SyncStats
+	if err := ctx.Err(); err != nil {
+		return stats, err
+	}
 	scan, err := p.loader.LoadCatalog(ctx)
 	if err != nil {
 		return stats, err
@@ -116,7 +128,7 @@ func (p *Pipeline) Sync(ctx context.Context) (SyncStats, error) {
 	}
 	stats.Loaded = len(docs)
 
-	existing, err := p.model.ListHashes(ctx)
+	existing, err := model.ListHashes(ctx)
 	if err != nil {
 		return stats, err
 	}
@@ -179,7 +191,7 @@ func (p *Pipeline) Sync(ctx context.Context) (SyncStats, error) {
 	if err := ctx.Err(); err != nil {
 		return stats, err
 	}
-	pruned, err := p.model.PublishSync(ctx, batch)
+	pruned, err := model.PublishSync(ctx, batch)
 	if err != nil {
 		return stats, err
 	}
@@ -191,8 +203,8 @@ func (p *Pipeline) Sync(ctx context.Context) (SyncStats, error) {
 	return stats, nil
 }
 
-// contentHash 计算内容指纹：把 embedding 模型与维度掺入盐值，
-// 模型/维度变更时所有 hash 失效，自然触发全量重嵌入。
+// contentHash includes the bound model profile; vectors cannot be reused across
+// profiles. Production model changes require explicit index migration first.
 func (p *Pipeline) contentHash(content string) string {
 	sum := sha256.Sum256([]byte(p.fingerprint + "\x00" + content))
 	return hex.EncodeToString(sum[:])

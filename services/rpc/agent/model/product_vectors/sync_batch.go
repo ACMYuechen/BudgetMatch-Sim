@@ -87,6 +87,9 @@ func (batch SyncBatch) Validate() error {
 // failure or pre-commit cancellation rolls back upserts, refreshes and pruning
 // together. This is atomic publication, not cross-instance scan coordination.
 func (m *defaultProductVectorsModel) PublishSync(ctx context.Context, batch SyncBatch) (int64, error) {
+	if !m.ownedSession {
+		return 0, ErrSessionRequired
+	}
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
@@ -95,7 +98,7 @@ func (m *defaultProductVectorsModel) PublishSync(ctx context.Context, batch Sync
 	}
 	var pruned int64
 	err := m.conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		model := &defaultProductVectorsModel{conn: tx}
+		model := &defaultProductVectorsModel{conn: tx, profile: m.profile, ownedSession: true}
 		// Keep INSERT parameter counts bounded; the enclosing transaction publishes
 		// all chunks together. Copy rows so timestamps never mutate the prepared batch.
 		now := time.Now().UTC()

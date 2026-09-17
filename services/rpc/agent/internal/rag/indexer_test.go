@@ -145,7 +145,7 @@ func TestIndexerCancellationPreventsWriteOrNextBatch(t *testing.T) {
 	}
 }
 
-func TestIndexerStandaloneStoreAndEmbeddingOverride(t *testing.T) {
+func TestIndexerStandaloneStoreRejectsEmbeddingOverride(t *testing.T) {
 	model := &fakeVectorModel{}
 	defaultCalls, overrideCalls := 0, 0
 	defaultEmbedder := embedderFunc(func(_ context.Context, texts []string) ([][]float64, error) {
@@ -158,10 +158,17 @@ func TestIndexerStandaloneStoreAndEmbeddingOverride(t *testing.T) {
 	})
 	idx := NewIndexer(&Store{model: model, embedder: defaultEmbedder, dim: 3})
 	ids, err := idx.Store(context.Background(), indexDocuments(2), indexer.WithEmbedding(override))
+	require.ErrorContains(t, err, "embedding overrides")
+	require.Nil(t, ids)
+	_, err = idx.Prepare(context.Background(), indexDocuments(2), indexer.WithEmbedding(override))
+	require.ErrorContains(t, err, "embedding overrides")
+	require.Zero(t, overrideCalls)
+	require.Zero(t, defaultCalls)
+	require.Zero(t, model.upsertCalls)
+	ids, err = idx.Store(context.Background(), indexDocuments(2))
 	require.NoError(t, err)
 	require.Equal(t, []string{"s0", "s1"}, ids)
-	require.Equal(t, 1, overrideCalls)
-	require.Zero(t, defaultCalls)
+	require.Equal(t, 1, defaultCalls)
 	require.Equal(t, 1, model.upsertCalls)
 	model.upsertErr = errors.New("write failed")
 	ids, err = idx.Store(context.Background(), indexDocuments(1))

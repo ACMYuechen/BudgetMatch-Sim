@@ -151,7 +151,7 @@ func (s *Syncer) runOnce(ctx context.Context) {
 		logx.Field("duration_ms", time.Since(start).Milliseconds()),
 	}
 	if errors.Is(err, ErrSyncBusy) {
-		logx.Infow("rag sync skipped: local pipeline busy", fields...)
+		logx.Infow("rag sync skipped: index synchronization busy", fields...)
 	} else if err != nil {
 		logx.Errorw("rag sync failed", append(fields, logx.Field("error_code", safety.ErrorCode(err)))...)
 	} else {

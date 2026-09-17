@@ -29,10 +29,11 @@ Embedding:
   Model: "${EMBEDDING_MODEL}"        # 如 text-embedding-3-small
   BaseURL: "${EMBEDDING_BASE_URL}"
   APIKey: "${EMBEDDING_API_KEY}"
-  Dimensions: 1536                   # 向量维度；改动会触发向量表重建与全量重嵌入
+  Dimensions: 1536                   # 维度/模型身份与索引不匹配时拒绝启动；不自动删表重建
 
 # Agent 会话与商品向量表所在库（复用主库）。
 # 配置 DSN 后，会话完整历史长期保存到 PostgreSQL；DSN 留空时才降级到 Redis/InMemory。
+# RAG 占用一条专用连接；须直连 PostgreSQL，或保证断开后释放会话锁的 session pooling；不支持 transaction pooling。
 Database:
   LogLevel: 4
   Driver: "Postgres"

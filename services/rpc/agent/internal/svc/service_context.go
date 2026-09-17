@@ -3,6 +3,7 @@ package svc
 
 import (
 	"context"
+	"time"
 
 	"budgetmatch-sim/infra/database"
 	"budgetmatch-sim/infra/interceptor"
@@ -122,7 +123,10 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 		panic(safety.Protect(err))
 	}
 
-	store, err := rag.NewStore(product_vectors.NewProductVectorsModel(conn), embedder, c.RAG, c.Embedding.Dim())
+	vectorModel := product_vectors.NewProductVectorsModel(conn, rag.EmbeddingProfile(c.Embedding))
+	initCtx, cancelInit := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelInit()
+	store, err := rag.NewStore(initCtx, vectorModel, embedder, c.RAG)
 	if err != nil {
 		panic(safety.Protect(err))
 	}
@@ -131,7 +135,7 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 		zrpc.WithUnaryClientInterceptor(rag.IndexAuthInterceptor(c.IndexAuth.Secret))))
 	loader := rag.NewMallProductLoader(indexClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
-		product_vectors.NewProductVectorsModel(conn), store.Fingerprint(c.Embedding.Model))
+		vectorModel, store.Fingerprint())
 	if err != nil {
 		panic(safety.Protect(err))
 	}
