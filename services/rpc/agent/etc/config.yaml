@@ -54,17 +54,18 @@ RAG:
 
 MCP:
   Enabled: false
-  Command: npx
-  Args:
-    - "-y"
-    - "@modelcontextprotocol/server-everything"
-    - "stdio"
+  Command: ""           # 已安装且经审计的服务端可执行文件绝对路径；不自动下载
+  Args: []
+  AllowedTools: []       # 精确名称白名单；空列表不启动进程。工具还须声明 readOnlyHint=true
   Timeout: 5000
 
-# LLM 文件工具。模型只能使用相对路径访问 Workspace 内文件。
+# 默认不注册文件工具；Linux 后端按认证用户隔离目录。写入还需本轮第一行 /save <相对路径>。
 FileTools:
+  Enabled: false
+  AllowWrite: false
   Workspace: "workspace/agent"
-  MaxReadBytes: 1048576
+  MaxReadBytes: 65536
+  MaxWriteBytes: 65536
   WritableExtensions:
     - ".json"
     - ".md"

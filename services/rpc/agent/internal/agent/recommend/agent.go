@@ -10,6 +10,7 @@ import (
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/schema"
@@ -79,7 +80,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 
 	items, total := a.selector.Select(candidates, intent)
 	toolsUsed := []agentcore.ToolCall{
-		{Name: a.provider.Name(), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
+		{Name: safety.Label(a.provider.Name()), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
 	}
 
 	result := &agentcore.Result{
@@ -108,8 +109,8 @@ func (a *Agent) loadHistoryQueries(ctx context.Context, input agentcore.Input) [
 	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.window)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history for fallback failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil
 	}

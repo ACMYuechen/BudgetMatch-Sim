@@ -10,6 +10,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
@@ -73,9 +74,9 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	})
 	if err != nil {
 		logx.WithContext(ctx).Errorw("wait for conversation execution failed",
-			logx.Field("user_id", input.UserId),
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("user_id", safety.Label(input.UserId)),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil, err
 	}
@@ -90,16 +91,16 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 			return executeErr
 		})
 		if err != nil {
-			logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 			return nil, err
 		}
-		logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId))
+		logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)))
 		return result, nil
 	}
 
 	result, err := s.run(ctx, input)
 	if err != nil {
-		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		return nil, err
 	}
 
@@ -107,7 +108,7 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	result.ConversationTitle = s.conversationTitle(ctx, input)
 	result.TurnId = input.TurnId
 	s.remember(ctx, input, result)
-	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId))
+	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)))
 	return result, nil
 }
 
@@ -208,7 +209,7 @@ func (s *Service) run(ctx context.Context, input agentcore.Input) (*agentcore.Re
 	if input.PriorIntent == nil && s.memory != nil {
 		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load intent history failed", logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load intent history failed", logx.Field("error_code", safety.ErrorCode(err)))
 		} else {
 			for _, msg := range history {
 				if msg != nil && msg.Role == schema.User {
@@ -260,6 +261,7 @@ func (s *Service) runChecked(ctx context.Context, runner agentcore.Agent, input 
 		return nil, err
 	}
 	result.Intent = cloneIntent(intent)
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
 	return result, nil
 }
 
@@ -288,6 +290,7 @@ func decodeSavedResult(turn memory.Turn) (*agentcore.Result, error) {
 	}
 	result.ConversationId = turn.ConversationId
 	result.TurnId = turn.TurnId
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
 	return &result, nil
 }
 
@@ -364,8 +367,8 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 	)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("append conversation memory failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 	}
 }
@@ -376,7 +379,7 @@ func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) 
 	if store, ok := s.memory.(memory.ConversationStore); ok {
 		conversation, exists, err := store.GetConversation(ctx, input.UserId, input.ConversationId)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		} else if exists && strings.TrimSpace(conversation.Title) != "" {
 			return conversation.Title
 		}
@@ -385,7 +388,7 @@ func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) 
 	if s.memory != nil {
 		title, err := s.memory.GetOrCreateTitle(ctx, input.UserId, input.ConversationId, candidate)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load or create conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load or create conversation title failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		} else if strings.TrimSpace(title) != "" {
 			return title
 		}
@@ -413,7 +416,7 @@ func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Inpu
 		detail = "primary result rejected by constraints; used validated fallback"
 	}
 	result.ToolsUsed = append(result.ToolsUsed, agentcore.ToolCall{
-		Name:    "primary." + s.primary.Name(),
+		Name:    "primary." + safety.Label(s.primary.Name()),
 		Success: false,
 		Detail:  detail,
 	})

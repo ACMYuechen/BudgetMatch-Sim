@@ -14,6 +14,7 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
 	"budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 	"budgetmatch-sim/services/rpc/agent/model/product_vectors"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
@@ -78,7 +79,7 @@ func maybeOpenDatabase(c config.Config) *database.Database {
 	}
 	db, err := database.NewDatabase(c.Database)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 	return db
 }
@@ -113,18 +114,18 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	// 配置即意图：声明了 RAG 依赖却初始化失败，直接 panic 阻止带病启动。
 	embedder, err := rag.NewEmbedder(context.Background(), c.Embedding)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 
 	store, err := rag.NewStore(product_vectors.NewProductVectorsModel(conn), embedder, c.RAG, c.Embedding.Dim())
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 	loader := rag.NewMallProductLoader(mallClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
 		product_vectors.NewProductVectorsModel(conn), store.Fingerprint(c.Embedding.Model))
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 
 	syncer := rag.NewSyncer(pipeline, c.RAG.Normalize().SyncIntervalSeconds)
@@ -148,10 +149,10 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 		durable = memory.NewPostgres(conn, c.Memory)
 		if c.Database.AutoMigrate {
 			if err := durable.CreateTable(); err != nil {
-				panic(err)
+				panic(safety.Protect(err))
 			}
 		} else if err := durable.CheckSchema(); err != nil {
-			panic(err)
+			panic(safety.Protect(err))
 		}
 	}
 
@@ -160,10 +161,10 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 		rdb, err := iredis.NewRedisDB(c.CacheRedis)
 		if err != nil {
 			if durable == nil {
-				panic(err)
+				panic(safety.Protect(err))
 			}
 			logx.Errorw("redis conversation cache unavailable, using PostgreSQL only",
-				logx.Field("error", err.Error()))
+				logx.Field("error_code", safety.ErrorCode(err)))
 		} else {
 			cache = memory.NewRedis(rdb.Client(), c.Memory)
 		}
@@ -190,7 +191,7 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 func newLLMAgent(c config.Config, productProvider tools.ProductProvider, bundleSelector *recommend.BundleSelector, mem memory.Manager) agentcore.Agent {
 	model, err := llm.NewChatModel(context.Background(), c.Model)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 	if model == nil {
 		return nil

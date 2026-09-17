@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
 	"github.com/cloudwego/eino/components/retriever"
@@ -57,7 +58,7 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 	docs, err := p.retriever.Retrieve(ctx, query, retriever.WithTopK(p.retrieveTopK(req.MaxItems)))
 	if err != nil {
 		logx.WithContext(ctx).Errorw("rag retrieval failed, falling back to keyword provider",
-			logx.Field("provider", p.fallback.Name()), logx.Field("error", err.Error()))
+			logx.Field("provider", safety.Label(p.fallback.Name())), logx.Field("error_code", safety.ErrorCode(err)))
 		return p.fallback.SearchProducts(ctx, req)
 	}
 
@@ -92,7 +93,7 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 	if len(out) == 0 {
 		// 首轮同步未完成、阈值过滤过严或校验后无货，都回退关键词链路。
 		logx.WithContext(ctx).Infow("rag retrieval returned no usable candidates, falling back",
-			logx.Field("provider", p.fallback.Name()), logx.Field("retrieved", len(docs)))
+			logx.Field("provider", safety.Label(p.fallback.Name())), logx.Field("retrieved", len(docs)))
 		return p.fallback.SearchProducts(ctx, req)
 	}
 	return out, nil

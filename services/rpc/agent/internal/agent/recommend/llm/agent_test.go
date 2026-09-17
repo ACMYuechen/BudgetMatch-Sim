@@ -79,8 +79,8 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 	if result.ToolsUsed[2].Name != "tool."+toolSelectBundle || !result.ToolsUsed[2].Success {
 		t.Fatalf("unexpected select record: %+v", result.ToolsUsed[2])
 	}
-	if len(model.boundTools) != 4 {
-		t.Fatalf("expected model to receive 4 tools, got %d", len(model.boundTools))
+	if len(model.boundTools) != 2 {
+		t.Fatalf("expected model to receive 2 default tools, got %d", len(model.boundTools))
 	}
 }
 

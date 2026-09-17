@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"budgetmatch-sim/services/rpc/agent/internal/einolog"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -70,7 +71,7 @@ func (s *Syncer) runOnce(ctx context.Context) {
 	start := time.Now()
 	stats, err := s.pipeline.Sync(ctx)
 	if err != nil {
-		logx.Errorw("rag sync failed", logx.Field("error", err.Error()))
+		logx.Errorw("rag sync failed", logx.Field("error_code", safety.ErrorCode(err)))
 		return
 	}
 	logx.Infow("rag sync completed",

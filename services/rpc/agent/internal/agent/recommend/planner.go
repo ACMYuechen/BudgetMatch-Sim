@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/filetools"
 )
 
 // Planner 意图解析器，负责从用户自然语言查询中提取预算、关键词和偏好。
@@ -53,6 +54,10 @@ func (p *Planner) Resolve(input agent.Input, historyQueries []string) (agent.Int
 	// 商品关键词仍取最近有效值；偏好维持原有的按时间累积语义。
 	var inherited agent.Intent
 	for _, query := range historyQueries {
+		query, _, err = filetools.ParseSaveRequest(query)
+		if err != nil {
+			return agent.Intent{}, fmt.Errorf("%w: invalid historical save directive", agent.ErrInvalidInput)
+		}
 		if keywords := extractKeywords(query); len(keywords) > 0 {
 			inherited.Keywords = keywords
 		}
@@ -86,11 +91,16 @@ func inheritLimits(current *agent.Intent, prior agent.Intent) {
 
 // parsePartial 不填默认值；只有未出现约束时才返回零值。
 func parsePartial(input agent.Input) (agent.Intent, error) {
+	query, _, err := filetools.ParseSaveRequest(input.Query)
+	if err != nil {
+		return agent.Intent{}, fmt.Errorf("%w: invalid save directive", agent.ErrInvalidInput)
+	}
+	input.Query = query
 	current := agent.Intent{
 		BudgetCents: input.BudgetCents, MaxItems: input.MaxItems,
 		Keywords: extractKeywords(input.Query), Preferences: extractPreferences(input.Query),
 	}
-	query := normalizeConstraintText(input.Query)
+	query = normalizeConstraintText(input.Query)
 	items, withoutQuantities, err := parseTextQuantities(query)
 	if current.MaxItems == 0 {
 		if err != nil {

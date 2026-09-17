@@ -2,12 +2,18 @@ package recommendservicelogic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	apperrors "budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestAuthenticatedUserIdOnlyUsesInterceptorContext(t *testing.T) {
@@ -23,6 +29,28 @@ func TestAuthenticatedUserIdOnlyUsesInterceptorContext(t *testing.T) {
 	spoofed := context.WithValue(context.Background(), "user_id", "attacker")
 	if _, err := authenticatedUserId(spoofed); !errors.Is(err, apperrors.Unauthorized) {
 		t.Fatalf("spoofed identity error = %v, want Unauthorized", err)
+	}
+}
+
+func TestResponseAndHistoricalToolDetailsAreRedacted(t *testing.T) {
+	r := agent.Result{ToolsUsed: []agent.ToolCall{{Name: "tool.read_file", Success: true, Detail: `{"content":"PRIVATE"}`}, {Name: "tool.PRIVATE", Detail: "PRIVATE"}}}
+	if got := fmt.Sprint(toPB(&r).ToolsUsed); strings.Contains(got, "PRIVATE") {
+		t.Fatal(got)
+	}
+	data, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	turn, err := toPBTurn(memory.Turn{ResultJSON: data})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(turn.Result.ToolsUsed); strings.Contains(got, "PRIVATE") {
+		t.Fatal(got)
+	}
+	err = mapRecommendError(status.Error(codes.PermissionDenied, "PRIVATE"))
+	if status.Code(err) != codes.PermissionDenied || strings.Contains(status.Convert(err).Message(), "PRIVATE") {
+		t.Fatal(err)
 	}
 }
 

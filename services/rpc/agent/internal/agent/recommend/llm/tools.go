@@ -97,12 +97,8 @@ func writeFile(workspace *filetools.Workspace) func(context.Context, writeFileAr
 
 // businessTools 把领域能力包装成 Eino 工具。
 // 每个工具用 InferTool 从入参结构体推导 schema，handler 闭包持有 session 写入类型化结果，
-// 再统一套上记录装饰器和错误处理器：工具出错时返回 JSON 让模型自行恢复，而不是中断整个 ReAct。
+// 可修正错误转为脱敏 JSON；权限拒绝、取消与超时终止 ReAct。文件能力只按本轮授权注册。
 func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool, error) {
-	if workspace == nil {
-		return nil, fmt.Errorf("file tools workspace is required")
-	}
-
 	search, err := utils.InferTool(
 		toolSearchProducts,
 		"Search product candidates by query, keywords, budget, and item limit. Use this before selecting a bundle.",
@@ -120,6 +116,10 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolSelectBundle, err)
 	}
+	out := []tool.BaseTool{decorate(s, toolSearchProducts, search), decorate(s, toolSelectBundle, selectBundle)}
+	if workspace == nil {
+		return out, nil
+	}
 
 	readF, err := utils.InferTool(
 		toolReadFile,
@@ -128,6 +128,10 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolReadFile, err)
+	}
+	out = append(out, decorate(s, toolReadFile, readF))
+	if !workspace.CanWrite() {
+		return out, nil
 	}
 
 	writeF, err := utils.InferTool(
@@ -139,12 +143,7 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 		return nil, fmt.Errorf("build %s tool: %w", toolWriteFile, err)
 	}
 
-	return []tool.BaseTool{
-		decorate(s, toolSearchProducts, search),
-		decorate(s, toolSelectBundle, selectBundle),
-		decorate(s, toolReadFile, readF),
-		decorate(s, toolWriteFile, writeF),
-	}, nil
+	return append(out, decorate(s, toolWriteFile, writeF)), nil
 }
 
 // searchProducts 是 search_products 的执行逻辑：检索候选商品并缓存到 session。

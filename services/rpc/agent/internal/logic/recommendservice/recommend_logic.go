@@ -4,6 +4,7 @@ import (
 	"context"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
 	"budgetmatch-sim/services/rpc/agent/pb"
 
@@ -32,7 +33,7 @@ func NewRecommendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Recomme
 func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, error) {
 	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 	result, err := l.svcCtx.RecommendService.Recommend(l.ctx, agentcore.Input{
@@ -45,7 +46,7 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 	})
 	if err != nil {
 		err = mapRecommendError(err)
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 
@@ -83,7 +84,7 @@ func toPB(result *agentcore.Result) *pb.RecommendResp {
 		})
 	}
 
-	for _, tool := range result.ToolsUsed {
+	for _, tool := range safety.ToolCalls(result.ToolsUsed) {
 		resp.ToolsUsed = append(resp.ToolsUsed, &pb.ToolCall{
 			Name:    tool.Name,
 			Success: tool.Success,

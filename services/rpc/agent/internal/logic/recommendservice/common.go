@@ -9,6 +9,7 @@ import (
 	"budgetmatch-sim/infra/interceptor"
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/pb"
 )
 
@@ -39,7 +40,7 @@ func toPBConversation(conversation memory.Conversation) *pb.ConversationSummary 
 func toPBTurn(turn memory.Turn) (*pb.ConversationTurn, error) {
 	var result agentcore.Result
 	if err := json.Unmarshal(turn.ResultJSON, &result); err != nil {
-		return nil, err
+		return nil, safety.Protect(err)
 	}
 	return &pb.ConversationTurn{TurnId: turn.TurnId, Sequence: turn.Sequence, Query: turn.Query,
 		BudgetCents: turn.BudgetCents, MaxItems: turn.MaxItems, Intent: toPBIntentState(turn.Intent),
@@ -69,7 +70,7 @@ func mapRecommendError(err error) error {
 	if errors.Is(err, agentcore.ErrTurnConflict) {
 		return apperrors.AgentTurnConflict
 	}
-	return err
+	return safety.Protect(err)
 }
 
 // normalizePBPage 与存储层使用相同的页码规则，并保留接口各自的默认页容量。

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
 	"budgetmatch-sim/services/rpc/agent/pb"
 
@@ -30,17 +31,17 @@ func NewListConversationTurnsLogic(ctx context.Context, svcCtx *svc.ServiceConte
 func (l *ListConversationTurnsLogic) ListConversationTurns(in *pb.ListConversationTurnsReq) (*pb.ListConversationTurnsResp, error) {
 	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 	conversation, turns, total, exists, err := l.svcCtx.RecommendService.ListTurns(l.ctx, userId, in.ConversationId, int(in.Page), int(in.PageSize))
 	if err != nil {
 		err = mapRecommendError(err)
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 	if !exists {
-		l.Logger.Errorf("return error: %v", errors.NotFound)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(errors.NotFound))
 		return nil, errors.NotFound
 	}
 	page, pageSize := normalizePBPage(in.Page, in.PageSize, 50)
@@ -48,7 +49,7 @@ func (l *ListConversationTurnsLogic) ListConversationTurns(in *pb.ListConversati
 	for _, turn := range turns {
 		item, err := toPBTurn(turn)
 		if err != nil {
-			l.Logger.Errorf("return error: %v", err)
+			l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 			return nil, err
 		}
 		resp.List = append(resp.List, item)

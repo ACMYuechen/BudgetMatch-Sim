@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
@@ -13,6 +14,7 @@ import (
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/model"
@@ -21,6 +23,8 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // logCallbacks 是全局复用的 Eino 组件日志回调：
@@ -44,7 +48,7 @@ type Agent struct {
 	provider         tools.ProductProvider
 	selector         *selector.BundleSelector
 	mcpCfg           mcpconfig.Config
-	fileTools        *filetools.Workspace
+	fileCfg          filetools.Config
 	maxStep          int
 	memory           memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
 	maxHistory       int            // maxHistory 单次读取的最大历史条数
@@ -57,17 +61,15 @@ var _ agentcore.Agent = (*Agent)(nil)
 // NewAgent 创建基于 Eino ReAct 的推荐 Agent。
 func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector,
 	mcpCfg mcpconfig.Config, fileCfg filetools.Config) *Agent {
-	workspace, err := filetools.NewWorkspace(fileCfg)
-	if err != nil {
-		panic(err)
-	}
+	mcpCfg.Args = append([]string(nil), mcpCfg.Args...)
+	mcpCfg.AllowedTools = append([]string(nil), mcpCfg.AllowedTools...)
 	return &Agent{
 		model:            m,
 		planner:          recommendagent.NewPlanner(),
 		provider:         provider,
 		selector:         sel,
 		mcpCfg:           mcpCfg,
-		fileTools:        workspace,
+		fileCfg:          fileCfg.Normalize(),
 		maxStep:          defaultMaxStep,
 		maxContextTokens: memory.Conf{}.ContextTokens(),
 	}
@@ -102,7 +104,8 @@ func (a *Agent) Name() string {
 }
 
 // Run 执行一次完整的 ReAct 推荐流程。
-func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentcore.Result, err error) {
+	defer func() { err = safety.Protect(err) }()
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -117,9 +120,32 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	if err != nil {
 		return nil, err
 	}
+	// 在任何文件/MCP 副作用前校验上下文大小。
+	history := a.loadHistory(ctx, input)
+	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
+	if err != nil {
+		return nil, err
+	}
+	_, writePath, err := filetools.ParseSaveRequest(input.Query)
+	if err != nil {
+		return nil, agentcore.ErrInvalidInput
+	}
+	if writePath != "" && !a.fileCfg.Enabled {
+		return nil, status.Error(codes.PermissionDenied, "file tools are disabled")
+	}
+	workspace, err := filetools.NewWorkspace(a.fileCfg, input.UserId, writePath)
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return nil, status.Error(codes.PermissionDenied, "file tool access denied")
+		}
+		return nil, err
+	}
+	if workspace != nil {
+		defer workspace.Close()
+	}
 	s := newSession(a.provider, a.selector, intent)
 
-	reactTools, err := businessTools(s, a.fileTools)
+	reactTools, err := businessTools(s, workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +165,10 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
 
-	history := a.loadHistory(ctx, input)
-	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
-	if err != nil {
-		return nil, err
-	}
 	keptHistory := max(len(messages)-2, 0)
 	if keptHistory < len(history) {
 		logx.WithContext(ctx).Infow("conversation history trimmed by context token budget",
-			logx.Field("conversation_id", input.ConversationId),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
 			logx.Field("loaded_messages", len(history)),
 			logx.Field("kept_messages", keptHistory),
 			logx.Field("max_context_tokens", a.maxContextTokens),
@@ -178,8 +199,8 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.maxHistory)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil
 	}
@@ -255,7 +276,7 @@ func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, inten
 func (a *Agent) modelLabel() string {
 	if typed, ok := a.model.(interface{ GetType() string }); ok {
 		if name := strings.TrimSpace(typed.GetType()); name != "" {
-			return strings.ToLower(name)
+			return safety.Label(strings.ToLower(name))
 		}
 	}
 	return "model"
