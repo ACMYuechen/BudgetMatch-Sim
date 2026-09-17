@@ -1,0 +1,975 @@
+{
+  "schema_version": 1,
+  "snapshot_version": "synthetic-products-v1",
+  "snapshot_sha256": "3feaf027662f36321442e6ec35f3255da98eed34ca917322c9113e25ee5e833f",
+  "cases_sha256": "c0615d42d182d93ab653007365d56e2ff6237191bd5da0c834980515214b2d3a",
+  "code_revision": "56f72ae+M2.3a-worktree",
+  "reviewer": {
+    "id": "",
+    "human": false,
+    "independent": false,
+    "snapshot_checked": false
+  },
+  "cases": [
+    {
+      "id": "single_mouse_50",
+      "case_sha256": "4551dc9472ed5cc07bc46a1149b9e0f97c2277e54d3ba71b12f3a1db1d67e133",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_mouse_100",
+      "case_sha256": "986448275047e75a684d025ffb9e535f6e4250b8174ba210690d0ef62e43f635",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_keyboard_100",
+      "case_sha256": "af5b4160162412b19d1715a8f273fb5a63e2d738775558d6e011fbd8bc725634",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_keyboard_400",
+      "case_sha256": "8b0a93d0955649fa7bd28dd64d8668550bd3b45a8ad56f373f3e9d318d82977b",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_audio_100",
+      "case_sha256": "953381e2973b1f0b8b18bcd0b5b190d1a862266e0dd1baedf3d019e8e2c653ba",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_monitor_500",
+      "case_sha256": "26c0c5c136c35ebd54747732aafa7c3552403b8add678ae7c481efaff02f9cf0",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_phone_900",
+      "case_sha256": "6a5cdebaea01539379be943a066fa17081a1fc9c4860c1bcec0c2b932a239099",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_tablet_700",
+      "case_sha256": "302fabc3e810882678aaa557ab0ebc2938009a0bba9d1d6364db5d211d366dd9",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_stationery_20",
+      "case_sha256": "c3e74218ac57efc8934d1cfc13b8a9ca167af45d21db1d3d7a58dbab0043b0a5",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_english_mouse",
+      "case_sha256": "3244fa8ff002c3212138355c690688c451e98828a2485534aaf4921e731de6ad",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_english_audio",
+      "case_sha256": "d32ecba126a76c097d7e436c653cb68441d8464cd9f8fd0d0668d9b8a980aa9d",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "single_structured",
+      "case_sha256": "d56078dc37cf171fffc4bdcb7aae3b2576938ae9282ba0843dd1ea82b7653eae",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_keyboard_mouse",
+      "case_sha256": "7128da8f39b8d3dc087c9d630cec88ed7c341c0473d781138a6802223f0bd1bc",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_audio_mouse",
+      "case_sha256": "3fcebc01a097057dd6dc6bb77f97bc23522f2bb618b7817476de966af28fe9f4",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_monitor_keyboard",
+      "case_sha256": "c3b554c0ec67065aeeccca266ee590bc50989ab0d82ec570e65852070e3e4a49",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_phone_audio",
+      "case_sha256": "1c64c90d25b6ca7e28c003356337a295adb0c89e2db59089bbf230bf73cc97a4",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_tablet_audio",
+      "case_sha256": "a9a0e162ee095bcc377701ab5d6f544a8bdf705ccde9c764f4a6b7b27eabf186",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_study_light",
+      "case_sha256": "36899c87c7ba8d5682d2b97ac5d263a858bf85bbb77625fa6ba17ca744dd0ac8",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_english",
+      "case_sha256": "9da6a718ba4f4acd087af2ecf6759c62f03c2e122ba311163eea7d6191db699c",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "multi_stationery_audio",
+      "case_sha256": "3c020b39b9fd286cd4888ac386213082644f5de69a819ae45ec711b3af2a49a3",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_mouse",
+      "case_sha256": "ed89de44b6781d82bdf25c380d7a18dc200975516b0f8baee3c8d2b2792c79ea",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_keyboard",
+      "case_sha256": "4cfa6f3c90e01db84f2884351233c58fe949057fa84a5103d82ed01697787ea2",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_monitor",
+      "case_sha256": "42c72f0ba9c271b89b4b7df6cd49506f5dac83aa0a10b8a0088143910ad9eee9",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_phone",
+      "case_sha256": "bc3e31fbedbd8a7dc406979e8e68fe7b3d0a7e21be2f590da6cab1da357a2b38",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_bundle",
+      "case_sha256": "367f592747a1aeba1d16c24107c0d73ccdd417b60a226cd0da83af7687786299",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "insufficient_item_limit",
+      "case_sha256": "c5ad2c40ba690577cdf41b47139406dedb90c67914c28d10b59bf8849a9d8d24",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "stock_audio_alternative",
+      "case_sha256": "21912fa6455c8839602e5a8230a92e18408f77b569a2a7facc912df593ac7e87",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "stock_headset_only",
+      "case_sha256": "8bc65e503eb0863db1bc8e66baca6493590fd0c14f1a121ad0de571c5546894b",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "inactive_tablet_only",
+      "case_sha256": "e790eeaf109d9bfa94f1b75244fa5cd2a344f9a95b97087bb496db0bbdffde5c",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "inactive_tablet_alternative",
+      "case_sha256": "3f6e81460e2b23d5dce0fe0e220b0003ec822900b46291d4783a327fb12430c4",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "noise_keyboard_accessory",
+      "case_sha256": "45d2f4640a5a57870bbbfa0f747e27fa9c75d5dd2819caef74f838933b2b4723",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "noise_monitor_sticker",
+      "case_sha256": "f395d1fa08ec657e69712b07ffdb9d3c98e2c134bf40f1af737f03c12c1552ef",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "noise_office_audio",
+      "case_sha256": "e0b928cb7a0932ce80205fcc7f59c749a6c1d7ffa7499286da8f84a9c3e697bd",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "noise_study_tablet",
+      "case_sha256": "dcf4fae75e40279c14d7a562755ba5443be735a8460dcb9f215bf6b7be7550d3",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_budget_up",
+      "case_sha256": "921e4fed04f60f59e921993eac58dcdc8901f61ab1e054e21c2801d5b37d6900",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_budget_down",
+      "case_sha256": "f14d7d2b3ae60b5edb7f897140914a97d40414c8715ac66b5ff427ca72dfd12c",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_items_change",
+      "case_sha256": "146a3b7643c2c55874f6e5a646bebca6548c373a52a8f46702244bf1b6c59e88",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_switch_category",
+      "case_sha256": "c1d39f712488211ae685ef60952836c8270fb1b1a1c070bd76d82b6706a5429a",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_structured_priority",
+      "case_sha256": "d7214a5953fc4f35e44e2168d0ecbc6e1ad8b859ca269c43f9609f3695f15529",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_latest_state",
+      "case_sha256": "094f0fa8c96c824ab4da5fb161c2046ade1c19ee15fc5634e24f43e77ffae7bf",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_save_path_ignored",
+      "case_sha256": "247b7cdecd42d81e7ab0eb134a9937c76b8eedd0c91741df4c76d2185ea976d9",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "history_unsatisfiable_after_cut",
+      "case_sha256": "adbcb69df877b1400e31036c0ff9aa627fae25dc43f45ddc8b3902244760f63c",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_foreign_usd",
+      "case_sha256": "643e3a39b68b17f30c1280bf3ebf8ebc5771c71a06edf16cf35cdd9fc3252fa2",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_foreign_eur",
+      "case_sha256": "fbff2f5b5b633dbff2c13027bbad127ecc344f1ff0049a1f59e4e96305df2e3b",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_zero",
+      "case_sha256": "55b922a3e31ed4d5461af5a1f355d3c04821c2be93087af982d23d86e2379e21",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_negative",
+      "case_sha256": "ac0a22f4cab85183d9796bd2e5be3fea0937911c25c1346753e9ddfcf78c9b16",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_subcent",
+      "case_sha256": "7fb3cc2701f1b22a27f3a4961bd3e0eee5c71a3ba3a3e537a586c30b4b491bc4",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_budget_conflict",
+      "case_sha256": "7eed608874cee4206a33b0c5fdad0cdcdf50207eb2feb975a1492195504af3d3",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_budget_or",
+      "case_sha256": "370e7d07f56ba8b82b97c88ea92eec35c443d77573823b6c5c26fc81d382964d",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_item_overflow",
+      "case_sha256": "7773657da1b1bda3069f3ca4946efa5126e027c80d09e2f2ca301a0e5699cbbc",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_fraction_items",
+      "case_sha256": "470a8aad138118f7b21370f611ddfbef7808f56507f00971f89374af631f2b37",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_min_items",
+      "case_sha256": "0ea13fb9f7cf300a070e2981a79dbcef79b7a1ac8d0187d804e3a6976fcdd4dc",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_negative_explicit",
+      "case_sha256": "72c38dfc364e13431a70c94f553dececb68ca5d62ceb2a5b27f0c6a3a54a7011",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "reject_save_traversal",
+      "case_sha256": "de7236a7a6a6549806947dee5616d68238ae97e538064ade3e856a6d1805910e",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "injection_user_budget",
+      "case_sha256": "ea1e928f058f8fa1af0441717e393eec7b9fc3a71e6fb7e12a411ac8418ba2da",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "injection_explicit_limits",
+      "case_sha256": "2ad7004c6863e7d6f9a7843362a7b5a6ac576b0106fa2888722edd2b40a79f10",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "injection_product_text",
+      "case_sha256": "25b533c648af2101ae2e21bf4ef26c78f53867e97df147ab10c03845b33431de",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "injection_tool_in_query",
+      "case_sha256": "d014ce8951e4a5c87681fccf2ecbcb64bc443ee923185e85b021d26b562741cf",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "fault_primary_mouse",
+      "case_sha256": "c8ebddff08f2a181109e38ee61490a8ff5ad428ddeb229aab4d351fd8ddb66b0",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "fault_primary_audio",
+      "case_sha256": "63b7caf9a58b14f1b5c5f35ab9feb07dcd37b00a2c0995ddcd59bb47162ca4f4",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "fault_provider_down",
+      "case_sha256": "71b7a53a6e372af8bf32b4a8d738dd174498a53b0e84abe9e9a7a4a31554ece5",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "fault_provider_denied",
+      "case_sha256": "071203254cd44e599f2fe12eb279380042825ff8989c7109f8aee66f461f45fd",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "boundary_exact_mouse",
+      "case_sha256": "86fd825ef415dae9cb819cc0fd916cd24afca31da1916dc2d64fc3190b9a9dc3",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    },
+    {
+      "id": "boundary_below_mouse",
+      "case_sha256": "46d2c957fc38c8dcd0294396086afdfaa433ae34e1d5463ff146ab0bc5380549",
+      "decision": "pending",
+      "checks": {
+        "constraints": false,
+        "requirements": false,
+        "sku_labels": false,
+        "feasibility": false,
+        "outcome": false,
+        "split_family": false
+      },
+      "notes": "",
+      "reviewed_at": ""
+    }
+  ]
+}
