@@ -217,7 +217,7 @@ MCP:
 
 ### 如何调试 agent-rpc
 
-离线规则评测可先执行 `go run ./services/rpc/agent/cmd/eval -format markdown`：不加载 `.env`，不连接模型/数据库。64 条合成用例尚待人工复核；首版保留两条预算变更表达失败，全量执行当前退出 1（报告已生成，不是执行器崩溃）。指标、划分和未运行基线见 [Agent M2 文档](docs/agent.md#7-m2评测集与可重复基线)。不要通过修改答案或移动保留集来掩盖失败。
+离线规则评测可先执行 `go run ./services/rpc/agent/cmd/eval -format markdown`：不加载 `.env`，不连接模型/数据库。64 条合成用例尚待独立人工复核；M2.2 修复两条预算变更反例，当前门禁退出 0，但可满足任务仍只有 25/40 成功。`-compare services/rpc/agent/testdata/eval/baseline.v1/report.json` 保留同数据版本对比；`-suite scripted` 另跑 16 个 Fake Model + 真实 ReAct 容错场景，不调用外部模型。指标、划分和未运行项见 [Agent M2 文档](docs/agent.md#7-m2评测集与可重复基线)。不要改写原始报告/答案或移动保留集掩盖失败；已知 holdout 只作为回归集，不再当作盲测证据。
 
 ```bash
 # 从仓库根目录运行，并提前配置服务所需环境变量

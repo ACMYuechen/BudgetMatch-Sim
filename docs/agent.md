@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1.1～M1.3 与 M2.1 离线规则评测基础已完成本地实现；M2 整体仍进行中，首版报告保留两条预算表达终态失败和推荐质量缺口，M3～M6 待实施，详见[执行记录](#14-执行记录)。
+- 当前状态：M1.1～M1.3、M2.1 和 M2.2 已完成本地实现；两条预算变更反例已修复，64 条规则用例终态门禁和 16 个脚本模型容错场景通过。规则任务成功率为 25/40，仍有推荐质量缺口；M2 待独立人工复核等后续工作，M3～M6 待实施，详见[执行记录](#14-执行记录)。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -88,6 +88,8 @@ HTTP 网关和 Agent 业务服务都会执行边界校验，因此直接 RPC 调
 | `预算19.99元`、`预算1,000.50元` | 精确得到 1999 分、100050 分，支持合法千分位 |
 | `预算1.001千元`、`预算0.000001万元` | 先按量级精确换算，再验证能否表示为整数分 |
 | `预算3-5k`、`budget 3000 to 5000` | 正向金额区间取上限；两端均需合法 |
+| `预算改成50元`、`预算降到30元`、`预算降低至19.99元` | 作为本轮绝对预算上限；支持“减少到/下调为”等明确目标表达，件数仍按原优先级继承 |
+| `预算减少50元`、`预算降低了50元`、`预算下调50%` | 不支持相对金额/比例运算，返回预算错误，不将变化量当成新上限 |
 | `预算0元`、`预算-500元`、`预算19.999元` | 返回预算错误，不继承历史、不用默认值、不截断亚分金额 |
 | `预算$500`、`预算JPY500` | 返回币种错误 |
 | `预算3000元，预算5000元`、`预算3000或5000` | 返回歧义错误；同值的重复上限可接受 |
@@ -319,6 +321,8 @@ Agent 自有日志/Eino 回调只记录执行状态、稳定错误分类、数�
 
 M2.1 已新增 `services/rpc/agent/testdata/eval/` 存放合成快照、JSONL 用例和首版报告，`services/rpc/agent/internal/eval/` 实现执行与指标，`services/rpc/agent/cmd/eval/` 提供离线 CLI。它复用现有 Planner、Service、BundleSelector 与 InMemory 会话，仅替换商品 I/O，不修改线上推荐策略。
 
+M2.2 修复 Planner 的两条预算变更表达，并增加同数据版本对比与独立脚本模型容错套件。原始 64 条用例、商品快照和 `baseline.v1` 均未改写；规则结果另存 `baseline.v2`。本次已使用 holdout 中的已知失败修复代码，因此现有 holdout 只作为固定回归集，不再声称是未见盲测；未来泛化评价需在独立复核后另建未见测试集。
+
 首版 `synthetic-products-v1` 包含 21 个商品、64 条用例，固定分为 dev 31 条 / holdout 33 条，标注同族改写和完全相同的执行输入不跨集合。归档前修正了初稿的重复输入跨集合，以及“静音鼠标/机械键盘”未限定对应属性 SKU 的标注问题，未修改被测推荐策略或通过线。快照声明 `synthetic` / `pending_human_review`，通过程序引用/限额/组合可行性检查，**尚未经独立人工复核**；不能把下面“60 条人工核对”的完整 M2 目标视为已验收。
 
 第一版目标为不少于 60 条人工核对用例，至少覆盖单品、多品类、预算不足、缺货/下架、噪声商品、多轮约束覆盖、冲突输入、提示注入和依赖故障。每条记录包括：
@@ -331,7 +335,7 @@ M2.1 已新增 `services/rpc/agent/testdata/eval/` 存放合成快照、JSONL �
 当前离线入口（从仓库根目录执行，不读取 `.env`、不启动数据库/MCP、不调用付费 API）：
 
 ```bash
-# stdout 输出 JSON；当前全量评测有已知终态失败，退出码为 1
+# stdout 输出 JSON；当前全量规则评测门禁通过，退出码为 0（不代表全部推荐任务成功）
 go run ./services/rpc/agent/cmd/eval -revision '<实际提交号或提交号+worktree>'
 
 # 同一次执行生成机器可读明细和 Markdown 汇总；目录必须不存在，父目录必须已存在
@@ -340,6 +344,15 @@ go run ./services/rpc/agent/cmd/eval -split all -top-k 10 \
 
 # 独立查看保留集或直接输出 Markdown
 go run ./services/rpc/agent/cmd/eval -split holdout -format markdown
+
+# 与原始报告逐例对比：必须使用相同数据哈希、划分、TopK 和测量口径
+go run ./services/rpc/agent/cmd/eval \
+  -compare services/rpc/agent/testdata/eval/baseline.v1/report.json \
+  -revision '<实际提交号或提交号+worktree>' -format markdown
+
+# 独立的脚本模型套件，不混入 64 条规则用例的质量指标
+go run ./services/rpc/agent/cmd/eval -suite scripted \
+  -revision '<实际提交号或提交号+worktree>' -format markdown
 ```
 
 `-snapshot` / `-cases` 可显式指定文件；输入最大 4 MiB、最多 256 商品 / 1000 用例 / 10 个历史轮次，单行 JSONL 最大 64 KiB，拒绝未知字段、错误 SKU 引用、同族跨集合和自相矛盾的可行性标注。报告包含输入文件 SHA-256、调用者提供的代码标记、策略版本、Go/OS/架构/逻辑 CPU、并发、缓存策略、TopK 和划分；未提供代码标记时写 `unknown`，不会伪造提交来源。
@@ -348,13 +361,19 @@ go run ./services/rpc/agent/cmd/eval -split holdout -format markdown
 
 输出目录使用独占创建，不覆盖历史报告；若写入中断，目录可能保留部分文件，下次应选择新目录。首版归档见 [Markdown 报告](../services/rpc/agent/testdata/eval/baseline.v1/report.md) / [JSON 明细](../services/rpc/agent/testdata/eval/baseline.v1/report.json)。不因结果不理想移动 holdout、删除反例或改写标注；后续数据修订需说明理由并变更版本，原始基线保留。
 
+M2.2 规则归档见 [对比报告](../services/rpc/agent/testdata/eval/baseline.v2/report.md) / [JSON](../services/rpc/agent/testdata/eval/baseline.v2/report.json)，脚本套件见 [容错报告](../services/rpc/agent/testdata/eval/scripted.v1/report.md) / [JSON](../services/rpc/agent/testdata/eval/scripted.v1/report.json)。`-compare` 只支持规则报告，拒绝不兼容的元数据、重复/缺失用例和汇总不符；对比列出终态/任务改善与退化，不放宽质量阈值，也不把未控制负载下的延迟差异解释为性能收益。报告来源标记由调用者提供，并非提交签名或防篡改认证。
+
+`-suite scripted` 固定使用代码内的 16 个脚本和 2 个合成商品，拒绝 `-snapshot/-cases/-split/-top-k/-compare`，支持同样的 `-format/-revision/-out`。分别记录服务级规则兜底和模型未选择时的内部选择兜底、期望/实际调用数、工具反馈、硬约束、公开正文脱敏、持久化和重放检查；任一检查失败退出 1。脚本/快照 SHA-256 与实际系统 Prompt 指纹纳入报告。文件/MCP 默认关闭，不使用真实模型。
+
 模型错误恢复用脚本化 Fake Model 验证；确定性回归默认不访问外网。合成向量只能证明检索代码行为，不能证明真实语义质量。外部模型/Embedding 评测单独启用，执行前确认凭据、数据范围、次数与费用上限，不自动读取 `.env` 批量付费调用。
 
 ### 7.2 对照方案与指标
 
 使用相同快照、用例划分和硬约束比较三条基线：关键词＋规则、向量＋规则、向量＋ReAct。每条分别统计降级比例，不能把规则兜底的效果算成模型成功。
 
-M2.1 只执行关键词＋规则：离线适配器过滤下架/缺货/超预算商品，按商品文本命中关键词数降序、SKU ID 升序取 TopK，无匹配时返回空；它不等同于真实 Mall 搜索。另两条基线明确记录 `not_run`，不填语义/模型成功率。故障恢复使用确定性 Agent 替身注入 primary Unavailable，以及商品源 Unavailable/PermissionDenied；这不是 Fake Model 或真实 ReAct，模型脚本评测仍待后续完成。
+规则质量套件仍只执行关键词＋规则：离线适配器过滤下架/缺货/超预算商品，按商品文本命中关键词数降序、SKU ID 升序取 TopK，无匹配时返回空；它不等同于真实 Mall 搜索。另两条基线明确记录 `not_run`，不填语义/模型成功率。该套件的故障恢复仍使用确定性 Agent 替身注入 primary Unavailable，以及商品源 Unavailable/PermissionDenied，不把它误记为模型调用。
+
+M2.2 的独立套件接入真实 Eino ReAct、业务工具和 Service，用 Fake Model 脚本生成工具调用/异常。覆盖正常编排、缺少选择、畸形 JSON/负限额/未知 SKU 的反馈后修正、抬高限额、模型不可用（含选择之后失败）、商品源瞬时故障、未知工具、步数耗尽、模型/工具权限拒绝、取消/超时及模型前拒绝。当前 16/16 通过、脚本模型调用 33 次、完成轮次重放 11/11；这是代码容错证据，不是模型能自主纠错、具备语义能力或抵抗注入的证据。超时用 `DeadlineExceeded` 注入，未测真实墙钟截止；MaxStep 是当前锁定 Eino 的图节点步数，不等于模型调用次数。
 
 | 指标 | 口径 |
 | --- | --- |
@@ -371,7 +390,7 @@ M2.1 只执行关键词＋规则：离线适配器过滤下架/缺货/超预算�
 - 预算/件数使用每条用例的独立预期值，商品事实使用固定快照，不信任被测结果自带的候选或约束；相同 SKU 不可重复计召回/需求。
 - 可满足成功必须非空、合法、覆盖全部必需需求且只含允许 SKU。空结果可能安全，但不能提高该成功率；非法完成结果的需求覆盖记零。
 - Recall@K 使用 micro 汇总（相关 SKU 命中总数 / 标注相关 SKU 总数）；无相关 SKU 用例单列，不计分母。需求覆盖包含标注不可满足需求，理论上不必达到 100%。
-- 无有效样本的比例为 `null`；不把“未测量”记为零错误或 100% 成功。Token/费用没有提供商数据，明确未测量；模型调用为 0。
+- 无有效样本的比例为 `null`；不把“未测量”记为零错误或 100% 成功。Token/费用没有提供商数据，明确未测量；规则套件模型调用为 0，脚本套件的 Fake Model 调用单列，不能充当外部模型成功率。
 - 每例使用全新内存会话，历史先经业务服务正常执行；仅计当前测量轮次的推荐延迟，历史准备/重放另计。P50/P95 使用 nearest-rank，单线程同进程、无显式预热；不是生产容量/延迟结论。
 - 成功轮次立即以原用户/会话/turn_id 重放，比较完整公开结果、查询/故障替身调用增量及完成轮次数；拒绝/错误不能新增完成轮次。当前不证明 PostgreSQL 多实例或真实模型幂等性。
 
@@ -585,7 +604,7 @@ git diff --check
   - [x] M1.3：用户文件工作区、MCP 白名单及 Agent 工具记录/自有日志脱敏。
 - [ ] M2：固定用例、离线评测执行器、基线报告与真实实验边界。
   - [x] M2.1：64 条合成用例、固定商品快照、离线规则执行器、明确分母的指标与首版 JSON/Markdown 报告。
-  - [ ] M2.2：补齐基线暴露的预算变更表达，脚本化 Fake Model 容错评测和版本间对比；保持原始反例及指标口径。
+  - [x] M2.2：补齐基线暴露的预算变更表达，脚本化 Fake Model 容错评测和版本间对比；保持原始反例及指标口径。
   - [ ] M2.3：独立人工复核用例，明确 M3/M4 改善目标；真实向量/模型实验在确认数据与费用边界后单独执行。
 - [ ] M3：最小服务身份、索引同步安全、候选校验与检索对比。
 - [ ] M4：需求建模、分类数据、组合搜索与效果报告。
@@ -594,7 +613,7 @@ git diff --check
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一步继续 M2.2，先处理报告中的两条多轮预算表达反例，再补脚本化模型故障评测；不跳过失败样本提前宣称 M2 或真实模型效果验收完成。
+下一步 M2.3：准备独立人工复核清单并确认标注，基于保留的失败样本预先约定 M3/M4 的改善目标与延迟/成本边界。已有 holdout 视作已知回归集；不能把自动检查或脚本模型代替独立人工复核，也不能提前宣称真实模型效果验收完成。外部实验需另行确认数据、凭据、次数和费用上限。
 
 ## 14. 执行记录
 
@@ -769,3 +788,53 @@ git diff --check
 评测器及业务回归测试通过不表示全部评测用例通过。真实 PostgreSQL 的 `TestPostgresConversationTurnPersistence` / `TestPgVectorRoundTrip` 因未配置独立测试 DSN 跳过；评测入口未连接真实模型、Embedding、Mall、数据库或 MCP（业务回归仍包含 M1.3 的本地 MCP 测试替身），没有费用调用、部署或本地提交。
 
 M2 整体仍未完成：下一步 M2.2 先补预算变更表达并沿用这些反例，再加入脚本化模型容错和版本对比。向量/真实 ReAct 对照、独立人工复核及 M3/M4 改善目标另行推进。合成小样本不能用于宣称生产推荐准确率、模型注入抵抗或线上 P95；本机后台负载未控制，报告延迟仅作参考。
+
+### 2026-09-17：M2.2 预算反例修复、脚本模型容错与版本对比
+
+基线代码：`ad91f2b`，继续在 `refactor/agent` 实施。两份新报告均标记 `ad91f2b+M2.2-worktree`，准确表示本地未提交实现，不伪造提交来源。未改动 API/proto、数据库结构、依赖、`.env`、检索/组合评分策略或原始评测数据。
+
+本次变更：
+
+- Planner 增加“预算改成”“预算降到/降低至/减少到/下调为”等明确绝对上限文法；仍拒绝相对减额、非法币种、零/负值、亚分金额和冲突上限。逐字段优先级及原始请求幂等语义不变。
+- 脚本评测发现 Eino 工具参数使用 Sonic 解码时，语法错误类型不属于标准库 `json.SyntaxError`，旧逻辑给出泛化 `execution_failed`。工具入口新增 JSON 语法检查，在执行前返回脱敏 `invalid_argument`，使脚本修正能校验稳定错误分类；不把错误正文交给模型。
+- `-suite scripted` 用共享计数的 Fake Model 接入实际 ReAct：不仅预设后续响应，还验证上一工具调用 ID 和成功/错误反馈。未知工具、步数耗尽、执行终止和选择后模型故障均经过实际编排路径，不以 Agent 替身冒充模型链路。
+- `-compare` 校验数据哈希、划分、TopK、测量口径、用例集合和汇总一致性，再逐例列出终态/任务变化。CLI 保留退出码 0/1/2 及不覆盖报告的约束。
+- 新报告与原始基线分开归档，测试核对 JSON/Markdown 一致、脚本/快照指纹、旧报告与新报告的比较结果；原始失败样本和 64 条数据均未删除或改标。
+
+同数据规则结果：
+
+| 指标 | M2.1 | M2.2 |
+| --- | --- | --- |
+| 预期终态/错误类别 | 62/64 | 64/64 |
+| 可满足任务成功 | 24/40（60%） | 25/40（62.5%） |
+| 需求覆盖 | 33/61 | 34/61 |
+| Recall@10（micro） | 91/92 | 92/92 |
+| 完成结果硬约束违规 | 0/48 | 0/50 |
+| 成功轮次重放 | 48/48 | 50/50 |
+| 轮次数符合预期 | 64/64 | 64/64 |
+| 规则门禁 | 未通过 | 通过 |
+
+只改变两例行为：`history_budget_down` 现在成功覆盖鼠标需求；`history_unsatisfiable_after_cut` 正常完成但不返回超出新预算的商品，不计入可满足分母。终态/任务无新退化，仍有 15 条可满足任务失败，包括噪声商品挤占、属性偏好不满足和多品类遗漏。报告本地 P50=0.152367 ms、P95=0.337279 ms，负载未控制，不据此宣称性能提升。
+
+脚本套件结果：16/16 场景检查通过，33 次 Fake Model 调用；11 个完成轮次重放均为同结果、零新增模型/商品/规则调用及轮次。服务级规则兜底 4 例，内部未选择兜底 1 例，权限/超时/取消终止 4 例，模型前文本拒绝 1 例；其余 6 例经脚本工具链完成。故障为预设输入，不能解释为真实模型成功率。
+
+验证入口：
+
+```bash
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  go test -race -count=1 -json ./services/rpc/agent/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/... \
+  ./infra/interceptor/... ./infra/errors/...
+go vet ./services/rpc/agent/... ./cmd/app/internal/logic/agent/... \
+  ./cmd/app/internal/handler/agent/... ./infra/interceptor/... ./infra/errors/...
+go build ./services/rpc/agent/... ./cmd/app/...
+go test ./services/rpc/agent/internal/agent/recommend -run '^$' \
+  -fuzz '^FuzzPlannerResolveText$' -fuzztime=15s -parallel=2
+go test ./services/rpc/agent/internal/agent/recommend -run '^$' \
+  -fuzz '^FuzzPlannerExactDecimalConstraints$' -fuzztime=15s -parallel=2
+git diff --check
+```
+
+实际结果：20 个包、197 个顶层测试通过；含子测试/Fuzz seed 共 485 项通过，无竞态失败。文本 Fuzz 5959 次、精确金额 Fuzz 8583 次均通过；`go vet`、Agent/App 编译、格式/补丁空白和本地文档链接检查通过。两个真实 PostgreSQL 测试 `TestPostgresConversationTurnPersistence` / `TestPgVectorRoundTrip` 因未配置独立测试 DSN 跳过。
+
+本轮不连接真实模型、Embedding、Mall 或数据库，不启用真实 MCP（回归包含既有本地 MCP 测试替身），无付费调用、服务重启、提交或推送。M2.2 本地交付完成，M2 整体仍待 M2.3 独立人工复核及预先确定 M3/M4 目标；真实实验的环境、数据与费用授权另行确认。已知 holdout 保留为回归集，不再作为未见泛化证据。
