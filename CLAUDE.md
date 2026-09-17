@@ -94,7 +94,7 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 | `services/rpc/agent/internal/memory/` | 会话记忆（ConversationStore + InMemory/Redis/PostgreSQL/两级缓存实现） |
 | `services/rpc/agent/internal/einolog/` | Eino 组件统一日志回调（模型/工具/检索/嵌入观测） |
 | `services/rpc/agent/internal/rag/` | RAG：Loader/Indexer/Retriever（Eino 官方组件接口）+ 同步流水线 |
-| `services/rpc/agent/model/product_vectors/` | 商品向量表（pgvector，派生数据可安全重建） |
+| `services/rpc/agent/model/product_vectors/` | 商品向量表、模型绑定及同步会话协调（pgvector，重建须显式迁移） |
 | `services/rpc/agent/internal/tools/product_provider.go` | 商品数据提供者接口 |
 | `services/rpc/agent/internal/tools/mall_product_provider.go` | mall-rpc 关键词检索 provider |
 | `services/rpc/agent/internal/tools/rag_product_provider.go` | 语义检索 provider（向量优先，关键词回退） |
@@ -197,7 +197,7 @@ agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
 | `CacheRedis` | PostgreSQL 可用时只关闭一级缓存；PostgreSQL 未配置时退回进程内实现 |
 
 - **Embedding 与 LLM 是两套独立配置**（`EMBEDDING_*` 环境变量）：DeepSeek 无 embeddings 接口，RAG 需要 OpenAI / DashScope 等兼容服务。
-- **商品向量表是派生数据**：`product_vectors` 表可随时删除，同步器会自动回填；换 embedding 模型或维度会触发删表重建 + 全量重嵌入（有 token 成本）。
+- **商品向量表不可自动破坏性重建**：`product_vectors` 是派生索引，但模型/端点/维度由 `product_vector_profile` 绑定；不匹配或非空旧索引缺少绑定时拒绝启动，不能自动删表、冒认模型或通过重启绕过。真实迁移/重嵌入需单独确认数据与费用。新同步器在扫描前获取 PostgreSQL 会话级锁，所有写入必须使用同一专用连接；连接失效后不能换连接续写。只支持数据库直连或已验证会话锁释放的 session pooling，升级前须停止旧版同步器，不能把仅新代码遵守的锁当作混合版本保护。详见 [Agent 开发文档](docs/agent.md#211-索引写入协调与模型绑定m32b1)。
 - **多轮对话**：`conversation_id` 标识会话，`turn_id` 保证请求幂等；PostgreSQL 可长期保存 Conversation/Turn 和结构化状态，Redis 仅作两级缓存或短期降级，窗口/TTL 见 `Memory` 配置。
 
 ### MCP 配置
