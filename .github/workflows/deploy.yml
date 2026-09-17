@@ -1,0 +1,89 @@
+name: Deploy VPS
+
+on:
+  push:
+    branches: [refactor/agent]
+    paths:
+      - .github/workflows/deploy.yml
+      - .dockerignore
+      - deploy/**
+      - go.mod
+      - go.sum
+      - cmd/**
+      - services/**
+      - infra/**
+      - web-ui/**
+  workflow_dispatch:
+
+concurrency:
+  group: budgetmatch-vps-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/refactor/agent'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Validate deployment tooling
+        run: |
+          python3 -m pip install -r deploy/requirements.txt
+          python3 -m unittest discover -s deploy -p 'test_*.py' -v
+          bash -n deploy/publish.sh deploy/bootstrap-server.sh deploy/open-ui.sh
+      - name: Set image names
+        id: names
+        run: |
+          repository="${GITHUB_REPOSITORY,,}"
+          echo "backend=ghcr.io/${repository}-backend" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/${repository}-web" >> "$GITHUB_OUTPUT"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish backend
+        id: backend
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.names.outputs.backend }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=vps-backend
+          cache-to: type=gha,mode=max,scope=vps-backend
+      - name: Build and publish frontend
+        id: web
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: web-ui
+          file: web-ui/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.names.outputs.web }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=vps-web
+          cache-to: type=gha,mode=max,scope=vps-web
+      - name: Publish immutable manifests for Argo CD
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          BACKEND_IMAGE: ${{ steps.names.outputs.backend }}@${{ steps.backend.outputs.digest }}
+          WEB_IMAGE: ${{ steps.names.outputs.web }}@${{ steps.web.outputs.digest }}
+        run: bash deploy/publish.sh

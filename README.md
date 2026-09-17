@@ -227,6 +227,7 @@ make docker-down
 
 - [开发与 Git 提交规范](Contributors.md)
 - [CI 说明](docs/ci.md)
+- [服务器 Argo CD 自动部署](docs/gitops.md)
 - [前端进度与验证](docs/frontend-roadmap.md)
 - [错误库规范](infra/errors/README.md)
 

@@ -1,0 +1,15 @@
+namespace: budgetmatch-sim
+runtimeSecret: runtime
+imagePullSecrets: []
+webPort: 8080
+services:
+  agent-rpc:
+    requestMemory: 64Mi
+    limitMemory: 384Mi
+    config:
+      FileTools:
+        Workspace: /app/workspace
+  app:
+    config:
+      AgentRpc:
+        Timeout: 60000

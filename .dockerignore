@@ -18,6 +18,14 @@ Thumbs.db
 
 # Claude / 本地配置
 .claude/
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules/
+**/dist/
+**/test-results/
+**/playwright-report/
 
 # 日志
 logs/
