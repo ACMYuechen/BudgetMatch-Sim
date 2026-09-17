@@ -6,6 +6,11 @@ set -Eeuo pipefail
 : "${BACKEND_IMAGE:?BACKEND_IMAGE is required}"
 : "${WEB_IMAGE:?WEB_IMAGE is required}"
 
+if [[ "$SOURCE_BRANCH" != main || "${GITHUB_REF:-}" != refs/heads/main || "${GITHUB_EVENT_NAME:-}" != workflow_dispatch ]]; then
+  echo 'Only a manual workflow_dispatch run on main may publish a VPS release.' >&2
+  exit 1
+fi
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 runtime_dir="$(mktemp -d)"
 trap 'rm -rf "$runtime_dir"' EXIT

@@ -1,17 +1,20 @@
-# 服务器 Argo CD 自动部署
+# 服务器 Argo CD 手动发布
 
 目标服务器 `ubuntu@51.79.164.39`，现有 K3s 命名空间 `budgetmatch-sim`，业务入口仍为 `http://51.79.164.39:8080/`。80/443 保留给现有 Headlamp，不公开 Argo CD 管理端口。
 
 发布链路：
 
 ```text
-refactor/agent 的代码或部署配置 push
+将代码或部署配置合入 main（此时不会构建或部署）
+  → GitHub Actions → Deploy VPS → Run workflow，选择 main 并确认
   → GitHub Actions「Deploy VPS」验证部署工具并构建两份镜像
   → 推送 GHCR，以镜像 digest 生成清单并更新 gitops 分支
   → 服务器 Argo CD 自动同步应用
 ```
 
-当前发布源是 `refactor/agent`，不是较旧的 `main`。切换发布分支时须同时修改 `.github/workflows/deploy.yml` 的 `push.branches` 和 job `if`。仅改文档不会触发发布。`gitops` 是流水线维护的产物分支，不能手改；只有两份镜像都成功后才发布新清单，旧源码构建若已过期会跳过发布。
+**只允许发布 `main`，必须手动点击才开始构建。** 工作流只有 `workflow_dispatch` 入口；push、合并 PR、定时任务均不会触发此发布流程。即使手动选择其他分支，发布 job 也会跳过；发布脚本再次校验事件和分支。原有 PR CI 检查不受影响。
+
+`gitops` 是流水线维护的产物分支，不是源码发布分支，不能手改。只有手动触发的 `main` 构建中两份镜像都成功后才发布新清单；Argo CD 随后自动同步，无须再点一次 Sync。如果构建过程中 `main` 已有更新提交，本次旧版本会跳过发布，需要再次手动运行。
 
 Argo CD 只接管 8 个应用 Deployment 及其 Service、ConfigMap。现有 PostgreSQL、Redis、etcd、RocketMQ、PVC、`runtime` Secret 均不接管、不重新生成，自动删除关闭。沿用当前单副本 `Recreate` 策略，更新可能短暂中断服务；这不是零停机部署。
 
@@ -40,7 +43,9 @@ ssh ubuntu@51.79.164.39 'sudo -n bash -s' < deploy/bootstrap-server.sh
 
 ### 3. 发布首个镜像并确认拉取权限
 
-将部署文件提交、推送到 `refactor/agent` 后，查看 GitHub Actions 的 **Deploy VPS**。流水线使用自带 `GITHUB_TOKEN`，无需把服务器 SSH 密钥交给 GitHub；仓库须允许 `contents: write`、`packages: write`，`gitops` 分支规则须允许 Actions 写入。
+先将部署文件和 `.github/workflows/deploy.yml` 合入 `main`。GitHub 要求手动工作流存在于默认分支；只在开发分支修改，不能建立 `main` 的手动发布入口。参见 [GitHub 手动运行工作流](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
+
+发布时进入仓库 **Actions → Deploy VPS → Run workflow**，分支选 **main**，再点击 **Run workflow**。未点击前不会构建镜像或更新服务器。流水线使用自带 `GITHUB_TOKEN`，无需把服务器 SSH 密钥交给 GitHub；仓库须允许 `contents: write`、`packages: write`，`gitops` 分支规则须允许 Actions 写入。
 
 构建生成：
 
@@ -66,9 +71,15 @@ ssh ubuntu@51.79.164.39 'sudo k3s kubectl -n argocd get applications; sudo k3s k
 
 Application 应最终显示 `Synced`、`Healthy`，业务入口可打开。第一次接管前的完整数据库备份由步骤 2 保存；若间隔较久，应先补一次新备份。
 
+## 从开发分支自动发布迁移
+
+如果服务器之前使用 `refactor/agent` 的 push 自动发布，先按下方命令暂停 Argo CD 自动同步，保留当前运行版本，不自动回滚。将本次工作流修正同步到原开发分支，移除那里的 push 触发器；仅在 `main` 新增文件，不会删除其他分支上的旧触发器。检查并停止仍在运行的旧发布任务。
+
+随后将部署文件合入 `main`，手动运行一次 **Deploy VPS**。确认 `gitops/release.json` 的 `source_branch` 为 `main`、镜像可拉取，再重新应用 `deploy/argocd/application.yaml` 恢复自动同步。此后只需点击一次手动构建，成功后由 Argo CD 完成部署。
+
 ## 日常更新
 
-**代码和普通配置：** 修改代码或 `deploy/vps.yaml`，提交并推送发布分支即可。配置优先使用 `deploy/vps.yaml` 的服务覆盖项，不要把密码填进去。渲染器拒绝常见凭据字段的明文值；配置摘要变化会自动重启对应 Pod。
+**代码和普通配置：** 修改代码或 `deploy/vps.yaml`，合入 `main`，再手动运行 **Deploy VPS**。单纯提交、推送或合并不会发布。配置优先使用 `deploy/vps.yaml` 的服务覆盖项，不要把密码填进去。渲染器拒绝常见凭据字段的明文值；发布后配置摘要变化会自动重启对应 Pod。
 
 **支付宝沙箱：** Argo CD 无法读取你电脑的 `.env`。先核对沙箱 AppID（不能把 `2088…` 商家 PID 当 AppID），再用服务器公钥加密选定的六个 `ALIPAY_*` 字段；不复制本机数据库/JWT/Redis 密钥。
 
@@ -88,7 +99,7 @@ python3 -m pip install -r deploy/requirements.txt
 python3 deploy/seal-alipay.py --cert deploy/.local/sealed-secrets.pem --kubeseal deploy/.local/kubeseal
 ```
 
-只将生成的 **密文** `deploy/secrets/alipay.json` 提交并推送。Sealed Secrets 在服务器解密到独立的 `alipay` Secret，Argo CD 等待密钥就绪后自动更新 `payment-rpc`。本机 `.env` 和任何私钥都不提交。未添加此密文文件前，支付继续使用原有 `runtime` Secret 中的值；不意味着支付宝已可支付。加密脚本只做格式检查，AppID、密钥与商户是否配套仍须沙箱联调验证。
+只将生成的 **密文** `deploy/secrets/alipay.json` 提交并合入 `main`，再手动运行 **Deploy VPS**。Sealed Secrets 在服务器解密到独立的 `alipay` Secret，Argo CD 等待密钥就绪后自动更新 `payment-rpc`。本机 `.env` 和任何私钥都不提交。未添加此密文文件前，支付继续使用原有 `runtime` Secret 中的值；不意味着支付宝已可支付。加密脚本只做格式检查，AppID、密钥与商户是否配套仍须沙箱联调验证。
 
 ## 打开管理界面
 
@@ -106,7 +117,7 @@ ssh ubuntu@51.79.164.39 "sudo k3s kubectl -n argocd get secret argocd-initial-ad
 
 ## 回退与排障
 
-常规回退：在源码发布分支 revert 问题提交，再 push 生成新版本。由于自动同步开启，不要依赖 UI 的临时回滚或手工修改 Deployment，下一次同步会恢复 Git 声明的状态。
+常规回退：在 `main` revert 问题提交，push 后手动运行 **Deploy VPS** 生成新版本。Argo CD 只会同步发布成功后更新的 `gitops` 清单；不要依赖 UI 的临时回滚或手工修改 Deployment，下一次同步会恢复 Git 声明的状态。
 
 紧急暂停自动同步：
 
