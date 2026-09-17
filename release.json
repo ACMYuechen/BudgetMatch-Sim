@@ -1,0 +1,6 @@
+{
+  "source_sha": "e7ba7219007a20f83a52c5a4d6a14140ccd038e1",
+  "source_branch": "refactor/agent",
+  "backend_image": "ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc",
+  "web_image": "ghcr.io/acmyuechen/budgetmatch-sim-web@sha256:b30b37cb325cac992ef09e543617fec54579fa67ac636aaca06d4281c7abc4cf"
+}

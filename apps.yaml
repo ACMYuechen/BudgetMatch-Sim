@@ -1,0 +1,1082 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-rpc-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: auth.rpc\nListenOn: 0.0.0.0:10003\nTimeout: 60000\nTelemetry:\n\
+    \  Name: auth.rpc\n  Sampler: 1.0\nEtcd:\n  Hosts:\n  - ${ETCD_HOSTS}\n  Key:\
+    \ auth.rpc\nJwtAuth:\n  Secret: ${JWT_SECRET}\n  Expire: 86400\n  Email:\n   \
+    \ From: ${EMAIL_FROM}\n    Password: ${EMAIL_PASSWORD}\nDatabase:\n  LogLevel:\
+    \ 2\n  Driver: Postgres\n  DSN: ${DATABASE_DSN}\n  MaxOpenConns: 10\n  MaxIdleConns:\
+    \ 2\n  ConnMaxLifetime: 7200s\n  ConnMaxIdleTime: 300s\n  AutoMigrate: true\n\
+    \  PrepareStmt: true\nCacheRedis:\n  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n\
+    \  DB: 2\n  PoolSize: 10\n  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout:\
+    \ 3s\n  WriteTimeout: 3s\n  PoolTimeout: 4s\n  MaxRetries: 3\nMode: pro\nLog:\n\
+    \  Mode: console\n  Level: info\n  Encoding: json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-rpc
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: auth-rpc
+  ports:
+  - name: tcp-10003
+    port: 10003
+    targetPort: 10003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-rpc
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: auth-rpc
+  template:
+    metadata:
+      labels:
+        app: auth-rpc
+      annotations:
+        checksum/config: fc16c3d9a169cb6c5fb7e2836099090c535f1b1101306cea68befe8e55d0530a
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: auth-rpc
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10003
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10003
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10003
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/auth
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: DATABASE_DSN
+        - name: EMAIL_FROM
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMAIL_FROM
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMAIL_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: auth-rpc-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mall-rpc-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: mall.rpc\nListenOn: 0.0.0.0:10005\nTimeout: 60000\nTelemetry:\n\
+    \  Name: mall.rpc\n  Sampler: 1.0\nEtcd:\n  Hosts:\n  - ${ETCD_HOSTS}\n  Key:\
+    \ mall.rpc\nJwtAuth:\n  Secret: ${JWT_SECRET}\n  Expire: 86400\nDatabase:\n  LogLevel:\
+    \ 2\n  Driver: Postgres\n  DSN: ${DATABASE_DSN}\n  MaxOpenConns: 10\n  MaxIdleConns:\
+    \ 2\n  ConnMaxLifetime: 7200s\n  ConnMaxIdleTime: 300s\n  AutoMigrate: true\n\
+    \  PrepareStmt: true\nCacheRedis:\n  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n\
+    \  DB: 4\n  PoolSize: 10\n  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout:\
+    \ 3s\n  WriteTimeout: 3s\n  PoolTimeout: 4s\n  MaxRetries: 3\nRocketMQ:\n  NameServers:\n\
+    \  - ${ROCKETMQ_NAMESERVERS}\n  GroupName: mall-rpc\n  RetryTimes: 2\n  SendMsgTimeout:\
+    \ 3000\nServiceAuth:\n  Secret: ${PAYMENT_MALL_SERVICE_SECRET}\nMode: pro\nLog:\n\
+    \  Mode: console\n  Level: info\n  Encoding: json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mall-rpc
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: mall-rpc
+  ports:
+  - name: tcp-10005
+    port: 10005
+    targetPort: 10005
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mall-rpc
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mall-rpc
+  template:
+    metadata:
+      labels:
+        app: mall-rpc
+      annotations:
+        checksum/config: 98d572c30130b08699393727fbed9c29c0cf6df8bfe016969d3f4481633cb2ab
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: mall-rpc
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10005
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10005
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10005
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/mall
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: DATABASE_DSN
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: PAYMENT_MALL_SERVICE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: PAYMENT_MALL_SERVICE_SECRET
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: mall-rpc-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seckill-rpc-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: seckill.rpc\nListenOn: 0.0.0.0:10004\nTimeout: 60000\nTelemetry:\n\
+    \  Name: seckill.rpc\n  Sampler: 1.0\nEtcd:\n  Hosts:\n  - ${ETCD_HOSTS}\n  Key:\
+    \ seckill.rpc\nJwtAuth:\n  Secret: ${JWT_SECRET}\n  Expire: 86400\nDatabase:\n\
+    \  LogLevel: 2\n  Driver: Postgres\n  DSN: ${DATABASE_DSN}\n  MaxOpenConns: 10\n\
+    \  MaxIdleConns: 2\n  ConnMaxLifetime: 7200s\n  ConnMaxIdleTime: 300s\n  AutoMigrate:\
+    \ true\n  PrepareStmt: true\nCacheRedis:\n  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n\
+    \  DB: 3\n  PoolSize: 10\n  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout:\
+    \ 3s\n  WriteTimeout: 3s\n  PoolTimeout: 4s\n  MaxRetries: 3\nMallRpc:\n  Etcd:\n\
+    \    Hosts:\n    - ${ETCD_HOSTS}\n    Key: mall.rpc\n  Endpoints:\n  - mall-rpc:10005\n\
+    \  NonBlock: true\nMode: pro\nLog:\n  Mode: console\n  Level: info\n  Encoding:\
+    \ json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seckill-rpc
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: seckill-rpc
+  ports:
+  - name: tcp-10004
+    port: 10004
+    targetPort: 10004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seckill-rpc
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seckill-rpc
+  template:
+    metadata:
+      labels:
+        app: seckill-rpc
+      annotations:
+        checksum/config: 9dbb02402ddcda799e8f68b785d7bd3b9570e7e0c96511b6ba33482ada47ee21
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: seckill-rpc
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10004
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10004
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10004
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/seckill
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: DATABASE_DSN
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: seckill-rpc-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-rpc-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: agent.rpc\nListenOn: 0.0.0.0:10006\nTimeout: 60000\nTelemetry:\n\
+    \  Name: agent.rpc\n  Sampler: 1.0\nEtcd:\n  Hosts:\n  - ${ETCD_HOSTS}\n  Key:\
+    \ agent.rpc\nJwtAuth:\n  Secret: ${JWT_SECRET}\n  Expire: 86400\nModel:\n  Provider:\
+    \ ${LLM_PROVIDER}\n  Model: ${LLM_MODEL}\n  BaseURL: ${LLM_BASE_URL}\n  APIKey:\
+    \ ${LLM_API_KEY}\nEmbedding:\n  Provider: ${EMBEDDING_PROVIDER}\n  Model: ${EMBEDDING_MODEL}\n\
+    \  BaseURL: ${EMBEDDING_BASE_URL}\n  APIKey: ${EMBEDDING_API_KEY}\n  Dimensions:\
+    \ 1536\nDatabase:\n  LogLevel: 2\n  Driver: Postgres\n  DSN: ${DATABASE_DSN}\n\
+    \  MaxOpenConns: 10\n  MaxIdleConns: 2\n  ConnMaxLifetime: 7200s\n  ConnMaxIdleTime:\
+    \ 300s\n  AutoMigrate: true\n  PrepareStmt: true\nRAG:\n  TopK: 10\n  ScoreThreshold:\
+    \ 0\n  SyncIntervalSeconds: 600\n  SyncPageSize: 100\n  VerifySku: false\nMCP:\n\
+    \  Enabled: false\n  Command: ''\n  Args: []\n  AllowedTools: []\n  Timeout: 5000\n\
+    FileTools:\n  Enabled: false\n  AllowWrite: false\n  Workspace: /app/workspace\n\
+    \  MaxReadBytes: 65536\n  MaxWriteBytes: 65536\n  WritableExtensions:\n  - .json\n\
+    \  - .md\n  - .txt\nMallRpc:\n  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n    Key:\
+    \ mall.rpc\n  Endpoints:\n  - mall-rpc:10005\n  NonBlock: true\nCacheRedis:\n\
+    \  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n  DB: 6\n  PoolSize: 10\n\
+    \  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout: 3s\n  WriteTimeout: 3s\n\
+    \  PoolTimeout: 4s\n  MaxRetries: 3\nMemory:\n  MaxHistory: 20\n  MaxContextTokens:\
+    \ 8000\n  TTL: 24h\nMode: pro\nLog:\n  Mode: console\n  Level: info\n  Encoding:\
+    \ json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-rpc
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: agent-rpc
+  ports:
+  - name: tcp-10006
+    port: 10006
+    targetPort: 10006
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-rpc
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: agent-rpc
+  template:
+    metadata:
+      labels:
+        app: agent-rpc
+      annotations:
+        checksum/config: f24ea9339edaf01fc2dac426e48809ce3170d1ab1fd2e5fe06e38b1c395f9a2d
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: agent-rpc
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10006
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            memory: 384Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10006
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10006
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/agent
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: DATABASE_DSN
+        - name: EMBEDDING_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMBEDDING_API_KEY
+        - name: EMBEDDING_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMBEDDING_BASE_URL
+        - name: EMBEDDING_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMBEDDING_MODEL
+        - name: EMBEDDING_PROVIDER
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: EMBEDDING_PROVIDER
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: LLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: LLM_API_KEY
+        - name: LLM_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: LLM_BASE_URL
+        - name: LLM_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: LLM_MODEL
+        - name: LLM_PROVIDER
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: LLM_PROVIDER
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: workspace
+          mountPath: /app/workspace
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: agent-rpc-config
+      - name: tmp
+        emptyDir: {}
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: agent-workspace
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-rpc-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: payment.rpc\nListenOn: 0.0.0.0:10007\nTimeout: 60000\nTelemetry:\n\
+    \  Name: payment.rpc\n  Sampler: 1.0\nEtcd:\n  Hosts:\n  - ${ETCD_HOSTS}\n  Key:\
+    \ payment.rpc\nJwtAuth:\n  Secret: ${JWT_SECRET}\n  Expire: 86400\nDatabase:\n\
+    \  LogLevel: 2\n  Driver: Postgres\n  DSN: ${DATABASE_DSN}\n  MaxOpenConns: 10\n\
+    \  MaxIdleConns: 2\n  ConnMaxLifetime: 7200s\n  ConnMaxIdleTime: 300s\n  AutoMigrate:\
+    \ true\n  PrepareStmt: true\nCacheRedis:\n  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n\
+    \  DB: 5\n  PoolSize: 10\n  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout:\
+    \ 3s\n  WriteTimeout: 3s\n  PoolTimeout: 4s\n  MaxRetries: 3\nServiceAuth:\n \
+    \ Secret: ${PAYMENT_MALL_SERVICE_SECRET}\nAlipay:\n  AppId: ${ALIPAY_APP_ID}\n\
+    \  SellerId: ${ALIPAY_SELLER_ID}\n  PrivateKey: ${ALIPAY_PRIVATE_KEY}\n  AlipayPublicKey:\
+    \ ${ALIPAY_PUBLIC_KEY}\n  IsProduction: false\n  NotifyURL: ${ALIPAY_NOTIFY_URL}\n\
+    \  ReturnURL: ${ALIPAY_RETURN_URL}\nMallRpc:\n  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n\
+    \    Key: mall.rpc\n  Endpoints:\n  - mall-rpc:10005\n  Timeout: 5000\nMode: pro\n\
+    Log:\n  Mode: console\n  Level: info\n  Encoding: json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-rpc
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: payment-rpc
+  ports:
+  - name: tcp-10007
+    port: 10007
+    targetPort: 10007
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-rpc
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: payment-rpc
+  template:
+    metadata:
+      labels:
+        app: payment-rpc
+      annotations:
+        checksum/config: 36d88ae2272c2c9390984106ccbcc5a2afe97460407a63466a51d2de0585d417
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: payment-rpc
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10007
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10007
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10007
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/payment
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: ALIPAY_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_APP_ID
+        - name: ALIPAY_NOTIFY_URL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_NOTIFY_URL
+        - name: ALIPAY_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_PRIVATE_KEY
+        - name: ALIPAY_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_PUBLIC_KEY
+        - name: ALIPAY_RETURN_URL
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_RETURN_URL
+        - name: ALIPAY_SELLER_ID
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: ALIPAY_SELLER_ID
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: DATABASE_DSN
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: PAYMENT_MALL_SERVICE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: PAYMENT_MALL_SERVICE_SECRET
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: payment-rpc-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: budgetmatch-sim\nHost: 0.0.0.0\nPort: 10002\nTimeout: 600000\n\
+    MaxBytes: 524288000\nTelemetry:\n  Name: app.api\n  Sampler: 1.0\nAuth:\n  Secret:\
+    \ ${JWT_SECRET}\n  Expire: 86400\nRedis:\n  Address: redis:6379\n  Password: ${REDIS_PASSWORD}\n\
+    \  DB: 2\n  PoolSize: 10\n  MinIdleConns: 5\n  DialTimeout: 5s\n  ReadTimeout:\
+    \ 3s\n  WriteTimeout: 3s\n  PoolTimeout: 4s\n  MaxRetries: 3\nAuthRpc:\n  Etcd:\n\
+    \    Hosts:\n    - ${ETCD_HOSTS}\n    Key: auth.rpc\n  Endpoints:\n  - auth-rpc:10003\n\
+    \  NonBlock: true\nSeckillRpc:\n  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n   \
+    \ Key: seckill.rpc\n  Endpoints:\n  - seckill-rpc:10004\n  NonBlock: true\nMallRpc:\n\
+    \  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n    Key: mall.rpc\n  Endpoints:\n \
+    \ - mall-rpc:10005\n  NonBlock: true\nAgentRpc:\n  Timeout: 60000\n  Etcd:\n \
+    \   Hosts:\n    - ${ETCD_HOSTS}\n    Key: agent.rpc\n  Endpoints:\n  - agent-rpc:10006\n\
+    \  NonBlock: true\nPaymentRpc:\n  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n   \
+    \ Key: payment.rpc\n  Endpoints:\n  - payment-rpc:10007\n  NonBlock: true\n  Timeout:\
+    \ 10000\nMode: pro\nLog:\n  Mode: console\n  Level: info\n  Encoding: json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: app
+  ports:
+  - name: tcp-10002
+    port: 10002
+    targetPort: 10002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+      annotations:
+        checksum/config: 839138919ebd1932b49cfc66bf5e9525175c7503333120e2f679f96fd3342349
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: app
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10002
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10002
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10002
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/app
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: JWT_SECRET
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: runtime
+              key: REDIS_PASSWORD
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: app-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-config
+  namespace: budgetmatch-sim
+data:
+  config.yaml: "Name: budgetmatch-sim\nHost: 0.0.0.0\nPort: 10001\nTimeout: 600000\n\
+    MaxBytes: 524288000\nTelemetry:\n  Name: admin.api\n  Sampler: 1.0\nAuthRpc:\n\
+    \  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n    Key: auth.rpc\n  Endpoints:\n \
+    \ - auth-rpc:10003\n  NonBlock: true\nSeckillRpc:\n  Etcd:\n    Hosts:\n    -\
+    \ ${ETCD_HOSTS}\n    Key: seckill.rpc\n  Endpoints:\n  - seckill-rpc:10004\n \
+    \ NonBlock: true\nMallRpc:\n  Etcd:\n    Hosts:\n    - ${ETCD_HOSTS}\n    Key:\
+    \ mall.rpc\n  Endpoints:\n  - mall-rpc:10005\n  NonBlock: true\nMode: pro\nLog:\n\
+    \  Mode: console\n  Level: info\n  Encoding: json\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: admin
+  ports:
+  - name: tcp-10001
+    port: 10001
+    targetPort: 10001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+      annotations:
+        checksum/config: 9571700acc6135d64cba491fdcdd76f79b2418fb195201a839eb1804431b3b48
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: admin
+        image: ghcr.io/acmyuechen/budgetmatch-sim-backend@sha256:5b7bd8e90ebc5bfd0692adadbd43935616e0eaac4c05f90b0e5dab0ecf7993fc
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 10001
+        resources:
+          requests:
+            cpu: 25m
+            memory: 48Mi
+          limits:
+            memory: 256Mi
+        readinessProbe:
+          tcpSocket:
+            port: 10001
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 10001
+          periodSeconds: 5
+          failureThreshold: 60
+        command:
+        - /app/bin/admin
+        - -f
+        - /app/etc/config.yaml
+        workingDir: /app
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: ETCD_HOSTS
+          value: etcd:2379
+        - name: ROCKETMQ_NAMESERVERS
+          value: rocketmq-namesrv:9876
+        - name: TZ
+          value: Asia/Shanghai
+        - name: GOMEMLIMIT
+          value: 180MiB
+        volumeMounts:
+        - name: config
+          mountPath: /app/etc
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      volumes:
+      - name: config
+        configMap:
+          name: admin-config
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-ui-config
+  namespace: budgetmatch-sim
+data:
+  default.conf: "server {\n    listen 80;\n    server_name _;\n    client_max_body_size\
+    \ 50m;\n    proxy_read_timeout 600s;\n    server_tokens off;\n    root /usr/share/nginx/html;\n\
+    \    index index.html;\n\n    # 静态资源缓存\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$\
+    \ {\n        expires 30d;\n        add_header Cache-Control \"public, immutable\"\
+    ;\n    }\n\n    # SSE 推荐流 - 禁用缓冲\n    location /api/agent/recommend/stream {\n\
+    \        proxy_pass http://app:10002;\n        proxy_http_version 1.1;\n     \
+    \   proxy_buffering off;\n        proxy_cache off;\n        proxy_set_header Connection\
+    \ '';\n        proxy_set_header Cache-Control 'no-cache';\n        proxy_set_header\
+    \ Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header\
+    \ X-Forwarded-For $proxy_add_x_forwarded_for;\n    }\n\n    # App API\n    location\
+    \ /api/ {\n        proxy_pass http://app:10002;\n        proxy_http_version 1.1;\n\
+    \        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n\
+    \        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n    }\n\
+    \n    # Admin API\n    location /api/admin/ {\n        proxy_pass http://admin:10001;\n\
+    \        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n     \
+    \   proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For\
+    \ $proxy_add_x_forwarded_for;\n    }\n\n    # SPA 路由回退\n    location / {\n   \
+    \     try_files $uri $uri/ /index.html;\n    }\n}\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-ui
+  namespace: budgetmatch-sim
+spec:
+  selector:
+    app: web-ui
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 80
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-ui
+  namespace: budgetmatch-sim
+  annotations:
+    argocd.argoproj.io/sync-wave: '2'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: web-ui
+  template:
+    metadata:
+      labels:
+        app: web-ui
+      annotations:
+        checksum/config: 54fc95505c92188eeee9828d8433a55862151e610df11a0fd99c747f90b1cf35
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: web-ui
+        image: ghcr.io/acmyuechen/budgetmatch-sim-web@sha256:b30b37cb325cac992ef09e543617fec54579fa67ac636aaca06d4281c7abc4cf
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 25m
+            memory: 16Mi
+          limits:
+            memory: 64Mi
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        startupProbe:
+          tcpSocket:
+            port: 80
+          periodSeconds: 5
+          failureThreshold: 60
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/conf.d
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: web-ui-config
