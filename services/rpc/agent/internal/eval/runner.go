@@ -96,6 +96,7 @@ type Report struct {
 	BySplit       map[string]Summary `json:"by_split"`
 	ByScenario    map[string]Summary `json:"by_scenario"`
 	Cases         []CaseResult       `json:"cases"`
+	Comparison    *Comparison        `json:"comparison,omitempty"`
 }
 
 func Run(ctx context.Context, d Dataset, opts Options) (Report, error) {

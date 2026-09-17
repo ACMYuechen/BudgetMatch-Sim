@@ -74,5 +74,8 @@ func Markdown(r Report) string {
 		fmt.Fprintln(&b, "| 无 | — | — | — | — | — |")
 	}
 	fmt.Fprintln(&b, "\n## 口径与限制\n\n- 可满足成功必须非空、满足全部必需需求、仅含允许 SKU，且通过独立快照/预算/件数校验。\n- Recall@K 以当前轮过滤后的 TopK 为分子来源，跨用例求命中数/相关 SKU 数；无相关 SKU 不进分母。\n- 需求覆盖率包含标注不可满足的需求，因此它的上限未必为 100%。\n- 错误/拒绝必须不新增完成轮次；成功重放必须同结果、零新增轮次/商品查询/故障替身调用。\n- dev 用于未来调参；holdout 按用例族固定隔离，不凭本次结果移动划分或修改答案。\n- 故障 primary 是确定性 Agent 替身，不是 Fake Model；真实向量、ReAct、模型注入抵抗和 Token/费用仍未运行。\n- 查询、商品描述不包含真实个人数据；注入用例仅验证此规则路径的边界，不能外推到真实 LLM。")
+	if r.Comparison != nil {
+		b.WriteString(comparisonMarkdown(r.Comparison))
+	}
 	return b.String()
 }

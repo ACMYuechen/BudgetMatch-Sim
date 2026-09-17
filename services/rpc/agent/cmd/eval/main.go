@@ -1,4 +1,4 @@
-// Command eval 在固定合成快照上运行规则基线；不读取 .env 或服务配置，不构建外部客户端。
+// Command eval 运行规则基线或脚本模型容错评测；不读取 .env 或服务配置，不构建外部客户端。
 package main
 
 import (
@@ -28,6 +28,8 @@ func main() {
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("agent-eval", flag.ContinueOnError)
 	flags.SetOutput(stderr)
+	suite := flags.String("suite", "rule", "rule or scripted (offline Fake Model + real ReAct)")
+	compare := flags.String("compare", "", "optional prior rule report.json; requires identical inputs and protocol")
 	snapshot := flags.String("snapshot", "services/rpc/agent/testdata/eval/products.v1.json", "fixed synthetic product snapshot")
 	cases := flags.String("cases", "services/rpc/agent/testdata/eval/cases.v1.jsonl", "fixed JSONL case set")
 	split := flags.String("split", "all", "all, dev or holdout")
@@ -41,9 +43,28 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 2
 	}
-	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") {
+	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") || (*suite != "rule" && *suite != "scripted") {
 		fmt.Fprintln(stderr, "invalid arguments or output format")
 		return 2
+	}
+	if *suite == "scripted" {
+		invalid := false
+		flags.Visit(func(f *flag.Flag) {
+			switch f.Name {
+			case "snapshot", "cases", "split", "top-k", "compare":
+				invalid = true
+			}
+		})
+		if invalid {
+			fmt.Fprintln(stderr, "scripted suite has fixed fixtures; rule dataset/comparison flags are not accepted")
+			return 2
+		}
+		report, err := eval.RunScripted(ctx, *revision)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return emit(report, eval.ScriptedMarkdown(report), report.GatePassed, *format, *out, stdout, stderr)
 	}
 	sf, err := os.Open(*snapshot)
 	if err != nil {
@@ -67,27 +88,49 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, err)
 		return 2
 	}
+	if *compare != "" {
+		f, err := os.Open(*compare)
+		if err != nil {
+			fmt.Fprintln(stderr, "cannot open comparison report")
+			return 2
+		}
+		before, loadErr := eval.LoadReport(f)
+		closeErr := f.Close()
+		if loadErr != nil || closeErr != nil {
+			fmt.Fprintln(stderr, "invalid comparison report")
+			return 2
+		}
+		report.Comparison, err = eval.Compare(before, report)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+	}
+	return emit(report, eval.Markdown(report), report.Summary.GatePassed, *format, *out, stdout, stderr)
+}
+
+func emit(report any, markdown string, gatePassed bool, format, out string, stdout, stderr io.Writer) int {
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		fmt.Fprintln(stderr, "cannot encode report")
 		return 2
 	}
 	data = append(data, '\n')
-	md := []byte(eval.Markdown(report))
-	if *out != "" {
-		if err := writeReports(*out, data, md); err != nil {
+	md := []byte(markdown)
+	if out != "" {
+		if err := writeReports(out, data, md); err != nil {
 			fmt.Fprintln(stderr, "cannot create report directory/files (existing paths are never overwritten)")
 			return 2
 		}
 	}
 	content := data
-	if *format == "markdown" {
+	if format == "markdown" {
 		content = md
 	}
 	if _, err := stdout.Write(content); err != nil {
 		return 2
 	}
-	if !report.Summary.GatePassed {
+	if !gatePassed {
 		return 1
 	}
 	return 0
