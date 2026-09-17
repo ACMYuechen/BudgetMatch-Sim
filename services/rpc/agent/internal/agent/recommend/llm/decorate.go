@@ -60,6 +60,9 @@ func (t *recordingTool) InvokableRun(ctx context.Context, argumentsInJSON string
 		err = status.Error(codes.PermissionDenied, "unsupported tool interface")
 	case len(argumentsInJSON) > maxToolPayloadBytes:
 		err = agentcore.ErrInvalidInput
+	case !json.Valid([]byte(argumentsInJSON)):
+		// 不依赖框架所选 JSON 解码器的私有错误类型，给模型稳定的可修正分类。
+		err = agentcore.ErrInvalidInput
 	default:
 		out, err = t.inner.InvokableRun(ctx, argumentsInJSON, opts...)
 	}

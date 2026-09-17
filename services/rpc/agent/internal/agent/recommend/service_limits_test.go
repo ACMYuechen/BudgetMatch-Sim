@@ -117,7 +117,7 @@ func TestGuardrailsTerminalErrorsDoNotStartFallback(t *testing.T) {
 }
 
 func TestTextConstraintsRejectBeforeExecutionAndKeepConversation(t *testing.T) {
-	for _, query := range []string{"预算$500", "预算-1元", "预算0.001元", "预算3000或5000", "最多十一件"} {
+	for _, query := range []string{"预算$500", "预算-1元", "预算0.001元", "预算3000或5000", "最多十一件", "预算改成0元", "预算降到19.999元", "预算减少50元"} {
 		t.Run(query, func(t *testing.T) {
 			ctx := context.Background()
 			mem := memory.NewInMemory(memory.Conf{})

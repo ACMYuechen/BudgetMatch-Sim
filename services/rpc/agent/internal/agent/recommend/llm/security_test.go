@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -23,6 +24,25 @@ type securityTool struct {
 	output string
 	err    error
 	calls  int
+}
+
+func TestMalformedToolJSONIsRecoverableBeforeExecution(t *testing.T) {
+	for _, input := range []string{`{"query":`, `{"query":"PRIVATE"`, `{} trailing`, ""} {
+		base := &securityTool{}
+		s := &session{}
+		out, err := decorate(s, toolSearchProducts, base).(tool.InvokableTool).InvokableRun(context.Background(), input)
+		var feedback struct {
+			Success bool   `json:"success"`
+			Error   string `json:"error"`
+		}
+		if err != nil || base.calls != 0 || json.Unmarshal([]byte(out), &feedback) != nil || feedback.Success || feedback.Error != "invalid_argument" || strings.Contains(out, "PRIVATE") {
+			t.Fatalf("invalid JSON reached tool or lost recoverable category: %q %v calls=%d", out, err, base.calls)
+		}
+		_, _, calls := s.snapshot()
+		if len(calls) != 1 || calls[0].Success || !strings.Contains(calls[0].Detail, "error_code=invalid_argument") {
+			t.Fatalf("missing safe failed attempt: %+v", calls)
+		}
+	}
 }
 
 func (t *securityTool) Info(context.Context) (*schema.ToolInfo, error) {

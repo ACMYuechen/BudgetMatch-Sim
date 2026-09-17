@@ -271,20 +271,13 @@ func TestCorpusRepeatableAndKnownGapsRemainVisible(t *testing.T) {
 	if a.Summary.SatisfiableSuccess.Denominator != 40 {
 		t.Fatal("satisfiable denominator changed; review dataset version")
 	}
-	var gaps []string
 	for _, c := range a.Cases {
 		if !c.OutcomeMatched {
-			gaps = append(gaps, c.ID)
+			t.Fatalf("outcome regression: %s", c.ID)
 		}
 	}
-	known := []string{"history_budget_down", "history_unsatisfiable_after_cut"}
-	for _, id := range gaps {
-		if !contains(known, id) {
-			t.Fatalf("new outcome regression: %s", id)
-		}
-	}
-	if a.Summary.GatePassed != (len(gaps) == 0) {
-		t.Fatalf("gate does not reflect actual outcome failures: %v", gaps)
+	if !a.Summary.GatePassed {
+		t.Fatal("M2.2 fixed outcome regressions; gate must now pass")
 	}
 }
 

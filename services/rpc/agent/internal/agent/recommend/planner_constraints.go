@@ -14,7 +14,7 @@ const (
 	numberExpression        = `[+\-负]?\s*(?:[0-9]+(?:[.,][0-9]+)*|\.[0-9]+)(?:[eE][+\-]?[0-9]+)?`
 	chineseNumberExpression = `[负零〇一二两三四五六七八九十百千万亿]+`
 	currencyExpression      = `人民币|美元|美金|欧元|日元|港元|港币|英镑|韩元|澳元|加元|新加坡元|新台币|台币|卢布|卢比|円|块钱|元|块|rmb\b|cny\b|yuan\b|usd\b|dollars?\b|eur\b|euros?\b|jpy\b|yen\b|hkd\b|gbp\b|pounds?\b|krw\b|aud\b|cad\b|sgd\b|twd\b|rub\b|inr\b|\p{Sc}`
-	budgetMarkerExpression  = `预算\s*(?:为|是|在|约|大概|控制在|不超过|不要超过|不超|最多|至少|不少于|不低于|最低|上限(?:为|是)?|(?:提高|增加|加|调整|改)(?:到|至|为)?|under|below)?` +
+	budgetMarkerExpression  = `预算\s*(?:为|是|在|约|大概|控制在|不超过|不要超过|不超|最多|至少|不少于|不低于|最低|上限(?:为|是)?|改成|(?:降低|减少|下调|降)(?:到|至|为)|(?:提高|增加|加|调整|改)(?:到|至|为)?|under|below)?` +
 		`|budget(?:\s+(?:is|around|about|under|below|within|up\s+to|max(?:imum)?|at\s+least))?` +
 		`|不超过|不要超过|不超|最多|上限(?:为|是)?|至少|不少于|不低于|最低|起码|(?:改|调整)(?:到|至|为)` +
 		`|under|below|within|around|about|up\s+to|no\s+more\s+than|less\s+than|at\s+least|max(?:imum)?\s+budget`

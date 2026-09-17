@@ -63,6 +63,12 @@ func TestPlannerResolvesTextConstraints(t *testing.T) {
 		{"预算0.000001万元，最多两件", 1, 2},
 		{"预算3k-5000元，最多三件，买2个耳机", 500000, 3},
 		{"budget 3000 to 5000, at most two items", 500000, 2},
+		{"预算改成50元", 5000, 3},
+		{"预算降到30元", 3000, 3},
+		{"预算降低至19.99元", 1999, 3},
+		{"预算减少到1,000.50元", 100050, 3},
+		{"预算下调为0.000001万元", 1, 3},
+		{"预算改成30-50元，只买一件鼠标", 5000, 1},
 	} {
 		t.Run(tc.query, func(t *testing.T) {
 			got, err := NewPlanner().Resolve(agent.Input{Query: tc.query}, nil)
@@ -70,6 +76,36 @@ func TestPlannerResolvesTextConstraints(t *testing.T) {
 				t.Fatalf("Resolve = %+v, %v; want budget=%d items=%d", got, err, tc.budget, tc.items)
 			}
 		})
+	}
+}
+
+func TestPlannerBudgetChangeKeepsValidationAndPrecedence(t *testing.T) {
+	prior := &agent.Intent{BudgetCents: 20000, MaxItems: 2}
+	for _, query := range []string{"预算改成50元", "预算降到50元", "预算降低至50元", "预算减少到50元", "预算下调为50元"} {
+		got, err := NewPlanner().Resolve(agent.Input{Query: query, PriorIntent: prior}, []string{"预算300元"})
+		if err != nil || got.BudgetCents != 5000 || got.MaxItems != 2 || prior.BudgetCents != 20000 {
+			t.Fatalf("change did not override only budget: %+v %v", got, err)
+		}
+		got, err = NewPlanner().Resolve(agent.Input{Query: query, BudgetCents: 8000, PriorIntent: prior}, nil)
+		if err != nil || got.BudgetCents != 8000 {
+			t.Fatalf("text replaced structured budget: %+v %v", got, err)
+		}
+	}
+	for _, tc := range []struct {
+		query string
+		want  error
+	}{
+		{"预算改成0元", agent.ErrBudgetText}, {"预算降到-30元", agent.ErrBudgetText},
+		{"预算降到19.999元", agent.ErrBudgetText}, {"预算降低至1000000001元", agent.ErrBudgetText},
+		{"预算改成30或50元", agent.ErrBudgetText}, {"预算改成50元，预算降到30元", agent.ErrBudgetText},
+		{"预算改成50美元", agent.ErrBudgetCurrency}, {"预算降到JPY30", agent.ErrBudgetCurrency},
+		// 相对变化不是绝对上限，不能把“减少了 50”误当作新预算 50。
+		{"预算减少50元", agent.ErrBudgetText}, {"预算降低了50元", agent.ErrBudgetText},
+		{"预算下调50%", agent.ErrBudgetText}, {"预算改成不限", agent.ErrBudgetText},
+	} {
+		if _, err := NewPlanner().Resolve(agent.Input{Query: tc.query, PriorIntent: prior}, nil); !errors.Is(err, tc.want) {
+			t.Fatalf("%q: got %v, want %v", tc.query, err, tc.want)
+		}
 	}
 }
 
