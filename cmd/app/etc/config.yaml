@@ -59,6 +59,7 @@ MallRpc:
 
 # Agent 推荐服务 RPC
 AgentRpc:
+  Timeout: 60000
   Etcd:
     Hosts:
       - ${ETCD_HOSTS}

@@ -43,7 +43,11 @@ func (m *LoggingMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		logx.WithContext(ctx).Infow("request start", logFields...)
 
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		next(rw, r)
+		var writer http.ResponseWriter = rw
+		if flusher, ok := w.(http.Flusher); ok {
+			writer = &flushingResponseWriter{responseWriter: rw, flusher: flusher}
+		}
+		next(writer, r)
 
 		duration := time.Since(start).Milliseconds()
 		endFields := []logx.LogField{
@@ -94,6 +98,18 @@ type responseWriter struct {
 	http.ResponseWriter
 	statusCode  int
 	wroteHeader bool
+}
+
+type flushingResponseWriter struct {
+	*responseWriter
+	flusher http.Flusher
+}
+
+func (writer *flushingResponseWriter) Flush() {
+	if !writer.wroteHeader {
+		writer.WriteHeader(http.StatusOK)
+	}
+	writer.flusher.Flush()
 }
 
 // WriteHeader 记录首次写入的状态码，然后透传给原始 ResponseWriter。

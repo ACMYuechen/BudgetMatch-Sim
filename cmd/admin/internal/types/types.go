@@ -281,7 +281,7 @@ type AdminUpdateProductResp struct {
 type AdminProductListReq struct {
 	Page     int    `form:"page,default=1"`
 	PageSize int    `form:"page_size,default=10"`
-	Keyword  string `form:"keyword"`
+	Keyword  string `form:"keyword,optional"`
 	Status   int32  `form:"status,default=-1"`
 	UserId   string `form:"user_id,optional"`
 }
