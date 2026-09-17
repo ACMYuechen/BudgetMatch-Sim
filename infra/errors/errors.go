@@ -9,6 +9,9 @@ const (
 	ECSeckillActivityNotStart
 	ECMallPaymentAmountMismatch
 	ECAgentContextTooLarge
+	ECAgentBudgetCurrency
+	ECAgentBudgetText
+	ECAgentItemLimitText
 )
 
 // 401xxx: 认证、凭据或令牌错误。
@@ -74,6 +77,9 @@ var (
 	SeckillActivityNotStart   = newAppError(ECSeckillActivityNotStart, "seckill.activity_not_started")
 	MallPaymentAmountMismatch = newAppError(ECMallPaymentAmountMismatch, "mall.payment_amount_mismatch")
 	AgentContextTooLarge      = newAppError(ECAgentContextTooLarge, "agent.context_too_large")
+	AgentBudgetCurrency       = newAppError(ECAgentBudgetCurrency, "agent.budget_currency")
+	AgentBudgetText           = newAppError(ECAgentBudgetText, "agent.budget_text")
+	AgentItemLimitText        = newAppError(ECAgentItemLimitText, "agent.item_limit_text")
 )
 
 var (

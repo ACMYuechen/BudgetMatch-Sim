@@ -48,6 +48,15 @@ func toPBTurn(turn memory.Turn) (*pb.ConversationTurn, error) {
 
 // mapRecommendError 将领域错误收敛为网关可本地化的统一业务错误。
 func mapRecommendError(err error) error {
+	// 先保留可修正的文本错误类别，再归并普通 InvalidInput。
+	switch {
+	case errors.Is(err, agentcore.ErrBudgetCurrency):
+		return apperrors.AgentBudgetCurrency
+	case errors.Is(err, agentcore.ErrBudgetText):
+		return apperrors.AgentBudgetText
+	case errors.Is(err, agentcore.ErrItemLimitText):
+		return apperrors.AgentItemLimitText
+	}
 	if errors.Is(err, agentcore.ErrUnsafeResult) {
 		return apperrors.Internal
 	}

@@ -43,6 +43,27 @@ func TestAsAppErrorRestoresGRPCError(t *testing.T) {
 	}
 }
 
+func TestAgentConstraintErrorsSurviveRPCAndHTTP(t *testing.T) {
+	for _, tc := range []struct {
+		err     *AppError
+		code    int64
+		message string
+	}{
+		{AgentBudgetCurrency, 400007, "预算仅支持人民币，请换算后使用人民币金额或 budget_cents 重新提交"},
+		{AgentBudgetText, 400008, "预算无效或存在歧义，请提供唯一的正数人民币上限，使用阿拉伯数字且精确到分，最高十亿元"},
+		{AgentItemLimitText, 400009, "商品件数无效或存在歧义，请提供唯一的 1 到 10 件上限，不支持数量区间或最低件数"},
+	} {
+		t.Run(tc.err.MsgId(), func(t *testing.T) {
+			transported := tc.err.GRPCStatus().Err()
+			statusCode, body := HTTPErrorHandler(transported)
+			response := body.(HTTPResponse)
+			if status.Code(transported) != codes.InvalidArgument || statusCode != http.StatusBadRequest || response.Code != tc.code || response.Message != tc.message {
+				t.Fatalf("constraint error lost in transport: %v %d %+v", transported, statusCode, response)
+			}
+		})
+	}
+}
+
 func TestHTTPErrorHandler(t *testing.T) {
 	statusCode, body := HTTPErrorHandler(status.Error(codes.NotFound, NotFound.Error()))
 	response, ok := body.(HTTPResponse)

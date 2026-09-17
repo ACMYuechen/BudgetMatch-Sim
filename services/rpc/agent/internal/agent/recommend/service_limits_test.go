@@ -115,3 +115,49 @@ func TestGuardrailsTerminalErrorsDoNotStartFallback(t *testing.T) {
 		}
 	}
 }
+
+func TestTextConstraintsRejectBeforeExecutionAndKeepConversation(t *testing.T) {
+	for _, query := range []string{"预算$500", "预算-1元", "预算0.001元", "预算3000或5000", "最多十一件"} {
+		t.Run(query, func(t *testing.T) {
+			ctx := context.Background()
+			mem := memory.NewInMemory(memory.Conf{})
+			primary := &countingAgent{result: &agentcore.Result{}}
+			fallback := &countingAgent{result: &agentcore.Result{}}
+			s := NewService(fallback, primary, mem)
+			input := agentcore.Input{Query: "预算100元，最多四件", UserId: "u", ConversationId: "c", TurnId: "first"}
+			if _, err := s.Recommend(ctx, input); err != nil {
+				t.Fatal(err)
+			}
+			before, _, err := mem.GetConversation(ctx, "u", "c")
+			if err != nil {
+				t.Fatal(err)
+			}
+			input.Query, input.TurnId = query, "second"
+			if _, err := s.Recommend(ctx, input); !errors.Is(err, agentcore.ErrInvalidInput) {
+				t.Fatalf("invalid text accepted: %v", err)
+			}
+			if primary.calls != 1 || fallback.calls != 0 {
+				t.Fatalf("executed invalid request: primary=%d fallback=%d", primary.calls, fallback.calls)
+			}
+			if _, found, err := mem.FindTurn(ctx, "u", "c", "second"); err != nil || found {
+				t.Fatalf("invalid turn saved: %v %v", found, err)
+			}
+			after, _, err := mem.GetConversation(ctx, "u", "c")
+			if err != nil || after.Version != before.Version || after.TurnCount != before.TurnCount {
+				t.Fatalf("invalid text changed conversation: %+v %v", after, err)
+			}
+			// 未完成的轮次标识可修正重试；完整结果仍按原始零值请求幂等重放。
+			input.Query = "预算19.99元，最多两件"
+			for range 2 {
+				result, err := s.Recommend(ctx, input)
+				if err != nil || result.Intent.BudgetCents != 1999 || result.Intent.MaxItems != 2 {
+					t.Fatalf("corrected request failed: %+v %v", result, err)
+				}
+			}
+			turn, found, err := mem.FindTurn(ctx, "u", "c", "second")
+			if err != nil || !found || turn.BudgetCents != 0 || turn.MaxItems != 0 || primary.calls != 2 || fallback.calls != 0 {
+				t.Fatalf("replay changed original request: %+v %v", turn, err)
+			}
+		})
+	}
+}

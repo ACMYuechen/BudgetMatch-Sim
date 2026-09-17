@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,6 +22,14 @@ var ErrTurnConflict = errors.New("agent turn id is already bound to a different 
 
 // ErrInvalidInput 表示推荐请求未满足 Agent 业务入口的参数边界。
 var ErrInvalidInput = errors.New("invalid agent recommendation input")
+
+// 文本约束错误保留 InvalidInput 分类，禁止触发兜底；公共文案由 RPC 层映射。
+// 不携带用户原文，避免把查询或内部解析细节暴露到日志和响应。
+var (
+	ErrBudgetCurrency = fmt.Errorf("%w: budget currency must be CNY", ErrInvalidInput)
+	ErrBudgetText     = fmt.Errorf("%w: invalid or ambiguous budget text", ErrInvalidInput)
+	ErrItemLimitText  = fmt.Errorf("%w: invalid or ambiguous item limit text", ErrInvalidInput)
+)
 
 // ErrUnsafeResult 表示 Agent 结果违反业务约束或与商品事实不符，禁止保存和返回。
 var ErrUnsafeResult = errors.New("unsafe agent recommendation result")

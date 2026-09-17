@@ -18,6 +18,27 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
+func TestLLMAgentRejectsInvalidTextBeforeModelOrTools(t *testing.T) {
+	for _, query := range []string{"预算$500", "预算-500元", "预算0.001元", "预算3000或5000", "最多十一件"} {
+		var received [][]*schema.Message
+		model := &scriptedModel{received: &received}
+		runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+		_, err := runner.Run(context.Background(), agentcore.Input{Query: query})
+		if !errors.Is(err, agentcore.ErrInvalidInput) || len(received) != 0 || len(model.boundTools) != 0 {
+			t.Fatalf("invalid text reached ReAct: %q err=%v", query, err)
+		}
+	}
+}
+
+func TestLLMAgentUsesTextLimitsInFinalResult(t *testing.T) {
+	model := &scriptedModel{responses: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+	runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+	result, err := runner.Run(context.Background(), agentcore.Input{Query: "预算3000元，最多一件学习用品"})
+	if err != nil || result.Intent.MaxItems != 1 || len(result.Items) != 1 || result.TotalPriceCents > 300000 {
+		t.Fatalf("text limit not enforced: %+v %v", result, err)
+	}
+}
+
 // TestAgentDrivesReactToolCalls 验证 Agent 让 ReAct 真正编排 search_products + select_bundle，
 // 并从工具结果回填出 grounded 的商品套装与工具记录。
 func TestAgentDrivesReactToolCalls(t *testing.T) {

@@ -33,6 +33,9 @@ func TestMapRecommendError(t *testing.T) {
 		want error
 	}{
 		{name: "invalid input", err: agent.ErrInvalidInput, want: apperrors.Invalid},
+		{name: "budget currency", err: agent.ErrBudgetCurrency, want: apperrors.AgentBudgetCurrency},
+		{name: "budget text", err: errors.Join(agent.ErrBudgetText, errors.New("private query")), want: apperrors.AgentBudgetText},
+		{name: "item limit text", err: agent.ErrItemLimitText, want: apperrors.AgentItemLimitText},
 		{name: "unsafe result", err: errors.Join(agent.ErrUnsafeResult, errors.New("private candidate detail")), want: apperrors.Internal},
 		{name: "context too large", err: errors.Join(agent.ErrContextTooLarge, errors.New("estimated 9000 tokens")), want: apperrors.AgentContextTooLarge},
 		{name: "turn conflict", err: agent.ErrTurnConflict, want: apperrors.AgentTurnConflict},

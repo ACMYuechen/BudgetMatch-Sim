@@ -4,6 +4,7 @@ package recommend
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 	"time"
@@ -14,6 +15,24 @@ import (
 )
 
 type staticProductProvider []tools.ProductCandidate
+
+type countingProductProvider struct{ calls int }
+
+func (p *countingProductProvider) Name() string { return "test.counting" }
+func (p *countingProductProvider) SearchProducts(context.Context, tools.SearchProductsReq) ([]tools.ProductCandidate, error) {
+	p.calls++
+	return nil, nil
+}
+
+func TestRuleAgentRejectsInvalidTextBeforeProductSearch(t *testing.T) {
+	for _, query := range []string{"预算$500", "预算-500元", "预算0.001元", "预算3000或5000", "最多十一件"} {
+		provider := &countingProductProvider{}
+		_, err := NewAgent(provider, selector.NewBundleSelector()).Run(context.Background(), agentcore.Input{Query: query})
+		if !errors.Is(err, agentcore.ErrInvalidInput) || provider.calls != 0 {
+			t.Fatalf("invalid text searched products: %q calls=%d err=%v", query, provider.calls, err)
+		}
+	}
+}
 
 func (p staticProductProvider) Name() string { return "test.products" }
 func (p staticProductProvider) SearchProducts(context.Context, tools.SearchProductsReq) ([]tools.ProductCandidate, error) {
