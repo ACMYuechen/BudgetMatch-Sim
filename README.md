@@ -236,6 +236,8 @@ make docker-down
 
 需要 Swagger 时运行 `make api-all`，生成 `docs/admin-api.json` 和 `docs/app-api.json`，可通过 Swagger UI 或导入 Postman 查看。这些 JSON 属于被 Git 忽略的生成产物，干净检出中不保证存在；该命令还会重新生成 API/RPC 代码，执行后应检查差异。
 
+- 权限控制现状：[微服务权限控制文档](docs/access-control.md)（网关/RPC 权限矩阵、数据归属、服务身份与待补项）
+
 ## 开发注意
 
 - 服务本地启动时会自动建表（`AutoMigrate: true`）。
