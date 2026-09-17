@@ -1,13 +1,13 @@
 # CI 运行说明
 
-本文描述当前 [工作流](../.github/workflows/ci.yml) 和 [检查脚本](../.ci/scripts/) 的实际行为。初版设计背景保留在 [CI 需求规格](requirements/ci.md)；其中尚未实现的目标不能视为已验收。
+本文描述当前 [工作流](../.github/workflows/ci.yml) 和 [检查脚本](../scripts/ci/) 的实际行为。目录职责和发布入口见 [CI/CD 总览](cicd.md)。初版设计背景保留在 [CI 需求规格](requirements/ci.md)；其中尚未实现的目标不能视为已验收。
 
 ## 本地运行
 
 在仓库根目录运行完整的 CI 检查：
 
 ```bash
-.ci/scripts/ci.sh
+scripts/ci/ci.sh
 ```
 
 本机需要可用的 Docker daemon、Docker Compose、`go.mod` 声明版本的 Go（当前 1.26.8）、Node.js 20 和 npm。工具链与 Docker 基础镜像的同步方式见 [开发文档](../Contributors.md#工具链与依赖版本)。WSL 中只有 Docker 命令但未启用对应发行版的 Docker 集成，也不能运行完整容器检查。
@@ -15,10 +15,10 @@
 也可以从仓库根目录单独执行：
 
 ```bash
-.ci/scripts/go-check.sh
-.ci/scripts/web-check.sh
-.ci/scripts/security-check.sh
-.ci/scripts/container-check.sh
+scripts/ci/go-check.sh
+scripts/ci/web-check.sh
+scripts/ci/security-check.sh
+scripts/ci/container-check.sh
 ```
 
 当前 Makefile 没有 `make ci` / `make ci-go` 等目标；初版需求中的这些名称是建议入口，实际使用上面的脚本。
@@ -27,7 +27,7 @@
 
 - 工作流只在 Pull Request 的 `opened`、`synchronize`、`reopened`、`ready_for_review` 事件及手动 `workflow_dispatch` 时触发；没有独立的 `push` 或定时触发器。向已有 PR 的来源分支推送新提交会触发 PR 的 `synchronize`。
 - `Detect Changes` 根据 PR 目标分支到当前提交的完整差异，选择 Go、Web、安全检查及需要构建的镜像。不是仅看最后一次提交。
-- 修改 `.github/`、`.ci/` 或无法分类的路径，以及手动执行时，回退为全量检查；纯文档变更会跳过四类耗时检查，但仍执行变更检测和 `CI Gate`。
+- 修改 `.github/`、`scripts/ci/`、`scripts/deploy/`、`deploy/`、`tests/cicd/` 或无法分类的路径，以及手动执行时，回退为全量检查；纯文档变更会跳过四类耗时检查，但仍执行变更检测和 `CI Gate`。
 - `CI Gate` 要求所有被选中的检查成功，未被选中的检查必须为 `skipped`。例如 `Security Check` 失败会连带导致 `CI Gate` 失败，应先查看上游失败任务。
 
 ## Go 检查与测试环境
@@ -75,7 +75,7 @@ npm run test:e2e
 直接运行容器检查脚本时，默认构建全部 8 个应用镜像；PR 中只构建变更检测选中的镜像。在本地只检查指定镜像时，可以传入以空格分隔的目标列表：
 
 ```bash
-CI_IMAGE_TARGETS="mall-rpc app" .ci/scripts/container-check.sh
+CI_IMAGE_TARGETS="mall-rpc app" scripts/ci/container-check.sh
 ```
 
 支持的目标包括 `auth-rpc`、`seckill-rpc`、`mall-rpc`、`agent-rpc`、
@@ -85,3 +85,17 @@ CI_IMAGE_TARGETS="mall-rpc app" .ci/scripts/container-check.sh
 随后，选中的镜像会作为相互独立的 matrix 任务并行运行；每个任务都会读取后端公共缓存，并维护自己的目标构建缓存。
 
 脚本不登录或推送镜像仓库。没有 Docker 时，原生 Go 构建或本地扫描器只能验证相应子项，不能据此宣称容器检查或整条远程 CI 已通过。
+
+## CI/CD 工具回归
+
+`tests/cicd/` 集中验证变更范围选择、CI Gate、就绪等待、工作流路径、`main` 手动发布限制、清单渲染和支付宝加密输入。它们不启动 Docker，不连接服务器，也不会创建真实发布提交：
+
+```bash
+python3 -m pip install -r deploy/requirements.txt
+python3 -m unittest discover -s tests/cicd -p 'test_*.py' -v
+for script in scripts/ci/*.sh scripts/deploy/*.sh; do
+  bash -n "$script"
+done
+```
+
+这些回归也由 **Deploy VPS** 在构建镜像前运行，不能替代业务测试或完整 CI。

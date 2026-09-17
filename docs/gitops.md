@@ -2,6 +2,8 @@
 
 目标服务器 `ubuntu@51.79.164.39`，现有 K3s 命名空间 `budgetmatch-sim`，业务入口仍为 `http://51.79.164.39:8080/`。80/443 保留给现有 Headlamp，不公开 Argo CD 管理端口。
 
+目录职责见 [CI/CD 总览](cicd.md)：操作脚本在 `scripts/deploy/`，环境配置在 `deploy/environments/`，Argo CD 声明在 `deploy/argocd/`。
+
 发布链路：
 
 ```text
@@ -34,7 +36,7 @@ ssh ubuntu@51.79.164.39 'sudo -n k3s kubectl get nodes'
 在仓库根目录执行：
 
 ```bash
-ssh ubuntu@51.79.164.39 'sudo -n bash -s' < deploy/bootstrap-server.sh
+ssh ubuntu@51.79.164.39 'sudo -n bash -s' < scripts/deploy/bootstrap-server.sh
 ```
 
 要求服务器已有本项目的 K3s 部署、`curl` 和免密 sudo。脚本先备份数据库、现有资源和 runtime Secret，再安装固定版本 Argo CD `v3.5.3`、Sealed Secrets `v0.40.0`，下载文件校验 SHA-256。关闭暂不使用的 Dex、ApplicationSet、Notifications，限制单应用场景的资源占用。
@@ -55,7 +57,7 @@ ssh ubuntu@51.79.164.39 'sudo -n bash -s' < deploy/bootstrap-server.sh
 **GHCR 首次发布的包默认私有，即使源仓库公开。** 第一次接管前，选择下面一种方式，否则新 Pod 将出现 `ImagePullBackOff`：
 
 - 允许公开镜像：在 GitHub 个人主页 **Packages → 对应包 → Package settings → Change visibility** 将两个包设为 Public。镜像构建不包含本机 `.env`。
-- 保持私有：在服务器创建只读 GHCR 拉取凭据 Secret `ghcr`，命名空间为 `budgetmatch-sim`；使用有 `read:packages` 权限的凭据。在 `deploy/vps.yaml` 设置 `imagePullSecrets: [ghcr]` 并重新发布。不要提交明文拉取凭据。
+- 保持私有：在服务器创建只读 GHCR 拉取凭据 Secret `ghcr`，命名空间为 `budgetmatch-sim`；使用有 `read:packages` 权限的凭据。在 `deploy/environments/vps.yaml` 设置 `imagePullSecrets: [ghcr]` 并重新发布。不要提交明文拉取凭据。
 
 从 `gitops` 分支的 `release.json` 取得两份完整 digest 地址，在服务器先确认两份镜像都能拉取。公开镜像可用 `sudo k3s ctr images pull <完整镜像地址>`；私有镜像需按 `ghcr` Secret 的认证方式验证。确认前不要创建 Application。
 
@@ -79,7 +81,7 @@ Application 应最终显示 `Synced`、`Healthy`，业务入口可打开。第�
 
 ## 日常更新
 
-**代码和普通配置：** 修改代码或 `deploy/vps.yaml`，合入 `main`，再手动运行 **Deploy VPS**。单纯提交、推送或合并不会发布。配置优先使用 `deploy/vps.yaml` 的服务覆盖项，不要把密码填进去。渲染器拒绝常见凭据字段的明文值；发布后配置摘要变化会自动重启对应 Pod。
+**代码和普通配置：** 修改代码或 `deploy/environments/vps.yaml`，合入 `main`，再手动运行 **Deploy VPS**。单纯提交、推送或合并不会发布。配置优先使用 `deploy/environments/vps.yaml` 的服务覆盖项，不要把密码填进去。渲染器拒绝常见凭据字段的明文值；发布后配置摘要变化会自动重启对应 Pod。
 
 **支付宝沙箱：** Argo CD 无法读取你电脑的 `.env`。先核对沙箱 AppID（不能把 `2088…` 商家 PID 当 AppID），再用服务器公钥加密选定的六个 `ALIPAY_*` 字段；不复制本机数据库/JWT/Redis 密钥。
 
@@ -96,7 +98,7 @@ python3 -m pip install -r deploy/requirements.txt
 每次 `.env` 更新后，在 WSL 仓库根目录执行：
 
 ```bash
-python3 deploy/seal-alipay.py --cert deploy/.local/sealed-secrets.pem --kubeseal deploy/.local/kubeseal
+python3 scripts/deploy/seal-alipay.py --cert deploy/.local/sealed-secrets.pem --kubeseal deploy/.local/kubeseal
 ```
 
 只将生成的 **密文** `deploy/secrets/alipay.json` 提交并合入 `main`，再手动运行 **Deploy VPS**。Sealed Secrets 在服务器解密到独立的 `alipay` Secret，Argo CD 等待密钥就绪后自动更新 `payment-rpc`。本机 `.env` 和任何私钥都不提交。未添加此密文文件前，支付继续使用原有 `runtime` Secret 中的值；不意味着支付宝已可支付。加密脚本只做格式检查，AppID、密钥与商户是否配套仍须沙箱联调验证。
@@ -104,7 +106,7 @@ python3 deploy/seal-alipay.py --cert deploy/.local/sealed-secrets.pem --kubeseal
 ## 打开管理界面
 
 ```bash
-bash deploy/open-ui.sh
+bash scripts/deploy/open-ui.sh
 ```
 
 打开 `https://localhost:8086`，接受本次 SSH 隧道连接的自签名证书提示；本机原 Argo CD 的 `8085` 不受影响。账号 `admin`，初始密码只在自己的终端查看：
@@ -130,8 +132,10 @@ ssh ubuntu@51.79.164.39 'sudo k3s kubectl -n argocd patch application budgetmatc
 本地验证：
 
 ```bash
-python3 -m unittest discover -s deploy -p 'test_*.py' -v
-bash -n deploy/bootstrap-server.sh deploy/open-ui.sh deploy/publish.sh
+python3 -m unittest discover -s tests/cicd -p 'test_*.py' -v
+for script in scripts/deploy/*.sh; do
+  bash -n "$script"
+done
 ```
 
 参考：[Argo CD 安装](https://argo-cd.readthedocs.io/en/stable/getting_started/)、[自动同步](https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/)、[Sealed Secrets](https://github.com/bitnami/sealed-secrets)、[GHCR 权限](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)。

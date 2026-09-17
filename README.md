@@ -171,6 +171,7 @@ make docker-down
 
 ```
 .
+├── .github/workflows/  # CI 检查与 main 手动发布入口
 ├── cmd/                # REST API Gateway 层
 │   ├── admin/          # 管理后台
 │   └── app/            # 客户端 API
@@ -183,8 +184,10 @@ make docker-down
 │       └── payment/    # 支付服务（支付宝沙箱当面付）
 ├── infra/              # 基础设施封装（数据库、Redis、JWT、OSS、限流等）
 ├── web-ui/             # 用户端、管理端与 Playwright 浏览器测试
+├── deploy/             # Argo CD 声明、服务器环境配置与发布镜像定义
 ├── docs/               # 文档与生成的 Swagger
-├── scripts/            # 开发脚本
+├── scripts/            # 开发脚本；ci/ 检查、deploy/ 发布工具
+├── tests/cicd/         # CI/CD 工具回归测试
 ├── tpls/               # goctl 模板
 ├── Makefile            # 常用命令
 ├── docker-compose.yml  # 基础设施编排
@@ -226,8 +229,9 @@ make docker-down
 相关开发规范见：
 
 - [开发与 Git 提交规范](Contributors.md)
+- [CI/CD 总览与目录导航](docs/cicd.md)
 - [CI 说明](docs/ci.md)
-- [服务器 Argo CD 自动部署](docs/gitops.md)
+- [服务器 Argo CD 手动发布](docs/gitops.md)
 - [前端进度与验证](docs/frontend-roadmap.md)
 - [错误库规范](infra/errors/README.md)
 

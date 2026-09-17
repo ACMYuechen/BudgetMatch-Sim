@@ -11,7 +11,7 @@ if [[ "$SOURCE_BRANCH" != main || "${GITHUB_REF:-}" != refs/heads/main || "${GIT
   exit 1
 fi
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 runtime_dir="$(mktemp -d)"
 trap 'rm -rf "$runtime_dir"' EXIT
 
@@ -21,7 +21,7 @@ if [[ "$source_head" != "$SOURCE_SHA" ]]; then
   exit 0
 fi
 
-python3 deploy/render.py --backend-image "$BACKEND_IMAGE" --web-image "$WEB_IMAGE" >"$runtime_dir/apps.yaml"
+python3 scripts/deploy/render.py --backend-image "$BACKEND_IMAGE" --web-image "$WEB_IMAGE" >"$runtime_dir/apps.yaml"
 python3 - "$runtime_dir/release.json" <<'PY'
 import json
 import os

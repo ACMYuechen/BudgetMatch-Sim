@@ -2,17 +2,21 @@ import base64
 import copy
 import importlib.util
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 import yaml
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts/deploy"))
 
 import render
 
 
 BACKEND = "ghcr.io/example/budgetmatch-backend@sha256:" + "1" * 64
 WEB = "ghcr.io/example/budgetmatch-web@sha256:" + "2" * 64
-SEAL_SPEC = importlib.util.spec_from_file_location("seal_alipay", Path(__file__).with_name("seal-alipay.py"))
+SEAL_SPEC = importlib.util.spec_from_file_location("seal_alipay", ROOT / "scripts/deploy/seal-alipay.py")
 seal_alipay = importlib.util.module_from_spec(SEAL_SPEC)
 SEAL_SPEC.loader.exec_module(seal_alipay)
 
@@ -29,7 +33,7 @@ def sealed_secret():
 
 class RenderTests(unittest.TestCase):
     def setUp(self):
-        self.settings = yaml.safe_load((render.ROOT / "deploy/vps.yaml").read_text())
+        self.settings = yaml.safe_load((render.ROOT / "deploy/environments/vps.yaml").read_text())
 
     def resources(self, sealed=None):
         return {

@@ -5,12 +5,12 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
 
 jobs:
   changes:
@@ -35,7 +35,7 @@ jobs:
           CI_EVENT_NAME: ${{ github.event_name }}
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: .ci/scripts/detect-changes.sh
+        run: scripts/ci/detect-changes.sh
 
   go-check:
     name: Go Check
@@ -77,25 +77,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: Wait for etcd
-        run: |
-          for _ in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:2379/health \
-              | grep --quiet '"health":"true"'; then
-              exit 0
-            fi
-            sleep 1
-          done
-
-          echo "etcd did not become healthy" >&2
-          curl --silent --show-error http://127.0.0.1:2379/health >&2 || true
-          exit 1
+        run: scripts/ci/wait-etcd.sh
       - name: Set up Go from go.mod
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Run Go checks and build all packages
-        run: .ci/scripts/go-check.sh
+        run: scripts/ci/go-check.sh
 
   web-check:
     name: Web Check
@@ -113,7 +102,7 @@ jobs:
           cache: npm
           cache-dependency-path: web-ui/package-lock.json
       - name: Run frontend checks
-        run: .ci/scripts/web-check.sh
+        run: scripts/ci/web-check.sh
 
   security-check:
     name: Security Check
@@ -130,7 +119,7 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Run source and dependency security checks
-        run: .ci/scripts/security-check.sh
+        run: scripts/ci/security-check.sh
 
   container-prepare:
     name: Container Prepare
@@ -148,7 +137,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - name: Validate containers and prepare shared backend cache
-        run: .ci/scripts/container-check.sh
+        run: scripts/ci/container-check.sh
 
   container-check:
     name: Container Check (${{ matrix.target }})
@@ -170,7 +159,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - name: Build and scan selected image
-        run: .ci/scripts/container-check.sh
+        run: scripts/ci/container-check.sh
 
   ci-gate:
     name: CI Gate
@@ -189,32 +178,7 @@ jobs:
       SECURITY_RESULT: ${{ needs.security-check.result }}
       CONTAINER_RESULT: ${{ needs.container-check.result }}
     steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Require every CI job to succeed
-        run: |
-          gate_failed=0
-
-          if [[ "$CHANGES_RESULT" != "success" ]]; then
-            echo "Change detection result: $CHANGES_RESULT" >&2
-            gate_failed=1
-          fi
-
-          require_result() {
-            local name="$1"
-            local required="$2"
-            local result="$3"
-
-            if [[ "$required" == "true" && "$result" != "success" ]]; then
-              echo "$name was selected but finished with: $result" >&2
-              gate_failed=1
-            elif [[ "$required" != "true" && "$result" != "skipped" ]]; then
-              echo "$name was not selected but finished with: $result" >&2
-              gate_failed=1
-            fi
-          }
-
-          require_result "Go Check" "$GO_REQUIRED" "$GO_RESULT"
-          require_result "Web Check" "$WEB_REQUIRED" "$WEB_RESULT"
-          require_result "Security Check" "$SECURITY_REQUIRED" "$SECURITY_RESULT"
-          require_result "Container Check" "$CONTAINER_REQUIRED" "$CONTAINER_RESULT"
-
-          exit "$gate_failed"
+        run: scripts/ci/gate.sh

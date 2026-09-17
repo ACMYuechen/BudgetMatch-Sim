@@ -60,7 +60,7 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "deploy/secrets/alipay.json")
     arguments = parser.parse_args()
     try:
-        settings = yaml.safe_load((ROOT / "deploy/vps.yaml").read_text())
+        settings = yaml.safe_load((ROOT / "deploy/environments/vps.yaml").read_text())
         secret = alipay_secret(read_env(arguments.env), settings["namespace"])
         if not arguments.cert.is_file():
             raise ValueError("sealing certificate does not exist; fetch the server's public certificate first")

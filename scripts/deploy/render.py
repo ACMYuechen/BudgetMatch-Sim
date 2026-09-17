@@ -10,7 +10,7 @@ import sys
 import yaml
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SERVICES = {
     "auth-rpc": ("auth", "services/rpc/auth", 10003),
     "mall-rpc": ("mall", "services/rpc/mall", 10005),
@@ -244,7 +244,7 @@ def main():
     parser.add_argument("--backend-image", required=True)
     parser.add_argument("--web-image", required=True)
     arguments = parser.parse_args()
-    settings = yaml.safe_load((ROOT / "deploy/vps.yaml").read_text())
+    settings = yaml.safe_load((ROOT / "deploy/environments/vps.yaml").read_text())
     sealed_path = ROOT / "deploy/secrets/alipay.json"
     sealed_secret = json.loads(sealed_path.read_text()) if sealed_path.exists() else None
     try:

@@ -7,7 +7,7 @@ import unittest
 import yaml
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class PublishPolicyTests(unittest.TestCase):
@@ -49,7 +49,7 @@ class PublishPolicyTests(unittest.TestCase):
                 "WEB_IMAGE": "ghcr.io/example/web@sha256:" + "2" * 64,
             })
             result = subprocess.run(
-                ["bash", str(ROOT / "deploy/publish.sh")],
+                ["bash", str(ROOT / "scripts/deploy/publish.sh")],
                 env=environment, capture_output=True, text=True, check=False, timeout=10,
             )
             calls = git_log.read_text() if git_log.exists() else ""

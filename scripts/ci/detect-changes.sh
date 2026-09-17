@@ -99,7 +99,7 @@ classify_path() {
   local service
 
   case "${path}" in
-    .github/*|.ci/*)
+    .github/*|scripts/ci/*|scripts/deploy/*|deploy/*|tests/cicd/*)
       FULL_CI_REASON="CI definition changed: ${path}"
       enable_full_ci
       ;;
