@@ -11,6 +11,7 @@ import (
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/infra/serviceauth"
+	"budgetmatch-sim/services/rpc/mall/candidatecontract"
 	productservice "budgetmatch-sim/services/rpc/mall/internal/server/productservice"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/model/product_index"
@@ -29,6 +30,12 @@ type onlineCandidateReader struct{ calls atomic.Int32 }
 func (r *onlineCandidateReader) FindActiveCandidates(context.Context, []string) ([]product_index.CandidateFacts, error) {
 	r.calls.Add(1)
 	return []product_index.CandidateFacts{{SkuId: "a", ProductId: "p", Price: 100, Stock: 1}}, nil
+}
+
+func (r *onlineCandidateReader) FindActiveDemandCandidates(context.Context, []string) ([]product_index.CandidateFacts, error) {
+	r.calls.Add(1)
+	return []product_index.CandidateFacts{{SkuId: "a", ProductId: "p", Price: 100, Stock: 1,
+		CategoryCode: "keyboard", CategoryTaxonomy: candidatecontract.DemandTaxonomyVersion, CategoryRevision: 1}}, nil
 }
 
 func TestCandidateRPCRequiresUserIdentityAndUsesRealHandler(t *testing.T) {
@@ -57,17 +64,26 @@ func TestCandidateRPCRequiresUserIdentityAndUsesRealHandler(t *testing.T) {
 		{"user", user, true}, {"admin", admin, true}, {"missing", "", false}, {"index", index, false}, {"payment", payment, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			before := reader.calls.Load()
-			resp, err := pb.NewProductServiceClient(conn).CheckProductCandidates(bearerCtx(t, tc.token), &pb.CheckProductCandidatesReq{SkuIds: []string{"a", "absent"}})
-			if tc.allowed {
-				require.NoError(t, err)
-				require.Equal(t, before+1, reader.calls.Load())
-				require.Len(t, resp.Results, 2)
-				require.Equal(t, pb.CandidateState_CANDIDATE_STATE_ACTIVE, resp.Results[0].State)
-				require.Equal(t, pb.CandidateState_CANDIDATE_STATE_UNAVAILABLE, resp.Results[1].State)
-			} else {
-				require.Equal(t, codes.Unauthenticated, status.Code(err))
-				require.Equal(t, before, reader.calls.Load())
+			for _, includeCategory := range []bool{false, true} {
+				before := reader.calls.Load()
+				resp, err := pb.NewProductServiceClient(conn).CheckProductCandidates(bearerCtx(t, tc.token), &pb.CheckProductCandidatesReq{SkuIds: []string{"a", "absent"}, IncludeDemandCategory: includeCategory})
+				if tc.allowed {
+					require.NoError(t, err)
+					require.Equal(t, before+1, reader.calls.Load())
+					require.Len(t, resp.Results, 2)
+					require.Equal(t, pb.CandidateState_CANDIDATE_STATE_ACTIVE, resp.Results[0].State)
+					require.Equal(t, pb.CandidateState_CANDIDATE_STATE_UNAVAILABLE, resp.Results[1].State)
+					if includeCategory {
+						require.Equal(t, candidatecontract.DemandCategoryContract, resp.DemandCategoryContract)
+						require.Equal(t, "keyboard", resp.Results[0].Facts.DemandCategory.Code)
+					} else {
+						require.Empty(t, resp.DemandCategoryContract)
+						require.Nil(t, resp.Results[0].Facts.DemandCategory)
+					}
+				} else {
+					require.Equal(t, codes.Unauthenticated, status.Code(err))
+					require.Equal(t, before, reader.calls.Load())
+				}
 			}
 		})
 	}

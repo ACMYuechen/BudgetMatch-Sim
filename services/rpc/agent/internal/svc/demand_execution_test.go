@@ -30,5 +30,5 @@ func TestExplicitDemoExecutionWiringAndDisabledDefault(t *testing.T) {
 	}
 	invalid := config.Config{DemandExecution: config.DemandExecutionConfig{Mode: "live"}}
 	invalid.Database.DSN = "must-not-open"
-	require.PanicsWithError(t, "demand execution requires disabled mode or explicit demo mode without Mall", func() { NewServiceContext(invalid) })
+	require.PanicsWithError(t, "demand execution requires disabled, demo without Mall, or mall with Mall configured", func() { NewServiceContext(invalid) })
 }

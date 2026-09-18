@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"budgetmatch-sim/services/rpc/mall/candidatecontract"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
@@ -57,6 +58,37 @@ func TestPostgresCandidateChecksObserveCommittedChanges(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.EqualValues(t, 100, rows[0].Price)
+	// Legacy checks worked without the optional schema. Opt-in reads fail closed.
+	_, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
+	require.Error(t, err)
+	migration, err := os.ReadFile("../../../../../scripts/migrations/20260918_product_demand_categories.sql")
+	require.NoError(t, err)
+	_, err = conn.ExecContext(ctx, string(migration))
+	require.NoError(t, err)
+	rows, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, "unknown", rows[0].CategoryCode)
+	require.Equal(t, candidatecontract.DemandTaxonomyVersion, rows[0].CategoryTaxonomy)
+	require.Zero(t, rows[0].CategoryRevision)
+	_, err = conn.ExecContext(ctx, "INSERT INTO product_demand_categories(product_id,taxonomy_version,category_code,revision) VALUES ('p',$1,'keyboard',1)", candidatecontract.DemandTaxonomyVersion)
+	require.NoError(t, err)
+	rows, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
+	require.NoError(t, err)
+	require.Equal(t, "keyboard", rows[0].CategoryCode)
+	require.EqualValues(t, 1, rows[0].CategoryRevision)
+	_, err = conn.ExecContext(ctx, "UPDATE product_demand_categories SET category_code='mouse',revision=revision+1 WHERE product_id='p'")
+	require.NoError(t, err)
+	rows, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
+	require.NoError(t, err)
+	require.Equal(t, "mouse", rows[0].CategoryCode)
+	require.EqualValues(t, 2, rows[0].CategoryRevision)
+	_, err = conn.ExecContext(ctx, "DELETE FROM product_demand_categories WHERE product_id='p'")
+	require.NoError(t, err)
+	rows, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
+	require.NoError(t, err)
+	require.Equal(t, "unknown", rows[0].CategoryCode)
+	require.Zero(t, rows[0].CategoryRevision)
 	_, err = conn.ExecContext(ctx, "UPDATE product_skus SET price=300,stock=1 WHERE id='a'")
 	require.NoError(t, err)
 	rows, err = model.FindActiveCandidates(ctx, []string{"a"})
@@ -74,6 +106,9 @@ func TestPostgresCandidateChecksObserveCommittedChanges(t *testing.T) {
 			_, err := conn.ExecContext(ctx, tc.update)
 			require.NoError(t, err)
 			rows, err := model.FindActiveCandidates(ctx, []string{"a"})
+			require.NoError(t, err)
+			require.Empty(t, rows)
+			rows, err = model.FindActiveDemandCandidates(ctx, []string{"a"})
 			require.NoError(t, err)
 			require.Empty(t, rows)
 			_, err = conn.ExecContext(ctx, tc.reset)

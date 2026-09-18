@@ -29,4 +29,10 @@ func TestDemandExecutionDefaultsAndMallIsolation(t *testing.T) {
 	c.MallRpc.Endpoints = nil
 	c.MallRpc.Target = "unused"
 	require.Error(t, c.ValidateDemandExecution())
+	c.DemandExecution.Mode = "mall"
+	require.NoError(t, c.ValidateDemandExecution())
+	c.MallRpc.Target = ""
+	require.Error(t, c.ValidateDemandExecution(), "Mall mode must never silently use mock")
+	c.MallRpc.Endpoints = []string{"unused"}
+	require.NoError(t, c.ValidateDemandExecution())
 }
