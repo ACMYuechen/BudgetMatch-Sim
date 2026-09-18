@@ -1,0 +1,30 @@
+{
+  "version": "demo_categories_v1",
+  "taxonomy_version": "demo_taxonomy_v1",
+  "provenance": "synthetic_demo",
+  "annotation_status": "pending_human_review",
+  "dataset_version": "retrieval_rankings_v1",
+  "dataset_sha256": "c261ee9dbceca64a9e82d0f93804332c1cc2cfea192f0d152f6f54716e2ed05f",
+  "entries": [
+    {"sku_id":"k1","product_id":"p-k1","category":"keyboard"},
+    {"sku_id":"k2","product_id":"p-k2","category":"keyboard"},
+    {"sku_id":"k3","product_id":"p-k3","category":"mouse"},
+    {"sku_id":"k4","product_id":"p-k4","category":"mouse"},
+    {"sku_id":"k5","product_id":"p-k5","category":"lighting"},
+    {"sku_id":"k6","product_id":"p-k6","category":"headphones"},
+    {"sku_id":"n1","product_id":"p-n1","category":"accessories"},
+    {"sku_id":"n2","product_id":"p-n2","category":"accessories"},
+    {"sku_id":"n3","product_id":"p-n3","category":"accessories"},
+    {"sku_id":"n4","product_id":"p-n4","category":"accessories"},
+    {"sku_id":"n5","product_id":"p-n5","category":"accessories"},
+    {"sku_id":"n6","product_id":"p-n6","category":"accessories"},
+    {"sku_id":"b1","product_id":"p-b1","category":"unknown"},
+    {"sku_id":"b2","product_id":"p-b2","category":"unknown"},
+    {"sku_id":"b3","product_id":"p-b3","category":"unknown"},
+    {"sku_id":"b4","product_id":"p-b4","category":"unknown"},
+    {"sku_id":"b5","product_id":"p-b5","category":"unknown"},
+    {"sku_id":"b6","product_id":"p-b6","category":"unknown"},
+    {"sku_id":"b7","product_id":"p-b7","category":"unknown"},
+    {"sku_id":"b8","product_id":"p-b8","category":"unknown"}
+  ]
+}
