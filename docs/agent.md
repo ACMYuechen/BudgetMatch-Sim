@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3.1 只读服务身份、M3.2 本地安全子步、M3.3a/b 双路召回与离线回放已交付；M3.3c 过滤/回退修复、M4.1a/b 需求基础与独立规划/会话接入、M4.2a 内部演示快照有界搜索及硬约束复核已完成本地实现。规划入口仍只保存需求或返回澄清；新搜索尚未接入推荐入口，下一步 M4.2b 约束执行链与最终检查。M4.2 整体、M3.2b/M3.2、M3.3 整体及真实数据库验证尚未完成。规则任务成功率仍为 25/40，人工复核记录仍为 0/64，M3/M4 数值目标仍为草案；没有将阶段收尾写成人工复核或真实模型实验通过，详见[执行记录](#14-执行记录)。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3.1、M3.2 本地安全子步、M3.3a/b 回放与 M3.3c 过滤修复已交付；M4.1a/b 需求基础/独立规划、M4.2a 有界搜索、M4.2b 独立演示执行与复核重选已完成本地实现。新执行入口默认关闭，只允许显式无 Mall 的 demo 环境；规划仍独立，旧推荐入口继续拒绝规划会话。下一步 M4.2c 真实类别证据与 Mall 核验贯通，不能把演示闭环当成生产接入完成。M4.2 整体、M3.2b/M3.2、M3.3 整体及真实数据库验证尚未完成。规则任务成功率仍为 25/40，人工复核记录仍为 0/64，M3/M4 数值目标仍为草案，详见[执行记录](#14-执行记录)。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -29,7 +29,7 @@
 
 RPC 不再接受 `user_id`。Agent RPC 只信任认证拦截器写入的用户身份；即使两个用户使用相同 `conversation_id`，数据也按 `user_id + conversation_id` 隔离。
 
-M4.1b 另有 `POST /api/agent/intent/plan` 需求规划接口，沿用同样的身份与会话边界，但不执行推荐。以下推荐示例适用于未进入规划模式的会话；规划提议、澄清、幂等与升级限制见第 9.1 节。
+M4.1b 另有 `POST /api/agent/intent/plan` 需求规划接口，沿用同样的身份与会话边界，但不执行推荐。M4.2b 增加独立 `/api/agent/intent/execute` 演示执行接口，默认关闭，详见第 9.2 节。以下旧推荐示例只适用于未进入规划模式的会话；规划提议、澄清、幂等与升级限制见第 9.1 节。
 
 ### 2.1 调用示例
 
@@ -333,7 +333,7 @@ RAG:
 
 `retrieval.keyword/vector/expand/fusion/conflict` 记录固定名称、成功标记、候选数量或静态错误分类/耗时，不记录搜索正文、商品正文或原始异常。通过请求局部返回值接入规则、ReAct 工具及漏调工具后的补选，不在共享 Provider 上保存“最近一次调用”。最终失败不保存完成轮次或其工具记录。
 
-当前线上 RRF 只改变候选池及其检索顺序，内部排名可传递到最终校验；**现有推荐链中的组合选择器仍使用原评分，并未消费融合分数**。M4.2a 内部实验引擎开始消费可验证的 RRF 排名证据，但只接受演示快照，未接入线上链路，不宣称最终套装已按相关性优化。固定 `rule`/`scripted` 评测保持不变，新增测试证明机制和边界，不证明语义检索收益。M3.3b 已增加固定排序回放/策略对比（下一节），真实 Embedding 效果、延迟与费用对照仍需另行授权。
+当前线上 RRF 只改变候选池及其检索顺序，内部排名可传递到最终校验；**旧推荐链中的组合选择器仍使用原评分，并未消费融合分数**。M4.2a 引擎可消费验证过的 RRF 排名，M4.2b 将其接入独立演示执行入口；内置七件演示目录没有检索排名信号，不凭空生成相关性分数，也未接入真实 Mall/向量链。固定 `rule`/`scripted` 评测保持不变，测试不证明语义检索收益。M3.3b 已增加固定排序回放/策略对比（下一节），真实 Embedding 效果、延迟与费用对照仍需另行授权。
 
 代码入口：[策略配置](../services/rpc/agent/internal/rag/retrieval_config.go)、[混合召回](../services/rpc/agent/internal/tools/hybrid_product_provider.go)、[名次融合](../services/rpc/agent/internal/tools/rank_fusion.go)、[有界关键词支路](../services/rpc/agent/internal/tools/mall_ranked_provider.go)。
 
@@ -773,11 +773,11 @@ M3.2c 已完成本地实现与隔离测试（第 2.13 节），真实数据库/�
 - 规划轮次原子保存，`completed` 只表示处理完成；会话历史中的通用 `result` 增加 `status`、`demand_conflicts`，商品列表为空，总价为零，摘要明确未执行推荐。客户端必须读取状态，不能将这些历史轮次渲染成“推荐成功”。目前未修改 Web 交互。
 - 幂等比较保留原始 query/预算/件数，并加入方法标识及规范化提议的 SHA-256。集合顺序和 JSON 排版不影响重放；不同操作、字段省略与显式清空仍不同。更换提议或把同一 `turn_id` 在 Recommend/PlanDemand 间复用会冲突；修正澄清条件必须使用新轮次 ID。旧推荐轮次继续按旧输入重放。
 - 请求指纹只在已有 `result` JSON 中保存为私有元数据 `_demand_request_sha256`，不进入公开领域结果或 HTTP/RPC。需求随既有 intent/state JSON 保存，**不新增 SQL 列或执行迁移**。InMemory、Redis 序列化和会话返回值保持切片隔离；规划要求完整 `ConversationStore`，不走旧消息 Manager 的尽力写入。存储失败或检测到取消不能返回成功；提交后才发生的取消可能已落库，应以相同请求和 `turn_id` 重试获取结果，而不是承诺撤销已提交事务。
-- 会话一旦完成规划轮次（包括首次冲突），就保存私有 `_demand_planning` 模式标志；即使有效 `intent.demand` 尚为空，也不能切换旧入口绕过澄清。新轮次的普通 Recommend 返回 RPC `FailedPrecondition`（HTTP 映射为 400，SSE 进入错误终态），防止选择器忽略条件。历史上已完成的同请求推荐轮次仍可幂等重放，不重新执行。不能通过清空集合切回旧执行模式；M4.2 接入约束选择后再开放执行。私有模式标志随原子状态 JSON 保存，不暴露到 HTTP/RPC，不改变冲突时的公开有效需求。
+- 会话一旦完成规划轮次（包括首次冲突），就保存私有 `_demand_planning` 模式标志；即使有效 `intent.demand` 尚为空，也不能切换旧入口绕过澄清。新轮次的普通 Recommend 返回 RPC `FailedPrecondition`（HTTP 映射为 400，SSE 进入错误终态），防止选择器忽略条件。历史上已完成的同请求推荐轮次仍可幂等重放，不重新执行。不能通过清空集合切回旧执行模式；M4.2b 使用独立 ExecuteDemand，不解除旧方法保护。模式标志、最新规划 ID 与就绪标志随原子状态 JSON 保存，不暴露到公开意图，不改变冲突时的公开有效需求。
 
 兼容与上线边界：选择新 RPC 而不向旧 RecommendReq 追加硬约束字段，旧 Agent 实例收到新 RPC 会返回 `Unimplemented`，不会因未知字段被忽略而执行推荐。**这不保证持久化数据的降级兼容**：旧二进制仍可能忽略 JSON 中的需求字段。启用规划入口前必须完成全部 Agent 实例升级；已有规划会话时，不可直接混跑/回滚到旧实例并继续推荐，需另行制订停流、隔离与迁移方案。本轮仅本地开发，未发布、重启或修改部署。
 
-M4.2a 已实现下节的内部演示搜索引擎；M4.2b 仍需接入硬约束选择/最终检查及结果契约，M4.3 按原评测口径报告收益、反例和开销。在完整执行链消费需求之前，不向调用方宣称新条件已满足。
+M4.2a 的内部搜索已由 M4.2b 接入独立、默认关闭的演示执行方法；完整推荐结果仅在快照硬约束复核通过后产生。真实类别与 Mall 核验贯通仍为 M4.2c 待办，M4.3 再按同口径报告收益、反例和开销。
 
 ### 9.2 选择策略
 
@@ -794,9 +794,9 @@ M4.2a 已实现下节的内部演示搜索引擎；M4.2b 仍需接入硬约束�
 
 验收：至少包含“单个高分商品阻挡完整套装”的贪心反例、多品类必选、排除条件、预算不足、未知类别、多轮撤销偏好和搜索超时用例；硬约束零违规，并报告需求覆盖率相对基线的变化及计算开销。没有改善则继续使用基线。
 
-#### M4.2a：内部有界搜索引擎（已实现，未接入推荐）
+#### M4.2a：内部有界搜索引擎（已实现，M4.2b 接入独立演示执行）
 
-入口为 [搜索与结果复核](../services/rpc/agent/internal/recommend/beam/selector.go)、[候选证据与窗口](../services/rpc/agent/internal/recommend/beam/prepare.go)、[资源边界](../services/rpc/agent/internal/recommend/beam/config.go)。版本 `demand_beam_v1`，结果范围固定为 `synthetic_demo_snapshot_only`。这是可单独验证的算法子步，不增加 HTTP/RPC/工具接口，不解除规划会话保护，也不切换默认贪心策略。
+入口为 [搜索与结果复核](../services/rpc/agent/internal/recommend/beam/selector.go)、[候选证据与窗口](../services/rpc/agent/internal/recommend/beam/prepare.go)、[资源边界](../services/rpc/agent/internal/recommend/beam/config.go)。版本 `demand_beam_v1`，结果范围固定为 `synthetic_demo_snapshot_only`。引擎可单独验证；M4.2a 本身不增加接口，下节 M4.2b 增加独立演示接口，不解除旧推荐保护，也不切换默认贪心策略。
 
 | 搜索资源 | 默认值 | 硬上限 |
 | --- | --- | --- |
@@ -809,11 +809,37 @@ M4.2a 已实现下节的内部演示搜索引擎；M4.2b 仍需接入硬约束�
 - 只接受显式 `RetrievalDemo + VerificationDemo`，并使用已绑定目录的 SKU/父商品分类；真实 Mall 候选不能借用演示分类。未知类别不能满足必需条件，有任一排除类别时未知候选不可入选；目录身份冲突、非法数值/ID/排名证据均剔除。商品名称、自由文本 `Category`、Tags、销量和原始向量相似度不参与类别证明或新目标评分。
 - 窗口截断前，按必需类别的稳定顺序预留各类别最便宜代表，再按可选覆盖、排名/成本填充；若自定义窗口比必需类别数还小，保留准确的窗口缺失诊断，不扩大授权边界。窗口内容按 SKU 字节序枚举组合，去重、剩余预算减法和件数检查贯穿搜索。
 - 目标按字典序比较：必需类别覆盖数 → 可选类别覆盖数 → RRF 效用之和 → 更低价格 → 更少件数 → SKU 字节序；硬约束不能被高分抵消。只接受 `hybrid_rrf_v1` 的合法通道排名，按 `k=60` 重算并校验融合分数；空证据得零分。`value` 仅将价格移至 RRF 之前，含义是相同覆盖下更便宜，不证明商品质量或真实“性价比”。其余偏好（静音、续航等）返回 `unscored_preferences`，不会从标签推断已满足。没有新增覆盖或排名信号的正价追加项被支配剪枝，不以花满预算为目标。
-- 每层最多保留 Beam 宽度个节点，但已生成的可行解即使不进入下一层也保留为候选最优。结果再次经过独立 `AssessSelection` 检查；只有非空、全部硬约束通过才返回内部 `complete`。未找到时返回 `no_feasible_bundle`、窗口缺失类别及统计，绝不返回伪成功的部分组合；`partial` 的公开契约仍待 M4.2b。
+- 每层最多保留 Beam 宽度个节点，但已生成的可行解即使不进入下一层也保留为候选最优。结果再次经过独立 `AssessSelection` 检查；只有非空、全部硬约束通过才返回内部 `complete`。未找到时返回 `no_feasible_bundle`、窗口缺失类别及统计，不返回伪成功的部分组合；M4.2b 沿用“不输出部分可购买方案”的契约，暂不产生 `partial`。
 - 统计区分窗口截断、Beam 剪枝、扩展上限和内部超时。内部上限允许返回此前找到且复核通过的解；外部 context 取消/超时一律返回错误，不泄露此前找到的组合。计算预算覆盖准备/搜索/最终检查，但属于有界协作式检查，不保证墙钟在截止点精确终止；固定输入/预算且未受机器耗时影响时排序可复现，时间截断可能得到不同的可行前缀。
 - 解释仅包含 SKU、快照价格、分类证据/版本/SHA、必需/可选覆盖及排名效用；原始候选快照不参与结果 JSON 序列化。`complete` 只说明合成快照内约束满足，不是线上推荐成功、实时库存承诺或全局最优。
 
-验证包含旧贪心失败/新搜索找到完整组合的反例、窄 Beam 漏解反例、256 组小候选独立穷举对照、确定性/并发/输入输出隔离、最新快照失效、内部上限与外部取消。单独改变/撤销 `value` 可恢复旧目标；尚未验证“规划 → 推荐执行”的多轮闭环。真实分类来源、实时核验/改价后重选、会话执行和公开状态接入属于 M4.2b；后续接入还须遵守实时核验最多 32 条的独立边界，不能直接传入整个 64/256 搜索窗口。正式效果报告与真实数据验收属于 M4.3。已有 64 条规则、16 条脚本模型、72 个检索策略用例及其标签/归档均不因本实验改写。
+验证包含旧贪心失败/新搜索找到完整组合的反例、窄 Beam 漏解反例、256 组小候选独立穷举对照、确定性/并发/输入输出隔离、最新快照失效、内部上限与外部取消。M4.2b 补充“规划 → 演示执行”的多轮闭环与偏好撤销，并将执行窗口限制为最多 32 条；真实分类/实时 Mall 核验未实现，另列 M4.2c，正式效果报告与真实数据验收属于 M4.3。已有 64 条规则、16 条脚本模型、72 个检索策略用例及其标签/归档均不因本实验改写。
+
+#### M4.2b：独立演示执行、复核重选与结果契约
+
+入口为 [会话执行编排](../services/rpc/agent/internal/agent/recommend/service_demand_execution.go)、[执行器与复核](../services/rpc/agent/internal/demandexec/executor.go)、[内置演示目录](../services/rpc/agent/internal/demandexec/demo.go)。新增 `POST /api/agent/intent/execute` / `RecommendService.ExecuteDemand`，复用用户鉴权，不注册成 LLM 工具，不调用旧 Agent、旧最终校验器、模型或 MCP。
+
+先调用 PlanDemand，确认响应为 `intent_ready`，再提交该响应的会话和规划轮次 ID：
+
+```json
+{
+  "conversation_id": "desk-plan",
+  "plan_turn_id": "desk-plan-1",
+  "turn_id": "desk-execute-1"
+}
+```
+
+- `conversation_id`、`plan_turn_id` 必填；`turn_id` 可省略，由服务端生成，但可靠重试应由客户端预生成。执行不接收 query、需求提议、预算或件数覆盖；修改条件必须另发 PlanDemand。身份只取认证上下文。
+- 会话保存私有 `_demand_plan_turn_id`、`_demand_plan_ready`。只有最新就绪规划可执行；之后产生新规划或待澄清轮次，旧 ID 均不能启动新执行。首次澄清、旧版本缺少规划标记、未规划会话均拒绝，不能靠仍然存在的旧有效需求绕过澄清。
+- 与 PlanDemand/Recommend 共用本地及存储会话锁。轮次指纹加入独立执行方法命名空间及 `plan_turn_id`；复用轮次 ID 更换规划或跨方法会冲突。已完成同请求优先重放，即使当前规划已变化或执行模式后来关闭；不再次搜索、复核或改价。新执行保留原有效需求和规划 ID，仍不允许旧 Recommend/SSE 执行。
+- 配置 `DemandExecution.Mode` 缺省或 `disabled` 时拒绝新执行；`demo` 仅允许无 MallRpc 的配置，其他值或与真实 Mall 混用在外部依赖初始化前拒绝。仓库模板保持 `disabled`。完整服务仍会按其他配置初始化数据库/模型等依赖，独立演示环境必须另外隔离这些配置，不能因选择 demo 就假定启动过程无外部 I/O。本次未启用或重启任何实例。
+- 内置目录复用现有七件 mock 商品，另建 `builtin_demo_products_v1` / `builtin_demo_categories_v1` 合成绑定，显式按 SKU/父商品赋类，标记仍为 `pending_human_review`；不改旧评测分类文件。候选为封闭目录全量，不声称理解 query 语义或具备真实检索相关性。没有排名信号时保持零分，不把商品名称/标签当作静音、续航等证据。
+- 初选后取已归一化的完整搜索窗口（最多 32 条）做一次复核，候选按“可用快照”或“明确不可用 ID”逐项完整交代；缺项、重复、越界 ID、父商品/来源变化、排名篡改、非法数值或时间证据均失败。响应字符串与标签在复制前检查大小，不接受混入的真实 Mall 证据。复核只是读取演示快照，不是商城实时核验。
+- 仅在复核后的同一窗口中再搜索；改价、不可用后可重选替代项，不扩大范围、重新检索或落回贪心。再次独立检查类别约束、件数、预算、唯一 SKU 和逐项快照一致性后才保存。搜索沿用 M4.2a 的宽度/扩展/耗时边界；执行器共享 3 秒 context，复核另限 2 秒，均为协作式取消，不保证不响应 context 的实现能被强制终止。
+- 响应沿用推荐结构并增加可选 `execution`：规划 ID、策略/范围、目录版本/SHA、演示复核时间、必需/可选覆盖、缺失要求、未评分偏好、窗口大小、两轮扩展次数/停止原因及是否受限。状态只有 `complete` 或 `no_feasible_bundle`：前者仅证明演示快照内全部硬约束满足，后者商品为空，不表示全局无解。不输出可购买的 `partial`；规划 `needs_clarification` 保持独立。摘要始终标识演示、非实时库存。
+- 错误、取消、复核不完整、存储失败不能返回成功；已提交后才取消的请求仍可能已落库，同 ID 重试可恢复。无可行组合是明确的已处理终态，可原子保存/重放，不计为成功推荐。HTTP/RPC/历史映射保留 `execution`；旧结果无该字段时 JSON 仍省略，不新增 SQL 列。尚未新增 Web 规划/执行交互或真实 SSE。
+
+本步完成默认关闭的演示闭环，不完成真实商品推荐接入；真实类别来源、生产检索证据与 Mall 最终核验贯通明确移至 M4.2c，保持未完成，不以拒绝策略代替该项验收。
 
 ## 10. M5：端到端流式、运行预算与可观测性
 
@@ -973,15 +999,16 @@ git diff --check
   - [x] M4.1a：版本化演示分类、结构化需求变更/冲突及单组合检查（内部基础层）。
   - [x] M4.1b：独立规划 Planner/API/RPC、会话状态、澄清与幂等安全接入（本地实现）；只接受用户显式变更，不执行推荐或模型。
   - [ ] M4.2：硬约束执行链、有界 Beam Search 与结果状态/结构化解释。
-    - [x] M4.2a：内部演示快照搜索引擎、资源边界、独立硬约束复核、穷举/反例及开销验证；未接入推荐入口。
-    - [ ] M4.2b：约束执行/最终核验链、规划会话执行与公开状态；生产类别证据未就绪时保持拒绝，不借用演示标签。
+    - [x] M4.2a：内部演示快照搜索引擎、资源边界、独立硬约束复核、穷举/反例及开销验证。
+    - [x] M4.2b：独立演示执行/快照复核重选、规划版本与幂等保护、公开状态及历史；默认关闭，不连接真实 Mall。
+    - [ ] M4.2c：真实类别证据、生产候选与 Mall 最终核验贯通；当前拒绝生产执行，不借用演示标签。
   - [ ] M4.3：同口径效果/开销对比和真实分类数据验收。
 - [ ] M5：流式 RPC 鉴权、事件协议、取消传播、执行预算与追踪。
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一本地任务 M4.2b：在 M4.1b 的有效需求/澄清边界与 M4.2a 内部搜索基础上接入约束执行、最终结果检查及公开状态；不能让演示搜索接受缺少可靠分类的生产候选。当前 `intent_ready` 不是推荐成功，内部快照 `complete` 也不能直接作为线上完成结果；进入规划的会话暂时禁止新轮次的旧推荐执行，待整条执行链能消费约束后才解除。在真实效果和开销得到验证前不切换默认策略。M3.2 的本地开发子步已完成，但真实数据库/服务验收仍后置，整体不结项。本地实现不自动授权连接真实库、接管旧索引、重建或部署。M2.3b 的独立复核和目标确认保持后置待办；已有 holdout 只作已知回归集，外部实验的数据、环境、调用数和费用上限仍需另行授权。
+下一本地任务 M4.2c：明确并贯通真实类别证据、生产候选检索与 Mall 最终核验，补充真实事实契约下的改价/失效重选；未具备该证据前，不向生产候选授予演示分类。M4.2b 仅在显式 demo 环境通过独立 ExecuteDemand 执行，`intent_ready` 不是推荐成功，演示 `complete` 不是线上完成或库存承诺；旧 Recommend/SSE 继续拒绝规划会话，不切换默认策略。M3.2 的本地开发子步已完成，但真实数据库/服务验收仍后置，整体不结项。本地实现不自动授权连接真实库、接管旧索引、重建或部署。M2.3b 的独立复核和目标确认保持后置待办；已有 holdout 只作已知回归集，外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -1760,3 +1787,65 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
 规则终态 64/64、可满足任务 25/40、需求覆盖 34/61、硬约束违规 0/50、Recall 92/92，事实一致性/重放均 50/50，与 `baseline.v2` 的变化、修复、退化列表全部为空。脚本模型 16/16、33 次 Fake Model 调用；检索四策略合计 72/72、无机制违规，独立比对 `retrieval-baseline.v2` 除代码标记和实测时间外完全一致。固定样例结果不变不等于证明性能没有变化；这些评测没有接入 Beam，不能用来宣称本次提升了完整推荐链的任务成功率。
 
 过程日志及非归档报告位于 `/tmp/budgetmatch-agent-m42a.dUcLR3`。未修改既有样本/标签/归档、依赖或 CI/CD，未读取或修改真实 `.env`，未连接真实 Mall/PostgreSQL/Embedding/模型/MCP，未部署、重启或推送。下一步 M4.2b 为约束执行与最终核验接入；真实分类来源、实时改价/失效后重选与公开结果契约完成前，继续保留规划会话的执行保护。独立人工复核、真实数据库和真实模型验收仍后置。
+
+### 2026-09-18：M4.2b 独立演示执行与复核重选
+
+按用户“提交到本地，然后完成下一步”的要求，先将 M4.2a 拆成 `52aac62`（排名证据常量重构）、`7e5fa1b`（搜索功能）、`ba141ec`（测试）、`23b025d`（文档）四个本地提交，分支仍为 `refactor/agent`，未推送；提交前五个关键包竞态复测通过。之后开发本节内容，新改动留在工作区，未自动提交。
+
+范围与交付：
+
+- 增加独立 `ExecuteDemand` RPC / `/api/agent/intent/execute`，必须引用本人当前就绪的规划 ID，不能在执行请求中放宽条件。规划、执行和旧推荐共用会话锁及轮次身份；跨方法/变更规划复用轮次会冲突。新增私有规划版本/就绪标记，不增 SQL 列。
+- 实现 `demandexec`：初选窗口最多 32 条，一次完整演示快照复核，再在同一范围内重选，最后执行独立类别和逐项事实检查。改价、失效、缺项、身份/来源/排名篡改、超限、取消或存储失败均不能绕过检查或触发旧兜底。
+- 新结果带演示范围、目录绑定、复核时点、覆盖/缺失、未评分偏好和两轮搜索边界；明确 `complete` / `no_feasible_bundle`，不返回部分可购买方案。历史和重放保留原状态，旧结果 JSON 不新增空 execution 字段。
+- 内置七件 mock 商品另建合成分类绑定，标注仍待人工复核；不改旧候选/标签/评测归档。默认 `DemandExecution.Mode: disabled`，仅显式无 Mall 的 demo 配置可启用；真实 Mall 仍拒绝，不能将本步描述为真实实时核验完成。真实类别证据、生产检索与 Mall 核验贯通明确列为 M4.2c 后续实现，M4.2 整体仍未完成。
+- `.api` / `.proto` 和 handler 模板先修改，再生成 PB、客户端、服务端、HTTP 类型/路由/新 handler；新 handler 的输入错误不回显正文。沿用本机工具链并显式选择 `protoc-gen-go-grpc 1.6.0`；七个生成文件与隔离目录重生结果逐字节一致。只清理生成器新建的重复入口/默认配置脚手架，可重生；没有删除用户文件。
+- README、本文及权限控制文档同步更新；未改 Web 交互、默认推荐策略、依赖、CI/CD 或真实 `.env`，未部署或重启。
+
+隔离验证（Go 命令均限制双核、单包并行度；不使用真实数据库变量）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go test -p 1 -race -count=1 \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go test -p 1 -race -count=10 \
+  ./services/rpc/agent/internal/demandexec ./services/rpc/agent/internal/recommend/beam \
+  ./services/rpc/agent/internal/agent/recommend ./services/rpc/agent/internal/memory \
+  ./services/rpc/agent/internal/logic/recommendservice \
+  ./cmd/app/internal/logic/agent ./cmd/app/internal/handler/agent
+```
+
+完整范围竞态回归 39 个测试包、433 个顶层测试通过（含子测试/Fuzz seed 共 1541 项通过），12 项真实数据库测试按隔离要求跳过。新增测试覆盖规划到执行/历史的完整映射、身份隔离、当前规划确认、旧规划/待澄清/旧版本标记拒绝、模式关闭后的已完成重放、同请求并发只执行一次、偏好撤销、改价后替代选择、明确不可用、复核缺项/篡改/超限、取消与写入失败；均未连接真实 Mall 或模型。
+
+七个关键包的 134 个顶层测试重复 10 轮全部通过，无竞态；其中真实 PostgreSQL 会话测试每轮仍跳过。搜索窗口增加独立快照输出后，重新执行 `FuzzBoundedSelectionSafety` 10 秒、单工作进程，共 67,014 次执行，无失败；窗口/选中结果之间及对原始输入的切片隔离也有固定回归。
+
+```bash
+GOMAXPROCS=2 go test -p 1 ./services/rpc/agent/internal/recommend/beam \
+  -run '^$' -fuzz '^FuzzBoundedSelectionSafety$' -fuzztime=10s -parallel=1
+GOMAXPROCS=2 go vet -p 1 ./...
+GOMAXPROCS=2 go build -p 1 ./...
+```
+
+根 Go 模块静态检查与构建均通过；不包含独立嵌套模块、Web 构建或线上部署。README、本文与权限文档的 177 个本地文件链接检查通过，补丁无空白错误。
+
+原有三套评测顺序复跑，代码标记为 `23b025d+M4.2b-worktree`，未覆盖既有归档：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval \
+  -revision 23b025d+M4.2b-worktree \
+  -compare services/rpc/agent/testdata/eval/baseline.v2/report.json -format json
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite scripted \
+  -revision 23b025d+M4.2b-worktree -format json
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
+  -revision 23b025d+M4.2b-worktree -format json
+```
+
+规则终态 64/64、可满足任务 25/40、需求覆盖 34/61、硬约束违规 0/50、Recall 92/92，事实一致性及重放均 50/50；与 `baseline.v2` 的变化、修复、退化列表均为空。脚本模型 16/16、33 次 Fake Model 调用；检索四策略合计 72/72、无机制违规，逐项比对 `retrieval-baseline.v2`，仅忽略代码标记及实测回放时间后完全一致。三套门禁均通过。这些仍是旧链路的固定离线回归，并未使用新演示执行入口；不据此宣称任务成功率或真实检索效果提升，也不证明性能没有变化。
+
+过程日志和非归档报告位于 `/tmp/budgetmatch-agent-m42b.VM1fLO`。未修改既有样本/标签/归档、依赖、CI/CD 或真实 `.env`；未连接真实 Mall/PostgreSQL/Embedding/模型/MCP，未部署、重启或推送。新阶段代码留在工作区未提交。下一步 M4.2c 为真实类别证据、生产候选与 Mall 核验贯通；真实服务/数据库验收及独立人工复核仍未完成，不把演示快照标记成线上事实。

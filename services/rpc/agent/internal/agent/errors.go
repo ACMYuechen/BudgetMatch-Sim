@@ -23,8 +23,8 @@ var ErrTurnConflict = errors.New("agent turn id is already bound to a different 
 // ErrInvalidInput 表示推荐请求未满足 Agent 业务入口的参数边界。
 var ErrInvalidInput = errors.New("invalid agent recommendation input")
 
-// Until M4's selector enforces the full contract, structured demand must never
-// fall through to legacy selection (including direct Agent/selector calls).
+// Structured demand must never fall through to legacy selection (including
+// direct Agent/selector calls). Only the separately enabled executor consumes it.
 var ErrDemandNotExecutable = status.Error(codes.FailedPrecondition, "structured demand selection is not available")
 
 // 文本约束错误保留 InvalidInput 分类，禁止触发兜底；公共文案由 RPC 层映射。

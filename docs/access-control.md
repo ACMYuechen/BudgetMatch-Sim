@@ -108,6 +108,7 @@
 | `/api/seckill/orders/:order_id` | GET | 用户；RPC 从认证上下文判断订单归属 |
 | `/api/agent/recommend` | POST | 用户；只使用当前用户的会话空间 |
 | `/api/agent/intent/plan` | POST | 用户；只规划/保存本人需求，不执行模型、检索或推荐 |
+| `/api/agent/intent/execute` | POST | 用户；仅执行本人当前已就绪的规划轮次；默认关闭，显式 demo 模式不连接真实商城 |
 | `/api/agent/recommend/stream` | POST | 同上；HTTP SSE 包装，同样要求 Authorization，不是独立免鉴权流接口 |
 | `/api/agent/conversations` | GET | 用户；只列出本人会话 |
 | `/api/agent/conversations/:conversation_id/turns` | GET | 用户；只查看本人会话轮次 |
@@ -243,11 +244,14 @@
 | --- | --- | --- |
 | `RecommendService.Recommend` | 用户 | 用户 ID 仅从认证上下文取得，按用户 + 会话执行推荐和记忆读写 |
 | `RecommendService.PlanDemand` | 用户 | 同样仅信任认证上下文；显式变更本人需求状态，不接受模型自行放宽条件 |
+| `RecommendService.ExecuteDemand` | 用户 | 只执行本人会话中匹配 `plan_turn_id` 的最新就绪规划；不接收新需求/预算覆盖，不调用旧 Agent 或兜底 |
 | `RecommendService.ListConversations` | 用户 | 只列出本人会话 |
 | `RecommendService.ListConversationTurns` | 用户 | 在本人命名空间查会话；不存在或他人会话返回 `NotFound` |
 | `RecommendService.DeleteConversation` | 用户 | 只删除本人会话；未命中时返回 `deleted=false`，不是越权删除 |
 
 RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user_id, conversation_id)` 复合身份，Redis/内存实现也按用户分区。同一 `conversation_id` 可以在不同用户空间出现，并不意味着共享会话。管理员使用这些接口仍只能访问自己的会话。
+
+结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 仅在未配置 MallRpc 时允许，其他模式或混用真实 Mall 在创建外部依赖前拒绝启动。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求执行可重放原演示结果，不重查商品；即使之后关闭模式也不会把历史快照标记为实时。`_demand_plan_turn_id`、`_demand_plan_ready` 和私有请求指纹不进入公开会话状态。旧 Recommend/SSE 对规划会话的保护不解除。
 
 在线推荐调用 mall 商品 RPC 时继续透传当前用户 JWT。后台 RAG 同步已改用独立客户端访问专用索引 RPC，每次签发短期服务 Token；不复用用户身份、支付密钥或管理员角色。Agent 配置了 RAG 却缺少合法索引凭据时，在初始化数据库/Embedding 前拒绝启动；Mall 未配置索引密钥时只拒绝该专用接口，不将其设为免鉴权。已完成本地签名/权限与内存 gRPC 测试，尚未启动真实 Mall＋数据库＋Embedding 的完整 RAG 链路。
 
