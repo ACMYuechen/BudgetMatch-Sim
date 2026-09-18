@@ -81,15 +81,20 @@ func (f *fakeRetriever) Retrieve(ctx context.Context, query string, opts ...retr
 
 // fakeFallbackProvider 记录是否被调用。
 type fakeFallbackProvider struct {
-	called bool
-	result []ProductCandidate
+	called  bool
+	calls   int
+	err     error
+	request SearchProductsReq
+	result  []ProductCandidate
 }
 
 func (f *fakeFallbackProvider) Name() string { return "fake.fallback" }
 
 func (f *fakeFallbackProvider) SearchProducts(ctx context.Context, req SearchProductsReq) ([]ProductCandidate, error) {
 	f.called = true
-	return f.result, nil
+	f.calls++
+	f.request = req
+	return f.result, f.err
 }
 
 func candidateDoc(id string, price, stock int64) *schema.Document {
@@ -177,5 +182,67 @@ func TestRAGProviderFallsBackOnEmpty(t *testing.T) {
 	}
 	if !fallback.called || len(got) != 1 {
 		t.Fatalf("expected fallback on empty retrieval, got %+v", got)
+	}
+}
+
+func TestRAGProviderFiltersBeforeDecidingFallback(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		docs []*schema.Document
+	}{
+		{"zero price", []*schema.Document{candidateDoc("s1", 0, 1)}},
+		{"negative price", []*schema.Document{candidateDoc("s1", -1, 1)}},
+		{"price beyond domain", []*schema.Document{candidateDoc("s1", agentcore.MaxBudgetCents+1, 1)}},
+		{"empty identity", []*schema.Document{candidateDoc("", 100, 1)}},
+		{"padded identity", []*schema.Document{candidateDoc(" s1", 100, 1)}},
+		{"latest zero price", []*schema.Document{candidateDoc("s1", 100, 1), candidateDoc("s1", 0, 1)}},
+		{"latest unavailable", []*schema.Document{candidateDoc("s1", 100, 1), candidateDoc("s1", 100, 0)}},
+		{"latest over budget", []*schema.Document{candidateDoc("s1", 100, 1), candidateDoc("s1", 600, 1)}},
+		{"latest invalid score", []*schema.Document{candidateDoc("s1", 100, 1), candidateDoc("s1", 100, 1).WithScore(math.NaN())}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			want := []ProductCandidate{{Id: "keyword", PriceCents: 200, Stock: 1}}
+			fallback := &fakeFallbackProvider{result: want}
+			got, err := NewRAGProductProvider(&fakeRetriever{docs: tc.docs}, fallback, 8).
+				SearchProducts(context.Background(), SearchProductsReq{Query: "keyboard", BudgetCents: 500, MaxItems: 1})
+			require.NoError(t, err)
+			require.True(t, fallback.called)
+			require.Equal(t, 1, fallback.calls)
+			require.Equal(t, want, got)
+		})
+	}
+}
+
+func TestRAGProviderPreservesOrderAndLatestSnapshotWithoutUnneededFallback(t *testing.T) {
+	first := candidateDoc("s1", 100, 1)
+	latest := candidateDoc("s1", 200, 2).WithScore(.8)
+	docs := []*schema.Document{first, candidateDoc("invalid", 0, 1), candidateDoc("s2", 300, 1), latest}
+	fallback := &fakeFallbackProvider{}
+	got, err := NewRAGProductProvider(&fakeRetriever{docs: docs}, fallback, 8).
+		SearchProducts(context.Background(), SearchProductsReq{Query: "keyboard", BudgetCents: 500, MaxItems: 2})
+	require.NoError(t, err)
+	require.False(t, fallback.called)
+	require.Len(t, got, 2)
+	require.Equal(t, "s1", got[0].Id)
+	require.EqualValues(t, 200, got[0].PriceCents)
+	require.EqualValues(t, 2, got[0].Stock)
+	require.Equal(t, .8, got[0].Evidence.Relevance)
+	require.Equal(t, "s2", got[1].Id)
+	meta, ok := rag.CandidateFromDocument(first)
+	require.True(t, ok)
+	require.EqualValues(t, 100, meta.PriceCents) // The source documents were not mutated.
+}
+
+func TestRAGProviderInvalidSnapshotsPreserveFallbackRequestAndError(t *testing.T) {
+	for _, failure := range []error{status.Error(codes.Unavailable, "unavailable"), status.Error(codes.PermissionDenied, "denied"), context.Canceled} {
+		fallback := &fakeFallbackProvider{err: failure}
+		retr := &fakeRetriever{docs: []*schema.Document{candidateDoc("s1", 0, 1)}}
+		req := SearchProductsReq{Query: "keyboard", Keywords: []string{"quiet"}, BudgetCents: 500, MaxItems: 2}
+		got, err := NewRAGProductProvider(retr, fallback, 8).SearchProducts(context.Background(), req)
+		require.ErrorIs(t, err, failure)
+		require.Empty(t, got)
+		require.Equal(t, 1, fallback.calls)
+		require.Equal(t, req, fallback.request)
+		require.Equal(t, 8, retr.gotTopK)
 	}
 }
