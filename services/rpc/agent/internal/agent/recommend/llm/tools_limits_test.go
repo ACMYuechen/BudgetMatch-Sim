@@ -2,10 +2,12 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
@@ -13,11 +15,83 @@ import (
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
+	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type scriptedCandidateClient struct{ calls int }
+
+func (c *scriptedCandidateClient) CheckProductCandidates(_ context.Context, req *pb.CheckProductCandidatesReq, _ ...grpc.CallOption) (*pb.CheckProductCandidatesResp, error) {
+	c.calls++
+	resp := &pb.CheckProductCandidatesResp{CheckedAtUnixMs: time.Now().UnixMilli()}
+	for _, id := range req.SkuIds {
+		price := int64(400)
+		if id == "a" {
+			price = 600
+		}
+		resp.Results = append(resp.Results, &pb.CandidateCheck{SkuId: id, State: pb.CandidateState_CANDIDATE_STATE_ACTIVE,
+			Facts: &pb.CandidateFacts{SkuId: id, ProductId: "p", ProductName: id, Price: price, Stock: 2}})
+	}
+	return resp, nil
+}
+
+func TestScriptedReactFinalGateRepricesWithinSelectedScope(t *testing.T) {
+	provider := &recordingProvider{products: []tools.ProductCandidate{
+		{Id: "a", Name: "a", Source: "mall", PriceCents: 100, Stock: 2},
+		{Id: "b", Name: "b", Source: "mall", PriceCents: 200, Stock: 2},
+		{Id: "c", Name: "c", Source: "mall", PriceCents: 1, Stock: 2},
+	}}
+	for i := range provider.products {
+		provider.products[i].Evidence = agentcore.CandidateEvidence{Source: agentcore.RetrievalMallKeyword, ProductID: "p"}
+	}
+	model := &scriptedModel{responses: []*schema.Message{
+		toolCallMessage("search", toolSearchProducts, searchArgs{Query: "keyboard"}),
+		toolCallMessage("select", toolSelectBundle, selectArgs{CandidateIds: []string{"a", "b"}, BudgetCents: 500, MaxItems: 1}),
+		schema.AssistantMessage("价格不变，保证有货", nil),
+	}}
+	primary := NewAgent(model, provider, selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+	fallback := recommendagent.NewAgent(provider, selector.NewBundleSelector())
+	client := &scriptedCandidateClient{}
+	result, err := recommendagent.NewService(fallback, primary, nil).
+		WithFinalizer(recommendagent.NewCandidateFinalizer(tools.NewMallCandidateVerifier(client))).
+		Recommend(context.Background(), agentcore.Input{Query: "keyboard", BudgetCents: 1000, MaxItems: 3})
+	require.NoError(t, err)
+	require.Equal(t, 1, client.calls)
+	require.Len(t, provider.requests, 1, "no second retrieval/fallback after final checking")
+	require.Len(t, result.Items, 1)
+	require.Equal(t, "b", result.Items[0].Id)
+	require.EqualValues(t, 400, result.TotalPriceCents)
+	require.Contains(t, result.Summary, "核验时点")
+	require.NotContains(t, result.Summary, "保证有货")
+	require.Equal(t, "candidate.verify", result.ToolsUsed[len(result.ToolsUsed)-1].Name)
+}
+
+func TestSelectionScopeSurvivesAssemblyAndLaterSearch(t *testing.T) {
+	intent := agentcore.Intent{BudgetCents: 1000, MaxItems: 3}
+	for _, ids := range [][]string{nil, {"a", "b"}} {
+		s := newSession(nil, selector.NewBundleSelector(), intent)
+		s.storeCandidates([]tools.ProductCandidate{{Id: "a", PriceCents: 100, Stock: 1}, {Id: "b", PriceCents: 200, Stock: 1}})
+		_, err := s.selectBundle(context.Background(), selectArgs{CandidateIds: ids, BudgetCents: 500, MaxItems: 1})
+		require.NoError(t, err)
+		// A later search must not extend the already chosen scope, even if the
+		// original select used an empty ID list meaning all candidates THEN.
+		s.storeCandidates([]tools.ProductCandidate{{Id: "c", PriceCents: 1, Stock: 1}})
+		result, err := (&Agent{}).assemble(context.Background(), agentcore.Input{}, intent, s)
+		require.NoError(t, err)
+		require.Equal(t, []string{"a", "b"}, result.Selection.CandidateIDs)
+		require.Equal(t, agentcore.Constraints{BudgetCents: 500, MaxItems: 1}, result.Selection.Limits)
+		result.Selection.CandidateIDs[0] = "mutated"
+		require.Equal(t, "a", s.selectionScope().CandidateIDs[0])
+		data, err := json.Marshal(result)
+		require.NoError(t, err)
+		require.NotContains(t, string(data), "CandidateIDs")
+	}
+}
 
 func TestGuardrailsSelectedSnapshotMustMatchLatestSearch(t *testing.T) {
 	for _, update := range []tools.ProductCandidate{

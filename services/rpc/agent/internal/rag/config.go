@@ -29,7 +29,7 @@ type Config struct {
 	SyncPageSize           int32   `json:"syncPageSize,optional"`           // SyncPageSize 离线同步分页大小，默认 100
 	SyncTimeoutSeconds     int     `json:"syncTimeoutSeconds,optional"`     // 单轮扫描/嵌入/发布的共同期限，默认 300 秒，上限 3600 秒
 	SyncStopTimeoutSeconds int     `json:"syncStopTimeoutSeconds,optional"` // Stop 取消后最多等待，默认 5 秒，上限 30 秒
-	VerifySku              bool    `json:"verifySku,optional"`              // VerifySku 检索后是否经 mall GetSku 实时校验价格库存
+	VerifySku              bool    `json:"verifySku,optional"`              // Deprecated: ignored; Mall final checks are always strict.
 }
 
 // Normalize 返回归一化后的配置。

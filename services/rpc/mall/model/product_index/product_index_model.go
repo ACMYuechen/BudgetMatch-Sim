@@ -60,18 +60,23 @@ func (m *Model) ListPage(ctx context.Context, cursor string, limit int) ([]Entry
 }
 
 func pageQuery(db *gorm.DB, cursor string, limit int) *gorm.DB {
-	query := db.Table("product_skus AS s").
+	query := activeQuery(db).
 		Select(`s.id AS sku_id, p.id AS product_id, p.name AS product_name,
 			COALESCE(p.content::text, '') AS product_content, COALESCE(p.providor, '') AS provider,
 			s.name AS sku_name, COALESCE(s.specs::text, '') AS specs, s.price, s.stock, s.sold`).
-		Joins("JOIN products AS p ON p.id = s.product_id").
-		Where("p.status = ? AND s.status = ?", 1, 1).
-		Where("p.deleted_at IS NULL AND s.deleted_at IS NULL")
+		Order(`s.id COLLATE "C" ASC`)
 	if cursor != "" {
 		query = query.Where(`s.id COLLATE "C" > ?`, cursor)
 	}
 	// C collation matches the byte ordering used by the Agent's cursor checks.
 	// Independent ListPage calls are live reads. ScanSnapshot binds all calls to
 	// one read-only REPEATABLE READ transaction.
-	return query.Order(`s.id COLLATE "C" ASC`).Limit(limit)
+	return query.Limit(limit)
+}
+
+func activeQuery(db *gorm.DB) *gorm.DB {
+	return db.Table("product_skus AS s").
+		Joins("JOIN products AS p ON p.id = s.product_id").
+		Where("p.status = ? AND s.status = ?", 1, 1).
+		Where("p.deleted_at IS NULL AND s.deleted_at IS NULL")
 }

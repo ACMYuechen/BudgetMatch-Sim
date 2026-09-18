@@ -24,6 +24,7 @@ type Intent struct {
 
 // ProductCandidate 是商品数据源提供的事实快照，不从模型回答中反序列化。
 type ProductCandidate struct {
+	Evidence   CandidateEvidence `json:"-"`
 	Id         string
 	Name       string
 	Category   string
@@ -57,6 +58,7 @@ type ToolCall struct {
 type Result struct {
 	// Candidates 仅供本轮最终校验，不暴露到 JSON、RPC 或会话持久化结果。
 	Candidates        []ProductCandidate `json:"-"`
+	Selection         *SelectionScope    `json:"-"`
 	Intent            Intent             `json:"intent"`             // Intent 解析出的用户意图
 	Items             []BundleItem       `json:"items"`              // Items 推荐的商品列表
 	TotalPriceCents   int64              `json:"total_price_cents"`  // TotalPriceCents 推荐商品总价，单位为分

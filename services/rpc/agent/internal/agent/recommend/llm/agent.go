@@ -234,6 +234,7 @@ func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agen
 
 	result := &agentcore.Result{
 		Candidates:      s.filterCandidates(nil),
+		Selection:       s.selectionScope(),
 		Intent:          intent,
 		Items:           items,
 		TotalPriceCents: total,

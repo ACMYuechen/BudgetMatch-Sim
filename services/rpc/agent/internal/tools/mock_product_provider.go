@@ -4,6 +4,9 @@ package tools
 import (
 	"context"
 	"strings"
+	"time"
+
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 )
 
 // MockProductProvider 是 ProductProvider 的内存模拟实现，内置一组示例商品。
@@ -33,7 +36,9 @@ func (p *MockProductProvider) Name() string {
 
 // SearchProducts 根据查询、关键词和预算筛选候选商品；若无匹配则返回预算内全部商品。
 func (p *MockProductProvider) SearchProducts(ctx context.Context, req SearchProductsReq) ([]ProductCandidate, error) {
-	_ = ctx
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	keywords := normalizeKeywords(req.Keywords)
 	if len(keywords) == 0 {
@@ -62,6 +67,10 @@ func (p *MockProductProvider) SearchProducts(ctx context.Context, req SearchProd
 		}
 	}
 
+	for i := range out {
+		out[i].Evidence = agentcore.CandidateEvidence{Source: agentcore.RetrievalDemo,
+			State: agentcore.VerificationDemo, RetrievedAtUnixMs: time.Now().UnixMilli()}
+	}
 	return out, nil
 }
 

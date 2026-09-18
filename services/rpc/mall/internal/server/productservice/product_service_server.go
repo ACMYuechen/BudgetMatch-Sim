@@ -72,3 +72,8 @@ func (s *ProductServiceServer) ListSkusByProduct(ctx context.Context, in *pb.Lis
 	l := productservicelogic.NewListSkusByProductLogic(ctx, s.svcCtx)
 	return l.ListSkusByProduct(in)
 }
+
+func (s *ProductServiceServer) CheckProductCandidates(ctx context.Context, in *pb.CheckProductCandidatesReq) (*pb.CheckProductCandidatesResp, error) {
+	l := productservicelogic.NewCheckProductCandidatesLogic(ctx, s.svcCtx)
+	return l.CheckProductCandidates(in)
+}

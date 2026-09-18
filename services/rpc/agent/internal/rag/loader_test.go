@@ -108,6 +108,12 @@ func TestLoaderLoadsOneSnapshot(t *testing.T) {
 	require.EqualValues(t, 29900, meta.PriceCents)
 	require.EqualValues(t, 10, meta.Stock)
 	require.Equal(t, "mall", meta.Source)
+	require.Positive(t, meta.SnapshotAtUnixMs)
+	for _, doc := range scan.Documents {
+		other, ok := CandidateFromDocument(doc)
+		require.True(t, ok)
+		require.Equal(t, meta.SnapshotAtUnixMs, other.SnapshotAtUnixMs)
+	}
 	changed := buildSkuDocument(&pb.Product{Id: "p1", Name: "键盘", Providor: "K", Content: "适合办公"},
 		&pb.Sku{Id: "s1", Name: "红轴", Specs: "{\"switch\":\"red\"}", Price: 59900, Stock: 2, Sold: 100})
 	require.Equal(t, first.Content, changed.Content, "volatile metadata must not change embedding input")

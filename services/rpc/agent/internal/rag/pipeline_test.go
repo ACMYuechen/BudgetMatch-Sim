@@ -16,6 +16,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Updating volatile metadata must not consume another embedding call.
+func TestSnapshotTimeRefreshDoesNotReembed(t *testing.T) {
+	meta := CandidateMetadata{ProductId: "p", Name: "keyboard", PriceCents: 100, Stock: 1, Source: "mall", SnapshotAtUnixMs: 1000}
+	loader := &fakeLoader{docs: []*schema.Document{NewCandidateDocument("s", "keyboard text", meta)}}
+	idx, model := &fakeIndexer{}, &fakeVectorModel{}
+	pipeline, err := NewPipeline(loader, nil, idx, model, "profile")
+	require.NoError(t, err)
+	_, err = pipeline.Sync(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, 1, idx.calls)
+	meta.SnapshotAtUnixMs = 2000
+	meta.PriceCents = 200
+	loader.docs = []*schema.Document{NewCandidateDocument("s", "keyboard text", meta)}
+	stats, err := pipeline.Sync(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, 1, idx.calls)
+	require.Equal(t, 0, stats.Indexed)
+	require.Equal(t, 1, stats.Refreshed)
+	require.Len(t, model.batch.MetadataUpdates, 1)
+	stored, err := candidateFromJSON(model.batch.MetadataUpdates[0].Metadata)
+	require.NoError(t, err)
+	require.EqualValues(t, 2000, stored.SnapshotAtUnixMs)
+	require.EqualValues(t, 200, stored.PriceCents)
+	legacy, err := candidateFromJSON(`{"product_id":"p","price_cents":100}`)
+	require.NoError(t, err)
+	require.Zero(t, legacy.SnapshotAtUnixMs, "legacy time remains unknown, not fabricated from index update time")
+}
+
 // fakeLoader 返回预置文档。
 type fakeLoader struct {
 	docs []*schema.Document

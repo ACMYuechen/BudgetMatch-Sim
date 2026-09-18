@@ -14,28 +14,32 @@ import (
 )
 
 type (
-	CreateProductReq      = pb.CreateProductReq
-	CreateProductResp     = pb.CreateProductResp
-	CreateSkuReq          = pb.CreateSkuReq
-	CreateSkuResp         = pb.CreateSkuResp
-	DeleteProductReq      = pb.DeleteProductReq
-	DeleteProductResp     = pb.DeleteProductResp
-	DeleteSkuReq          = pb.DeleteSkuReq
-	DeleteSkuResp         = pb.DeleteSkuResp
-	GetProductReq         = pb.GetProductReq
-	GetProductResp        = pb.GetProductResp
-	GetSkuReq             = pb.GetSkuReq
-	GetSkuResp            = pb.GetSkuResp
-	ListProductsReq       = pb.ListProductsReq
-	ListProductsResp      = pb.ListProductsResp
-	ListSkusByProductReq  = pb.ListSkusByProductReq
-	ListSkusByProductResp = pb.ListSkusByProductResp
-	Product               = pb.Product
-	Sku                   = pb.Sku
-	UpdateProductReq      = pb.UpdateProductReq
-	UpdateProductResp     = pb.UpdateProductResp
-	UpdateSkuReq          = pb.UpdateSkuReq
-	UpdateSkuResp         = pb.UpdateSkuResp
+	CandidateCheck             = pb.CandidateCheck
+	CandidateFacts             = pb.CandidateFacts
+	CheckProductCandidatesReq  = pb.CheckProductCandidatesReq
+	CheckProductCandidatesResp = pb.CheckProductCandidatesResp
+	CreateProductReq           = pb.CreateProductReq
+	CreateProductResp          = pb.CreateProductResp
+	CreateSkuReq               = pb.CreateSkuReq
+	CreateSkuResp              = pb.CreateSkuResp
+	DeleteProductReq           = pb.DeleteProductReq
+	DeleteProductResp          = pb.DeleteProductResp
+	DeleteSkuReq               = pb.DeleteSkuReq
+	DeleteSkuResp              = pb.DeleteSkuResp
+	GetProductReq              = pb.GetProductReq
+	GetProductResp             = pb.GetProductResp
+	GetSkuReq                  = pb.GetSkuReq
+	GetSkuResp                 = pb.GetSkuResp
+	ListProductsReq            = pb.ListProductsReq
+	ListProductsResp           = pb.ListProductsResp
+	ListSkusByProductReq       = pb.ListSkusByProductReq
+	ListSkusByProductResp      = pb.ListSkusByProductResp
+	Product                    = pb.Product
+	Sku                        = pb.Sku
+	UpdateProductReq           = pb.UpdateProductReq
+	UpdateProductResp          = pb.UpdateProductResp
+	UpdateSkuReq               = pb.UpdateSkuReq
+	UpdateSkuResp              = pb.UpdateSkuResp
 
 	ProductService interface {
 		CreateProduct(ctx context.Context, in *CreateProductReq, opts ...grpc.CallOption) (*CreateProductResp, error)
@@ -48,6 +52,7 @@ type (
 		DeleteSku(ctx context.Context, in *DeleteSkuReq, opts ...grpc.CallOption) (*DeleteSkuResp, error)
 		GetSku(ctx context.Context, in *GetSkuReq, opts ...grpc.CallOption) (*GetSkuResp, error)
 		ListSkusByProduct(ctx context.Context, in *ListSkusByProductReq, opts ...grpc.CallOption) (*ListSkusByProductResp, error)
+		CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error)
 	}
 
 	defaultProductService struct {
@@ -109,4 +114,9 @@ func (m *defaultProductService) GetSku(ctx context.Context, in *GetSkuReq, opts 
 func (m *defaultProductService) ListSkusByProduct(ctx context.Context, in *ListSkusByProductReq, opts ...grpc.CallOption) (*ListSkusByProductResp, error) {
 	client := pb.NewProductServiceClient(m.cli.Conn())
 	return client.ListSkusByProduct(ctx, in, opts...)
+}
+
+func (m *defaultProductService) CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error) {
+	client := pb.NewProductServiceClient(m.cli.Conn())
+	return client.CheckProductCandidates(ctx, in, opts...)
 }

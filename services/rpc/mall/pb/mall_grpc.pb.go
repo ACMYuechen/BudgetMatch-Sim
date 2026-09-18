@@ -27,6 +27,7 @@ type ProductServiceClient interface {
 	DeleteSku(ctx context.Context, in *DeleteSkuReq, opts ...grpc.CallOption) (*DeleteSkuResp, error)
 	GetSku(ctx context.Context, in *GetSkuReq, opts ...grpc.CallOption) (*GetSkuResp, error)
 	ListSkusByProduct(ctx context.Context, in *ListSkusByProductReq, opts ...grpc.CallOption) (*ListSkusByProductResp, error)
+	CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error)
 }
 
 type productServiceClient struct {
@@ -127,6 +128,15 @@ func (c *productServiceClient) ListSkusByProduct(ctx context.Context, in *ListSk
 	return out, nil
 }
 
+func (c *productServiceClient) CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error) {
+	out := new(CheckProductCandidatesResp)
+	err := c.cc.Invoke(ctx, "/mall.ProductService/CheckProductCandidates", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility
@@ -141,6 +151,7 @@ type ProductServiceServer interface {
 	DeleteSku(context.Context, *DeleteSkuReq) (*DeleteSkuResp, error)
 	GetSku(context.Context, *GetSkuReq) (*GetSkuResp, error)
 	ListSkusByProduct(context.Context, *ListSkusByProductReq) (*ListSkusByProductResp, error)
+	CheckProductCandidates(context.Context, *CheckProductCandidatesReq) (*CheckProductCandidatesResp, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -177,6 +188,9 @@ func (UnimplementedProductServiceServer) GetSku(context.Context, *GetSkuReq) (*G
 }
 func (UnimplementedProductServiceServer) ListSkusByProduct(context.Context, *ListSkusByProductReq) (*ListSkusByProductResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSkusByProduct not implemented")
+}
+func (UnimplementedProductServiceServer) CheckProductCandidates(context.Context, *CheckProductCandidatesReq) (*CheckProductCandidatesResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckProductCandidates not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 
@@ -371,6 +385,24 @@ func _ProductService_ListSkusByProduct_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_CheckProductCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckProductCandidatesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).CheckProductCandidates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mall.ProductService/CheckProductCandidates",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).CheckProductCandidates(ctx, req.(*CheckProductCandidatesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _ProductService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.ProductService",
 	HandlerType: (*ProductServiceServer)(nil),
@@ -414,6 +446,10 @@ var _ProductService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListSkusByProduct",
 			Handler:    _ProductService_ListSkusByProduct_Handler,
+		},
+		{
+			MethodName: "CheckProductCandidates",
+			Handler:    _ProductService_CheckProductCandidates_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

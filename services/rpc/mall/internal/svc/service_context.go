@@ -25,6 +25,7 @@ type ServiceContext struct {
 	SkuStore              product_skus.ProductSkusModel
 	ProductIndexStore     product_index.Reader
 	ProductIndexSnapshots product_index.SnapshotReader
+	CandidateStore        product_index.CandidateReader
 	OrderStore            mall_orders.MallOrdersModel
 	OrderItemStore        mall_order_items.MallOrderItemsModel
 	OrderOutboxStore      mall_order_outbox.MallOrderOutboxModel
@@ -75,6 +76,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SkuStore:              skuStore,
 		ProductIndexStore:     indexStore,
 		ProductIndexSnapshots: indexStore,
+		CandidateStore:        indexStore,
 		OrderStore:            orderStore,
 		OrderItemStore:        orderItemStore,
 		OrderOutboxStore:      orderOutboxStore,

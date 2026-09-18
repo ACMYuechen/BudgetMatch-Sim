@@ -28,6 +28,7 @@ type session struct {
 	bundle     []agentcore.BundleItem
 	total      int64
 	selected   bool
+	selection  *agentcore.SelectionScope
 	calls      []agentcore.ToolCall
 }
 
@@ -96,12 +97,26 @@ func (s *session) hasCandidates() bool {
 }
 
 // setBundle 写回最终选定的商品套装与总价。
-func (s *session) setBundle(items []agentcore.BundleItem, total int64) {
+func (s *session) setBundle(items []agentcore.BundleItem, total int64, candidates []tools.ProductCandidate, limits agentcore.Constraints) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.bundle = append([]agentcore.BundleItem(nil), items...)
 	s.total = total
 	s.selected = true
+	s.selection = &agentcore.SelectionScope{Limits: limits}
+	for _, candidate := range candidates {
+		s.selection.CandidateIDs = append(s.selection.CandidateIDs, candidate.Id)
+	}
+}
+
+func (s *session) selectionScope() *agentcore.SelectionScope {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.selection == nil {
+		return nil
+	}
+	return &agentcore.SelectionScope{Limits: s.selection.Limits,
+		CandidateIDs: append([]string(nil), s.selection.CandidateIDs...)}
 }
 
 func (s *session) hasSelection() bool {

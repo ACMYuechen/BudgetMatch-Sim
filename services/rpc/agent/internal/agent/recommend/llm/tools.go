@@ -221,7 +221,7 @@ func (s *session) selectBundle(ctx context.Context, args selectArgs) (*selectRes
 		BudgetCents: limits.BudgetCents,
 		MaxItems:    limits.MaxItems,
 	})
-	s.setBundle(items, total)
+	s.setBundle(items, total, candidates, limits)
 	return &selectResult{Items: items, TotalPriceCents: total}, nil
 }
 

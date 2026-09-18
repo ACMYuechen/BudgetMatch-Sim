@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"google.golang.org/grpc"
@@ -79,6 +80,10 @@ func TestMallProviderMapsSkuToCandidate(t *testing.T) {
 	}
 	if c.PriceCents != 29900 || c.Stock != 10 || c.Sold != 200 {
 		t.Fatalf("sku numeric fields not mapped: %+v", c)
+	}
+	if c.Evidence.Source != agentcore.RetrievalMallKeyword || c.Evidence.ProductID != "p1" ||
+		c.Evidence.State != agentcore.VerificationUnverified || c.Evidence.RetrievedAtUnixMs <= 0 || c.Evidence.SnapshotAtUnixMs != 0 {
+		t.Fatalf("keyword provenance must remain unverified with unknown cache age: %+v", c.Evidence)
 	}
 	if len(c.Tags) != 2 || c.Tags[0] != "Keychron" {
 		t.Fatalf("expected brand+specs tags, got %+v", c.Tags)

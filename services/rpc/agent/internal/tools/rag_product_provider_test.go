@@ -2,13 +2,19 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"math"
 	"testing"
 
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
 
 	"github.com/cloudwego/eino/components/retriever"
 	"github.com/cloudwego/eino/schema"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // fakeRetriever 返回预置文档或错误，并记录收到的 TopK。
@@ -17,6 +23,48 @@ type fakeRetriever struct {
 	err      error
 	gotTopK  int
 	gotQuery string
+}
+
+func TestRAGCandidateCarriesInternalUnverifiedEvidence(t *testing.T) {
+	doc := candidateDoc("s1", 100, 2).WithScore(.9)
+	meta, _ := rag.CandidateFromDocument(doc)
+	meta.SnapshotAtUnixMs = 1234
+	doc = rag.NewCandidateDocument(doc.ID, doc.Content, meta).WithScore(.9)
+	provider := NewRAGProductProvider(&fakeRetriever{docs: []*schema.Document{doc}}, &fakeFallbackProvider{}, 10)
+	got, err := provider.SearchProducts(context.Background(), SearchProductsReq{Query: "keyboard"})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	e := got[0].Evidence
+	require.Equal(t, agentcore.RetrievalMallVector, e.Source)
+	require.Equal(t, "p-s1", e.ProductID)
+	require.EqualValues(t, 1234, e.SnapshotAtUnixMs)
+	require.Equal(t, .9, e.Relevance)
+	require.True(t, e.HasRelevance)
+	require.Positive(t, e.RetrievedAtUnixMs)
+	require.Equal(t, agentcore.VerificationUnverified, e.State)
+	require.Zero(t, e.VerifiedAtUnixMs)
+	data, err := json.Marshal(got[0])
+	require.NoError(t, err)
+	require.NotContains(t, string(data), "Evidence")
+	require.NotContains(t, string(data), "Relevance")
+	for _, score := range []float64{math.NaN(), math.Inf(1)} {
+		fallback := &fakeFallbackProvider{}
+		_, err := NewRAGProductProvider(&fakeRetriever{docs: []*schema.Document{doc.WithScore(score)}}, fallback, 10).
+			SearchProducts(context.Background(), SearchProductsReq{Query: "keyboard"})
+		require.NoError(t, err)
+		require.True(t, fallback.called)
+	}
+}
+
+func TestRAGTerminalErrorsNeverUseKeywordFallback(t *testing.T) {
+	for _, failure := range []error{context.Canceled, context.DeadlineExceeded,
+		status.Error(codes.Unauthenticated, "denied"), status.Error(codes.PermissionDenied, "denied")} {
+		fallback := &fakeFallbackProvider{}
+		_, err := NewRAGProductProvider(&fakeRetriever{err: failure}, fallback, 10).
+			SearchProducts(context.Background(), SearchProductsReq{Query: "keyboard"})
+		require.ErrorIs(t, err, failure)
+		require.False(t, fallback.called)
+	}
 }
 
 func (f *fakeRetriever) Retrieve(ctx context.Context, query string, opts ...retriever.Option) ([]*schema.Document, error) {
@@ -64,7 +112,7 @@ func TestRAGProviderConvertsAndFilters(t *testing.T) {
 		candidateDoc("s3", 10000, 0), // 无库存
 	}}
 	fallback := &fakeFallbackProvider{}
-	provider := NewRAGProductProvider(retr, fallback, nil, 20)
+	provider := NewRAGProductProvider(retr, fallback, 20)
 
 	got, err := provider.SearchProducts(context.Background(), SearchProductsReq{
 		Query:       "安静的办公键盘",
@@ -92,7 +140,7 @@ func TestRAGProviderConvertsAndFilters(t *testing.T) {
 // TestRAGProviderCapsTopK 验证召回量被配置上限夹住。
 func TestRAGProviderCapsTopK(t *testing.T) {
 	retr := &fakeRetriever{docs: []*schema.Document{candidateDoc("s1", 100, 1)}}
-	provider := NewRAGProductProvider(retr, &fakeFallbackProvider{}, nil, 10)
+	provider := NewRAGProductProvider(retr, &fakeFallbackProvider{}, 10)
 
 	if _, err := provider.SearchProducts(context.Background(), SearchProductsReq{Query: "键盘", MaxItems: 5}); err != nil {
 		t.Fatalf("SearchProducts() error = %v", err)
@@ -106,7 +154,7 @@ func TestRAGProviderCapsTopK(t *testing.T) {
 func TestRAGProviderFallsBackOnError(t *testing.T) {
 	retr := &fakeRetriever{err: errors.New("pg down")}
 	fallback := &fakeFallbackProvider{result: []ProductCandidate{{Id: "kw-1", Stock: 1}}}
-	provider := NewRAGProductProvider(retr, fallback, nil, 10)
+	provider := NewRAGProductProvider(retr, fallback, 10)
 
 	got, err := provider.SearchProducts(context.Background(), SearchProductsReq{Query: "键盘"})
 	if err != nil {
@@ -121,7 +169,7 @@ func TestRAGProviderFallsBackOnError(t *testing.T) {
 func TestRAGProviderFallsBackOnEmpty(t *testing.T) {
 	retr := &fakeRetriever{}
 	fallback := &fakeFallbackProvider{result: []ProductCandidate{{Id: "kw-1", Stock: 1}}}
-	provider := NewRAGProductProvider(retr, fallback, nil, 10)
+	provider := NewRAGProductProvider(retr, fallback, 10)
 
 	got, err := provider.SearchProducts(context.Background(), SearchProductsReq{Query: "键盘"})
 	if err != nil {

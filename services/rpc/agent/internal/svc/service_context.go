@@ -73,9 +73,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config:           c,
-		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem),
+		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient)),
 		Syncer:           syncer,
 	}
+}
+
+func newResultFinalizer(mallClient tools.CandidateCheckClient) recommendagent.ResultFinalizer {
+	if mallClient == nil {
+		return recommendagent.DemoFinalizer{}
+	}
+	return recommendagent.NewCandidateFinalizer(tools.NewMallCandidateVerifier(mallClient))
 }
 
 // maybeOpenDatabase 在配置了 DSN 时只创建一个数据库连接池，供会话持久化与 RAG 共同复用。
@@ -145,12 +152,8 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	syncer.Start()
 	proc.AddShutdownListener(syncer.Stop)
 
-	var verify tools.SkuGetter
-	if c.RAG.VerifySku {
-		verify = mallClient
-	}
 	logx.Info("rag enabled: semantic product retrieval over pgvector")
-	return tools.NewRAGProductProvider(rag.NewRetriever(store), fallback, verify, c.RAG.Normalize().TopK), syncer
+	return tools.NewRAGProductProvider(rag.NewRetriever(store), fallback, c.RAG.Normalize().TopK), syncer
 }
 
 // newMemoryManager 根据可用依赖组装会话记忆：PostgreSQL 是持久层，Redis 是一级缓存；

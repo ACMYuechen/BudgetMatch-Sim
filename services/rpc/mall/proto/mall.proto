@@ -367,6 +367,38 @@ message ListProductIndexResp {
 
 // ========== Services ==========
 
+// Online check: normal user JWT, no Redis cache and no index-service credential.
+message CheckProductCandidatesReq {
+  repeated string sku_ids = 1; // 1..32 unique IDs, at most 64 bytes each
+}
+
+enum CandidateState {
+  CANDIDATE_STATE_UNSPECIFIED = 0;
+  CANDIDATE_STATE_ACTIVE = 1; // SPU and SKU active, neither soft-deleted
+  CANDIDATE_STATE_UNAVAILABLE = 2; // confirmed absent, off-shelf or deleted
+}
+
+message CandidateFacts {
+  string sku_id = 1;
+  string product_id = 2;
+  string product_name = 3;
+  string sku_name = 4;
+  int64 price = 5;
+  int64 stock = 6;
+  int64 sold = 7;
+}
+
+message CandidateCheck {
+  string sku_id = 1;
+  CandidateState state = 2;
+  CandidateFacts facts = 3; // only present for ACTIVE; stock may be zero
+}
+
+message CheckProductCandidatesResp {
+  repeated CandidateCheck results = 1; // exactly one result per requested ID
+  int64 checked_at_unix_ms = 2; // server-observed query start, not a stock reservation
+}
+
 service ProductService {
   rpc CreateProduct(CreateProductReq) returns (CreateProductResp) {}
   rpc UpdateProduct(UpdateProductReq) returns (UpdateProductResp) {}
@@ -379,6 +411,7 @@ service ProductService {
   rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {}
   rpc GetSku(GetSkuReq) returns (GetSkuResp) {}
   rpc ListSkusByProduct(ListSkusByProductReq) returns (ListSkusByProductResp) {}
+  rpc CheckProductCandidates(CheckProductCandidatesReq) returns (CheckProductCandidatesResp) {}
 }
 
 service OrderService {

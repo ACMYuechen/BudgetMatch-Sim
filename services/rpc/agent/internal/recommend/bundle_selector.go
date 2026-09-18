@@ -23,11 +23,7 @@ func (s *BundleSelector) Select(candidates []agent.ProductCandidate, intent agen
 		return nil, 0
 	}
 	maxItems, budget := constraints.MaxItems, constraints.BudgetCents
-	candidates = agent.NormalizeCandidates(candidates)
-	// 按综合评分降序排序，优先选择得分高的商品。
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return score(candidates[i], budget) > score(candidates[j], budget)
-	})
+	candidates = s.Rank(candidates, budget)
 
 	var total int64
 	items := make([]agent.BundleItem, 0, maxItems)
@@ -56,6 +52,16 @@ func (s *BundleSelector) Select(candidates []agent.ProductCandidate, intent agen
 	}
 
 	return items, total
+}
+
+// Rank shares the baseline selector's ordering with the bounded check shortlist.
+// It returns independent snapshots and does not add a new relevance strategy.
+func (s *BundleSelector) Rank(candidates []agent.ProductCandidate, budget int64) []agent.ProductCandidate {
+	candidates = agent.NormalizeCandidates(candidates)
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return score(candidates[i], budget) > score(candidates[j], budget)
+	})
+	return candidates
 }
 
 // score 根据性价比、销量、库存与预算匹配度计算候选商品得分。

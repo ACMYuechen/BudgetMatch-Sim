@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"budgetmatch-sim/services/rpc/mall/indexcontract"
 	"budgetmatch-sim/services/rpc/mall/pb"
@@ -74,6 +75,7 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	snapshotAt := time.Now().UnixMilli() // conservative scan start, not index publish time
 	stream, err := l.client.ScanProductIndex(ctx, &pb.ScanProductIndexReq{PageSize: l.pageSize},
 		grpc.MaxCallRecvMsgSize(indexcontract.MaxPageBytes))
 	if err != nil {
@@ -134,10 +136,14 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 				return nil, fmt.Errorf("rag: invalid or non-progressing product index entry")
 			}
 			last = entry.SkuId
-			docs = append(docs, buildSkuDocument(
+			doc := buildSkuDocument(
 				&pb.Product{Id: entry.ProductId, Name: entry.ProductName, Content: entry.ProductContent, Providor: entry.Provider},
 				&pb.Sku{Id: entry.SkuId, Name: entry.SkuName, Specs: entry.Specs, Price: entry.Price, Stock: entry.Stock, Sold: entry.Sold},
-			))
+			)
+			meta, _ := CandidateFromDocument(doc)
+			meta.SnapshotAtUnixMs = snapshotAt
+			doc.MetaData[metaCandidate] = meta
+			docs = append(docs, doc)
 		}
 		if resp.LastSkuId != last {
 			return nil, fmt.Errorf("rag: inconsistent product snapshot cursor")

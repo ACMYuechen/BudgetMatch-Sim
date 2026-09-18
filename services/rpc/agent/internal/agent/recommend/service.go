@@ -38,10 +38,19 @@ const (
 // 成功返回前都原子保存原始请求、结构化状态与完整结果。Agent 实现只读不写；
 // 本地锁与存储层锁共同串行化同一用户同一会话，turn_id 用于安全重试。
 type Service struct {
-	primary  agentcore.Agent
-	fallback agentcore.Agent
-	memory   memory.Manager
-	locks    *conversationLocker
+	primary   agentcore.Agent
+	fallback  agentcore.Agent
+	memory    memory.Manager
+	locks     *conversationLocker
+	finalizer ResultFinalizer
+}
+
+// WithFinalizer configures the return/persistence policy during construction.
+// Production always installs strict Mall or explicit demo policy. Offline engine
+// benchmarks can omit it to retain their fixed-snapshot evaluation protocol.
+func (s *Service) WithFinalizer(finalizer ResultFinalizer) *Service {
+	s.finalizer = finalizer
+	return s
 }
 
 // NewService 创建推荐编排服务。fallback 必填，primary 与 mem 可为 nil（nil 记忆表示无多轮能力）。
@@ -199,8 +208,33 @@ func sameTurnRequest(saved memory.Turn, input agentcore.Input) bool {
 		saved.MaxItems == input.MaxItems
 }
 
-// run 按 primary 优先、失败降级的顺序执行推荐。
+// run 在编排结束后只校验一次；校验失败不能触发 fallback 绕过严格策略。
 func (s *Service) run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	result, err := s.runCandidate(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if s.finalizer != nil {
+		if err := s.finalizer.Finalize(ctx, result); err != nil {
+			return nil, safety.Protect(err)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	limits, err := agentcore.NewConstraints(result.Intent)
+	if err != nil {
+		return nil, err
+	}
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
+	return result, nil
+}
+
+// runCandidate 按 primary 优先、失败降级的顺序生成待核验组合。
+func (s *Service) runCandidate(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

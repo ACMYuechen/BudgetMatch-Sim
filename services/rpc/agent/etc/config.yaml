@@ -53,7 +53,7 @@ RAG:
   SyncPageSize: 100         # Mall 快照分页，最多 200；全流另限 30 秒/5 万 SKU/32 MiB
   SyncTimeoutSeconds: 300   # 一轮扫描、嵌入和事务发布的共同期限；上限 3600 秒
   SyncStopTimeoutSeconds: 5 # 关闭时取消当前轮并等待；上限 30 秒
-  VerifySku: false          # true 时检索结果逐条经 mall GetSku 实时校验
+  # VerifySku 已废弃：配置 MallRpc 后，返回/持久化前始终严格校验最终候选，不能关闭。
 
 # 独立于 JWT_SECRET / PAYMENT_MALL_SERVICE_SECRET；启用 RAG 时必填，至少 32 字节。
 IndexAuth:
