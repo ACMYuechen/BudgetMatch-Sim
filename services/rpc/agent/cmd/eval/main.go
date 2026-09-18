@@ -1,4 +1,4 @@
-// Command eval 运行规则基线或脚本模型容错评测；不读取 .env 或服务配置，不构建外部客户端。
+// Command eval 运行规则基线、脚本模型容错或检索排序回放；不读取 .env 或服务配置，不构建外部客户端。
 package main
 
 import (
@@ -28,7 +28,8 @@ func main() {
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("agent-eval", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	suite := flags.String("suite", "rule", "rule or scripted (offline Fake Model + real ReAct)")
+	suite := flags.String("suite", "rule", "rule, scripted (Fake Model + real ReAct), or retrieval (offline rank replay)")
+	retrievalFixture := flags.String("retrieval-fixture", "services/rpc/agent/testdata/eval/retrieval.v1.json", "retrieval suite only: versioned synthetic rankings and protocol bounds")
 	compare := flags.String("compare", "", "optional prior rule report.json; requires identical inputs and protocol")
 	snapshot := flags.String("snapshot", "services/rpc/agent/testdata/eval/products.v1.json", "fixed synthetic product snapshot")
 	cases := flags.String("cases", "services/rpc/agent/testdata/eval/cases.v1.jsonl", "fixed JSONL case set")
@@ -43,8 +44,49 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 2
 	}
-	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") || (*suite != "rule" && *suite != "scripted") {
+	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") || (*suite != "rule" && *suite != "scripted" && *suite != "retrieval") {
 		fmt.Fprintln(stderr, "invalid arguments or output format")
+		return 2
+	}
+	if *suite == "retrieval" {
+		invalid := false
+		flags.Visit(func(f *flag.Flag) {
+			switch f.Name {
+			case "suite", "retrieval-fixture", "revision", "format", "out":
+			default:
+				invalid = true
+			}
+		})
+		if invalid {
+			fmt.Fprintln(stderr, "retrieval suite uses fixture-bound parameters; rule flags are not accepted")
+			return 2
+		}
+		f, err := os.Open(*retrievalFixture)
+		if err != nil {
+			fmt.Fprintln(stderr, "cannot open retrieval fixture")
+			return 2
+		}
+		defer f.Close()
+		dataset, err := eval.LoadRetrieval(f)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		report, err := eval.RunRetrieval(ctx, dataset, *revision)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return emit(report, eval.RetrievalMarkdown(report), report.GatePassed, *format, *out, stdout, stderr)
+	}
+	invalidFixtureFlag := false
+	flags.Visit(func(f *flag.Flag) {
+		if f.Name == "retrieval-fixture" {
+			invalidFixtureFlag = true
+		}
+	})
+	if invalidFixtureFlag {
+		fmt.Fprintln(stderr, "retrieval-fixture requires retrieval suite")
 		return 2
 	}
 	if *suite == "scripted" {
