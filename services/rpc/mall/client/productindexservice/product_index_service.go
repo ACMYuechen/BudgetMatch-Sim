@@ -17,9 +17,13 @@ type (
 	ListProductIndexReq  = pb.ListProductIndexReq
 	ListProductIndexResp = pb.ListProductIndexResp
 	ProductIndexEntry    = pb.ProductIndexEntry
+	ScanProductIndexReq  = pb.ScanProductIndexReq
+	ScanProductIndexResp = pb.ScanProductIndexResp
 
 	ProductIndexService interface {
 		ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error)
+		// One bounded, read-only database snapshot. No resume/fallback to live pages.
+		ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (pb.ProductIndexService_ScanProductIndexClient, error)
 	}
 
 	defaultProductIndexService struct {
@@ -36,4 +40,10 @@ func NewProductIndexService(cli zrpc.Client) ProductIndexService {
 func (m *defaultProductIndexService) ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error) {
 	client := pb.NewProductIndexServiceClient(m.cli.Conn())
 	return client.ListProductIndex(ctx, in, opts...)
+}
+
+// One bounded, read-only database snapshot. No resume/fallback to live pages.
+func (m *defaultProductIndexService) ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (pb.ProductIndexService_ScanProductIndexClient, error) {
+	client := pb.NewProductIndexServiceClient(m.cli.Conn())
+	return client.ScanProductIndex(ctx, in, opts...)
 }

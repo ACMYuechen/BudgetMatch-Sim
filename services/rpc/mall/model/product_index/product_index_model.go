@@ -5,14 +5,17 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
+
+	"budgetmatch-sim/services/rpc/mall/indexcontract"
 
 	"gorm.io/gorm"
 )
 
 const (
-	DefaultPageSize = 100
-	MaxPageSize     = 200
+	DefaultPageSize = indexcontract.DefaultPageSize
+	MaxPageSize     = indexcontract.MaxPageSize
 	MaxCursorBytes  = 128
 )
 
@@ -35,7 +38,10 @@ type Reader interface {
 	ListPage(ctx context.Context, cursor string, limit int) ([]Entry, error)
 }
 
-type Model struct{ conn *gorm.DB }
+type Model struct {
+	conn       *gorm.DB
+	snapshotMu sync.Mutex
+}
 
 func NewModel(conn *gorm.DB) *Model { return &Model{conn: conn} }
 
@@ -65,6 +71,7 @@ func pageQuery(db *gorm.DB, cursor string, limit int) *gorm.DB {
 		query = query.Where(`s.id COLLATE "C" > ?`, cursor)
 	}
 	// C collation matches the byte ordering used by the Agent's cursor checks.
-	// Each page is a live read, not a cross-page transactional snapshot (M3.2).
+	// Independent ListPage calls are live reads. ScanSnapshot binds all calls to
+	// one read-only REPEATABLE READ transaction.
 	return query.Order(`s.id COLLATE "C" ASC`).Limit(limit)
 }

@@ -397,4 +397,19 @@ service OrderService {
 // 只接受 Agent 索引服务身份；用户商品接口的鉴权策略保持不变。
 service ProductIndexService {
   rpc ListProductIndex(ListProductIndexReq) returns (ListProductIndexResp) {}
+  // One bounded, read-only database snapshot. No resume/fallback to live pages.
+  rpc ScanProductIndex(ScanProductIndexReq) returns (stream ScanProductIndexResp) {}
+}
+
+message ScanProductIndexReq {
+  int32 page_size = 1; // 0 = 100; otherwise 1..200
+}
+
+message ScanProductIndexResp {
+  repeated ProductIndexEntry list = 1;
+  string last_sku_id = 2; // data frame only; not a resumable cursor
+  bool complete = 3; // empty terminal frame, sent only after the read transaction commits
+  string snapshot_id = 4; // opaque per-stream identity, not a PostgreSQL exported snapshot
+  uint32 sequence = 5; // starts at 1; includes the terminal frame
+  uint64 total_items = 6; // terminal frame only; client must also require clean EOF
 }

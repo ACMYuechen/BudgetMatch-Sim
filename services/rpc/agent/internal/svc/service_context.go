@@ -132,7 +132,8 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	}
 	// Background indexing and online user search must never share auth interceptors.
 	indexClient := productindexservice.NewProductIndexService(zrpc.MustNewClient(c.MallRpc,
-		zrpc.WithUnaryClientInterceptor(rag.IndexAuthInterceptor(c.IndexAuth.Secret))))
+		zrpc.WithUnaryClientInterceptor(rag.IndexAuthInterceptor(c.IndexAuth.Secret)),
+		zrpc.WithStreamClientInterceptor(rag.IndexStreamAuthInterceptor(c.IndexAuth.Secret))))
 	loader := rag.NewMallProductLoader(indexClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
 		vectorModel, store.Fingerprint())

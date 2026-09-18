@@ -3,15 +3,19 @@ package rag
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
+	"budgetmatch-sim/services/rpc/mall/indexcontract"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/components"
 	"github.com/cloudwego/eino/components/document"
 	"github.com/cloudwego/eino/schema"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -19,20 +23,20 @@ const (
 	SourceMallProducts = "mall://products"
 
 	// 与 Mall 索引 RPC 的单页上限保持一致。
-	maxIndexPageSize = 200
+	maxIndexPageSize = indexcontract.MaxPageSize
 	// detailLimit 限制进入 embedding 文本的商品简介长度。
 	detailLimit = 500
 )
 
 // mallCatalog 只暴露后台专用只读索引，不借用用户商品 API。
 type mallCatalog interface {
-	ListProductIndex(ctx context.Context, in *pb.ListProductIndexReq, opts ...grpc.CallOption) (*pb.ListProductIndexResp, error)
+	ScanProductIndex(ctx context.Context, in *pb.ScanProductIndexReq, opts ...grpc.CallOption) (pb.ProductIndexService_ScanProductIndexClient, error)
 }
 
 // MallProductLoader 实现 eino document.Loader：分页拉取 mall 全量上架商品与 SKU，
 // 每个上架 SKU 产出一个 Document（Content 为语义文本，业务快照进 MetaData）。
-// 只接受严格前进的游标与显式末页标志；失败返回 nil 而非部分文档。
-// 全量扫描不设页数截断，受同步轮次 context 期限约束；跨页快照一致性仍待完善。
+// 各页来自同一个只读数据库快照；只接受连续帧、完成标志和正常 EOF。
+// 超时/超限/失败返回 nil 而非部分文档，也不回退到旧版非快照分页 RPC。
 type MallProductLoader struct {
 	client   mallCatalog
 	pageSize int32
@@ -65,26 +69,68 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 	if l.client == nil {
 		return nil, fmt.Errorf("rag: product index client is required")
 	}
-	cursor := ""
+	ctx, cancel := context.WithTimeout(ctx, indexcontract.MaxDuration)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	stream, err := l.client.ScanProductIndex(ctx, &pb.ScanProductIndexReq{PageSize: l.pageSize},
+		grpc.MaxCallRecvMsgSize(indexcontract.MaxPageBytes))
+	if err != nil {
+		return nil, fmt.Errorf("rag: open product snapshot: %w", err)
+	}
+	if stream == nil {
+		return nil, fmt.Errorf("rag: missing product snapshot stream")
+	}
+	var budget indexcontract.Budget
+	cursor, snapshotID := "", ""
+	sequence := uint32(0)
+	complete, shortPage := false, false
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		resp, err := l.client.ListProductIndex(ctx, &pb.ListProductIndexReq{
-			Cursor: cursor, PageSize: l.pageSize,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("rag: read product index: %w", err)
-		}
+		resp, recvErr := stream.Recv()
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		if resp == nil || len(resp.List) > int(l.pageSize) {
-			return nil, fmt.Errorf("rag: invalid product index page")
+		if recvErr == io.EOF {
+			if !complete {
+				return nil, fmt.Errorf("rag: product snapshot ended without completion")
+			}
+			break
 		}
+		if recvErr != nil {
+			return nil, fmt.Errorf("rag: read product snapshot: %w", recvErr)
+		}
+		if resp == nil || complete || resp.Sequence != sequence+1 || len(resp.List) > int(l.pageSize) ||
+			!budget.Add(len(resp.List), proto.Size(resp)) {
+			return nil, fmt.Errorf("rag: invalid or oversized product snapshot frame")
+		}
+		if snapshotID == "" {
+			if len(resp.SnapshotId) != 36 || uuid.Validate(resp.SnapshotId) != nil {
+				return nil, fmt.Errorf("rag: invalid product snapshot identity")
+			}
+			snapshotID = resp.SnapshotId
+		}
+		if resp.SnapshotId != snapshotID {
+			return nil, fmt.Errorf("rag: product snapshot identity changed")
+		}
+		sequence = resp.Sequence
+		if resp.Complete {
+			if len(resp.List) != 0 || resp.LastSkuId != "" || resp.TotalItems != uint64(len(docs)) {
+				return nil, fmt.Errorf("rag: invalid product snapshot completion")
+			}
+			complete = true
+			continue // A terminal marker alone must never authorize pruning.
+		}
+		if len(resp.List) == 0 || resp.TotalItems != 0 || shortPage {
+			return nil, fmt.Errorf("rag: invalid product snapshot data page")
+		}
+		shortPage = len(resp.List) < int(l.pageSize)
 		last := cursor
 		for _, entry := range resp.List {
-			if entry == nil || entry.SkuId == "" || strings.TrimSpace(entry.ProductId) == "" || entry.SkuId <= last {
+			if entry == nil || !validIndexID(entry.SkuId) || !validIndexID(entry.ProductId) || entry.SkuId <= last {
 				return nil, fmt.Errorf("rag: invalid or non-progressing product index entry")
 			}
 			last = entry.SkuId
@@ -93,16 +139,10 @@ func (l *MallProductLoader) Load(ctx context.Context, src document.Source, opts 
 				&pb.Sku{Id: entry.SkuId, Name: entry.SkuName, Specs: entry.Specs, Price: entry.Price, Stock: entry.Stock, Sold: entry.Sold},
 			))
 		}
-		if resp.Complete {
-			if resp.NextCursor != "" {
-				return nil, fmt.Errorf("rag: terminal product index page has a cursor")
-			}
-			break
+		if resp.LastSkuId != last {
+			return nil, fmt.Errorf("rag: inconsistent product snapshot cursor")
 		}
-		if len(resp.List) != int(l.pageSize) || resp.NextCursor != last || last <= cursor {
-			return nil, fmt.Errorf("rag: incomplete or non-progressing product index page")
-		}
-		cursor = resp.NextCursor
+		cursor = last
 	}
 
 	callbacks.OnEnd(ctx, &document.LoaderCallbackOutput{Source: src, Docs: docs})

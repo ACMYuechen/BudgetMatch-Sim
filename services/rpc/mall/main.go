@@ -52,6 +52,7 @@ func main() {
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
 		interceptor.UnaryServerInterceptor(c.RPCAuthConfig()))
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(c.RPCAuthConfig()))
 
 	sg.Add(s)
 	sg.Add(outbox.NewMetricsCollector(ctx.OrderOutboxStore, 15*time.Second))

@@ -5,6 +5,7 @@ import (
 	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	"strings"
+	"time"
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
@@ -32,6 +33,9 @@ type ServiceMethodPolicy struct {
 	// SecretName 非空时只取 ServiceSecrets 中的指定密钥；缺失时拒绝，绝不回退。
 	SecretName string
 	Purpose    string
+	// MaxStreamDuration > 0 requires a caller-supplied transport deadline before
+	// the streaming handler can receive any request. Unary policies ignore it.
+	MaxStreamDuration time.Duration
 }
 
 // AuthConfig 配置认证拦截器的行为。

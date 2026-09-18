@@ -27,3 +27,9 @@ func (s *ProductIndexServiceServer) ListProductIndex(ctx context.Context, in *pb
 	l := productindexservicelogic.NewListProductIndexLogic(ctx, s.svcCtx)
 	return l.ListProductIndex(in)
 }
+
+// One bounded, read-only database snapshot. No resume/fallback to live pages.
+func (s *ProductIndexServiceServer) ScanProductIndex(in *pb.ScanProductIndexReq, stream pb.ProductIndexService_ScanProductIndexServer) error {
+	l := productindexservicelogic.NewScanProductIndexLogic(stream.Context(), s.svcCtx)
+	return l.ScanProductIndex(in, stream)
+}

@@ -3,6 +3,7 @@ package config
 import (
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/infra/serviceauth"
+	"budgetmatch-sim/services/rpc/mall/indexcontract"
 )
 
 const indexSecretName = "agent-product-index"
@@ -28,6 +29,11 @@ func (c Config) RPCAuthConfig() interceptor.AuthConfig {
 			"/mall.ProductIndexService/ListProductIndex": {
 				Caller: serviceauth.ServiceAgent, Audience: serviceauth.ServiceMall,
 				SecretName: indexSecretName, Purpose: serviceauth.PurposeProductIndexRead,
+			},
+			"/mall.ProductIndexService/ScanProductIndex": {
+				Caller: serviceauth.ServiceAgent, Audience: serviceauth.ServiceMall,
+				SecretName: indexSecretName, Purpose: serviceauth.PurposeProductIndexRead,
+				MaxStreamDuration: indexcontract.MaxDuration,
 			},
 		},
 		AdminMethods: map[string]struct{}{

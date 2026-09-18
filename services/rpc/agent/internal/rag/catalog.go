@@ -11,8 +11,8 @@ import (
 )
 
 // CatalogScan carries explicit scan completion; a zero-value/partial result must
-// never authorize pruning. Complete means the Mall end marker was observed, not
-// that the independently read pages form a point-in-time database snapshot.
+// never authorize pruning. The Mall loader sets Complete only after a consistent
+// snapshot's commit marker AND clean stream EOF have both been observed.
 type CatalogScan struct {
 	Documents []*schema.Document
 	Complete  bool

@@ -832,6 +832,8 @@ var _OrderService_serviceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProductIndexServiceClient interface {
 	ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error)
+	// One bounded, read-only database snapshot. No resume/fallback to live pages.
+	ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (ProductIndexService_ScanProductIndexClient, error)
 }
 
 type productIndexServiceClient struct {
@@ -851,11 +853,45 @@ func (c *productIndexServiceClient) ListProductIndex(ctx context.Context, in *Li
 	return out, nil
 }
 
+func (c *productIndexServiceClient) ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (ProductIndexService_ScanProductIndexClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ProductIndexService_serviceDesc.Streams[0], "/mall.ProductIndexService/ScanProductIndex", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &productIndexServiceScanProductIndexClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ProductIndexService_ScanProductIndexClient interface {
+	Recv() (*ScanProductIndexResp, error)
+	grpc.ClientStream
+}
+
+type productIndexServiceScanProductIndexClient struct {
+	grpc.ClientStream
+}
+
+func (x *productIndexServiceScanProductIndexClient) Recv() (*ScanProductIndexResp, error) {
+	m := new(ScanProductIndexResp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ProductIndexServiceServer is the server API for ProductIndexService service.
 // All implementations must embed UnimplementedProductIndexServiceServer
 // for forward compatibility
 type ProductIndexServiceServer interface {
 	ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error)
+	// One bounded, read-only database snapshot. No resume/fallback to live pages.
+	ScanProductIndex(*ScanProductIndexReq, ProductIndexService_ScanProductIndexServer) error
 	mustEmbedUnimplementedProductIndexServiceServer()
 }
 
@@ -865,6 +901,9 @@ type UnimplementedProductIndexServiceServer struct {
 
 func (UnimplementedProductIndexServiceServer) ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListProductIndex not implemented")
+}
+func (UnimplementedProductIndexServiceServer) ScanProductIndex(*ScanProductIndexReq, ProductIndexService_ScanProductIndexServer) error {
+	return status.Errorf(codes.Unimplemented, "method ScanProductIndex not implemented")
 }
 func (UnimplementedProductIndexServiceServer) mustEmbedUnimplementedProductIndexServiceServer() {}
 
@@ -897,6 +936,27 @@ func _ProductIndexService_ListProductIndex_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductIndexService_ScanProductIndex_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScanProductIndexReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ProductIndexServiceServer).ScanProductIndex(m, &productIndexServiceScanProductIndexServer{stream})
+}
+
+type ProductIndexService_ScanProductIndexServer interface {
+	Send(*ScanProductIndexResp) error
+	grpc.ServerStream
+}
+
+type productIndexServiceScanProductIndexServer struct {
+	grpc.ServerStream
+}
+
+func (x *productIndexServiceScanProductIndexServer) Send(m *ScanProductIndexResp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _ProductIndexService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.ProductIndexService",
 	HandlerType: (*ProductIndexServiceServer)(nil),
@@ -906,6 +966,12 @@ var _ProductIndexService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _ProductIndexService_ListProductIndex_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ScanProductIndex",
+			Handler:       _ProductIndexService_ScanProductIndex_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "services/rpc/mall/proto/mall.proto",
 }
