@@ -1,0 +1,4865 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "dataset_version": "demand-v1",
+    "dataset_sha256": "b98efd9240db2af33b6b8dffe2604913a0d1e5e0b4c4fed10bbd3db143843ac5",
+    "protocol": "same-snapshot-demand-replay-v1",
+    "protocol_sha256": "6a8c9e81441a199210c40103465bb1ec622adfd88caf3c12a92f2a3745307f12",
+    "code_revision": "fa98f6f+M4.3a-worktree",
+    "provenance": "synthetic_demand_snapshots",
+    "annotation_status": "pending_human_review",
+    "go_version": "go1.26.8",
+    "os": "linux",
+    "arch": "amd64",
+    "gomaxprocs": 2,
+    "concurrency": 1
+  },
+  "selection": [
+    {
+      "strategy": {
+        "id": "legacy_greedy",
+        "max_candidates": 0,
+        "beam_width": 0,
+        "max_expansions": 0,
+        "time_budget_ms": 0
+      },
+      "summary": {
+        "cases": 17,
+        "satisfiable_success": {
+          "numerator": 8,
+          "denominator": 11,
+          "value": 0.7272727272727273
+        },
+        "nonempty_hard_violation_rate": {
+          "numerator": 8,
+          "denominator": 16,
+          "value": 0.5
+        },
+        "required_coverage_micro": {
+          "numerator": 14,
+          "denominator": 21,
+          "value": 0.6666666666666666
+        },
+        "optional_coverage_micro": {
+          "numerator": 2,
+          "denominator": 3,
+          "value": 0.6666666666666666
+        },
+        "feasible_oracle_optimum_match": {
+          "numerator": 7,
+          "denominator": 11,
+          "value": 0.6363636363636364
+        },
+        "feasible_misses": 3,
+        "limited_feasible_misses": 0,
+        "search_limited_cases": 0,
+        "input_snapshots": 37,
+        "search_expansions": null,
+        "replay_p50_ms": 0.0013,
+        "replay_p95_ms": 0.013585
+      },
+      "cases": [
+        {
+          "id": "greedy-trap",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "missing_required"
+          ],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "invalid_bundle",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.00973
+        },
+        {
+          "id": "narrow-pruning-trap",
+          "selected_ids": [
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "b-cheap-key",
+              "c-required-mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "a-ranked-key",
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.013585
+        },
+        {
+          "id": "simple-pair",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.00132
+        },
+        {
+          "id": "excluded-category",
+          "selected_ids": [
+            "cheap-key",
+            "headphones",
+            "mouse"
+          ],
+          "total_price_cents": 85,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 1,
+          "task_success": false,
+          "violations": [
+            "excluded_category"
+          ],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 1,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "invalid_bundle",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "headphones",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002445
+        },
+        {
+          "id": "unknown-cannot-prove-exclusion",
+          "selected_ids": [
+            "cheap-key",
+            "unknown"
+          ],
+          "total_price_cents": 41,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "unknown_with_exclusions"
+          ],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "invalid_bundle",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002932
+        },
+        {
+          "id": "missing-category",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "missing_required"
+          ],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.001137
+        },
+        {
+          "id": "budget-infeasible",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "missing_required"
+          ],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.000749
+        },
+        {
+          "id": "empty-snapshot",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 0,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.000265
+        },
+        {
+          "id": "unknown-broad-demand",
+          "selected_ids": [
+            "unknown"
+          ],
+          "total_price_cents": 1,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "unknown"
+            ],
+            "enumerated_subsets": 1,
+            "optional_covered": 0,
+            "price_cents": 1
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.000747
+        },
+        {
+          "id": "invalid-facts-filtered",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "out-of-stock",
+            "zero-price"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.001166
+        },
+        {
+          "id": "optional-coverage",
+          "selected_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 2,
+          "optional_total": 2,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "light",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 2,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002256
+        },
+        {
+          "id": "prerecorded-rank",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "premium-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.001041
+        },
+        {
+          "id": "explicit-value",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.001687
+        },
+        {
+          "id": "recheck-alternatives",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "alt-key",
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005505
+        },
+        {
+          "id": "pair-over-budget",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "missing_required"
+          ],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.000909
+        },
+        {
+          "id": "filtered-before-recheck",
+          "selected_ids": [
+            "mouse"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "missing_required"
+          ],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "expensive-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.000848
+        },
+        {
+          "id": "all-excluded",
+          "selected_ids": [
+            "headphones",
+            "unknown"
+          ],
+          "total_price_cents": 6,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [
+            "unknown_with_exclusions",
+            "excluded_category"
+          ],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": null,
+          "window_ids": [
+            "headphones",
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.0013
+        }
+      ]
+    },
+    {
+      "strategy": {
+        "id": "beam_default",
+        "max_candidates": 32,
+        "beam_width": 32,
+        "max_expansions": 8192,
+        "time_budget_ms": 100
+      },
+      "summary": {
+        "cases": 17,
+        "satisfiable_success": {
+          "numerator": 11,
+          "denominator": 11,
+          "value": 1
+        },
+        "nonempty_hard_violation_rate": {
+          "numerator": 0,
+          "denominator": 11,
+          "value": 0
+        },
+        "required_coverage_micro": {
+          "numerator": 14,
+          "denominator": 21,
+          "value": 0.6666666666666666
+        },
+        "optional_coverage_micro": {
+          "numerator": 3,
+          "denominator": 3,
+          "value": 1
+        },
+        "feasible_oracle_optimum_match": {
+          "numerator": 11,
+          "denominator": 11,
+          "value": 1
+        },
+        "feasible_misses": 0,
+        "limited_feasible_misses": 0,
+        "search_limited_cases": 0,
+        "input_snapshots": 37,
+        "search_expansions": 44,
+        "replay_p50_ms": 0.003856,
+        "replay_p95_ms": 0.164588
+      },
+      "cases": [
+        {
+          "id": "greedy-trap",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 6,
+            "feasible_evaluated": 1,
+            "peak_frontier": 2,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.012852
+        },
+        {
+          "id": "narrow-pruning-trap",
+          "selected_ids": [
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "b-cheap-key",
+              "c-required-mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 6,
+            "feasible_evaluated": 1,
+            "peak_frontier": 2,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "a-ranked-key",
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.009168
+        },
+        {
+          "id": "simple-pair",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.013709
+        },
+        {
+          "id": "excluded-category",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 1,
+          "optional_total": 1,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 1,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {
+              "excluded_category": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.007223
+        },
+        {
+          "id": "unknown-cannot-prove-exclusion",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.007989
+        },
+        {
+          "id": "missing-category",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002061
+        },
+        {
+          "id": "budget-infeasible",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003382
+        },
+        {
+          "id": "empty-snapshot",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 0,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 0,
+            "unique_candidates": 0,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.000729
+        },
+        {
+          "id": "unknown-broad-demand",
+          "selected_ids": [
+            "unknown"
+          ],
+          "total_price_cents": 1,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "unknown"
+            ],
+            "enumerated_subsets": 1,
+            "optional_covered": 0,
+            "price_cents": 1
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 1,
+            "unique_candidates": 1,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002848
+        },
+        {
+          "id": "invalid-facts-filtered",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "invalid_facts": 2
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005074
+        },
+        {
+          "id": "optional-coverage",
+          "selected_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 2,
+          "optional_total": 2,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "light",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 2,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 7,
+            "feasible_evaluated": 4,
+            "peak_frontier": 2,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.164588
+        },
+        {
+          "id": "prerecorded-rank",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "premium-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 2,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003856
+        },
+        {
+          "id": "explicit-value",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 2,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003558
+        },
+        {
+          "id": "recheck-alternatives",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 6,
+            "feasible_evaluated": 2,
+            "peak_frontier": 2,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "alt-key",
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.006177
+        },
+        {
+          "id": "pair-over-budget",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003578
+        },
+        {
+          "id": "filtered-before-recheck",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "over_budget": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002513
+        },
+        {
+          "id": "all-excluded",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {
+              "excluded_category": 1,
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.002161
+        }
+      ]
+    },
+    {
+      "strategy": {
+        "id": "beam_width_1",
+        "max_candidates": 32,
+        "beam_width": 1,
+        "max_expansions": 8192,
+        "time_budget_ms": 100
+      },
+      "summary": {
+        "cases": 17,
+        "satisfiable_success": {
+          "numerator": 10,
+          "denominator": 11,
+          "value": 0.9090909090909091
+        },
+        "nonempty_hard_violation_rate": {
+          "numerator": 0,
+          "denominator": 10,
+          "value": 0
+        },
+        "required_coverage_micro": {
+          "numerator": 12,
+          "denominator": 21,
+          "value": 0.5714285714285714
+        },
+        "optional_coverage_micro": {
+          "numerator": 3,
+          "denominator": 3,
+          "value": 1
+        },
+        "feasible_oracle_optimum_match": {
+          "numerator": 10,
+          "denominator": 11,
+          "value": 0.9090909090909091
+        },
+        "feasible_misses": 1,
+        "limited_feasible_misses": 1,
+        "search_limited_cases": 4,
+        "input_snapshots": 37,
+        "search_expansions": 39,
+        "replay_p50_ms": 0.013919,
+        "replay_p95_ms": 0.228874
+      },
+      "cases": [
+        {
+          "id": "greedy-trap",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 5,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 1,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.228874
+        },
+        {
+          "id": "narrow-pruning-trap",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "b-cheap-key",
+              "c-required-mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "beam_pruning",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 5,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 1,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "a-ranked-key",
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.033414
+        },
+        {
+          "id": "simple-pair",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.011727
+        },
+        {
+          "id": "excluded-category",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 1,
+          "optional_total": 1,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 1,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {
+              "excluded_category": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.02193
+        },
+        {
+          "id": "unknown-cannot-prove-exclusion",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.014939
+        },
+        {
+          "id": "missing-category",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.013919
+        },
+        {
+          "id": "budget-infeasible",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.097155
+        },
+        {
+          "id": "empty-snapshot",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 0,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 0,
+            "unique_candidates": 0,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.003976
+        },
+        {
+          "id": "unknown-broad-demand",
+          "selected_ids": [
+            "unknown"
+          ],
+          "total_price_cents": 1,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "unknown"
+            ],
+            "enumerated_subsets": 1,
+            "optional_covered": 0,
+            "price_cents": 1
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 1,
+            "unique_candidates": 1,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.014133
+        },
+        {
+          "id": "invalid-facts-filtered",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "invalid_facts": 2
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.037846
+        },
+        {
+          "id": "optional-coverage",
+          "selected_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 2,
+          "optional_total": 2,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "light",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 2,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 6,
+            "feasible_evaluated": 4,
+            "peak_frontier": 1,
+            "beam_pruned": 1,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.029788
+        },
+        {
+          "id": "prerecorded-rank",
+          "selected_ids": [
+            "premium-key"
+          ],
+          "total_price_cents": 90,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "premium-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 2,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.009869
+        },
+        {
+          "id": "explicit-value",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 2,
+            "feasible_evaluated": 2,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005117
+        },
+        {
+          "id": "recheck-alternatives",
+          "selected_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "total_price_cents": 80,
+          "required_met": 2,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 4,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 1,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "alt-key",
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.008776
+        },
+        {
+          "id": "pair-over-budget",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 3,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003738
+        },
+        {
+          "id": "filtered-before-recheck",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "over_budget": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002693
+        },
+        {
+          "id": "all-excluded",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {
+              "excluded_category": 1,
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.004017
+        }
+      ]
+    },
+    {
+      "strategy": {
+        "id": "beam_window_1",
+        "max_candidates": 1,
+        "beam_width": 32,
+        "max_expansions": 8192,
+        "time_budget_ms": 100
+      },
+      "summary": {
+        "cases": 17,
+        "satisfiable_success": {
+          "numerator": 7,
+          "denominator": 11,
+          "value": 0.6363636363636364
+        },
+        "nonempty_hard_violation_rate": {
+          "numerator": 0,
+          "denominator": 7,
+          "value": 0
+        },
+        "required_coverage_micro": {
+          "numerator": 6,
+          "denominator": 21,
+          "value": 0.2857142857142857
+        },
+        "optional_coverage_micro": {
+          "numerator": 0,
+          "denominator": 3,
+          "value": 0
+        },
+        "feasible_oracle_optimum_match": {
+          "numerator": 4,
+          "denominator": 11,
+          "value": 0.36363636363636365
+        },
+        "feasible_misses": 4,
+        "limited_feasible_misses": 4,
+        "search_limited_cases": 11,
+        "input_snapshots": 37,
+        "search_expansions": 7,
+        "replay_p50_ms": 0.005149,
+        "replay_p95_ms": 0.033482
+      },
+      "cases": [
+        {
+          "id": "greedy-trap",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "candidate_window",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005149
+        },
+        {
+          "id": "narrow-pruning-trap",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "b-cheap-key",
+              "c-required-mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "candidate_window",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "b-cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004462
+        },
+        {
+          "id": "simple-pair",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "candidate_window",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003084
+        },
+        {
+          "id": "excluded-category",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 1,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 1,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {
+              "excluded_category": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.008758
+        },
+        {
+          "id": "unknown-cannot-prove-exclusion",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.006986
+        },
+        {
+          "id": "missing-category",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005711
+        },
+        {
+          "id": "budget-infeasible",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.014643
+        },
+        {
+          "id": "empty-snapshot",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 0,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 0,
+            "unique_candidates": 0,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.002276
+        },
+        {
+          "id": "unknown-broad-demand",
+          "selected_ids": [
+            "unknown"
+          ],
+          "total_price_cents": 1,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "unknown"
+            ],
+            "enumerated_subsets": 1,
+            "optional_covered": 0,
+            "price_cents": 1
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 1,
+            "unique_candidates": 1,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.009496
+        },
+        {
+          "id": "invalid-facts-filtered",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "invalid_facts": 2
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.033482
+        },
+        {
+          "id": "optional-coverage",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 2,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "light",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 2,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.007775
+        },
+        {
+          "id": "prerecorded-rank",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "premium-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004585
+        },
+        {
+          "id": "explicit-value",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003762
+        },
+        {
+          "id": "recheck-alternatives",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "candidate_window",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005512
+        },
+        {
+          "id": "pair-over-budget",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": true,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": true
+          },
+          "window_ids": [
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002454
+        },
+        {
+          "id": "filtered-before-recheck",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "over_budget": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002013
+        },
+        {
+          "id": "all-excluded",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {
+              "excluded_category": 1,
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.003653
+        }
+      ]
+    },
+    {
+      "strategy": {
+        "id": "beam_expansions_1",
+        "max_candidates": 32,
+        "beam_width": 32,
+        "max_expansions": 1,
+        "time_budget_ms": 100
+      },
+      "summary": {
+        "cases": 17,
+        "satisfiable_success": {
+          "numerator": 7,
+          "denominator": 11,
+          "value": 0.6363636363636364
+        },
+        "nonempty_hard_violation_rate": {
+          "numerator": 0,
+          "denominator": 7,
+          "value": 0
+        },
+        "required_coverage_micro": {
+          "numerator": 6,
+          "denominator": 21,
+          "value": 0.2857142857142857
+        },
+        "optional_coverage_micro": {
+          "numerator": 0,
+          "denominator": 3,
+          "value": 0
+        },
+        "feasible_oracle_optimum_match": {
+          "numerator": 4,
+          "denominator": 11,
+          "value": 0.36363636363636365
+        },
+        "feasible_misses": 4,
+        "limited_feasible_misses": 4,
+        "search_limited_cases": 10,
+        "input_snapshots": 37,
+        "search_expansions": 13,
+        "replay_p50_ms": 0.004154,
+        "replay_p95_ms": 0.01026
+      },
+      "cases": [
+        {
+          "id": "greedy-trap",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "expansion_limit",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.006468
+        },
+        {
+          "id": "narrow-pruning-trap",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "b-cheap-key",
+              "c-required-mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "expansion_limit",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "a-ranked-key",
+            "b-cheap-key",
+            "c-required-mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004337
+        },
+        {
+          "id": "simple-pair",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "expansion_limit",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002051
+        },
+        {
+          "id": "excluded-category",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 1,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 1,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {
+              "excluded_category": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004154
+        },
+        {
+          "id": "unknown-cannot-prove-exclusion",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003353
+        },
+        {
+          "id": "missing-category",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.008051
+        },
+        {
+          "id": "budget-infeasible",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.008893
+        },
+        {
+          "id": "empty-snapshot",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 0,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 0,
+            "unique_candidates": 0,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.000578
+        },
+        {
+          "id": "unknown-broad-demand",
+          "selected_ids": [
+            "unknown"
+          ],
+          "total_price_cents": 1,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "unknown"
+            ],
+            "enumerated_subsets": 1,
+            "optional_covered": 0,
+            "price_cents": 1
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 1,
+            "unique_candidates": 1,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "unknown"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.002366
+        },
+        {
+          "id": "invalid-facts-filtered",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "invalid_facts": 2
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "cheap-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.003608
+        },
+        {
+          "id": "optional-coverage",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 2,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "light",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 2,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "light",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004638
+        },
+        {
+          "id": "prerecorded-rank",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "premium-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 90
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.01026
+        },
+        {
+          "id": "explicit-value",
+          "selected_ids": [
+            "cheap-key"
+          ],
+          "total_price_cents": 40,
+          "required_met": 1,
+          "required_total": 1,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": true,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key"
+            ],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 40
+          },
+          "oracle_optimum_match": true,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 1,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "cheap-key",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.004614
+        },
+        {
+          "id": "recheck-alternatives",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": true,
+            "best_ids": [
+              "cheap-key",
+              "mouse"
+            ],
+            "enumerated_subsets": 7,
+            "optional_covered": 0,
+            "price_cents": 80
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "expansion_limit",
+          "search_stats": {
+            "input_snapshots": 3,
+            "unique_candidates": 3,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 3,
+            "searched_candidates": 3,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "alt-key",
+            "cheap-key",
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.005373
+        },
+        {
+          "id": "pair-over-budget",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 2,
+            "searched_candidates": 2,
+            "filtered": {},
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 1,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "expansion_limit",
+            "search_limited": true
+          },
+          "window_ids": [
+            "mouse",
+            "premium-key"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.00387
+        },
+        {
+          "id": "filtered-before-recheck",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 2,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 1,
+            "searched_candidates": 1,
+            "filtered": {
+              "over_budget": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 0,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [
+            "mouse"
+          ],
+          "gate_problems": [],
+          "replay_ms": 0.00191
+        },
+        {
+          "id": "all-excluded",
+          "selected_ids": [],
+          "total_price_cents": 0,
+          "required_met": 0,
+          "required_total": 0,
+          "optional_met": 0,
+          "optional_total": 0,
+          "task_success": false,
+          "violations": [],
+          "oracle": {
+            "feasible": false,
+            "best_ids": [],
+            "enumerated_subsets": 3,
+            "optional_covered": 0,
+            "price_cents": 0
+          },
+          "oracle_optimum_match": false,
+          "miss_reason": "",
+          "search_stats": {
+            "input_snapshots": 2,
+            "unique_candidates": 2,
+            "duplicate_snapshots": 0,
+            "eligible_candidates": 0,
+            "searched_candidates": 0,
+            "filtered": {
+              "excluded_category": 1,
+              "unknown_with_exclusions": 1
+            },
+            "prepared": true,
+            "candidate_window_truncated": false,
+            "expansions": 0,
+            "feasible_evaluated": 0,
+            "peak_frontier": 1,
+            "beam_pruned": 0,
+            "time_budget_reached": false,
+            "stop_reason": "enumeration_finished",
+            "search_limited": false
+          },
+          "window_ids": [],
+          "gate_problems": [],
+          "replay_ms": 0.001807
+        }
+      ]
+    }
+  ],
+  "beam_default_comparisons": [
+    {
+      "baseline": "legacy_greedy",
+      "task_success_improved": [
+        "greedy-trap",
+        "excluded-category",
+        "unknown-cannot-prove-exclusion"
+      ],
+      "task_success_regressed": [],
+      "task_success_tied": [
+        "narrow-pruning-trap",
+        "simple-pair",
+        "missing-category",
+        "budget-infeasible",
+        "empty-snapshot",
+        "unknown-broad-demand",
+        "invalid-facts-filtered",
+        "optional-coverage",
+        "prerecorded-rank",
+        "explicit-value",
+        "recheck-alternatives",
+        "pair-over-budget",
+        "filtered-before-recheck",
+        "all-excluded"
+      ]
+    },
+    {
+      "baseline": "beam_width_1",
+      "task_success_improved": [
+        "narrow-pruning-trap"
+      ],
+      "task_success_regressed": [],
+      "task_success_tied": [
+        "greedy-trap",
+        "simple-pair",
+        "excluded-category",
+        "unknown-cannot-prove-exclusion",
+        "missing-category",
+        "budget-infeasible",
+        "empty-snapshot",
+        "unknown-broad-demand",
+        "invalid-facts-filtered",
+        "optional-coverage",
+        "prerecorded-rank",
+        "explicit-value",
+        "recheck-alternatives",
+        "pair-over-budget",
+        "filtered-before-recheck",
+        "all-excluded"
+      ]
+    },
+    {
+      "baseline": "beam_window_1",
+      "task_success_improved": [
+        "greedy-trap",
+        "narrow-pruning-trap",
+        "simple-pair",
+        "recheck-alternatives"
+      ],
+      "task_success_regressed": [],
+      "task_success_tied": [
+        "excluded-category",
+        "unknown-cannot-prove-exclusion",
+        "missing-category",
+        "budget-infeasible",
+        "empty-snapshot",
+        "unknown-broad-demand",
+        "invalid-facts-filtered",
+        "optional-coverage",
+        "prerecorded-rank",
+        "explicit-value",
+        "pair-over-budget",
+        "filtered-before-recheck",
+        "all-excluded"
+      ]
+    },
+    {
+      "baseline": "beam_expansions_1",
+      "task_success_improved": [
+        "greedy-trap",
+        "narrow-pruning-trap",
+        "simple-pair",
+        "recheck-alternatives"
+      ],
+      "task_success_regressed": [],
+      "task_success_tied": [
+        "excluded-category",
+        "unknown-cannot-prove-exclusion",
+        "missing-category",
+        "budget-infeasible",
+        "empty-snapshot",
+        "unknown-broad-demand",
+        "invalid-facts-filtered",
+        "optional-coverage",
+        "prerecorded-rank",
+        "explicit-value",
+        "pair-over-budget",
+        "filtered-before-recheck",
+        "all-excluded"
+      ]
+    }
+  ],
+  "execution": [
+    {
+      "id": "stable",
+      "selected_ids": [
+        "cheap-key",
+        "mouse"
+      ],
+      "total_price_cents": 80,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 6,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.278514
+    },
+    {
+      "id": "repriced",
+      "selected_ids": [
+        "alt-key",
+        "mouse"
+      ],
+      "total_price_cents": 85,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "alt-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 85
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 6,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.038198
+    },
+    {
+      "id": "off-shelf",
+      "selected_ids": [
+        "alt-key",
+        "mouse"
+      ],
+      "total_price_cents": 85,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "alt-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 85
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 3,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.056473
+    },
+    {
+      "id": "category-changed",
+      "selected_ids": [
+        "alt-key",
+        "mouse"
+      ],
+      "total_price_cents": 85,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "alt-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 85
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 3,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.041105
+    },
+    {
+      "id": "category-withdrawn",
+      "selected_ids": [
+        "alt-key",
+        "mouse"
+      ],
+      "total_price_cents": 85,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "alt-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 85
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 3,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.039618
+    },
+    {
+      "id": "required-lost",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "no_feasible_bundle",
+      "expected": "no_feasible_bundle",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": false,
+        "best_ids": [],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 0
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 6,
+      "final_expansions": 0,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.038829
+    },
+    {
+      "id": "price-drop-recovers",
+      "selected_ids": [
+        "mouse",
+        "premium-key"
+      ],
+      "total_price_cents": 80,
+      "required_met": 2,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": true,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "complete",
+      "expected": "complete",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "mouse",
+          "premium-key"
+        ],
+        "enumerated_subsets": 3,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "premium-key",
+          "mouse"
+        ],
+        [
+          "mouse",
+          "premium-key"
+        ]
+      ],
+      "initial_expansions": 3,
+      "final_expansions": 3,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.035476
+    },
+    {
+      "id": "outside-window-not-revived",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "no_feasible_bundle",
+      "expected": "no_feasible_bundle",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "expensive-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 3,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "expensive-key",
+          "mouse"
+        ],
+        [
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.016798
+    },
+    {
+      "id": "empty-no-certification",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 0,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "",
+      "fault": "",
+      "outcome": "no_feasible_bundle",
+      "expected": "no_feasible_bundle",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": false,
+        "best_ids": [],
+        "enumerated_subsets": 0,
+        "optional_covered": 0,
+        "price_cents": 0
+      },
+      "provider_calls": 1,
+      "check_calls": 0,
+      "expected_check_calls": 0,
+      "check_ids": [],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": true,
+      "gate_problems": [],
+      "replay_ms": 0.003845
+    },
+    {
+      "id": "search-unavailable",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "search",
+      "fault": "unavailable",
+      "outcome": "unavailable",
+      "expected": "unavailable",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 0,
+      "expected_check_calls": 0,
+      "check_ids": [],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.00247
+    },
+    {
+      "id": "initial-denied",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "initial_check",
+      "fault": "permission_denied",
+      "outcome": "permission_denied",
+      "expected": "permission_denied",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 1,
+      "expected_check_calls": 1,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.006577
+    },
+    {
+      "id": "initial-old-server",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "initial_check",
+      "fault": "bad_contract",
+      "outcome": "unavailable",
+      "expected": "unavailable",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 1,
+      "expected_check_calls": 1,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.006465
+    },
+    {
+      "id": "initial-missing",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "initial_check",
+      "fault": "missing_fact",
+      "outcome": "unavailable",
+      "expected": "unavailable",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 1,
+      "expected_check_calls": 1,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.005679
+    },
+    {
+      "id": "final-denied",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "final_check",
+      "fault": "permission_denied",
+      "outcome": "permission_denied",
+      "expected": "permission_denied",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.025673
+    },
+    {
+      "id": "final-timeout",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "final_check",
+      "fault": "deadline_exceeded",
+      "outcome": "unavailable",
+      "expected": "unavailable",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.028715
+    },
+    {
+      "id": "final-canceled",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "final_check",
+      "fault": "canceled",
+      "outcome": "canceled",
+      "expected": "canceled",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.01812
+    },
+    {
+      "id": "final-missing",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "final_check",
+      "fault": "missing_fact",
+      "outcome": "unavailable",
+      "expected": "unavailable",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.017679
+    },
+    {
+      "id": "final-revision-rollback",
+      "selected_ids": [],
+      "total_price_cents": 0,
+      "required_met": 0,
+      "required_total": 2,
+      "optional_met": 0,
+      "optional_total": 0,
+      "task_success": false,
+      "violations": [],
+      "fault_stage": "final_check",
+      "fault": "revision_rollback",
+      "outcome": "unsafe_result",
+      "expected": "unsafe_result",
+      "outcome_matched": true,
+      "final_retrieved_snapshot_oracle": {
+        "feasible": true,
+        "best_ids": [
+          "cheap-key",
+          "mouse"
+        ],
+        "enumerated_subsets": 7,
+        "optional_covered": 0,
+        "price_cents": 80
+      },
+      "provider_calls": 1,
+      "check_calls": 2,
+      "expected_check_calls": 2,
+      "check_ids": [
+        [
+          "cheap-key",
+          "alt-key",
+          "mouse"
+        ],
+        [
+          "alt-key",
+          "cheap-key",
+          "mouse"
+        ]
+      ],
+      "initial_expansions": 0,
+      "final_expansions": 0,
+      "search_limited": false,
+      "gate_problems": [],
+      "replay_ms": 0.023246
+    }
+  ],
+  "execution_summary": {
+    "cases": 18,
+    "snapshot_cases": 9,
+    "fault_cases": 9,
+    "outcome_accuracy": {
+      "numerator": 18,
+      "denominator": 18,
+      "value": 1
+    },
+    "fault_closed": {
+      "numerator": 9,
+      "denominator": 9,
+      "value": 1
+    },
+    "nonempty_hard_violation_rate": {
+      "numerator": 0,
+      "denominator": 6,
+      "value": 0
+    },
+    "snapshot_satisfiable_success": {
+      "numerator": 6,
+      "denominator": 7,
+      "value": 0.8571428571428571
+    },
+    "provider_calls": 18,
+    "check_calls": 29,
+    "search_expansions": 63,
+    "snapshot_replay_p50_ms": 0.038829,
+    "snapshot_replay_p95_ms": 0.278514
+  },
+  "gate_passed": true,
+  "real_mall": "not_run",
+  "real_model": "not_run",
+  "real_embedding": "not_run",
+  "model_calls": 0,
+  "token_usage": null,
+  "cost_usd": null
+}
