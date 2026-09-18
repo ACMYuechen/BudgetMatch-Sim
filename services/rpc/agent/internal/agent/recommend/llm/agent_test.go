@@ -16,7 +16,20 @@ import (
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func TestLLMAgentRejectsStructuredDemandBeforeModelOrTools(t *testing.T) {
+	var received [][]*schema.Message
+	model := &scriptedModel{received: &received}
+	runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+	prior := agentcore.Intent{BudgetCents: 1000, MaxItems: 2, Demand: &agentcore.DemandState{SchemaVersion: 1, Required: []string{"keyboard"}}}
+	_, err := runner.Run(context.Background(), agentcore.Input{Query: "desk", PriorIntent: &prior})
+	if status.Code(err) != codes.FailedPrecondition || len(received) != 0 || len(model.boundTools) != 0 {
+		t.Fatalf("structured demand reached ReAct: %v", err)
+	}
+}
 
 func TestLLMAgentRejectsInvalidTextBeforeModelOrTools(t *testing.T) {
 	for _, query := range []string{"预算$500", "预算-500元", "预算0.001元", "预算3000或5000", "最多十一件"} {
