@@ -1,5 +1,12 @@
 package agent
 
+// Versioned, provider-authored rank evidence shared by fusion and experimental
+// selection. This is not a probability, product attribute or live verification.
+const (
+	HybridRankingMethod = "hybrid_rrf_v1"
+	RankFusionConstant  = 60
+)
+
 // RetrievalSource is assigned by trusted providers, never parsed from model text.
 type RetrievalSource uint8
 

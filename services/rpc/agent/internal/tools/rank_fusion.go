@@ -62,7 +62,7 @@ func fuseRankings(keyword, vector []ProductCandidate, budget int64, limit int) (
 		candidate.Tags = append([]string(nil), candidate.Tags...)
 		candidate.Evidence.State = agentcore.VerificationUnverified
 		candidate.Evidence.VerifiedAtUnixMs = 0
-		ranking := agentcore.CandidateRanking{Method: "hybrid_rrf_v1"}
+		ranking := agentcore.CandidateRanking{Method: agentcore.HybridRankingMethod}
 		if hasKeyword {
 			ranking.KeywordRank = k.rank
 			ranking.FusionScore += 1 / float64(rag.RRFConstant+k.rank)

@@ -1,13 +1,17 @@
 package rag
 
-import "fmt"
+import (
+	"fmt"
+
+	"budgetmatch-sim/services/rpc/agent/internal/agent"
+)
 
 const (
 	StrategyVectorFirst = "vector_first"
 	StrategyHybridRRF   = "hybrid_rrf"
 	MaxHybridWindow     = 64
 	MaxHybridOutput     = 32 // the final live-check shortlist has the same bound
-	RRFConstant         = 60
+	RRFConstant         = agent.RankFusionConstant
 )
 
 // RetrievalConfig only enables experiments explicitly. It does not retune the
