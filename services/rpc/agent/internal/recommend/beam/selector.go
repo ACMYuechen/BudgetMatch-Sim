@@ -38,10 +38,13 @@ type ItemEvidence struct {
 }
 
 type Result struct {
-	Strategy                string                   `json:"strategy"`
-	Scope                   string                   `json:"scope"`
-	Status                  string                   `json:"status"`
-	Selected                []agent.ProductCandidate `json:"-"`
+	Strategy string                   `json:"strategy"`
+	Scope    string                   `json:"scope"`
+	Status   string                   `json:"status"`
+	Selected []agent.ProductCandidate `json:"-"`
+	// Window is the complete prepared search scope, not the raw input prefix.
+	// A downstream snapshot check must not add candidates outside this scope.
+	Window                  []agent.ProductCandidate `json:"-"`
 	TotalPriceCents         int64                    `json:"total_price_cents"`
 	Assessment              *demand.Assessment       `json:"assessment,omitempty"`
 	Evidence                []ItemEvidence           `json:"evidence"`
@@ -116,6 +119,7 @@ func (s *Selector) Select(ctx context.Context, state demand.State, catalog *dema
 	if out.Stats.Prepared {
 		var available uint16
 		for _, o := range pool {
+			out.Window = append(out.Window, cloneCandidate(o.candidate))
 			available |= o.required
 		}
 		for i, category := range state.Required {

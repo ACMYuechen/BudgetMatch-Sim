@@ -25,6 +25,19 @@ func mapDemandConflicts(issues []*recommendservice.DemandConflict) []types.Agent
 	return out
 }
 
+func mapDemandExecution(e *recommendservice.DemandExecution) *types.AgentDemandExecution {
+	if e == nil {
+		return nil
+	}
+	return &types.AgentDemandExecution{PlanTurnId: e.GetPlanTurnId(), Strategy: e.GetStrategy(), Scope: e.GetScope(),
+		MappingVersion: e.GetMappingVersion(), MappingSha256: e.GetMappingSha256(), SnapshotCheckedAtMs: e.GetSnapshotCheckedAtMs(),
+		CoveredRequired: append([]string{}, e.GetCoveredRequired()...), MissingRequired: append([]string{}, e.GetMissingRequired()...),
+		CoveredOptional: append([]string{}, e.GetCoveredOptional()...), UnscoredPreferences: append([]string{}, e.GetUnscoredPreferences()...),
+		MissingRequiredInWindow: append([]string{}, e.GetMissingRequiredInWindow()...), SearchLimited: e.GetSearchLimited(),
+		CandidateWindow: e.GetCandidateWindow(), InitialExpansions: e.GetInitialExpansions(), FinalExpansions: e.GetFinalExpansions(),
+		InitialStopReason: e.GetInitialStopReason(), FinalStopReason: e.GetFinalStopReason()}
+}
+
 // mapConversationSummary 转换会话元数据及其最新结构化约束。
 func mapConversationSummary(item *recommendservice.ConversationSummary) types.AgentConversationSummary {
 	return types.AgentConversationSummary{ConversationId: item.GetConversationId(), ConversationTitle: item.GetConversationTitle(),

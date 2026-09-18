@@ -52,6 +52,33 @@ message PlanDemandResp {
   string turn_id = 6;
 }
 
+// Execute an exact ready planning revision; cannot mutate demand on execution.
+message ExecuteDemandReq {
+  string conversation_id = 1;
+  string plan_turn_id = 2;
+  string turn_id = 3;
+}
+
+message DemandExecution {
+  string plan_turn_id = 1;
+  string strategy = 2;
+  string scope = 3; // synthetic_demo_snapshot_only, NOT live stock
+  string mapping_version = 4;
+  string mapping_sha256 = 5;
+  int64 snapshot_checked_at_ms = 6;
+  repeated string covered_required = 7;
+  repeated string missing_required = 8;
+  repeated string covered_optional = 9;
+  repeated string unscored_preferences = 10;
+  repeated string missing_required_in_window = 11;
+  bool search_limited = 12;
+  int32 candidate_window = 13;
+  int32 initial_expansions = 14;
+  int32 final_expansions = 15;
+  string initial_stop_reason = 16;
+  string final_stop_reason = 17;
+}
+
 message BundleItem {
   string id          = 1;
   string name        = 2;
@@ -78,8 +105,9 @@ message RecommendResp {
   string              conversation_id    = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
   string              conversation_title = 7; // 会话稳定展示标题
   string              turn_id             = 8; // 本轮幂等 ID
-  string status = 9; // nonempty for planning-only history results
+  string status = 9; // planning or explicit structured execution; absent for legacy
   repeated DemandConflict demand_conflicts = 10;
+  DemandExecution execution = 11;
 }
 
 message ConversationSummary {
@@ -140,6 +168,7 @@ message DeleteConversationResp {
 service RecommendService {
   rpc Recommend(RecommendReq) returns (RecommendResp) {}
   rpc PlanDemand(PlanDemandReq) returns (PlanDemandResp) {}
+  rpc ExecuteDemand(ExecuteDemandReq) returns (RecommendResp) {}
   rpc ListConversations(ListConversationsReq) returns (ListConversationsResp) {}
   rpc ListConversationTurns(ListConversationTurnsReq) returns (ListConversationTurnsResp) {}
   rpc DeleteConversation(DeleteConversationReq) returns (DeleteConversationResp) {}

@@ -50,6 +50,19 @@ func toPBConflicts(issues []agentcore.DemandConflict) []*pb.DemandConflict {
 	return out
 }
 
+func toPBExecution(e *agentcore.DemandExecution) *pb.DemandExecution {
+	if e == nil {
+		return nil
+	}
+	return &pb.DemandExecution{PlanTurnId: e.PlanTurnID, Strategy: e.Strategy, Scope: e.Scope,
+		MappingVersion: e.MappingVersion, MappingSha256: e.MappingSHA256, SnapshotCheckedAtMs: e.SnapshotCheckedAtUnixMs,
+		CoveredRequired: append([]string{}, e.CoveredRequired...), MissingRequired: append([]string{}, e.MissingRequired...),
+		CoveredOptional: append([]string{}, e.CoveredOptional...), UnscoredPreferences: append([]string{}, e.UnscoredPreferences...),
+		MissingRequiredInWindow: append([]string{}, e.MissingRequiredInWindow...), SearchLimited: e.SearchLimited,
+		CandidateWindow: e.CandidateWindow, InitialExpansions: e.InitialExpansions, FinalExpansions: e.FinalExpansions,
+		InitialStopReason: e.InitialStopReason, FinalStopReason: e.FinalStopReason}
+}
+
 // toPBConversation 将领域会话转换为不暴露内部 user_id 和 version 的摘要。
 func toPBConversation(conversation memory.Conversation) *pb.ConversationSummary {
 	return &pb.ConversationSummary{ConversationId: conversation.ConversationId, ConversationTitle: conversation.Title,

@@ -48,6 +48,28 @@ type DemandConflict struct {
 	Category string `json:"category,omitempty"`
 }
 
+// DemandExecution describes bounded demo-snapshot execution, not live stock or
+// global feasibility. Nil preserves the legacy response and persisted JSON.
+type DemandExecution struct {
+	PlanTurnID              string   `json:"plan_turn_id"`
+	Strategy                string   `json:"strategy"`
+	Scope                   string   `json:"scope"`
+	MappingVersion          string   `json:"mapping_version"`
+	MappingSHA256           string   `json:"mapping_sha256"`
+	SnapshotCheckedAtUnixMs int64    `json:"snapshot_checked_at_ms"`
+	CoveredRequired         []string `json:"covered_required"`
+	MissingRequired         []string `json:"missing_required"`
+	CoveredOptional         []string `json:"covered_optional"`
+	UnscoredPreferences     []string `json:"unscored_preferences"`
+	MissingRequiredInWindow []string `json:"missing_required_in_window"`
+	SearchLimited           bool     `json:"search_limited"`
+	CandidateWindow         int32    `json:"candidate_window"`
+	InitialExpansions       int32    `json:"initial_expansions"`
+	FinalExpansions         int32    `json:"final_expansions"`
+	InitialStopReason       string   `json:"initial_stop_reason"`
+	FinalStopReason         string   `json:"final_stop_reason"`
+}
+
 // ProductCandidate 是商品数据源提供的事实快照，不从模型回答中反序列化。
 type ProductCandidate struct {
 	Evidence   CandidateEvidence `json:"-"`
@@ -85,8 +107,9 @@ type Result struct {
 	// Candidates 仅供本轮最终校验，不暴露到 JSON、RPC 或会话持久化结果。
 	Candidates        []ProductCandidate `json:"-"`
 	Selection         *SelectionScope    `json:"-"`
-	Status            string             `json:"status,omitempty"` // intent_ready / needs_clarification for planning-only turns.
+	Status            string             `json:"status,omitempty"` // planning: intent_ready/needs_clarification; execution: complete/no_feasible_bundle.
 	DemandConflicts   []DemandConflict   `json:"demand_conflicts,omitempty"`
+	Execution         *DemandExecution   `json:"execution,omitempty"`
 	Intent            Intent             `json:"intent"`             // Intent 解析出的用户意图
 	Items             []BundleItem       `json:"items"`              // Items 推荐的商品列表
 	TotalPriceCents   int64              `json:"total_price_cents"`  // TotalPriceCents 推荐商品总价，单位为分

@@ -6,7 +6,7 @@ import (
 	{{if .HasRequest}}"github.com/zeromicro/go-zero/core/logx"
 	{{end}}
 	"net/http"
-	{{if eq .HandlerName "AgentDemandPlanHandler"}}apperrors "budgetmatch-sim/infra/errors"{{end}}
+	{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}apperrors "budgetmatch-sim/infra/errors"{{end}}
 
 	{{if ne .HandlerName "AlipayNotifyHandler"}}"github.com/zeromicro/go-zero/rest/httpx"
 	{{end}}
@@ -27,7 +27,7 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		)
 
 		{{if .HasRequest}}if err := httpx.Parse(r, in); err != nil {
-			{{if eq .HandlerName "AgentDemandPlanHandler"}}logx.WithContext(ctx).Error("invalid demand planning request")
+			{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}logx.WithContext(ctx).Error("invalid demand planning request")
 			httpx.Error(w, apperrors.Invalid)
 			{{else}}
 			logx.WithContext(ctx).Errorf("parse params failed: %v", err)
@@ -38,7 +38,7 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 		
 		{{if .HasRequest}}if err := svcCtx.Validator.Struct(in); err != nil {
-			{{if eq .HandlerName "AgentDemandPlanHandler"}}logx.WithContext(ctx).Error("invalid demand planning parameters")
+			{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}logx.WithContext(ctx).Error("invalid demand planning parameters")
 			httpx.Error(w, apperrors.Invalid)
 			{{else}}
 			logx.WithContext(ctx).Errorf("validate params failed: %v", err)

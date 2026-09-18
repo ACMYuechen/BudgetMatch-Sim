@@ -13,6 +13,7 @@ import (
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/agent/recommend/llm"
 	"budgetmatch-sim/services/rpc/agent/internal/config"
+	"budgetmatch-sim/services/rpc/agent/internal/demandexec"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
 	"budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -48,6 +49,9 @@ type ServiceContext struct {
 //   - 无 Model：LLM Agent 不启用，推荐走确定性规则。
 func NewServiceContext(c config.Config) *ServiceContext {
 	// Validate before opening databases, creating tables or initializing external models.
+	if err := c.ValidateDemandExecution(); err != nil {
+		panic(err)
+	}
 	if err := c.ValidateRetrieval(); err != nil {
 		panic(err)
 	}
@@ -75,10 +79,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector).
 		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
+	service := recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient))
+	if c.DemandExecution.Mode == "demo" {
+		executor, err := demandexec.NewBuiltinDemo()
+		if err != nil {
+			panic(safety.Protect(err))
+		}
+		service.WithDemandExecutor(executor)
+	}
 
 	return &ServiceContext{
 		Config:           c,
-		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient)),
+		RecommendService: service,
 		Syncer:           syncer,
 	}
 }

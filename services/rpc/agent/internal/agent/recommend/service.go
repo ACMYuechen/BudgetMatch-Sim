@@ -10,6 +10,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/demand"
+	"budgetmatch-sim/services/rpc/agent/internal/demandexec"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
@@ -41,11 +42,12 @@ const (
 // 成功返回前都原子保存原始请求、结构化状态与完整结果。Agent 实现只读不写；
 // 本地锁与存储层锁共同串行化同一用户同一会话，turn_id 用于安全重试。
 type Service struct {
-	primary   agentcore.Agent
-	fallback  agentcore.Agent
-	memory    memory.Manager
-	locks     *conversationLocker
-	finalizer ResultFinalizer
+	primary        agentcore.Agent
+	fallback       agentcore.Agent
+	memory         memory.Manager
+	locks          *conversationLocker
+	finalizer      ResultFinalizer
+	demandExecutor *demandexec.Executor
 }
 
 // WithFinalizer configures the return/persistence policy during construction.
@@ -53,6 +55,13 @@ type Service struct {
 // benchmarks can omit it to retain their fixed-snapshot evaluation protocol.
 func (s *Service) WithFinalizer(finalizer ResultFinalizer) *Service {
 	s.finalizer = finalizer
+	return s
+}
+
+// WithDemandExecutor enables ONLY the separate structured execution method.
+// It does not remove legacy Recommend's fail-closed planning-mode guard.
+func (s *Service) WithDemandExecutor(executor *demandexec.Executor) *Service {
+	s.demandExecutor = executor
 	return s
 }
 
@@ -381,10 +390,7 @@ func (s *Service) saveTurn(ctx context.Context, store memory.ConversationStore, 
 	}
 	// Private idempotency metadata is created here, never supplied by a runner or
 	// returned by public result/history mappers. Omission preserves legacy JSON.
-	resultJSON, err := json.Marshal(struct {
-		*agentcore.Result
-		Fingerprint string `json:"_demand_request_sha256,omitempty"`
-	}{result, fingerprint})
+	resultJSON, err := marshalTurnResult(result, fingerprint)
 	if err != nil {
 		return memory.Conversation{}, memory.Turn{}, fmt.Errorf("encode recommendation result: %w", err)
 	}
@@ -392,12 +398,23 @@ func (s *Service) saveTurn(ctx context.Context, store memory.ConversationStore, 
 	// Even a first-turn conflict locks this conversation into planning mode.
 	// Otherwise a subsequent legacy call could bypass pending clarification.
 	state.PlanningOnly = fingerprint != ""
+	if state.PlanningOnly {
+		state.DemandPlanTurnID = input.TurnId
+		state.DemandPlanReady = result.Status == "intent_ready"
+	}
 	return store.SaveTurn(ctx, memory.SaveTurnReq{
 		UserId: input.UserId, ConversationId: input.ConversationId, TurnId: input.TurnId,
 		Title: result.ConversationTitle, Query: input.Query, BudgetCents: input.BudgetCents,
 		MaxItems: input.MaxItems, Intent: state,
 		ResultJSON: resultJSON, Summary: result.Summary,
 	})
+}
+
+func marshalTurnResult(result *agentcore.Result, fingerprint string) ([]byte, error) {
+	return json.Marshal(struct {
+		*agentcore.Result
+		Fingerprint string `json:"_demand_request_sha256,omitempty"`
+	}{result, fingerprint})
 }
 
 // decodeSavedResult 恢复幂等轮次结果，并以存储主键覆盖可能过时的 JSON 标识。

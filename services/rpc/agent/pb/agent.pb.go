@@ -462,6 +462,239 @@ func (x *PlanDemandResp) GetTurnId() string {
 	return ""
 }
 
+// Execute an exact ready planning revision; cannot mutate demand on execution.
+type ExecuteDemandReq struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	PlanTurnId     string                 `protobuf:"bytes,2,opt,name=plan_turn_id,json=planTurnId,proto3" json:"plan_turn_id,omitempty"`
+	TurnId         string                 `protobuf:"bytes,3,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ExecuteDemandReq) Reset() {
+	*x = ExecuteDemandReq{}
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecuteDemandReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecuteDemandReq) ProtoMessage() {}
+
+func (x *ExecuteDemandReq) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecuteDemandReq.ProtoReflect.Descriptor instead.
+func (*ExecuteDemandReq) Descriptor() ([]byte, []int) {
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ExecuteDemandReq) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *ExecuteDemandReq) GetPlanTurnId() string {
+	if x != nil {
+		return x.PlanTurnId
+	}
+	return ""
+}
+
+func (x *ExecuteDemandReq) GetTurnId() string {
+	if x != nil {
+		return x.TurnId
+	}
+	return ""
+}
+
+type DemandExecution struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	PlanTurnId              string                 `protobuf:"bytes,1,opt,name=plan_turn_id,json=planTurnId,proto3" json:"plan_turn_id,omitempty"`
+	Strategy                string                 `protobuf:"bytes,2,opt,name=strategy,proto3" json:"strategy,omitempty"`
+	Scope                   string                 `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"` // synthetic_demo_snapshot_only, NOT live stock
+	MappingVersion          string                 `protobuf:"bytes,4,opt,name=mapping_version,json=mappingVersion,proto3" json:"mapping_version,omitempty"`
+	MappingSha256           string                 `protobuf:"bytes,5,opt,name=mapping_sha256,json=mappingSha256,proto3" json:"mapping_sha256,omitempty"`
+	SnapshotCheckedAtMs     int64                  `protobuf:"varint,6,opt,name=snapshot_checked_at_ms,json=snapshotCheckedAtMs,proto3" json:"snapshot_checked_at_ms,omitempty"`
+	CoveredRequired         []string               `protobuf:"bytes,7,rep,name=covered_required,json=coveredRequired,proto3" json:"covered_required,omitempty"`
+	MissingRequired         []string               `protobuf:"bytes,8,rep,name=missing_required,json=missingRequired,proto3" json:"missing_required,omitempty"`
+	CoveredOptional         []string               `protobuf:"bytes,9,rep,name=covered_optional,json=coveredOptional,proto3" json:"covered_optional,omitempty"`
+	UnscoredPreferences     []string               `protobuf:"bytes,10,rep,name=unscored_preferences,json=unscoredPreferences,proto3" json:"unscored_preferences,omitempty"`
+	MissingRequiredInWindow []string               `protobuf:"bytes,11,rep,name=missing_required_in_window,json=missingRequiredInWindow,proto3" json:"missing_required_in_window,omitempty"`
+	SearchLimited           bool                   `protobuf:"varint,12,opt,name=search_limited,json=searchLimited,proto3" json:"search_limited,omitempty"`
+	CandidateWindow         int32                  `protobuf:"varint,13,opt,name=candidate_window,json=candidateWindow,proto3" json:"candidate_window,omitempty"`
+	InitialExpansions       int32                  `protobuf:"varint,14,opt,name=initial_expansions,json=initialExpansions,proto3" json:"initial_expansions,omitempty"`
+	FinalExpansions         int32                  `protobuf:"varint,15,opt,name=final_expansions,json=finalExpansions,proto3" json:"final_expansions,omitempty"`
+	InitialStopReason       string                 `protobuf:"bytes,16,opt,name=initial_stop_reason,json=initialStopReason,proto3" json:"initial_stop_reason,omitempty"`
+	FinalStopReason         string                 `protobuf:"bytes,17,opt,name=final_stop_reason,json=finalStopReason,proto3" json:"final_stop_reason,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DemandExecution) Reset() {
+	*x = DemandExecution{}
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DemandExecution) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DemandExecution) ProtoMessage() {}
+
+func (x *DemandExecution) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DemandExecution.ProtoReflect.Descriptor instead.
+func (*DemandExecution) Descriptor() ([]byte, []int) {
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DemandExecution) GetPlanTurnId() string {
+	if x != nil {
+		return x.PlanTurnId
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetStrategy() string {
+	if x != nil {
+		return x.Strategy
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetMappingVersion() string {
+	if x != nil {
+		return x.MappingVersion
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetMappingSha256() string {
+	if x != nil {
+		return x.MappingSha256
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetSnapshotCheckedAtMs() int64 {
+	if x != nil {
+		return x.SnapshotCheckedAtMs
+	}
+	return 0
+}
+
+func (x *DemandExecution) GetCoveredRequired() []string {
+	if x != nil {
+		return x.CoveredRequired
+	}
+	return nil
+}
+
+func (x *DemandExecution) GetMissingRequired() []string {
+	if x != nil {
+		return x.MissingRequired
+	}
+	return nil
+}
+
+func (x *DemandExecution) GetCoveredOptional() []string {
+	if x != nil {
+		return x.CoveredOptional
+	}
+	return nil
+}
+
+func (x *DemandExecution) GetUnscoredPreferences() []string {
+	if x != nil {
+		return x.UnscoredPreferences
+	}
+	return nil
+}
+
+func (x *DemandExecution) GetMissingRequiredInWindow() []string {
+	if x != nil {
+		return x.MissingRequiredInWindow
+	}
+	return nil
+}
+
+func (x *DemandExecution) GetSearchLimited() bool {
+	if x != nil {
+		return x.SearchLimited
+	}
+	return false
+}
+
+func (x *DemandExecution) GetCandidateWindow() int32 {
+	if x != nil {
+		return x.CandidateWindow
+	}
+	return 0
+}
+
+func (x *DemandExecution) GetInitialExpansions() int32 {
+	if x != nil {
+		return x.InitialExpansions
+	}
+	return 0
+}
+
+func (x *DemandExecution) GetFinalExpansions() int32 {
+	if x != nil {
+		return x.FinalExpansions
+	}
+	return 0
+}
+
+func (x *DemandExecution) GetInitialStopReason() string {
+	if x != nil {
+		return x.InitialStopReason
+	}
+	return ""
+}
+
+func (x *DemandExecution) GetFinalStopReason() string {
+	if x != nil {
+		return x.FinalStopReason
+	}
+	return ""
+}
+
 type BundleItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -478,7 +711,7 @@ type BundleItem struct {
 
 func (x *BundleItem) Reset() {
 	*x = BundleItem{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[6]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -490,7 +723,7 @@ func (x *BundleItem) String() string {
 func (*BundleItem) ProtoMessage() {}
 
 func (x *BundleItem) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[6]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -503,7 +736,7 @@ func (x *BundleItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BundleItem.ProtoReflect.Descriptor instead.
 func (*BundleItem) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{6}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BundleItem) GetId() string {
@@ -573,7 +806,7 @@ type ToolCall struct {
 
 func (x *ToolCall) Reset() {
 	*x = ToolCall{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[7]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -585,7 +818,7 @@ func (x *ToolCall) String() string {
 func (*ToolCall) ProtoMessage() {}
 
 func (x *ToolCall) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[7]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -598,7 +831,7 @@ func (x *ToolCall) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCall.ProtoReflect.Descriptor instead.
 func (*ToolCall) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{7}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ToolCall) GetName() string {
@@ -632,15 +865,16 @@ type RecommendResp struct {
 	ConversationId    string                 `protobuf:"bytes,6,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`          // 本次对话的会话 ID，客户端携带它发起下一轮
 	ConversationTitle string                 `protobuf:"bytes,7,opt,name=conversation_title,json=conversationTitle,proto3" json:"conversation_title,omitempty"` // 会话稳定展示标题
 	TurnId            string                 `protobuf:"bytes,8,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`                                  // 本轮幂等 ID
-	Status            string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`                                                // nonempty for planning-only history results
+	Status            string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`                                                // planning or explicit structured execution; absent for legacy
 	DemandConflicts   []*DemandConflict      `protobuf:"bytes,10,rep,name=demand_conflicts,json=demandConflicts,proto3" json:"demand_conflicts,omitempty"`
+	Execution         *DemandExecution       `protobuf:"bytes,11,opt,name=execution,proto3" json:"execution,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RecommendResp) Reset() {
 	*x = RecommendResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[8]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -652,7 +886,7 @@ func (x *RecommendResp) String() string {
 func (*RecommendResp) ProtoMessage() {}
 
 func (x *RecommendResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[8]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -665,7 +899,7 @@ func (x *RecommendResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendResp.ProtoReflect.Descriptor instead.
 func (*RecommendResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{8}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RecommendResp) GetIntent() *Intent {
@@ -738,6 +972,13 @@ func (x *RecommendResp) GetDemandConflicts() []*DemandConflict {
 	return nil
 }
 
+func (x *RecommendResp) GetExecution() *DemandExecution {
+	if x != nil {
+		return x.Execution
+	}
+	return nil
+}
+
 type ConversationSummary struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ConversationId    string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
@@ -752,7 +993,7 @@ type ConversationSummary struct {
 
 func (x *ConversationSummary) Reset() {
 	*x = ConversationSummary{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[9]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +1005,7 @@ func (x *ConversationSummary) String() string {
 func (*ConversationSummary) ProtoMessage() {}
 
 func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[9]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +1018,7 @@ func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationSummary.ProtoReflect.Descriptor instead.
 func (*ConversationSummary) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{9}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ConversationSummary) GetConversationId() string {
@@ -839,7 +1080,7 @@ type ConversationTurn struct {
 
 func (x *ConversationTurn) Reset() {
 	*x = ConversationTurn{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[10]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +1092,7 @@ func (x *ConversationTurn) String() string {
 func (*ConversationTurn) ProtoMessage() {}
 
 func (x *ConversationTurn) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[10]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +1105,7 @@ func (x *ConversationTurn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationTurn.ProtoReflect.Descriptor instead.
 func (*ConversationTurn) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{10}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ConversationTurn) GetTurnId() string {
@@ -940,7 +1181,7 @@ type ListConversationsReq struct {
 
 func (x *ListConversationsReq) Reset() {
 	*x = ListConversationsReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[11]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1193,7 @@ func (x *ListConversationsReq) String() string {
 func (*ListConversationsReq) ProtoMessage() {}
 
 func (x *ListConversationsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[11]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1206,7 @@ func (x *ListConversationsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsReq.ProtoReflect.Descriptor instead.
 func (*ListConversationsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{11}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListConversationsReq) GetPage() int32 {
@@ -994,7 +1235,7 @@ type ListConversationsResp struct {
 
 func (x *ListConversationsResp) Reset() {
 	*x = ListConversationsResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[12]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1006,7 +1247,7 @@ func (x *ListConversationsResp) String() string {
 func (*ListConversationsResp) ProtoMessage() {}
 
 func (x *ListConversationsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[12]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1019,7 +1260,7 @@ func (x *ListConversationsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResp.ProtoReflect.Descriptor instead.
 func (*ListConversationsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{12}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListConversationsResp) GetList() []*ConversationSummary {
@@ -1061,7 +1302,7 @@ type ListConversationTurnsReq struct {
 
 func (x *ListConversationTurnsReq) Reset() {
 	*x = ListConversationTurnsReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[13]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1314,7 @@ func (x *ListConversationTurnsReq) String() string {
 func (*ListConversationTurnsReq) ProtoMessage() {}
 
 func (x *ListConversationTurnsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[13]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1327,7 @@ func (x *ListConversationTurnsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationTurnsReq.ProtoReflect.Descriptor instead.
 func (*ListConversationTurnsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{13}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListConversationTurnsReq) GetConversationId() string {
@@ -1123,7 +1364,7 @@ type ListConversationTurnsResp struct {
 
 func (x *ListConversationTurnsResp) Reset() {
 	*x = ListConversationTurnsResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[14]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1376,7 @@ func (x *ListConversationTurnsResp) String() string {
 func (*ListConversationTurnsResp) ProtoMessage() {}
 
 func (x *ListConversationTurnsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[14]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1389,7 @@ func (x *ListConversationTurnsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationTurnsResp.ProtoReflect.Descriptor instead.
 func (*ListConversationTurnsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{14}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListConversationTurnsResp) GetConversation() *ConversationSummary {
@@ -1195,7 +1436,7 @@ type DeleteConversationReq struct {
 
 func (x *DeleteConversationReq) Reset() {
 	*x = DeleteConversationReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1207,7 +1448,7 @@ func (x *DeleteConversationReq) String() string {
 func (*DeleteConversationReq) ProtoMessage() {}
 
 func (x *DeleteConversationReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1220,7 +1461,7 @@ func (x *DeleteConversationReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationReq.ProtoReflect.Descriptor instead.
 func (*DeleteConversationReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{15}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteConversationReq) GetConversationId() string {
@@ -1239,7 +1480,7 @@ type DeleteConversationResp struct {
 
 func (x *DeleteConversationResp) Reset() {
 	*x = DeleteConversationResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1251,7 +1492,7 @@ func (x *DeleteConversationResp) String() string {
 func (*DeleteConversationResp) ProtoMessage() {}
 
 func (x *DeleteConversationResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1264,7 +1505,7 @@ func (x *DeleteConversationResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationResp.ProtoReflect.Descriptor instead.
 func (*DeleteConversationResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{16}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DeleteConversationResp) GetDeleted() bool {
@@ -1312,7 +1553,32 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\tconflicts\x18\x03 \x03(\v2\x15.agent.DemandConflictR\tconflicts\x12'\n" +
 	"\x0fconversation_id\x18\x04 \x01(\tR\x0econversationId\x12-\n" +
 	"\x12conversation_title\x18\x05 \x01(\tR\x11conversationTitle\x12\x17\n" +
-	"\aturn_id\x18\x06 \x01(\tR\x06turnId\"\xc9\x01\n" +
+	"\aturn_id\x18\x06 \x01(\tR\x06turnId\"v\n" +
+	"\x10ExecuteDemandReq\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12 \n" +
+	"\fplan_turn_id\x18\x02 \x01(\tR\n" +
+	"planTurnId\x12\x17\n" +
+	"\aturn_id\x18\x03 \x01(\tR\x06turnId\"\xe3\x05\n" +
+	"\x0fDemandExecution\x12 \n" +
+	"\fplan_turn_id\x18\x01 \x01(\tR\n" +
+	"planTurnId\x12\x1a\n" +
+	"\bstrategy\x18\x02 \x01(\tR\bstrategy\x12\x14\n" +
+	"\x05scope\x18\x03 \x01(\tR\x05scope\x12'\n" +
+	"\x0fmapping_version\x18\x04 \x01(\tR\x0emappingVersion\x12%\n" +
+	"\x0emapping_sha256\x18\x05 \x01(\tR\rmappingSha256\x123\n" +
+	"\x16snapshot_checked_at_ms\x18\x06 \x01(\x03R\x13snapshotCheckedAtMs\x12)\n" +
+	"\x10covered_required\x18\a \x03(\tR\x0fcoveredRequired\x12)\n" +
+	"\x10missing_required\x18\b \x03(\tR\x0fmissingRequired\x12)\n" +
+	"\x10covered_optional\x18\t \x03(\tR\x0fcoveredOptional\x121\n" +
+	"\x14unscored_preferences\x18\n" +
+	" \x03(\tR\x13unscoredPreferences\x12;\n" +
+	"\x1amissing_required_in_window\x18\v \x03(\tR\x17missingRequiredInWindow\x12%\n" +
+	"\x0esearch_limited\x18\f \x01(\bR\rsearchLimited\x12)\n" +
+	"\x10candidate_window\x18\r \x01(\x05R\x0fcandidateWindow\x12-\n" +
+	"\x12initial_expansions\x18\x0e \x01(\x05R\x11initialExpansions\x12)\n" +
+	"\x10final_expansions\x18\x0f \x01(\x05R\x0ffinalExpansions\x12.\n" +
+	"\x13initial_stop_reason\x18\x10 \x01(\tR\x11initialStopReason\x12*\n" +
+	"\x11final_stop_reason\x18\x11 \x01(\tR\x0ffinalStopReason\"\xc9\x01\n" +
 	"\n" +
 	"BundleItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -1327,7 +1593,7 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\bToolCall\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x16\n" +
-	"\x06detail\x18\x03 \x01(\tR\x06detail\"\xa0\x03\n" +
+	"\x06detail\x18\x03 \x01(\tR\x06detail\"\xd6\x03\n" +
 	"\rRecommendResp\x12%\n" +
 	"\x06intent\x18\x01 \x01(\v2\r.agent.IntentR\x06intent\x12'\n" +
 	"\x05items\x18\x02 \x03(\v2\x11.agent.BundleItemR\x05items\x12*\n" +
@@ -1340,7 +1606,8 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\aturn_id\x18\b \x01(\tR\x06turnId\x12\x16\n" +
 	"\x06status\x18\t \x01(\tR\x06status\x12@\n" +
 	"\x10demand_conflicts\x18\n" +
-	" \x03(\v2\x15.agent.DemandConflictR\x0fdemandConflicts\"\xf9\x01\n" +
+	" \x03(\v2\x15.agent.DemandConflictR\x0fdemandConflicts\x124\n" +
+	"\texecution\x18\v \x01(\v2\x16.agent.DemandExecutionR\texecution\"\xf9\x01\n" +
 	"\x13ConversationSummary\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12-\n" +
 	"\x12conversation_title\x18\x02 \x01(\tR\x11conversationTitle\x12#\n" +
@@ -1380,11 +1647,12 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\x15DeleteConversationReq\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\"2\n" +
 	"\x16DeleteConversationResp\x12\x18\n" +
-	"\adeleted\x18\x01 \x01(\bR\adeleted2\x8e\x03\n" +
+	"\adeleted\x18\x01 \x01(\bR\adeleted2\xd0\x03\n" +
 	"\x10RecommendService\x128\n" +
 	"\tRecommend\x12\x13.agent.RecommendReq\x1a\x14.agent.RecommendResp\"\x00\x12;\n" +
 	"\n" +
-	"PlanDemand\x12\x14.agent.PlanDemandReq\x1a\x15.agent.PlanDemandResp\"\x00\x12P\n" +
+	"PlanDemand\x12\x14.agent.PlanDemandReq\x1a\x15.agent.PlanDemandResp\"\x00\x12@\n" +
+	"\rExecuteDemand\x12\x17.agent.ExecuteDemandReq\x1a\x14.agent.RecommendResp\"\x00\x12P\n" +
 	"\x11ListConversations\x12\x1b.agent.ListConversationsReq\x1a\x1c.agent.ListConversationsResp\"\x00\x12\\\n" +
 	"\x15ListConversationTurns\x12\x1f.agent.ListConversationTurnsReq\x1a .agent.ListConversationTurnsResp\"\x00\x12S\n" +
 	"\x12DeleteConversation\x12\x1c.agent.DeleteConversationReq\x1a\x1d.agent.DeleteConversationResp\"\x00B\x06Z\x04./pbb\x06proto3"
@@ -1401,7 +1669,7 @@ func file_services_rpc_agent_proto_agent_proto_rawDescGZIP() []byte {
 	return file_services_rpc_agent_proto_agent_proto_rawDescData
 }
 
-var file_services_rpc_agent_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_services_rpc_agent_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_services_rpc_agent_proto_agent_proto_goTypes = []any{
 	(*RecommendReq)(nil),              // 0: agent.RecommendReq
 	(*Intent)(nil),                    // 1: agent.Intent
@@ -1409,47 +1677,52 @@ var file_services_rpc_agent_proto_agent_proto_goTypes = []any{
 	(*DemandConflict)(nil),            // 3: agent.DemandConflict
 	(*PlanDemandReq)(nil),             // 4: agent.PlanDemandReq
 	(*PlanDemandResp)(nil),            // 5: agent.PlanDemandResp
-	(*BundleItem)(nil),                // 6: agent.BundleItem
-	(*ToolCall)(nil),                  // 7: agent.ToolCall
-	(*RecommendResp)(nil),             // 8: agent.RecommendResp
-	(*ConversationSummary)(nil),       // 9: agent.ConversationSummary
-	(*ConversationTurn)(nil),          // 10: agent.ConversationTurn
-	(*ListConversationsReq)(nil),      // 11: agent.ListConversationsReq
-	(*ListConversationsResp)(nil),     // 12: agent.ListConversationsResp
-	(*ListConversationTurnsReq)(nil),  // 13: agent.ListConversationTurnsReq
-	(*ListConversationTurnsResp)(nil), // 14: agent.ListConversationTurnsResp
-	(*DeleteConversationReq)(nil),     // 15: agent.DeleteConversationReq
-	(*DeleteConversationResp)(nil),    // 16: agent.DeleteConversationResp
+	(*ExecuteDemandReq)(nil),          // 6: agent.ExecuteDemandReq
+	(*DemandExecution)(nil),           // 7: agent.DemandExecution
+	(*BundleItem)(nil),                // 8: agent.BundleItem
+	(*ToolCall)(nil),                  // 9: agent.ToolCall
+	(*RecommendResp)(nil),             // 10: agent.RecommendResp
+	(*ConversationSummary)(nil),       // 11: agent.ConversationSummary
+	(*ConversationTurn)(nil),          // 12: agent.ConversationTurn
+	(*ListConversationsReq)(nil),      // 13: agent.ListConversationsReq
+	(*ListConversationsResp)(nil),     // 14: agent.ListConversationsResp
+	(*ListConversationTurnsReq)(nil),  // 15: agent.ListConversationTurnsReq
+	(*ListConversationTurnsResp)(nil), // 16: agent.ListConversationTurnsResp
+	(*DeleteConversationReq)(nil),     // 17: agent.DeleteConversationReq
+	(*DeleteConversationResp)(nil),    // 18: agent.DeleteConversationResp
 }
 var file_services_rpc_agent_proto_agent_proto_depIdxs = []int32{
 	2,  // 0: agent.Intent.demand:type_name -> agent.DemandState
 	1,  // 1: agent.PlanDemandResp.intent:type_name -> agent.Intent
 	3,  // 2: agent.PlanDemandResp.conflicts:type_name -> agent.DemandConflict
 	1,  // 3: agent.RecommendResp.intent:type_name -> agent.Intent
-	6,  // 4: agent.RecommendResp.items:type_name -> agent.BundleItem
-	7,  // 5: agent.RecommendResp.tools_used:type_name -> agent.ToolCall
+	8,  // 4: agent.RecommendResp.items:type_name -> agent.BundleItem
+	9,  // 5: agent.RecommendResp.tools_used:type_name -> agent.ToolCall
 	3,  // 6: agent.RecommendResp.demand_conflicts:type_name -> agent.DemandConflict
-	1,  // 7: agent.ConversationSummary.state:type_name -> agent.Intent
-	1,  // 8: agent.ConversationTurn.intent:type_name -> agent.Intent
-	8,  // 9: agent.ConversationTurn.result:type_name -> agent.RecommendResp
-	9,  // 10: agent.ListConversationsResp.list:type_name -> agent.ConversationSummary
-	9,  // 11: agent.ListConversationTurnsResp.conversation:type_name -> agent.ConversationSummary
-	10, // 12: agent.ListConversationTurnsResp.list:type_name -> agent.ConversationTurn
-	0,  // 13: agent.RecommendService.Recommend:input_type -> agent.RecommendReq
-	4,  // 14: agent.RecommendService.PlanDemand:input_type -> agent.PlanDemandReq
-	11, // 15: agent.RecommendService.ListConversations:input_type -> agent.ListConversationsReq
-	13, // 16: agent.RecommendService.ListConversationTurns:input_type -> agent.ListConversationTurnsReq
-	15, // 17: agent.RecommendService.DeleteConversation:input_type -> agent.DeleteConversationReq
-	8,  // 18: agent.RecommendService.Recommend:output_type -> agent.RecommendResp
-	5,  // 19: agent.RecommendService.PlanDemand:output_type -> agent.PlanDemandResp
-	12, // 20: agent.RecommendService.ListConversations:output_type -> agent.ListConversationsResp
-	14, // 21: agent.RecommendService.ListConversationTurns:output_type -> agent.ListConversationTurnsResp
-	16, // 22: agent.RecommendService.DeleteConversation:output_type -> agent.DeleteConversationResp
-	18, // [18:23] is the sub-list for method output_type
-	13, // [13:18] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	7,  // 7: agent.RecommendResp.execution:type_name -> agent.DemandExecution
+	1,  // 8: agent.ConversationSummary.state:type_name -> agent.Intent
+	1,  // 9: agent.ConversationTurn.intent:type_name -> agent.Intent
+	10, // 10: agent.ConversationTurn.result:type_name -> agent.RecommendResp
+	11, // 11: agent.ListConversationsResp.list:type_name -> agent.ConversationSummary
+	11, // 12: agent.ListConversationTurnsResp.conversation:type_name -> agent.ConversationSummary
+	12, // 13: agent.ListConversationTurnsResp.list:type_name -> agent.ConversationTurn
+	0,  // 14: agent.RecommendService.Recommend:input_type -> agent.RecommendReq
+	4,  // 15: agent.RecommendService.PlanDemand:input_type -> agent.PlanDemandReq
+	6,  // 16: agent.RecommendService.ExecuteDemand:input_type -> agent.ExecuteDemandReq
+	13, // 17: agent.RecommendService.ListConversations:input_type -> agent.ListConversationsReq
+	15, // 18: agent.RecommendService.ListConversationTurns:input_type -> agent.ListConversationTurnsReq
+	17, // 19: agent.RecommendService.DeleteConversation:input_type -> agent.DeleteConversationReq
+	10, // 20: agent.RecommendService.Recommend:output_type -> agent.RecommendResp
+	5,  // 21: agent.RecommendService.PlanDemand:output_type -> agent.PlanDemandResp
+	10, // 22: agent.RecommendService.ExecuteDemand:output_type -> agent.RecommendResp
+	14, // 23: agent.RecommendService.ListConversations:output_type -> agent.ListConversationsResp
+	16, // 24: agent.RecommendService.ListConversationTurns:output_type -> agent.ListConversationTurnsResp
+	18, // 25: agent.RecommendService.DeleteConversation:output_type -> agent.DeleteConversationResp
+	20, // [20:26] is the sub-list for method output_type
+	14, // [14:20] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_agent_proto_agent_proto_init() }
@@ -1463,7 +1736,7 @@ func file_services_rpc_agent_proto_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_agent_proto_agent_proto_rawDesc), len(file_services_rpc_agent_proto_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

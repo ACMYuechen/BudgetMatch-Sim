@@ -59,6 +59,7 @@ func toPB(result *agentcore.Result) *pb.RecommendResp {
 		Intent:            toPBIntent(result.Intent),
 		Status:            result.Status,
 		DemandConflicts:   toPBConflicts(result.DemandConflicts),
+		Execution:         toPBExecution(result.Execution),
 		Items:             make([]*pb.BundleItem, 0, len(result.Items)),
 		TotalPriceCents:   result.TotalPriceCents,
 		Summary:           result.Summary,

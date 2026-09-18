@@ -373,6 +373,32 @@ type AgentDemandPlanResp struct {
 	TurnId            string                `json:"turn_id"`
 }
 
+type AgentDemandExecuteReq struct {
+	ConversationId string `json:"conversation_id" validate:"required,max=128"`
+	PlanTurnId     string `json:"plan_turn_id" validate:"required,max=128"`
+	TurnId         string `json:"turn_id,optional" validate:"max=128"`
+}
+
+type AgentDemandExecution struct {
+	PlanTurnId              string   `json:"plan_turn_id"`
+	Strategy                string   `json:"strategy"`
+	Scope                   string   `json:"scope"`
+	MappingVersion          string   `json:"mapping_version"`
+	MappingSha256           string   `json:"mapping_sha256"`
+	SnapshotCheckedAtMs     int64    `json:"snapshot_checked_at_ms"`
+	CoveredRequired         []string `json:"covered_required"`
+	MissingRequired         []string `json:"missing_required"`
+	CoveredOptional         []string `json:"covered_optional"`
+	UnscoredPreferences     []string `json:"unscored_preferences"`
+	MissingRequiredInWindow []string `json:"missing_required_in_window"`
+	SearchLimited           bool     `json:"search_limited"`
+	CandidateWindow         int32    `json:"candidate_window"`
+	InitialExpansions       int32    `json:"initial_expansions"`
+	FinalExpansions         int32    `json:"final_expansions"`
+	InitialStopReason       string   `json:"initial_stop_reason"`
+	FinalStopReason         string   `json:"final_stop_reason"`
+}
+
 type AgentBundleItem struct {
 	Id         string  `json:"id"`
 	Name       string  `json:"name"`
@@ -393,6 +419,7 @@ type AgentToolCall struct {
 type AgentRecommendResp struct {
 	Status            string                `json:"status,omitempty"`
 	DemandConflicts   []AgentDemandConflict `json:"demand_conflicts,omitempty"`
+	Execution         *AgentDemandExecution `json:"execution,omitempty"`
 	Intent            AgentIntent           `json:"intent"`
 	Items             []AgentBundleItem     `json:"items"`
 	TotalPriceCents   int64                 `json:"total_price_cents"`

@@ -218,6 +218,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: agent.AgentDemandPlanHandler(serverCtx),
 				},
 				{
+					// 执行已确认需求（显式演示模式，非实时商城库存）
+					Method:  http.MethodPost,
+					Path:    "/intent/execute",
+					Handler: agent.AgentDemandExecuteHandler(serverCtx),
+				},
+				{
 					// Agent 推荐
 					Method:  http.MethodPost,
 					Path:    "/recommend",

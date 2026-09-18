@@ -20,7 +20,9 @@ type (
 	DeleteConversationReq     = pb.DeleteConversationReq
 	DeleteConversationResp    = pb.DeleteConversationResp
 	DemandConflict            = pb.DemandConflict
+	DemandExecution           = pb.DemandExecution
 	DemandState               = pb.DemandState
+	ExecuteDemandReq          = pb.ExecuteDemandReq
 	Intent                    = pb.Intent
 	ListConversationTurnsReq  = pb.ListConversationTurnsReq
 	ListConversationTurnsResp = pb.ListConversationTurnsResp
@@ -35,6 +37,7 @@ type (
 	RecommendService interface {
 		Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error)
 		PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error)
+		ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error)
 		ListConversations(ctx context.Context, in *ListConversationsReq, opts ...grpc.CallOption) (*ListConversationsResp, error)
 		ListConversationTurns(ctx context.Context, in *ListConversationTurnsReq, opts ...grpc.CallOption) (*ListConversationTurnsResp, error)
 		DeleteConversation(ctx context.Context, in *DeleteConversationReq, opts ...grpc.CallOption) (*DeleteConversationResp, error)
@@ -59,6 +62,11 @@ func (m *defaultRecommendService) Recommend(ctx context.Context, in *RecommendRe
 func (m *defaultRecommendService) PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error) {
 	client := pb.NewRecommendServiceClient(m.cli.Conn())
 	return client.PlanDemand(ctx, in, opts...)
+}
+
+func (m *defaultRecommendService) ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error) {
+	client := pb.NewRecommendServiceClient(m.cli.Conn())
+	return client.ExecuteDemand(ctx, in, opts...)
 }
 
 func (m *defaultRecommendService) ListConversations(ctx context.Context, in *ListConversationsReq, opts ...grpc.CallOption) (*ListConversationsResp, error) {

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RecommendService_Recommend_FullMethodName             = "/agent.RecommendService/Recommend"
 	RecommendService_PlanDemand_FullMethodName            = "/agent.RecommendService/PlanDemand"
+	RecommendService_ExecuteDemand_FullMethodName         = "/agent.RecommendService/ExecuteDemand"
 	RecommendService_ListConversations_FullMethodName     = "/agent.RecommendService/ListConversations"
 	RecommendService_ListConversationTurns_FullMethodName = "/agent.RecommendService/ListConversationTurns"
 	RecommendService_DeleteConversation_FullMethodName    = "/agent.RecommendService/DeleteConversation"
@@ -32,6 +33,7 @@ const (
 type RecommendServiceClient interface {
 	Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error)
 	PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error)
+	ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error)
 	ListConversations(ctx context.Context, in *ListConversationsReq, opts ...grpc.CallOption) (*ListConversationsResp, error)
 	ListConversationTurns(ctx context.Context, in *ListConversationTurnsReq, opts ...grpc.CallOption) (*ListConversationTurnsResp, error)
 	DeleteConversation(ctx context.Context, in *DeleteConversationReq, opts ...grpc.CallOption) (*DeleteConversationResp, error)
@@ -59,6 +61,16 @@ func (c *recommendServiceClient) PlanDemand(ctx context.Context, in *PlanDemandR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PlanDemandResp)
 	err := c.cc.Invoke(ctx, RecommendService_PlanDemand_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recommendServiceClient) ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecommendResp)
+	err := c.cc.Invoke(ctx, RecommendService_ExecuteDemand_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +113,7 @@ func (c *recommendServiceClient) DeleteConversation(ctx context.Context, in *Del
 type RecommendServiceServer interface {
 	Recommend(context.Context, *RecommendReq) (*RecommendResp, error)
 	PlanDemand(context.Context, *PlanDemandReq) (*PlanDemandResp, error)
+	ExecuteDemand(context.Context, *ExecuteDemandReq) (*RecommendResp, error)
 	ListConversations(context.Context, *ListConversationsReq) (*ListConversationsResp, error)
 	ListConversationTurns(context.Context, *ListConversationTurnsReq) (*ListConversationTurnsResp, error)
 	DeleteConversation(context.Context, *DeleteConversationReq) (*DeleteConversationResp, error)
@@ -119,6 +132,9 @@ func (UnimplementedRecommendServiceServer) Recommend(context.Context, *Recommend
 }
 func (UnimplementedRecommendServiceServer) PlanDemand(context.Context, *PlanDemandReq) (*PlanDemandResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PlanDemand not implemented")
+}
+func (UnimplementedRecommendServiceServer) ExecuteDemand(context.Context, *ExecuteDemandReq) (*RecommendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteDemand not implemented")
 }
 func (UnimplementedRecommendServiceServer) ListConversations(context.Context, *ListConversationsReq) (*ListConversationsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListConversations not implemented")
@@ -182,6 +198,24 @@ func _RecommendService_PlanDemand_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RecommendServiceServer).PlanDemand(ctx, req.(*PlanDemandReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecommendService_ExecuteDemand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteDemandReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecommendServiceServer).ExecuteDemand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecommendService_ExecuteDemand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecommendServiceServer).ExecuteDemand(ctx, req.(*ExecuteDemandReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -254,6 +288,10 @@ var RecommendService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PlanDemand",
 			Handler:    _RecommendService_PlanDemand_Handler,
+		},
+		{
+			MethodName: "ExecuteDemand",
+			Handler:    _RecommendService_ExecuteDemand_Handler,
 		},
 		{
 			MethodName: "ListConversations",

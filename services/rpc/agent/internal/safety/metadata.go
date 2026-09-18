@@ -125,7 +125,7 @@ func ToolCalls(calls []agent.ToolCall) []agent.ToolCall {
 
 func toolLabel(name string) string {
 	switch name {
-	case "selector.fallback", "constraints.adjusted", "candidate.verify", "retrieval.keyword", "retrieval.vector", "retrieval.expand", "retrieval.fusion", "retrieval.conflict":
+	case "selector.fallback", "constraints.adjusted", "candidate.verify", "retrieval.keyword", "retrieval.vector", "retrieval.expand", "retrieval.fusion", "retrieval.conflict", "demand.demo_search", "demand.demo_recheck":
 		return name
 	}
 	for _, prefix := range []string{"tool.", "llm.", "primary."} {

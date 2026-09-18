@@ -85,6 +85,7 @@ func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommen
 		Intent:            mapIntent(resp.GetIntent()),
 		Status:            resp.GetStatus(),
 		DemandConflicts:   mapDemandConflicts(resp.GetDemandConflicts()),
+		Execution:         mapDemandExecution(resp.GetExecution()),
 		Items:             items,
 		TotalPriceCents:   resp.GetTotalPriceCents(),
 		Summary:           resp.GetSummary(),

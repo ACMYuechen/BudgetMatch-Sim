@@ -23,17 +23,35 @@ import (
 // 显式选择混合检索时要求完整 RAG 依赖，不适用缺失依赖时的演示降级。
 type Config struct {
 	zrpc.RpcServerConf
-	JwtAuth    auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
-	Model      model.Config          `json:"model,optional"`      // Model LLM 模型配置
-	Embedding  model.EmbeddingConfig `json:"embedding,optional"`  // Embedding 向量模型配置，未配置时 RAG 关闭
-	MCP        mcp.Config            `json:"mcp,optional"`        // MCP MCP 服务器配置
-	FileTools  filetools.Config      `json:"fileTools,optional"`  // FileTools LLM 文件工具的受限工作目录与访问限制
-	CacheRedis iredis.Config         `json:"cacheRedis,optional"` // CacheRedis PostgreSQL 会话的一级缓存；无数据库时可独立保存短期记忆
-	Memory     memory.Conf           `json:"memory,optional"`     // Memory 会话记忆行为配置（窗口/TTL）
-	MallRpc    zrpc.RpcClientConf    `json:"mallRpc,optional"`    // MallRpc 商城 RPC 客户端，未配置时商品数据用内存 mock
-	Database   database.Config       `json:"database,optional"`   // Database 会话持久化与商品向量表所在库；DSN 为空时记忆降级且 RAG 关闭
-	RAG        rag.Config            `json:"rag,optional"`        // RAG 检索与同步行为配置
-	IndexAuth  serviceauth.Config    `json:"indexAuth,optional"`  // IndexAuth 后台索引专用凭据，不用于在线用户搜索
+	JwtAuth         auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
+	Model           model.Config          `json:"model,optional"`      // Model LLM 模型配置
+	Embedding       model.EmbeddingConfig `json:"embedding,optional"`  // Embedding 向量模型配置，未配置时 RAG 关闭
+	MCP             mcp.Config            `json:"mcp,optional"`        // MCP MCP 服务器配置
+	FileTools       filetools.Config      `json:"fileTools,optional"`  // FileTools LLM 文件工具的受限工作目录与访问限制
+	CacheRedis      iredis.Config         `json:"cacheRedis,optional"` // CacheRedis PostgreSQL 会话的一级缓存；无数据库时可独立保存短期记忆
+	Memory          memory.Conf           `json:"memory,optional"`     // Memory 会话记忆行为配置（窗口/TTL）
+	MallRpc         zrpc.RpcClientConf    `json:"mallRpc,optional"`    // MallRpc 商城 RPC 客户端，未配置时商品数据用内存 mock
+	Database        database.Config       `json:"database,optional"`   // Database 会话持久化与商品向量表所在库；DSN 为空时记忆降级且 RAG 关闭
+	RAG             rag.Config            `json:"rag,optional"`        // RAG 检索与同步行为配置
+	IndexAuth       serviceauth.Config    `json:"indexAuth,optional"`  // IndexAuth 后台索引专用凭据，不用于在线用户搜索
+	DemandExecution DemandExecutionConfig `json:"demandExecution,optional"`
+}
+
+type DemandExecutionConfig struct {
+	Mode string `json:"mode,optional"` // empty/disabled or explicit demo; no live mode yet.
+}
+
+// ValidateDemandExecution must run before any external clients or database I/O.
+func (c Config) ValidateDemandExecution() error {
+	switch c.DemandExecution.Mode {
+	case "", "disabled":
+		return nil
+	case "demo":
+		if !c.MallConfigured() {
+			return nil
+		}
+	}
+	return fmt.Errorf("demand execution requires disabled mode or explicit demo mode without Mall")
 }
 
 // ValidateRetrieval rejects typos and unmet experimental dependencies before I/O.

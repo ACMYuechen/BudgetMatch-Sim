@@ -22,6 +22,10 @@ type IntentState struct {
 	// Private execution-mode marker, including first-turn clarification without
 	// an active Demand. Never map this metadata into the public intent contract.
 	PlanningOnly bool `json:"_demand_planning,omitempty"`
+	// Exact latest planning revision. Older records without these fields must
+	// be planned again before the dedicated execution method can consume them.
+	DemandPlanTurnID string `json:"_demand_plan_turn_id,omitempty"`
+	DemandPlanReady  bool   `json:"_demand_plan_ready,omitempty"`
 }
 
 // Conversation 是一个用户可恢复、可列出和可删除的长期会话。

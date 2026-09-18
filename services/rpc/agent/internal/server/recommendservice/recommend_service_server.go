@@ -33,6 +33,11 @@ func (s *RecommendServiceServer) PlanDemand(ctx context.Context, in *pb.PlanDema
 	return l.PlanDemand(in)
 }
 
+func (s *RecommendServiceServer) ExecuteDemand(ctx context.Context, in *pb.ExecuteDemandReq) (*pb.RecommendResp, error) {
+	l := recommendservicelogic.NewExecuteDemandLogic(ctx, s.svcCtx)
+	return l.ExecuteDemand(in)
+}
+
 func (s *RecommendServiceServer) ListConversations(ctx context.Context, in *pb.ListConversationsReq) (*pb.ListConversationsResp, error) {
 	l := recommendservicelogic.NewListConversationsLogic(ctx, s.svcCtx)
 	return l.ListConversations(in)
