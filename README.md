@@ -215,8 +215,9 @@ make docker-down
 - MCP 默认关闭，只注入精确白名单内且声明只读的工具；配置在 `services/rpc/agent/etc/config.yaml`。日志与公开工具记录只保留执行元数据，不记录正文或原始错误。
 - 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。
 - 已提供无外部依赖的离线规则评测：`go run ./services/rpc/agent/cmd/eval -format markdown`，64 条合成用例的终态门禁通过，可满足任务成功率为 25/40；原始失败基线保留，可用 `-compare` 对比。`-suite scripted` 另运行 16 个 Fake Model + 真实 ReAct 容错场景，不调用付费 API；真实向量/模型对照未运行。
+- `go run ./services/rpc/agent/cmd/eval -suite retrieval -format markdown` 比较固定排序输入上的关键词/向量单路消融、向量优先与 RRF；质量、故障、读取窗口和调用量分开报告。它不运行真实语义检索、不评估最终组合，也不自动切换默认策略。
 - 人工复核准备入口：`go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001`，输出全量工作单与待填写记录；`-check <review.json>` 校验数据版本和完整性，不认证人工身份、不自动通过验收。
-- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3.2 本地安全子步及 M3.3a 可选双路有界召回/RRF 已实现，默认仍为向量优先，下一步 M3.3b 检索回放与策略对比；旧索引迁移、真实数据库/服务验证、真实检索收益及面向用户的真实推荐流式尚未完成）。
+- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3.2 本地安全子步、M3.3a 有界双路召回/RRF、M3.3b 离线排序回放已交付，默认仍为向量优先；下一步修复回放反例后推进 M4。旧索引迁移、真实数据库/服务验证、真实检索收益及面向用户的真实推荐流式尚未完成）。
 
 ## 错误处理与日志规范
 
