@@ -4,18 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"time"
+
+	"budgetmatch-sim/services/rpc/agent/internal/agent"
 )
 
-// TurnStatusCompleted 表示一轮推荐已经生成结果并完成持久化。
+// TurnStatusCompleted 表示本轮处理已持久化；规划轮次不代表推荐成功。
 const TurnStatusCompleted = "completed"
 
 // IntentState 是跨轮次持久化的结构化推荐约束。
 // 它独立于滚动文本窗口，即使早期消息被短期缓存淘汰也能继续继承。
 type IntentState struct {
-	BudgetCents int64    `json:"budget_cents"`
-	MaxItems    int32    `json:"max_items"`
-	Keywords    []string `json:"keywords"`
-	Preferences []string `json:"preferences"`
+	BudgetCents int64              `json:"budget_cents"`
+	MaxItems    int32              `json:"max_items"`
+	Keywords    []string           `json:"keywords"`
+	Preferences []string           `json:"preferences"`
+	Demand      *agent.DemandState `json:"demand,omitempty"`
+	// Private execution-mode marker, including first-turn clarification without
+	// an active Demand. Never map this metadata into the public intent contract.
+	PlanningOnly bool `json:"_demand_planning,omitempty"`
 }
 
 // Conversation 是一个用户可恢复、可列出和可删除的长期会话。
@@ -93,15 +99,20 @@ func normalizePage(page, pageSize int) (int, int) {
 
 // cloneConversation 深拷贝切片字段，防止调用方修改存储中的结构化状态。
 func cloneConversation(conversation Conversation) Conversation {
-	conversation.State.Keywords = append([]string(nil), conversation.State.Keywords...)
-	conversation.State.Preferences = append([]string(nil), conversation.State.Preferences...)
+	conversation.State = cloneIntentState(conversation.State)
 	return conversation
 }
 
 // cloneTurn 深拷贝意图切片和 JSON 结果，保持存储实现的只读返回语义。
 func cloneTurn(turn Turn) Turn {
-	turn.Intent.Keywords = append([]string(nil), turn.Intent.Keywords...)
-	turn.Intent.Preferences = append([]string(nil), turn.Intent.Preferences...)
+	turn.Intent = cloneIntentState(turn.Intent)
 	turn.ResultJSON = append(json.RawMessage(nil), turn.ResultJSON...)
 	return turn
+}
+
+func cloneIntentState(state IntentState) IntentState {
+	state.Keywords = append([]string(nil), state.Keywords...)
+	state.Preferences = append([]string(nil), state.Preferences...)
+	state.Demand = agent.CloneDemand(state.Demand)
+	return state
 }

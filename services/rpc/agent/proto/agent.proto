@@ -18,6 +18,38 @@ message Intent {
   int32           max_items    = 2;
   repeated string keywords     = 3;
   repeated string preferences  = 4;
+  DemandState demand           = 5; // absent for legacy recommendation turns
+}
+
+message DemandState {
+  int32 schema_version = 1;
+  repeated string required = 2;
+  repeated string optional = 3;
+  repeated string excluded = 4;
+}
+
+message DemandConflict {
+  string code = 1;
+  string category = 2;
+}
+
+// Planning only: explicit, strict JSON patch; no model or product execution.
+message PlanDemandReq {
+  string query = 1;
+  int64 budget_cents = 2;
+  int32 max_items = 3;
+  string conversation_id = 4;
+  string turn_id = 5;
+  string demand_patch = 6; // max 8192 bytes; empty inherits/initializes
+}
+
+message PlanDemandResp {
+  Intent intent = 1;
+  string status = 2; // intent_ready / needs_clarification, never recommendation success
+  repeated DemandConflict conflicts = 3;
+  string conversation_id = 4;
+  string conversation_title = 5;
+  string turn_id = 6;
 }
 
 message BundleItem {
@@ -46,6 +78,8 @@ message RecommendResp {
   string              conversation_id    = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
   string              conversation_title = 7; // 会话稳定展示标题
   string              turn_id             = 8; // 本轮幂等 ID
+  string status = 9; // nonempty for planning-only history results
+  repeated DemandConflict demand_conflicts = 10;
 }
 
 message ConversationSummary {
@@ -105,6 +139,7 @@ message DeleteConversationResp {
 
 service RecommendService {
   rpc Recommend(RecommendReq) returns (RecommendResp) {}
+  rpc PlanDemand(PlanDemandReq) returns (PlanDemandResp) {}
   rpc ListConversations(ListConversationsReq) returns (ListConversationsResp) {}
   rpc ListConversationTurns(ListConversationTurnsReq) returns (ListConversationTurnsResp) {}
   rpc DeleteConversation(DeleteConversationReq) returns (DeleteConversationResp) {}

@@ -91,6 +91,8 @@ func (m *InMemory) FindTurn(_ context.Context, userId, conversationId, turnId st
 // SaveTurn 原子更新会话状态、完整轮次和供模型使用的滚动消息窗口。
 // 相同 turn_id 已存在时不会覆盖结果或增加轮次数。
 func (m *InMemory) SaveTurn(_ context.Context, req SaveTurnReq) (Conversation, Turn, error) {
+	// The caller must not retain a mutable alias into persisted state.
+	req.Intent = cloneIntentState(req.Intent)
 	if req.UserId == "" || req.ConversationId == "" || req.TurnId == "" {
 		return Conversation{}, Turn{}, fmt.Errorf("memory: user id, conversation id or turn id is empty")
 	}
@@ -127,7 +129,7 @@ func (m *InMemory) SaveTurn(_ context.Context, req SaveTurnReq) (Conversation, T
 	if conversation.Title == "" {
 		conversation.Title = req.Title
 	}
-	conversation.State = req.Intent
+	conversation.State = cloneIntentState(req.Intent)
 	conversation.Version++
 	conversation.TurnCount++
 	conversation.UpdatedAt = req.Now

@@ -336,10 +336,41 @@ type AgentRecommendReq struct {
 }
 
 type AgentIntent struct {
-	BudgetCents int64    `json:"budget_cents"`
-	MaxItems    int32    `json:"max_items"`
-	Keywords    []string `json:"keywords"`
-	Preferences []string `json:"preferences"`
+	BudgetCents int64             `json:"budget_cents"`
+	MaxItems    int32             `json:"max_items"`
+	Keywords    []string          `json:"keywords"`
+	Preferences []string          `json:"preferences"`
+	Demand      *AgentDemandState `json:"demand,omitempty"`
+}
+
+type AgentDemandState struct {
+	SchemaVersion int32    `json:"schema_version"`
+	Required      []string `json:"required"`
+	Optional      []string `json:"optional"`
+	Excluded      []string `json:"excluded"`
+}
+
+type AgentDemandConflict struct {
+	Code     string `json:"code"`
+	Category string `json:"category,omitempty"`
+}
+
+type AgentDemandPlanReq struct {
+	Query          string `json:"query" validate:"required,max=2000"`
+	BudgetCents    int64  `json:"budget_cents,optional" validate:"min=0,max=100000000000"`
+	MaxItems       int    `json:"max_items,optional" validate:"min=0,max=10"`
+	ConversationId string `json:"conversation_id,optional" validate:"max=128"`
+	TurnId         string `json:"turn_id,optional" validate:"max=128"`
+	DemandPatch    string `json:"demand_patch,optional" validate:"max=8192"`
+}
+
+type AgentDemandPlanResp struct {
+	Intent            AgentIntent           `json:"intent"`
+	Status            string                `json:"status"`
+	Conflicts         []AgentDemandConflict `json:"conflicts"`
+	ConversationId    string                `json:"conversation_id"`
+	ConversationTitle string                `json:"conversation_title"`
+	TurnId            string                `json:"turn_id"`
 }
 
 type AgentBundleItem struct {
@@ -360,14 +391,16 @@ type AgentToolCall struct {
 }
 
 type AgentRecommendResp struct {
-	Intent            AgentIntent       `json:"intent"`
-	Items             []AgentBundleItem `json:"items"`
-	TotalPriceCents   int64             `json:"total_price_cents"`
-	Summary           string            `json:"summary"`
-	ToolsUsed         []AgentToolCall   `json:"tools_used"`
-	ConversationId    string            `json:"conversation_id"`
-	ConversationTitle string            `json:"conversation_title"`
-	TurnId            string            `json:"turn_id"`
+	Status            string                `json:"status,omitempty"`
+	DemandConflicts   []AgentDemandConflict `json:"demand_conflicts,omitempty"`
+	Intent            AgentIntent           `json:"intent"`
+	Items             []AgentBundleItem     `json:"items"`
+	TotalPriceCents   int64                 `json:"total_price_cents"`
+	Summary           string                `json:"summary"`
+	ToolsUsed         []AgentToolCall       `json:"tools_used"`
+	ConversationId    string                `json:"conversation_id"`
+	ConversationTitle string                `json:"conversation_title"`
+	TurnId            string                `json:"turn_id"`
 }
 
 type AgentConversationSummary struct {

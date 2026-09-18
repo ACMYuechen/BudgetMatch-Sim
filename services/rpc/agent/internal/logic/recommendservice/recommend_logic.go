@@ -56,12 +56,9 @@ func (l *RecommendLogic) Recommend(in *pb.RecommendReq) (*pb.RecommendResp, erro
 // toPB 将 agentcore.Result 转换为 protobuf 的 RecommendResp 响应。
 func toPB(result *agentcore.Result) *pb.RecommendResp {
 	resp := &pb.RecommendResp{
-		Intent: &pb.Intent{
-			BudgetCents: result.Intent.BudgetCents,
-			MaxItems:    result.Intent.MaxItems,
-			Keywords:    result.Intent.Keywords,
-			Preferences: result.Intent.Preferences,
-		},
+		Intent:            toPBIntent(result.Intent),
+		Status:            result.Status,
+		DemandConflicts:   toPBConflicts(result.DemandConflicts),
 		Items:             make([]*pb.BundleItem, 0, len(result.Items)),
 		TotalPriceCents:   result.TotalPriceCents,
 		Summary:           result.Summary,

@@ -16,10 +16,36 @@ type Input struct {
 
 // Intent 表示从用户输入中解析出的意图，用于指导后续推荐逻辑。
 type Intent struct {
-	BudgetCents int64    `json:"budget_cents"` // BudgetCents 解析后的预算，单位为分
-	MaxItems    int32    `json:"max_items"`    // MaxItems 解析后的最大商品数量
-	Keywords    []string `json:"keywords"`     // Keywords 提取出的关键词列表
-	Preferences []string `json:"preferences"`  // Preferences 用户偏好标签列表
+	BudgetCents int64        `json:"budget_cents"`     // BudgetCents 解析后的预算，单位为分
+	MaxItems    int32        `json:"max_items"`        // MaxItems 解析后的最大商品数量
+	Keywords    []string     `json:"keywords"`         // Keywords 提取出的关键词列表
+	Preferences []string     `json:"preferences"`      // Preferences 用户偏好标签列表
+	Demand      *DemandState `json:"demand,omitempty"` // Non-nil identifies the structured demand contract.
+}
+
+// DemandState is a transport/persistence view. The demand package validates it
+// together with Intent's budget, count and canonical soft preferences.
+type DemandState struct {
+	SchemaVersion int      `json:"schema_version"`
+	Required      []string `json:"required"`
+	Optional      []string `json:"optional"`
+	Excluded      []string `json:"excluded"`
+}
+
+func CloneDemand(state *DemandState) *DemandState {
+	if state == nil {
+		return nil
+	}
+	copy := *state
+	copy.Required = append([]string{}, state.Required...)
+	copy.Optional = append([]string{}, state.Optional...)
+	copy.Excluded = append([]string{}, state.Excluded...)
+	return &copy
+}
+
+type DemandConflict struct {
+	Code     string `json:"code"`
+	Category string `json:"category,omitempty"`
 }
 
 // ProductCandidate 是商品数据源提供的事实快照，不从模型回答中反序列化。
@@ -59,6 +85,8 @@ type Result struct {
 	// Candidates 仅供本轮最终校验，不暴露到 JSON、RPC 或会话持久化结果。
 	Candidates        []ProductCandidate `json:"-"`
 	Selection         *SelectionScope    `json:"-"`
+	Status            string             `json:"status,omitempty"` // intent_ready / needs_clarification for planning-only turns.
+	DemandConflicts   []DemandConflict   `json:"demand_conflicts,omitempty"`
 	Intent            Intent             `json:"intent"`             // Intent 解析出的用户意图
 	Items             []BundleItem       `json:"items"`              // Items 推荐的商品列表
 	TotalPriceCents   int64              `json:"total_price_cents"`  // TotalPriceCents 推荐商品总价，单位为分

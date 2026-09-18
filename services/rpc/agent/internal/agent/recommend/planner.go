@@ -22,6 +22,9 @@ func NewPlanner() *Planner {
 // Resolve 是唯一的意图解析入口。非法或有歧义的约束必须返回错误，不能变为默认值。
 // 数值字段逐项遵循：当前显式值 > 当前文本 > 结构化状态 > 最近历史文本 > 默认值。
 func (p *Planner) Resolve(input agent.Input, historyQueries []string) (agent.Intent, error) {
+	if input.PriorIntent != nil && input.PriorIntent.Demand != nil {
+		return agent.Intent{}, agent.ErrDemandNotExecutable
+	}
 	if utf8.RuneCountInString(input.Query) > agent.MaxQueryRunes ||
 		input.BudgetCents < 0 || input.BudgetCents > agent.MaxBudgetCents ||
 		input.MaxItems < 0 || input.MaxItems > agent.MaxItems {
@@ -121,6 +124,7 @@ func parsePartial(input agent.Input) (agent.Intent, error) {
 func cloneIntent(intent agent.Intent) agent.Intent {
 	intent.Keywords = append([]string(nil), intent.Keywords...)
 	intent.Preferences = append([]string(nil), intent.Preferences...)
+	intent.Demand = agent.CloneDemand(intent.Demand)
 	return intent
 }
 

@@ -24,6 +24,9 @@ type Constraints struct {
 
 // NewConstraints 检查已解析的预算与件数，所有运行路径使用相同边界。
 func NewConstraints(intent Intent) (Constraints, error) {
+	if intent.Demand != nil {
+		return Constraints{}, ErrDemandNotExecutable
+	}
 	if intent.BudgetCents <= 0 || intent.BudgetCents > MaxBudgetCents {
 		return Constraints{}, fmt.Errorf("%w: resolved budget is outside 1..%d", ErrInvalidInput, MaxBudgetCents)
 	}

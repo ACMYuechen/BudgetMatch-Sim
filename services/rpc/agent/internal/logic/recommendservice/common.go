@@ -26,7 +26,28 @@ func authenticatedUserId(ctx context.Context) (string, error) {
 // toPBIntentState 将存储层结构化约束转换为公开 RPC 意图类型。
 func toPBIntentState(state memory.IntentState) *pb.Intent {
 	return &pb.Intent{BudgetCents: state.BudgetCents, MaxItems: state.MaxItems,
-		Keywords: state.Keywords, Preferences: state.Preferences}
+		Keywords: state.Keywords, Preferences: state.Preferences, Demand: toPBDemand(state.Demand)}
+}
+
+func toPBIntent(intent agentcore.Intent) *pb.Intent {
+	return &pb.Intent{BudgetCents: intent.BudgetCents, MaxItems: intent.MaxItems,
+		Keywords: intent.Keywords, Preferences: intent.Preferences, Demand: toPBDemand(intent.Demand)}
+}
+
+func toPBDemand(state *agentcore.DemandState) *pb.DemandState {
+	if state == nil {
+		return nil
+	}
+	return &pb.DemandState{SchemaVersion: int32(state.SchemaVersion), Required: state.Required,
+		Optional: state.Optional, Excluded: state.Excluded}
+}
+
+func toPBConflicts(issues []agentcore.DemandConflict) []*pb.DemandConflict {
+	out := make([]*pb.DemandConflict, 0, len(issues))
+	for _, issue := range issues {
+		out = append(out, &pb.DemandConflict{Code: issue.Code, Category: issue.Category})
+	}
+	return out
 }
 
 // toPBConversation 将领域会话转换为不暴露内部 user_id 和 version 的摘要。

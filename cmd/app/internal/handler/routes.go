@@ -212,6 +212,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.AuthMiddleware},
 			[]rest.Route{
 				{
+					// Agent 需求规划（不执行推荐）
+					Method:  http.MethodPost,
+					Path:    "/intent/plan",
+					Handler: agent.AgentDemandPlanHandler(serverCtx),
+				},
+				{
 					// Agent 推荐
 					Method:  http.MethodPost,
 					Path:    "/recommend",
