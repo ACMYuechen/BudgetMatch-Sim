@@ -77,12 +77,12 @@ func TestRetrievalReplayUsesProductionPoliciesAndRetainsRegressions(t *testing.T
 	require.Equal(t, []string{"k1", "k2", "k3", "k4"}, hybrid.ReturnedIDs)
 	require.Equal(t, []RetrievalRead{{"keyword", 8}, {"keyword", 16}, {"vector", 8}, {"vector", 16}}, hybrid.Reads)
 	baseline := retrievalCaseResult(t, r, "vector_first", "filtered_prefix")
-	// The legacy provider accepts a zero-price snapshot before the common guard
-	// drops it, so it does not trigger keyword fallback. Preserve this countercase.
-	require.Empty(t, baseline.ReturnedIDs)
-	require.Equal(t, 1, baseline.RawCount)
-	require.False(t, baseline.Fallback)
-	require.Equal(t, []RetrievalRead{{"vector", 8}}, baseline.Reads)
+	// The fixed provider filters unusable snapshots before deciding fallback.
+	// The original failure remains frozen in retrieval-baseline.v1.
+	require.Equal(t, []string{"k1", "k2", "k3", "k4"}, baseline.ReturnedIDs)
+	require.Equal(t, 4, baseline.RawCount)
+	require.True(t, baseline.Fallback)
+	require.Equal(t, []RetrievalRead{{"keyword", 16}, {"vector", 8}}, baseline.Reads)
 	require.Equal(t, "ok", retrievalCaseResult(t, r, "vector_first", "empty_keyword_vector_failed").Outcome)
 	require.Equal(t, "unavailable", retrievalCaseResult(t, r, "hybrid_rrf", "empty_keyword_vector_failed").Outcome)
 	require.Equal(t, "ok", retrievalCaseResult(t, r, "vector_first", "keyword_denied").Outcome)
@@ -248,15 +248,37 @@ func TestRetrievalAdaptersAreBlindToAnnotations(t *testing.T) {
 }
 
 func TestArchivedRetrievalReportMatchesFixtureMetricsAndMarkdown(t *testing.T) {
+	for _, tc := range []struct{ directory, revision string }{
+		{"retrieval-baseline.v1", "0d4c823+M3.3b-worktree"},
+		{"retrieval-baseline.v2", "ba9e0ed+M4.1a-worktree"},
+	} {
+		t.Run(tc.directory, func(t *testing.T) {
+			report := assertArchivedRetrievalReport(t, tc.directory, tc.revision)
+			out := retrievalCaseResult(t, report, "vector_first", "filtered_prefix")
+			if tc.directory == "retrieval-baseline.v1" {
+				require.Empty(t, out.ReturnedIDs)
+				require.False(t, out.Fallback)
+				require.Equal(t, 1, out.RawCount)
+			} else {
+				require.Equal(t, []string{"k1", "k2", "k3", "k4"}, out.ReturnedIDs)
+				require.True(t, out.Fallback)
+				require.Equal(t, 4, out.RawCount)
+			}
+		})
+	}
+}
+
+func assertArchivedRetrievalReport(t *testing.T, directory, revision string) RetrievalReport {
+	t.Helper()
 	d := retrievalDataset(t)
-	data, err := os.ReadFile("../../testdata/eval/retrieval-baseline.v1/report.json")
+	data, err := os.ReadFile("../../testdata/eval/" + directory + "/report.json")
 	require.NoError(t, err)
 	var report RetrievalReport
 	require.NoError(t, decodeStrict(data, &report))
 	require.Equal(t, 1, report.SchemaVersion)
 	require.Equal(t, d.sha256, report.Metadata.DatasetSHA256)
 	require.Equal(t, d.fixture.TopK, report.Metadata.TopK)
-	require.Equal(t, "0d4c823+M3.3b-worktree", report.Metadata.CodeRevision)
+	require.Equal(t, revision, report.Metadata.CodeRevision)
 	require.True(t, report.GatePassed)
 	require.Len(t, report.Strategies, 4)
 	for _, strategy := range report.Strategies {
@@ -286,9 +308,10 @@ func TestArchivedRetrievalReportMatchesFixtureMetricsAndMarkdown(t *testing.T) {
 		}
 		require.Equal(t, summarizeRetrieval(strategy.Cases, d.fixture.TopK), strategy.Summary)
 	}
-	md, err := os.ReadFile("../../testdata/eval/retrieval-baseline.v1/report.md")
+	md, err := os.ReadFile("../../testdata/eval/" + directory + "/report.md")
 	require.NoError(t, err)
 	require.Equal(t, RetrievalMarkdown(report), string(md))
 	// Do not compare frozen results with the current provider: a later fix must
 	// be able to produce a NEW report while keeping this original counterexample.
+	return report
 }

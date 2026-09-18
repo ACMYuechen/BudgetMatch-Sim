@@ -70,7 +70,7 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 		return p.fallback.SearchProducts(ctx, req)
 	}
 
-	var out []ProductCandidate
+	var snapshots []ProductCandidate
 	for _, doc := range docs {
 		meta, ok := rag.CandidateFromDocument(doc)
 		if !ok {
@@ -89,10 +89,14 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 			Sold:       meta.Sold,
 			Tags:       meta.Tags,
 		}
+		snapshots = append(snapshots, candidate)
+	}
+	// Match the downstream eligibility contract before deciding whether to fall
+	// back. Merge duplicate snapshots first: a later invalid snapshot must not
+	// revive an earlier usable one or suppress keyword fallback.
+	var out []ProductCandidate
+	for _, candidate := range agentcore.NormalizeCandidates(snapshots) {
 		if math.IsNaN(candidate.Evidence.Relevance) || math.IsInf(candidate.Evidence.Relevance, 0) {
-			continue
-		}
-		if candidate.Stock <= 0 {
 			continue
 		}
 		if req.BudgetCents > 0 && candidate.PriceCents > req.BudgetCents {
@@ -102,7 +106,7 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 	}
 
 	if len(out) == 0 {
-		// 首轮同步未完成、阈值过严或快照无货，回退关键词链路。
+		// 首轮同步未完成、阈值过严或快照无效/无货，回退关键词链路。
 		logx.WithContext(ctx).Infow("rag retrieval returned no usable candidates, falling back",
 			logx.Field("provider", safety.Label(p.fallback.Name())), logx.Field("retrieved", len(docs)))
 		return p.fallback.SearchProducts(ctx, req)
