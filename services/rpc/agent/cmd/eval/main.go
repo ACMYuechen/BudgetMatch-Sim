@@ -1,4 +1,4 @@
-// Command eval 运行规则基线、脚本模型容错或检索排序回放；不读取 .env 或服务配置，不构建外部客户端。
+// Command eval 运行规则基线、脚本模型容错、检索或需求快照回放；不读取 .env 或服务配置，不构建外部客户端。
 package main
 
 import (
@@ -28,8 +28,9 @@ func main() {
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("agent-eval", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	suite := flags.String("suite", "rule", "rule, scripted (Fake Model + real ReAct), or retrieval (offline rank replay)")
+	suite := flags.String("suite", "rule", "rule, scripted (Fake Model + real ReAct), retrieval (offline ranks), or demand (offline selection + check replay)")
 	retrievalFixture := flags.String("retrieval-fixture", "services/rpc/agent/testdata/eval/retrieval.v1.json", "retrieval suite only: versioned synthetic rankings and protocol bounds")
+	demandFixture := flags.String("demand-fixture", "services/rpc/agent/testdata/eval/demand.v1.json", "demand suite only: versioned synthetic facts, demands and check faults")
 	compare := flags.String("compare", "", "optional prior rule report.json; requires identical inputs and protocol")
 	snapshot := flags.String("snapshot", "services/rpc/agent/testdata/eval/products.v1.json", "fixed synthetic product snapshot")
 	cases := flags.String("cases", "services/rpc/agent/testdata/eval/cases.v1.jsonl", "fixed JSONL case set")
@@ -44,9 +45,40 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 2
 	}
-	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") || (*suite != "rule" && *suite != "scripted" && *suite != "retrieval") {
+	if flags.NArg() != 0 || (*format != "json" && *format != "markdown") || (*suite != "rule" && *suite != "scripted" && *suite != "retrieval" && *suite != "demand") {
 		fmt.Fprintln(stderr, "invalid arguments or output format")
 		return 2
+	}
+	if *suite == "demand" {
+		invalid := false
+		flags.Visit(func(f *flag.Flag) {
+			switch f.Name {
+			case "suite", "demand-fixture", "revision", "format", "out":
+			default:
+				invalid = true
+			}
+		})
+		if invalid {
+			fmt.Fprintln(stderr, "demand suite uses fixed protocol bounds; other suite flags are not accepted")
+			return 2
+		}
+		f, err := os.Open(*demandFixture)
+		if err != nil {
+			fmt.Fprintln(stderr, "cannot open demand fixture")
+			return 2
+		}
+		defer f.Close()
+		dataset, err := eval.LoadDemand(f)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		report, err := eval.RunDemand(ctx, dataset, *revision)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
+		}
+		return emit(report, eval.DemandMarkdown(report), report.GatePassed, *format, *out, stdout, stderr)
 	}
 	if *suite == "retrieval" {
 		invalid := false
@@ -81,12 +113,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	invalidFixtureFlag := false
 	flags.Visit(func(f *flag.Flag) {
-		if f.Name == "retrieval-fixture" {
+		if f.Name == "retrieval-fixture" || f.Name == "demand-fixture" {
 			invalidFixtureFlag = true
 		}
 	})
 	if invalidFixtureFlag {
-		fmt.Fprintln(stderr, "retrieval-fixture requires retrieval suite")
+		fmt.Fprintln(stderr, "fixture flag requires its matching suite")
 		return 2
 	}
 	if *suite == "scripted" {
