@@ -25,3 +25,28 @@ type ProductProvider interface {
 	// SearchProducts 根据请求搜索候选商品。
 	SearchProducts(ctx context.Context, req SearchProductsReq) ([]ProductCandidate, error)
 }
+
+// RankedProductProvider returns a bounded RAW keyword window in provider order.
+// Invalid price/stock facts are retained so fusion can invalidate older copies.
+// This is internal-only; model tool arguments cannot raise the window size.
+type RankedProductProvider interface {
+	SearchRankedProducts(context.Context, SearchProductsReq, int) ([]ProductCandidate, error)
+}
+
+// ProductSearch is per request. Providers must not store a mutable "last trace".
+type ProductSearch struct {
+	Candidates []ProductCandidate
+	Calls      []agent.ToolCall
+}
+
+type TracedProductProvider interface {
+	SearchProductsWithTrace(context.Context, SearchProductsReq) (ProductSearch, error)
+}
+
+func SearchWithTrace(ctx context.Context, provider ProductProvider, req SearchProductsReq) (ProductSearch, error) {
+	if traced, ok := provider.(TracedProductProvider); ok {
+		return traced.SearchProductsWithTrace(ctx, req)
+	}
+	candidates, err := provider.SearchProducts(ctx, req)
+	return ProductSearch{Candidates: candidates}, err
+}

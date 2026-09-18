@@ -47,7 +47,12 @@ Database:
 
 # RAG 检索与商品向量同步
 RAG:
-  TopK: 10                  # 向量检索召回上限
+  TopK: 10                  # 默认向量召回上限；混合策略的最终候选数
+  Retrieval:
+    Strategy: vector_first  # 默认基线；hybrid_rrf 为显式实验，要求完整 RAG 配置
+    InitialK: 16            # 实验每路初始窗口；TopK <= InitialK <= MaxK <= 64
+    MaxK: 64                # 候选不足最多扩召回一次；实验最终 TopK <= 32
+    TimeoutMillis: 3000     # 实验总检索时限 100..10000ms；每轮双路并发，共享一半时限
   ScoreThreshold: 0         # 余弦相似度下限[0,1]，0 不过滤
   SyncIntervalSeconds: 600  # 商品向量定时同步间隔；负数=仅启动同步一次
   SyncPageSize: 100         # Mall 快照分页，最多 200；全流另限 30 秒/5 万 SKU/32 MiB

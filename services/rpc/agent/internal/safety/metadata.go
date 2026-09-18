@@ -84,7 +84,7 @@ func Label(value string) string {
 	switch value {
 	case "", "search_products", "select_bundle", "read_file", "write_file", "model",
 		"ChatModel", "Tool", "Retriever", "Embedding", "Indexer", "Loader", "Graph", "Lambda",
-		"OpenAI", "rag.sync", "llm", "recommend_agent", "mall.product_provider", "mock.product_provider", "rag.pgvector":
+		"OpenAI", "rag.sync", "llm", "recommend_agent", "mall.product_provider", "mock.product_provider", "rag.pgvector", "rag.hybrid_rrf":
 		return value
 	default:
 		return fmt.Sprintf("external_%x", sha256.Sum256([]byte(value)))[:25]
@@ -125,7 +125,7 @@ func ToolCalls(calls []agent.ToolCall) []agent.ToolCall {
 
 func toolLabel(name string) string {
 	switch name {
-	case "selector.fallback", "constraints.adjusted", "candidate.verify":
+	case "selector.fallback", "constraints.adjusted", "candidate.verify", "retrieval.keyword", "retrieval.vector", "retrieval.expand", "retrieval.fusion", "retrieval.conflict":
 		return name
 	}
 	for _, prefix := range []string{"tool.", "llm.", "primary."} {

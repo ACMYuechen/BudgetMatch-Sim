@@ -3,6 +3,7 @@ package svc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"budgetmatch-sim/infra/database"
@@ -21,6 +22,7 @@ import (
 	"budgetmatch-sim/services/rpc/mall/client/productindexservice"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
+	"github.com/cloudwego/eino/components/retriever"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -46,6 +48,9 @@ type ServiceContext struct {
 //   - 无 Model：LLM Agent 不启用，推荐走确定性规则。
 func NewServiceContext(c config.Config) *ServiceContext {
 	// Validate before opening databases, creating tables or initializing external models.
+	if err := c.ValidateRetrieval(); err != nil {
+		panic(err)
+	}
 	if err := c.ValidateIndexAuth(); err != nil {
 		panic(err)
 	}
@@ -108,7 +113,7 @@ func newProductProvider(mallClient productservice.ProductService) tools.ProductP
 }
 
 // maybeEnableRAG 在依赖齐备时开启语义检索：建向量存储、启动后台同步，
-// 并把关键词 provider 包装为"向量优先、关键词回退"的 RAG provider。
+// 并按显式策略装配 provider；默认仍是"向量优先、关键词回退"。
 // 依赖不齐时原样返回入参 provider，并说明缺了什么。
 func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, *rag.Syncer) {
@@ -148,12 +153,31 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 		panic(safety.Protect(err))
 	}
 
+	provider, err := newRAGProvider(c.RAG, rag.NewRetriever(store), fallback)
+	if err != nil {
+		panic(safety.Protect(err))
+	}
 	syncer := rag.NewSyncer(pipeline, c.RAG)
 	syncer.Start()
 	proc.AddShutdownListener(syncer.Stop)
 
 	logx.Info("rag enabled: semantic product retrieval over pgvector")
-	return tools.NewRAGProductProvider(rag.NewRetriever(store), fallback, c.RAG.Normalize().TopK), syncer
+	return provider, syncer
+}
+
+// newRAGProvider is a no-I/O strategy selector, also used by config regressions.
+func newRAGProvider(cfg rag.Config, vector retriever.Retriever, keyword tools.ProductProvider) (tools.ProductProvider, error) {
+	if err := cfg.Retrieval.Validate(cfg.TopK); err != nil {
+		return nil, err
+	}
+	if cfg.Retrieval.Normalize().Strategy == rag.StrategyVectorFirst {
+		return tools.NewRAGProductProvider(vector, keyword, cfg.Normalize().TopK), nil
+	}
+	bounded, ok := keyword.(tools.RankedProductProvider)
+	if !ok {
+		return nil, fmt.Errorf("hybrid retrieval requires a bounded keyword provider")
+	}
+	return tools.NewHybridProductProvider(vector, bounded, cfg)
 }
 
 // newMemoryManager 根据可用依赖组装会话记忆：PostgreSQL 是持久层，Redis 是一级缓存；

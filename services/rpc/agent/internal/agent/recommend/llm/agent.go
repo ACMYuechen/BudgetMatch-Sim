@@ -217,6 +217,7 @@ func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agen
 		if items2Err != nil {
 			return nil, items2Err
 		}
+		_, _, calls = s.snapshot() // include fallback retrieval diagnostics
 		calls = append(calls, agentcore.ToolCall{
 			Name:    "selector.fallback",
 			Success: len(items) > 0,
@@ -258,16 +259,19 @@ func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, inten
 		return nil, 0, err
 	}
 	if !s.hasCandidates() {
-		products, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
+		search, err := tools.SearchWithTrace(ctx, a.provider, tools.SearchProductsReq{
 			Query:       input.Query,
 			Keywords:    intent.Keywords,
 			BudgetCents: intent.BudgetCents,
 			MaxItems:    intent.MaxItems,
 		})
+		for _, call := range safety.ToolCalls(search.Calls) {
+			s.recordCall(call)
+		}
 		if err != nil {
 			return nil, 0, err
 		}
-		s.storeCandidates(products)
+		s.storeCandidates(search.Candidates)
 	}
 	items, total := a.selector.Select(s.filterCandidates(nil), intent)
 	return items, total, nil

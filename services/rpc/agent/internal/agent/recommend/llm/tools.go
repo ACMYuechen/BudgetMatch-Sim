@@ -8,6 +8,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/filetools"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/tool"
@@ -163,18 +164,22 @@ func (s *session) searchProducts(ctx context.Context, args searchArgs) (*searchR
 			return nil, fmt.Errorf("%w: tool keyword is too long", agentcore.ErrInvalidInput)
 		}
 	}
-	products, err := s.provider.SearchProducts(ctx, tools.SearchProductsReq{
+	search, err := tools.SearchWithTrace(ctx, s.provider, tools.SearchProductsReq{
 		Query:       args.Query,
 		Keywords:    args.Keywords,
 		BudgetCents: limits.BudgetCents,
 		MaxItems:    limits.MaxItems,
 	})
+	for _, call := range safety.ToolCalls(search.Calls) {
+		s.recordCall(call)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	products := search.Candidates
 	s.storeCandidates(products)
 	// 原始快照先入会话，使后来的缺货/非法快照也能使旧候选失效。
 	products = agentcore.NormalizeCandidates(products)

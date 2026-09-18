@@ -68,7 +68,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	candidates, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
+	search, err := tools.SearchWithTrace(ctx, a.provider, tools.SearchProductsReq{
 		Query:       input.Query,
 		Keywords:    intent.Keywords,
 		BudgetCents: intent.BudgetCents,
@@ -77,11 +77,13 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	if err != nil {
 		return nil, err
 	}
+	candidates := search.Candidates
 
 	items, total := a.selector.Select(candidates, intent)
 	toolsUsed := []agentcore.ToolCall{
 		{Name: safety.Label(a.provider.Name()), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
 	}
+	toolsUsed = append(toolsUsed, safety.ToolCalls(search.Calls)...)
 
 	result := &agentcore.Result{
 		Candidates:      candidates,

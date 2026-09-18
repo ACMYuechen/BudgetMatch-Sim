@@ -22,6 +22,7 @@ const (
 // observed start of the source read (0 = unknown/legacy), not a row update time.
 // VerifiedAtUnixMs is a past check, never a promise or stock reservation.
 type CandidateEvidence struct {
+	Ranking           CandidateRanking
 	Source            RetrievalSource
 	ProductID         string
 	Relevance         float64
@@ -30,6 +31,16 @@ type CandidateEvidence struct {
 	RetrievedAtUnixMs int64
 	State             VerificationState
 	VerifiedAtUnixMs  int64
+}
+
+// CandidateRanking keeps lane ranks and fusion score separate from the vector
+// similarity in Relevance. Zero lane rank means this lane did not contribute.
+// Neither a fusion score nor a similarity is a probability or a live check.
+type CandidateRanking struct {
+	Method      string
+	KeywordRank int
+	VectorRank  int
+	FusionScore float64
 }
 
 // SelectionScope preserves the last select_bundle's allowed IDs and tightened

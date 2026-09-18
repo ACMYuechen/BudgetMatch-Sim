@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/database"
 	iredis "budgetmatch-sim/infra/redis"
@@ -18,6 +20,7 @@ import (
 // Model/Embedding/Database/MallRpc/CacheRedis 均可选，任意缺失都能启动，
 // 服务按可用依赖自动降级（见 svc.NewServiceContext 的组装逻辑）。
 // 已声明 RAG 依赖时，IndexAuth 缺失或不合法会阻止启动，不静默降级。
+// 显式选择混合检索时要求完整 RAG 依赖，不适用缺失依赖时的演示降级。
 type Config struct {
 	zrpc.RpcServerConf
 	JwtAuth    auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
@@ -31,6 +34,17 @@ type Config struct {
 	Database   database.Config       `json:"database,optional"`   // Database 会话持久化与商品向量表所在库；DSN 为空时记忆降级且 RAG 关闭
 	RAG        rag.Config            `json:"rag,optional"`        // RAG 检索与同步行为配置
 	IndexAuth  serviceauth.Config    `json:"indexAuth,optional"`  // IndexAuth 后台索引专用凭据，不用于在线用户搜索
+}
+
+// ValidateRetrieval rejects typos and unmet experimental dependencies before I/O.
+func (c Config) ValidateRetrieval() error {
+	if err := c.RAG.Retrieval.Validate(c.RAG.TopK); err != nil {
+		return err
+	}
+	if c.RAG.Retrieval.Normalize().Strategy == rag.StrategyHybridRRF && !c.RAGConfigured() {
+		return fmt.Errorf("hybrid retrieval requires configured Mall, database and embedding")
+	}
+	return nil
 }
 
 // MallConfigured 返回是否配置了 mall-rpc 数据源。
