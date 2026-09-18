@@ -216,8 +216,9 @@ make docker-down
 - 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。
 - 已提供无外部依赖的离线规则评测：`go run ./services/rpc/agent/cmd/eval -format markdown`，64 条合成用例的终态门禁通过，可满足任务成功率为 25/40；原始失败基线保留，可用 `-compare` 对比。`-suite scripted` 另运行 16 个 Fake Model + 真实 ReAct 容错场景，不调用付费 API；真实向量/模型对照未运行。
 - `go run ./services/rpc/agent/cmd/eval -suite retrieval -format markdown` 比较固定排序输入上的关键词/向量单路消融、向量优先与 RRF；质量、故障、读取窗口和调用量分开报告。它不运行真实语义检索、不评估最终组合，也不自动切换默认策略。
+- `go run ./services/rpc/agent/cmd/eval -suite demand -format markdown` 另跑同快照贪心/Beam 及受限策略对照、独立穷举和商城核验内存回放；保留漏解反例，分开报告安全、覆盖和计算开销。仅为合成回归，不改旧基线、线上策略或真实配置，详见 [M4.3a 报告](services/rpc/agent/testdata/eval/demand-baseline.v1/report.md)。
 - 人工复核准备入口：`go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001`，输出全量工作单与待填写记录；`-check <review.json>` 校验数据版本和完整性，不认证人工身份、不自动通过验收。
-- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3 本地安全/检索实验已交付，默认仍为向量优先。M4.1 规划、M4.2a/b 有界搜索与独立演示执行、M4.2c Mall 分类核验及重选已完成本地实现：`/intent/execute` 默认关闭，显式 `mall` 模式使用有界关键词检索、独立分类表和两次事实核验；未执行迁移、回填或启用实例，不代表真实数据已验收。规划仍不推荐，旧入口继续拒绝规划会话。下一步 M4.3 同口径效果/开销报告；真实数据库/服务与分类数据验收、向量链效果及真实流式仍未完成）。
+- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3 本地安全/检索实验已交付，默认仍为向量优先。M4.1 规划、M4.2a/b 有界搜索与独立演示执行、M4.2c Mall 分类核验及重选、M4.3a 离线效果/反例/开销报告已完成本地实现：`/intent/execute` 默认关闭，显式 `mall` 模式使用有界关键词检索、独立分类表和两次事实核验；未执行迁移、回填或启用实例，不代表真实数据已验收。规划仍不推荐，旧入口继续拒绝规划会话。下一本地步 M5.1 流式契约及身份/取消边界；M4.3b 真实数据库/服务与分类数据验收、向量链效果及真实流式仍未完成）。
 
 ## 错误处理与日志规范
 
