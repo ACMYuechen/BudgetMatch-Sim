@@ -1,6 +1,6 @@
-// Package beam provides a bounded, deterministic DEMO-SNAPSHOT search
-// experiment. It is not wired to recommendation routes, tools or finalizers.
-// A complete result only satisfies supplied constraints in the supplied demo
+// Package beam provides bounded, deterministic search over evidence-bound
+// snapshots. The separate demand executor supplies either demo or Mall facts.
+// A complete result only satisfies supplied constraints in the supplied
 // snapshots; it neither checks live stock nor claims global optimality.
 package beam
 

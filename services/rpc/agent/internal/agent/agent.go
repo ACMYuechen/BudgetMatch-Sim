@@ -48,7 +48,7 @@ type DemandConflict struct {
 	Category string `json:"category,omitempty"`
 }
 
-// DemandExecution describes bounded demo-snapshot execution, not live stock or
+// DemandExecution describes bounded snapshot execution, not reserved stock or
 // global feasibility. Nil preserves the legacy response and persisted JSON.
 type DemandExecution struct {
 	PlanTurnID              string   `json:"plan_turn_id"`

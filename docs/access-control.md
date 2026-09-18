@@ -108,7 +108,7 @@
 | `/api/seckill/orders/:order_id` | GET | 用户；RPC 从认证上下文判断订单归属 |
 | `/api/agent/recommend` | POST | 用户；只使用当前用户的会话空间 |
 | `/api/agent/intent/plan` | POST | 用户；只规划/保存本人需求，不执行模型、检索或推荐 |
-| `/api/agent/intent/execute` | POST | 用户；仅执行本人当前已就绪的规划轮次；默认关闭，显式 demo 模式不连接真实商城 |
+| `/api/agent/intent/execute` | POST | 用户；仅执行本人当前已就绪的规划轮次；默认关闭，显式 demo/mall 模式分别使用隔离演示/用户身份商城核验 |
 | `/api/agent/recommend/stream` | POST | 同上；HTTP SSE 包装，同样要求 Authorization，不是独立免鉴权流接口 |
 | `/api/agent/conversations` | GET | 用户；只列出本人会话 |
 | `/api/agent/conversations/:conversation_id/turns` | GET | 用户；只查看本人会话轮次 |
@@ -192,7 +192,7 @@
 | `ProductService.CreateProduct`、`ProductService.UpdateProduct`、`ProductService.DeleteProduct` | 管理员 | 全局商品管理，不校验当前管理员是否为商品创建者 |
 | `ProductService.CreateSku`、`ProductService.UpdateSku`、`ProductService.DeleteSku` | 管理员 | 全局 SKU 管理 |
 | `ProductService.GetProduct`、`ProductService.ListProducts`、`ProductService.GetSku`、`ProductService.ListSkusByProduct` | 用户 | 请求筛选条件不是调用者身份；没有商户/租户隔离 |
-| `ProductService.CheckProductCandidates` | 用户 | 一次无缓存 SQL 核对最多 32 个 SKU；只读双方上架且未删除的 SPU/SKU 最小事实，不含所有者/内部评价/订单；索引和支付服务 Token 均不能调用，非库存预占 |
+| `ProductService.CheckProductCandidates` | 用户 | 一次无缓存 SQL 核对最多 32 个 SKU；默认只读 SPU/SKU 最小事实，显式 `include_demand_category` 才联接运营分类表；不含所有者/内部评价/订单，索引和支付服务 Token 均不能调用，非库存预占 |
 | `ProductIndexService.ListProductIndex` | 服务专用 | 只接受 agent-rpc → mall-rpc、用途 `product-index:read` 的独立服务 JWT；logic 再检查调用方/用途，只读未软删除且 SPU/SKU 均上架的索引字段，不返回所有者、内部评价或订单数据 |
 | `ProductIndexService.ScanProductIndex`（服务端流） | 服务专用 | 同一独立凭据/调用方/受众/用途；生产流式拦截器验证建流身份，logic 再校验。同一只读数据库快照、30 秒内传输 deadline、每实例单扫描及条数/载荷限制；完成帧只在源事务成功后发送 |
 | `OrderService.CreateOrder` | 用户 | 使用请求 `UserId`，未绑定 `ContextKeyUserId` |
@@ -251,7 +251,9 @@
 
 RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user_id, conversation_id)` 复合身份，Redis/内存实现也按用户分区。同一 `conversation_id` 可以在不同用户空间出现，并不意味着共享会话。管理员使用这些接口仍只能访问自己的会话。
 
-结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 仅在未配置 MallRpc 时允许，其他模式或混用真实 Mall 在创建外部依赖前拒绝启动。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求执行可重放原演示结果，不重查商品；即使之后关闭模式也不会把历史快照标记为实时。`_demand_plan_turn_id`、`_demand_plan_ready` 和私有请求指纹不进入公开会话状态。旧 Recommend/SSE 对规划会话的保护不解除。
+结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 要求无 MallRpc，`mall` 要求已配置 MallRpc；非法值/依赖组合在外部初始化前拒绝。mall 模式使用独立有界关键词链和两次用户身份核验，不用后台索引凭据或演示标签。分类请求要求版本握手和逐项分类事实，旧 Mall/缺表/错误证据均失败，不回退旧契约。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求重放原结果，不重查商品；关闭/切换模式也不把历史快照标记为实时。私有规划标记和请求指纹不进入公开会话状态，旧 Recommend/SSE 保护不解除。
+
+`product_demand_categories` 是 Mall 维护的 SPU 分类，只有显式分类核验查询读取；没有面向用户/模型的分类写接口，不修改管理员现有商品 CRUD 权限。本次只提供独立迁移文件，不自动迁移、赋权或回填。部署时须审核分类写入流程及数据库权限，不能因业务代码只读就声称现有数据库账号已收权；真实分类准确性/权限验收尚未完成。迁移、版本递增和启用边界见 [M4.2c](agent.md#9-m4需求驱动的受约束组合推荐)。
 
 在线推荐调用 mall 商品 RPC 时继续透传当前用户 JWT。后台 RAG 同步已改用独立客户端访问专用索引 RPC，每次签发短期服务 Token；不复用用户身份、支付密钥或管理员角色。Agent 配置了 RAG 却缺少合法索引凭据时，在初始化数据库/Embedding 前拒绝启动；Mall 未配置索引密钥时只拒绝该专用接口，不将其设为免鉴权。已完成本地签名/权限与内存 gRPC 测试，尚未启动真实 Mall＋数据库＋Embedding 的完整 RAG 链路。
 
@@ -379,5 +381,7 @@ go test ./services/rpc/mall/internal/logic/orderservice \
 2026-09-18 M3.2b2 再增 1 个只读快照流 RPC，矩阵扩为 22 个方法；新增流式建连凭据、deadline/慢接收者及源事务/终帧/EOF 测试。HTTP 路由、用户及支付方法权限不变，真实数据库测试仍须显式隔离环境，见 [最新执行记录](agent.md#14-执行记录)。
 
 2026-09-18 M3.2c 新增普通用户身份的 `CheckProductCandidates`，矩阵扩为 23 个方法；在线严格核验与后台索引服务身份保持分离，现有 HTTP/支付权限不变。新增数据库新鲜度集成测试为显式 DSN 门控，本次仅编译并跳过。
+
+2026-09-18 M4.2c 扩展同一核验 RPC 的显式分类读取，不新增 Mall 方法或扩大角色权限。生产 handler 的内存 RPC 测试对两种请求均覆盖用户/管理员允许与缺失/索引/支付凭据拒绝；Agent 侧内存 gRPC 补测用户 JWT 透传、规划/执行/历史重放、他人会话隔离及旧 Mall 拒绝。分类迁移、实际数据库权限与真实数据尚未验收，没有自动建表、赋权或回填。
 
 后续修改 `.api`、`.proto`、方法权限集合、用户状态/角色逻辑、资源归属校验或服务调用凭据时，应同步更新本文及对应回归测试。不要只更新前端菜单或 API 注释。

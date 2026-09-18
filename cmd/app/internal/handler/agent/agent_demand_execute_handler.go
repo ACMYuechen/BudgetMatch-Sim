@@ -15,7 +15,7 @@ import (
 	"budgetmatch-sim/cmd/app/internal/types"
 )
 
-// 执行已确认需求（显式演示模式，非实时商城库存）
+// 执行已确认需求（显式 demo/mall 模式，有界快照核验，非库存预占）
 func AgentDemandExecuteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {

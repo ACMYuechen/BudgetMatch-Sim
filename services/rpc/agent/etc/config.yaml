@@ -3,7 +3,7 @@ ListenOn: 0.0.0.0:10006
 Timeout: 60000
 
 # 独立需求执行默认关闭；demo 仅允许未配置 MallRpc 的显式演示环境。
-# 无真实类别证据时不开放 live 模式，也不把演示分类赋给真实商品。
+# mall 模式要求新版 Mall 分类核验契约及已审核的独立分类表；不自动迁移/回填。
 DemandExecution:
   Mode: disabled
 

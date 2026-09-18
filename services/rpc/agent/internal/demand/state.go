@@ -1,6 +1,6 @@
-// Package demand defines the M4 domain foundation used by planning-only turns
-// and the internal demo search experiment. Production recommendation does not
-// consume it yet; ready means a valid intent, not a feasible recommendation.
+// Package demand defines structured planning and bounded snapshot selection.
+// Ready means a valid intent, not a feasible recommendation. Demo and opt-in
+// Mall execution share category codes but require separate evidence provenance.
 package demand
 
 import (
@@ -20,7 +20,7 @@ const (
 
 var ErrInvalid = errors.New("invalid demand data")
 
-// This flat demo taxonomy does not imply compatibility, attributes or a
+// This flat set of categories does not imply compatibility, attributes or a
 // hierarchy. A required category means at least one distinct SKU in that class.
 type Category string
 

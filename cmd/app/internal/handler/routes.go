@@ -218,7 +218,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: agent.AgentDemandPlanHandler(serverCtx),
 				},
 				{
-					// 执行已确认需求（显式演示模式，非实时商城库存）
+					// 执行已确认需求（显式 demo/mall 模式，有界快照核验，非库存预占）
 					Method:  http.MethodPost,
 					Path:    "/intent/execute",
 					Handler: agent.AgentDemandExecuteHandler(serverCtx),

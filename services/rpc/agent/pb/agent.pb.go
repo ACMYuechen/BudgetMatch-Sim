@@ -527,7 +527,7 @@ type DemandExecution struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	PlanTurnId              string                 `protobuf:"bytes,1,opt,name=plan_turn_id,json=planTurnId,proto3" json:"plan_turn_id,omitempty"`
 	Strategy                string                 `protobuf:"bytes,2,opt,name=strategy,proto3" json:"strategy,omitempty"`
-	Scope                   string                 `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"` // synthetic_demo_snapshot_only, NOT live stock
+	Scope                   string                 `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"` // synthetic_demo_snapshot_only or mall_checked_snapshot_only; NOT a reservation
 	MappingVersion          string                 `protobuf:"bytes,4,opt,name=mapping_version,json=mappingVersion,proto3" json:"mapping_version,omitempty"`
 	MappingSha256           string                 `protobuf:"bytes,5,opt,name=mapping_sha256,json=mappingSha256,proto3" json:"mapping_sha256,omitempty"`
 	SnapshotCheckedAtMs     int64                  `protobuf:"varint,6,opt,name=snapshot_checked_at_ms,json=snapshotCheckedAtMs,proto3" json:"snapshot_checked_at_ms,omitempty"`

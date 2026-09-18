@@ -62,7 +62,7 @@ message ExecuteDemandReq {
 message DemandExecution {
   string plan_turn_id = 1;
   string strategy = 2;
-  string scope = 3; // synthetic_demo_snapshot_only, NOT live stock
+  string scope = 3; // synthetic_demo_snapshot_only or mall_checked_snapshot_only; NOT a reservation
   string mapping_version = 4;
   string mapping_sha256 = 5;
   int64 snapshot_checked_at_ms = 6;
