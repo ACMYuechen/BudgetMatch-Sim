@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 工具边界与后台索引身份更新至 2026-09-17 M3.1。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 工具边界与后台索引身份更新至 2026-09-18 M3.2b2（含流式快照鉴权）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -191,6 +191,7 @@
 | `ProductService.CreateSku`、`ProductService.UpdateSku`、`ProductService.DeleteSku` | 管理员 | 全局 SKU 管理 |
 | `ProductService.GetProduct`、`ProductService.ListProducts`、`ProductService.GetSku`、`ProductService.ListSkusByProduct` | 用户 | 请求筛选条件不是调用者身份；没有商户/租户隔离 |
 | `ProductIndexService.ListProductIndex` | 服务专用 | 只接受 agent-rpc → mall-rpc、用途 `product-index:read` 的独立服务 JWT；logic 再检查调用方/用途，只读未软删除且 SPU/SKU 均上架的索引字段，不返回所有者、内部评价或订单数据 |
+| `ProductIndexService.ScanProductIndex`（服务端流） | 服务专用 | 同一独立凭据/调用方/受众/用途；生产流式拦截器验证建流身份，logic 再校验。同一只读数据库快照、30 秒内传输 deadline、每实例单扫描及条数/载荷限制；完成帧只在源事务成功后发送 |
 | `OrderService.CreateOrder` | 用户 | 使用请求 `UserId`，未绑定 `ContextKeyUserId` |
 | `OrderService.GetOrder` | 用户 | 请求 `UserId` 非空才比较归属；为空不加该限制 |
 | `OrderService.ListOrders` | 用户 | 将请求 `UserId` 交给存储层筛选；为空可查询全局范围 |
@@ -264,7 +265,7 @@ LLM 工具权限需与会话权限分开理解：
 | App/Admin → auth-rpc.ValidateToken | 用户 JWT 放请求体；该方法 metadata 免鉴权 | 否，不验证调用网关是谁 |
 | App/Admin → 受保护 RPC | 透传原始用户 JWT | 否，目标服务看到的是用户 |
 | agent-rpc 在线推荐 → mall 商品 RPC | 透传当前用户 JWT | 否 |
-| agent-rpc 后台 RAG → mall.ListProductIndex | 每次签发专用用途的短期服务 JWT | 是，只读索引，独立密钥 |
+| agent-rpc 后台 RAG → mall.ScanProductIndex | 每个快照流签发专用用途的短期服务 JWT；不回退旧实时分页 | 是，只读索引，独立密钥；旧 ListProductIndex 仍保留同等服务鉴权 |
 | payment-rpc → mall.GetOrder | 显式透传当前用户 JWT | 否，用于以本人身份核对订单 |
 | payment-rpc → mall.ConfirmPayment | 每次签发短期服务 JWT | 是，沿用原支付服务密钥与身份规则 |
 | 秒杀/商城 → RocketMQ → 消费者 | 消息载荷、Topic/Tag 等业务约定 | 不经过用户 JWT/RPC 拦截器；仓库客户端配置未接入 MQ 凭据/消息签名授权 |
@@ -285,9 +286,10 @@ Agent 索引服务 JWT 的额外边界：
 - 双方 `IndexAuth.Secret` 对应 `AGENT_MALL_INDEX_SECRET`；至少 32 字节且无首尾空白。Mall 启动时拒绝与用户/支付密钥相同的配置，Agent 拒绝与用户密钥相同的配置；长度校验不等于密钥随机性证明。
 - `ServiceMethodPolicy.SecretName` 选择命名密钥，缺失时不会回退 `ServiceSecret`；新接口还要求 `purpose=product-index:read`、`nbf/jti` 存在和有效期不超过 5 分钟，Agent 当前每次签发 1 分钟 Token。
 - 专用客户端只允许精确的索引方法名，用服务 Token 替换出站 authorization，不叠加用户 Token；Mall 端再执行服务鉴权和 logic 身份检查。用户、管理员和支付服务均不能凭原 Token 读取此接口，Agent 索引 Token 不能调用商品写入、用户商品读取或订单/支付方法。
+- `ScanProductIndex` 在建流时验签，不逐帧重新检查过期或撤销；原始流必须带不超过 30 秒的 deadline，拦截器在首次接收请求前检查，拒绝无界“只建流不发请求”。流式拦截器与一元拦截器共用方法策略，不能只保护 unary 后把 streaming 留空。Mall 在开发/测试模式注册的 reflection 流也经过该拦截器，按默认用户角色策略要求用户 JWT；它没有加入免鉴权或 Agent 索引服务策略。
 - 只读共享密钥仍需安全传输和密钥管理；当前没有 mTLS、密钥轮换协议或 `jti` 一次性消费记录。索引接口并非用户鉴权缺口的全站修复，其他已列问题不因本次改动消失。
 
-依据：[后台客户端鉴权](../services/rpc/agent/internal/rag/index_auth.go)、[索引逻辑](../services/rpc/mall/internal/logic/productindexservice/list_product_index_logic.go)、[命名服务策略](../infra/interceptor/auth_interceptor.go)。
+依据：[后台客户端鉴权](../services/rpc/agent/internal/rag/index_auth.go)、[分页索引逻辑](../services/rpc/mall/internal/logic/productindexservice/list_product_index_logic.go)、[快照逻辑](../services/rpc/mall/internal/logic/productindexservice/scan_product_index_logic.go)、[命名服务策略](../infra/interceptor/auth_interceptor.go)、[流式鉴权](../infra/interceptor/stream_auth_interceptor.go)。
 
 ## 6. 网络、运行时及错误返回边界
 
@@ -340,7 +342,7 @@ RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 u
 | --- | --- | --- |
 | [JWT 单测](../infra/auth/auth_test.go) | 签发、验签、过期及密码哈希等基础行为 | 账号禁用、撤销、管理员授权全部正确 |
 | [通用鉴权测试](../infra/interceptor/auth_interceptor_test.go)、[服务 JWT 测试](../infra/serviceauth/service_auth_test.go) | 服务身份/受众/签名/过期及普通用户 Token 隔离 | 每个 RPC 都已配置正确的方法权限 |
-| [Mall 方法矩阵](../services/rpc/mall/auth_test.go)、[用途 Token](../infra/serviceauth/scoped_token_test.go)、[后台客户端](../services/rpc/agent/internal/rag/index_auth_test.go)、[Loader 失败保护](../services/rpc/agent/internal/rag/loader_test.go) | 21 个 Mall RPC × 6 类身份的本地 gRPC 矩阵、独立密钥不回退、用途/过期拒绝、读取失败不清理旧索引 | 已访问真实 Mall/数据库、解决跨页一致性，或已有防重放/mTLS |
+| [Mall 方法矩阵](../services/rpc/mall/auth_test.go)、[用途 Token](../infra/serviceauth/scoped_token_test.go)、[后台客户端](../services/rpc/agent/internal/rag/index_auth_test.go)、[Loader 失败保护](../services/rpc/agent/internal/rag/loader_test.go) | 22 个 Mall RPC（21 unary＋1 server-stream）× 6 类身份的本地 gRPC 矩阵、独立密钥不回退、用途/过期拒绝、失败/断流/迟到错误不清理旧索引 | 已访问真实 Mall/数据库、真实快照 MVCC 已验收，或已有防重放/mTLS |
 | [秒杀方法权限](../services/rpc/seckill/auth_test.go)、[秒杀订单归属](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic_test.go) | 已列方法的角色边界、查订单绑定身份 | 领令牌与提交订单已绑定身份 |
 | [支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)、[商城支付入口](../cmd/app/internal/logic/mall/payment_logic_test.go) | 部分跨用户/金额/通知检查 | 已真实调用支付宝、或完整支付链路无缺口 |
 | [支付确认身份](../services/rpc/mall/internal/logic/orderservice/confirm_payment_auth_test.go) | logic 拒绝缺失/错误服务身份，正确身份进入参数校验 | 完成了真实数据库支付确认事务测试 |
@@ -365,5 +367,7 @@ go test ./services/rpc/mall/internal/logic/orderservice \
 同时核对了全部 54 个 RPC 方法、64 条 HTTP 路由（App 29 条、Admin 35 条）和本文 74 个本地源码/文档链接。HTTP 路径以 `.api` 与已生成的 `routes.go` 双向核对；该清单检查不等价于逐接口端到端权限测试。
 
 2026-09-17 M3.1 新增 1 个 Mall 索引 RPC（HTTP 路由未变），补跑 Mall 全部 21 个 RPC 的 6 类身份矩阵及支付/Agent 回归；上面的 54/74 为初次核对时的历史数量。最新验证范围、跳过项和真实环境边界见 [M3.1 执行记录](agent.md#14-执行记录)。
+
+2026-09-18 M3.2b2 再增 1 个只读快照流 RPC，矩阵扩为 22 个方法；新增流式建连凭据、deadline/慢接收者及源事务/终帧/EOF 测试。HTTP 路由、用户及支付方法权限不变，真实数据库测试仍须显式隔离环境，见 [最新执行记录](agent.md#14-执行记录)。
 
 后续修改 `.api`、`.proto`、方法权限集合、用户状态/角色逻辑、资源归属校验或服务调用凭据时，应同步更新本文及对应回归测试。不要只更新前端菜单或 API 注释。

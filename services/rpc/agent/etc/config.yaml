@@ -50,7 +50,7 @@ RAG:
   TopK: 10                  # 向量检索召回上限
   ScoreThreshold: 0         # 余弦相似度下限[0,1]，0 不过滤
   SyncIntervalSeconds: 600  # 商品向量定时同步间隔；负数=仅启动同步一次
-  SyncPageSize: 100
+  SyncPageSize: 100         # Mall 快照分页，最多 200；全流另限 30 秒/5 万 SKU/32 MiB
   SyncTimeoutSeconds: 300   # 一轮扫描、嵌入和事务发布的共同期限；上限 3600 秒
   SyncStopTimeoutSeconds: 5 # 关闭时取消当前轮并等待；上限 30 秒
   VerifySku: false          # true 时检索结果逐条经 mall GetSku 实时校验

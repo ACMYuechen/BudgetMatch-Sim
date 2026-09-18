@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3.1 只读服务身份、M3.2a 事务发布/取消关闭及 M3.2b1 写入协调/模型切换保护已完成本地实现；下一步 M3.2b2 跨页一致快照。M3.2b/M3.2 整体及真实数据库验证尚未完成。规则任务成功率仍为 25/40，人工复核记录仍为 0/64，M3/M4 数值目标仍为草案；没有将阶段收尾写成人工复核或真实模型实验通过，详见[执行记录](#14-执行记录)。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3.1 只读服务身份、M3.2a 事务发布/取消关闭、M3.2b1 写入协调/模型切换保护及 M3.2b2 跨页一致快照已完成本地实现；下一步 M3.2c 候选新鲜度。M3.2b/M3.2 整体及真实数据库验证尚未完成。规则任务成功率仍为 25/40，人工复核记录仍为 0/64，M3/M4 数值目标仍为草案；没有将阶段收尾写成人工复核或真实模型实验通过，详见[执行记录](#14-执行记录)。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -201,20 +201,20 @@ Agent 自有日志/Eino 回调只记录执行状态、稳定错误分类、数�
 
 `ToolsUsed` 在执行记录、持久化、历史查询和幂等重放边界都过滤为静态说明及已知数值元数据；旧数据库字段和旧日志不会被追溯改写。本轮不脱敏用户正常业务输入/商品结果，也不承诺其他微服务、数据库驱动、网关访问日志或外部模型服务已统一脱敏；相关风险仍见 [权限控制现状](access-control.md)。
 
-### 2.10 后台索引配置（M3.1 / M3.2a）
+### 2.10 后台索引配置（M3.1 / M3.2）
 
-Agent 后台通过 `mall.ProductIndexService/ListProductIndex` 扫描商品；在线搜索及可选 `GetSku` 校验继续透传用户 JWT，使用不同 RPC 客户端。
+Agent 后台通过 `mall.ProductIndexService/ScanProductIndex` 读取商品目录快照；旧 `ListProductIndex` 保留给旧客户端，但新 Loader 不调用它。在线搜索及可选 `GetSku` 校验继续透传用户 JWT，使用不同 RPC 客户端。
 
 - Mall 与 Agent 的 `IndexAuth.Secret` 使用同一个独立的 `AGENT_MALL_INDEX_SECRET`，至少 32 字节、无首尾空白；必须由操作员生成密码学安全随机值，不复用用户或支付密钥。模板和 Compose 已提供变量传递，本步未读取、生成或改写真实 `.env` / 集群 Secret。
 - Mall 未配置索引密钥时，该接口拒绝全部请求，旧用户/支付接口仍可用；若配置了索引密钥，启动前检查其与 `JWT_SECRET`、`ServiceAuth.Secret` 不同。Agent 已声明 Database＋Embedding＋Mall 时，缺少/过短/复用用户密钥会在外部依赖初始化前阻止启动，不静默降级；未声明 RAG 时仍支持规则/关键词模式。
 - 每次索引 RPC 签发有效期 1 分钟、用途为 `product-index:read` 的服务 JWT。Mall 校验 HS256、`service/iss/sub=agent-rpc`、受众含 `mall-rpc`、用途、时间字段和 `jti`，有效期上限 5 分钟；没有一次性消费表，不能声称防重放或 mTLS。
-- 索引接口固定读取未软删除且 SPU/SKU 均上架的数据，只返回索引所需字段，不包含商品所有者、内部评价、订单或支付数据。按 SKU ID 字节序游标分页，默认 100、最多 200 条，使用额外一行判断末页，显式返回 `complete`；Loader 拒绝异常空页、重复/倒退游标、非法页和部分失败。
+- 索引接口固定读取未软删除且 SPU/SKU 均上架的数据，只返回索引所需字段，不包含商品所有者、内部评价、订单或支付数据。按 SKU ID 字节序分页，默认 100、最多 200 条。新流式扫描使用同一数据库快照，完成帧与数据帧分离；Loader 拒绝异常空页、重复/倒退 ID、序号/身份变化及部分失败（第 2.12 节）。旧一元分页仍使用额外一行判断末页，不提供跨 RPC 快照保证。
 - 切换真实环境时先更新 Mall，再配置双方凭据、更新 Agent；旧 Mall 返回 `Unimplemented` 或鉴权失败时不清理旧索引，也不回退到免鉴权接口。
 - M3.2a 新增 `CatalogScan.Complete` 契约：扫描未明确完成时禁止发布，即使返回空列表且没有错误。完整扫描先校验所有文档及唯一 SKU，再准备变更向量；价格/库存/销量只变更业务快照，不新增嵌入。可选 Transformer 必须保留一 SKU 一文档及商品身份，不能通过丢弃文档扩大清理范围。
 - 准备结果与原扫描逐行核对后，向量 upsert、业务快照刷新和下架清理在同一短事务内发布；事务不跨越 Mall/Embedding 请求。提交前失败或取消会回滚；提交确认丢失仍可能存在结果不确定性，不能承诺任何错误都代表“数据库没有提交”。
 - `RAG.SyncTimeoutSeconds` 默认 300 秒、上限 3600 秒，是一轮扫描/嵌入/发布的共同期限；`RAG.SyncStopTimeoutSeconds` 默认 5 秒、上限 30 秒，是进程关闭钩子的最大等待时间。两者缺省或非正数取默认值，超过上限则收敛；不新增环境变量。`SyncIntervalSeconds` 仍为 0 时默认 600 秒、负数仅启动同步一次。
 - `Start` / `Stop` 幂等且停止后不能重启；关闭立即取消当前轮并有界等待。同一个 Pipeline 拒绝重叠同步。各阶段边界检查取消状态，已成功提交的数据不会因随后取消而撤回；不响应 context 的外部调用无法被强制终止，有界返回不代表该调用已退出。批次日志记录随机批次 ID、起止时间、数量、耗时及静态错误分类，不记录目录正文或原始异常。
-- 当前 `Complete` 只表示读到末页，不是跨页事务快照；跨页并发商品变动与候选新鲜度仍待 M3.2b2/c。M3.2b1 在本地互斥之外增加数据库会话协调，并移除了维度变化自动删表重建路径，适用条件与升级限制见下节。
+- 新 Mall Loader 的 `Complete` 表示快照事务已结束、协议完整且收到正常 EOF，不等于候选在用户看到结果时仍然新鲜；后者仍待 M3.2c。M3.2b1 在本地互斥之外增加数据库会话协调，并移除了维度变化自动删表重建路径，适用条件与升级限制见下节。
 
 ### 2.11 索引写入协调与模型绑定（M3.2b1）
 
@@ -239,7 +239,33 @@ Agent 后台通过 `mall.ProductIndexService/ListProductIndex` 扫描商品；�
 - 必须直连 PostgreSQL，或使用保持服务端会话且保证客户端断开后重置/释放 advisory lock 的 session pooling；未验证此释放行为的代理不在支持范围内。transaction pooling 不能保证锁与写入属于同一服务端会话，不受支持。每个活跃同步轮占一条数据库连接，结束后关闭驱动连接，连接池容量及少量重连成本需纳入部署预算。
 - 锁是协作协议，不会拦截手工 SQL、旧二进制或不遵守协议的其他写入者；未在真实数据库、多进程、网络分区或代理上完成验收。连接释放在服务端被观察到前，其他实例仍可能显示 busy，不承诺瞬时故障接管。
 - 取消不能强制终止不响应 context 的外部请求；旧请求可能与接手实例的外部工作暂时并存，但旧写入连接已经失效，不能恢复发布。不存在付费调用 exactly-once 保证。
-- 会话协调只保护目标索引写入，不让 Mall 的多页查询自动变成一致快照。源端跨页一致性仍由 M3.2b2 补齐，最终候选的实时状态仍由 M3.2c 校验。
+- 会话协调只保护目标索引写入，不让 Mall 的多页查询自动变成一致快照。源端另由 M3.2b2 的快照事务保证读取一致性（下一节），最终候选的实时状态仍待 M3.2c 校验。
+
+### 2.12 Mall 跨页一致快照（M3.2b2）
+
+新增 `ProductIndexService.ScanProductIndex` 服务端流式 RPC。Mall 使用一个 `sql.LevelRepeatableRead`、`ReadOnly=true` 的事务读取全部页；后续分页继续使用事务连接，不重新从连接池读取实时页。PostgreSQL 的该隔离级别让后续查询使用第一次非事务控制语句建立的同一快照，避免扫描中途的插入、更新、下架或删除混入后页；这不等于业务操作的串行化或最终推荐的实时状态，见 [PostgreSQL 事务隔离说明](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-REPEATABLE-READ)。
+
+- 每个流分配随机 UUID `snapshot_id`；它只用于协议内的身份一致性检查，不是可导出/恢复的 PostgreSQL 快照、签名或 checkpoint。`sequence` 从 1 连续增长，数据帧带本页最后的 SKU ID；短数据页之后只能结束，不能继续追加数据。
+- 数据页在只读事务中顺序发送；事务成功提交后，发送单独的空完成帧（`complete=true`、总条数、无游标）。Agent 必须再收到正常 EOF，才设置 `CatalogScan.Complete`。断流、晚到错误状态、重复终帧、跨快照身份、计数/序号不一致及超限全部失败；不会嵌入、刷新元数据或清理旧索引。合法空目录也必须完整走完“事务成功 → 空完成帧 → EOF”。
+- Agent 的目标索引会话锁仍在调用 Mall 前获取，覆盖整个扫描/嵌入/发布流程。Mall 的源事务仅覆盖目录读取和发送，不跨越 Embedding；之后 Agent 用原有短事务原子发布。这是两个独立数据库边界，不是跨服务分布式事务。
+- 流式鉴权复用与一元接口相同的命名密钥、调用方/受众/用途策略，生产 Mall 显式注册流式服务端拦截器；Agent 的专用流式拦截器仅允许此方法。旧 `ListProductIndex` 保留原权限，用户/支付链路不改成服务索引身份。Token 在建流时校验，不逐帧重新验签，也没有新增流中途撤销协议。
+
+资源边界由双方共用的 [indexcontract](../services/rpc/mall/indexcontract/contract.go) 定义，目前是固定安全上限，不新增环境变量：
+
+| 资源 | 当前边界 |
+| --- | --- |
+| 每页 SKU | 默认 100，最多 200 |
+| 全目录 SKU | 最多 50,000；超过则整轮失败，不截断成完整目录 |
+| 每帧 protobuf 载荷 | 最多 2 MiB；Agent 同时设置 gRPC 接收上限 |
+| 全流 protobuf 载荷 | 最多 32 MiB，包含完成帧；不是 Go 堆内存或 HTTP/2 字节的硬配额 |
+| RPC 总时限 | 最多 30 秒，且不能延长父轮次的较早 deadline |
+| Mall 并发快照 | 每个生产模型/服务实例最多 1 个；忙时 `ResourceExhausted`，不是跨副本全局配额 |
+
+Mall 要求原始流 context 已带 30 秒以内的 deadline；方法策略 `MaxStreamDuration` 在鉴权后、生成 handler 的首次 `RecvMsg` 前拒绝缺失/过长 deadline，logic 和模型再次防御，防止只建流不发请求的客户端长期挂起。只给业务函数派生 timeout 不能中断原始流上的阻塞 `Send` / `Recv`，因此这里依赖 gRPC 传输 deadline 传播及数据库驱动响应 context，不另起无法回收的发送协程。[gRPC deadline 文档](https://grpc.io/docs/guides/deadlines/)说明了服务端取消与应用主动停止后续工作的责任。取消或发送失败回滚源事务，不发送成功终帧；具体故障清理时延仍需真实环境验收。
+
+升级时先部署支持新 RPC 的 Mall，再更新 Agent。旧 Mall 的 `Unimplemented`、权限失败、超时或容量不足均保留旧索引，不回退到旧实时分页。M3.2b1 的停旧同步器、存量索引绑定迁移及连接池限制仍必须遵守。本步不提供断点续传、增量 CDC、大目录外排、自动拆分或模型热迁移；目录与待发布向量仍驻留 Agent 内存，单个数据库字段在序列化限额检查前也已读入内存，不能把载荷限额当成经过压测的内存保证。
+
+本地驱动替身验证了事务选项、连接绑定、游标参数、提交/回滚与取消边界；内存 gRPC 覆盖完成/断流/迟到错误/慢接收者。另提供 [真实 PostgreSQL 并发更新测试](../services/rpc/mall/model/product_index/snapshot_integration_test.go)，仅在显式提供可丢弃的 `BUDGETMATCH_TEST_POSTGRES_DSN` 时执行，创建并清理随机隔离 schema；本次跳过，不能写成真实数据库 MVCC 已验收。
 
 ## 3. 优化前基线与问题定位
 
@@ -521,9 +547,14 @@ M3.2b1 已完成本地实现与隔离测试（第 2.11 节）：
 - 从扫描前到发布后持有 PostgreSQL 专用会话锁；争用不开始外部工作，取消/断连不允许旧任务切换连接续写。配置开启 `PrepareStmt` 时也不回到池级连接执行受保护 SQL。
 - 模型/维度绑定与破坏性重建保护：来源不明的旧索引和不同配置身份均拒绝接管；维度变化不再自动删表。只读检索在查询内限制模型绑定，独立 Indexer 写入遵守同一协调入口。
 
-M3.2b2 与外部验收待完成：
+M3.2b2 已完成本地实现与隔离测试（第 2.12 节）：
 
-- Mall 跨页一致快照：目标索引的写入串行化不等于源商品目录的一致性；当前仍逐页实时读取。
+- Mall 服务端流式导出同一只读 `REPEATABLE READ` 快照；源事务成功后才发送独立终帧，Agent 要求终帧和正常 EOF 双重完成。
+- 流式专用服务身份、连续序号/快照 ID/总数验证、30 秒传输时限、5 万条/32 MiB 上限及每 Mall 实例单扫描准入；失败保留旧索引，不降级到实时分页。
+
+外部验收仍待完成：
+
+- 真实 PostgreSQL 快照隔离、并发更新、网络中断和实际目录规模验证；本地 SQL 驱动替身不是 MVCC 模拟器。
 - 存量索引绑定迁移、影子索引/模型切换方案及真实 PostgreSQL 多进程/断连验证需要可丢弃环境与明确授权，不能用替身测试替代。会话锁不支持 transaction pooling，不保护混合版本或手工写入。
 - 当前完整目录、hash 与待发布向量驻留内存，超大目录的内存、SQL 参数规模与同步耗时尚未验收。
 
@@ -720,7 +751,7 @@ git diff --check
     - [x] M3.2a：完整扫描契约、无副作用准备、事务发布、轮次超时/取消/有界关闭及批次日志（本地隔离测试）。
     - [ ] M3.2b：跨页快照、多实例协调、模型/维度切换保护及真实数据库验证。
       - [x] M3.2b1：专用会话写入协调、模型身份绑定与拒绝破坏性重建（本地隔离测试）。
-      - [ ] M3.2b2：Mall 跨页一致快照；存量迁移及真实数据库/多进程验收另行授权。
+      - [x] M3.2b2：Mall 跨页一致快照、流式鉴权及有界完成协议（本地隔离测试）；存量迁移及真实数据库/多进程验收另行授权。
     - [ ] M3.2c：候选证据元数据、严格有界实时校验与价格变化后的重算。
   - [ ] M3.3：检索对比与实验策略；真实 Embedding/模型实验另行授权。
 - [ ] M4：需求建模、分类数据、组合搜索与效果报告。
@@ -729,7 +760,7 @@ git diff --check
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一步 M3.2b2：补 Mall 跨页一致快照；随后 M3.2c 补候选新鲜度。本地实现不自动授权连接真实库、接管旧索引、重建或部署。M2.3b 的独立复核和目标确认保持后置待办；已有 holdout 只作已知回归集，外部实验的数据、环境、调用数和费用上限仍需另行授权。
+下一步 M3.2c：补候选新鲜度、明确校验状态及价格变化后的重算。M3.2b 的本地开发子步已完成，但真实数据库验收仍后置。本地实现不自动授权连接真实库、接管旧索引、重建或部署。M2.3b 的独立复核和目标确认保持后置待办；已有 holdout 只作已知回归集，外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -1121,3 +1152,51 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite scripted \
 - Mall 仍逐页实时读取；会话协调不补偿源端跨页变化。超大目录内存/SQL 参数规模、断连恢复时间、代理/网络分区、存量索引迁移和实际模型重建均未验证。旧进程或手工 SQL 不遵守此锁，不能混合运行后宣称索引受保护。
 - 模型绑定是配置指纹，不验证服务商背后的权重；不提供模型热切换、影子索引迁移或外部调用 exactly-once。独立 Indexer 的输入新鲜度仍由调用方负责；完整扫描应使用 Pipeline。
 - 未读取或修改真实 `.env`，未连接真实业务数据库/Mall/Embedding/模型、未启动基础设施；未重启、部署、提交或推送。未修改 CI/CD、依赖、Mall Proto/鉴权或支付业务。下一步 M3.2b2 跨页一致快照，真实环境验证与迁移仍需单独授权。
+
+### 2026-09-18：M3.2b2 Mall 跨页一致快照
+
+按用户“先提交到本地，再自动开发下一步”的要求，先在 `refactor/agent` 提交 M3.2b1：`4830062`（代码与回归）、`50a674d`（文档），均未推送。本步以 `50a674d` 为基线，新增 M3.2b2，完成后保留工作区供检查，不自动提交本步。
+
+本步实现：
+
+- 新增 `ScanProductIndex` 服务端流式 RPC，保留旧一元方法兼容性；Proto、PB、客户端与服务端包装由已有 `goctl/protoc` 工具链重新生成，不手改生成文件。生成器附带的重复入口 `mall.go` 和默认 `etc/mall.yaml` 已移除，它们是本次生成的脚手架，不是既有用户文件，重新生成可恢复。
+- Mall 的模型在一个只读 `REPEATABLE READ` 事务内逐页读取，拒绝嵌套到已有事务以免通过 savepoint 继承较弱隔离级别；分页始终绑定同一事务。每实例单扫描准入、异常/取消回滚，外部 Embedding 不进入源事务。
+- 流式服务端复用命名密钥策略，Agent 的专用流式客户端逐 RPC 签发用途 Token。`MaxStreamDuration` 在首次 `RecvMsg` 前检查实际传输 deadline，避免只建流不发请求；logic 与模型再次防御。开发/测试模式的 Mall reflection 现在同样经过流式鉴权，采用默认用户角色策略，不授予 Agent 索引身份 reflection 权限。
+- 独立终帧只在源事务成功后发送；Agent 验证快照 UUID、连续序号、SKU/商品身份、单调游标、总数及正常 EOF。终帧后错误/额外数据、提前 EOF、超时、超限、旧服务 `Unimplemented` 均不发布也不清理旧索引。没有旧实时分页的自动回退。
+- 双方共享页数/载荷预算：每页最多 200、全目录最多 50,000 SKU、每帧最多 2 MiB、全流最多 32 MiB、传输最多 30 秒；限额含义与升级限制见第 2.12 节。更新权限现状、README、项目约束和测试 DSN 说明；没有修改 CI/CD 工作流、部署脚本、真实配置或依赖版本。
+
+验证命令（移除三个真实数据库测试变量，Go 编译/测试串行调度，避免重复占用本机内存）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go test -p 1 -race -count=1 \
+  ./infra/interceptor/... ./infra/serviceauth/... \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go test -p 1 -race -count=20 \
+  ./infra/interceptor ./services/rpc/agent/internal/rag ./services/rpc/mall \
+  ./services/rpc/mall/model/product_index \
+  ./services/rpc/mall/internal/logic/productindexservice ./services/rpc/mall/indexcontract
+
+GOMAXPROCS=2 go vet -p 1 ./infra/interceptor/... ./infra/serviceauth/... \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+GOMAXPROCS=2 go build -p 1 ./...
+GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -revision 50a674d+M3.2b2-worktree \
+  -compare services/rpc/agent/testdata/eval/baseline.v2/report.json -format json
+GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite scripted \
+  -revision 50a674d+M3.2b2-worktree -format json
+git diff --check
+```
+
+实际结果：34 个包、309 个顶层测试通过，含子测试/Fuzz seed 共 953 项通过，无失败或竞态报告；11 项真实数据库测试跳过（较 M3.2b1 新增 `TestPostgresCatalogSnapshotConsistency`）。上述 6 个边界包重复 20 轮通过；收紧“首次接收请求前检查 deadline”后，对共享拦截器、Mall 入口及快照 logic 再重复 20 轮，并重跑完整范围。`go vet`、全仓构建、Go 格式和补丁空白检查通过，5 份修改文档的 165 个本地文件链接存在。真实库用例复用已有 GORM / `database/sql` 接口，不增加直接驱动依赖；其编译与跳过路径复查通过，数据库主体未执行。
+
+规则终态仍为 64/64、可满足任务 25/40、硬约束违规 0/50、Recall@K 92/92、重放 50/50；与 `baseline.v2` 的变化/修复/退化列表为空。脚本模型 16/16、33 次 Fake Model 调用，真实模型调用为 0。测试日志和评测报告写入临时目录，没有改写固定样本、标注、人工复核记录或历史报告；不把本步写成召回/推荐质量或延迟性能提升。
+
+未运行与剩余边界：
+
+- 本次不连接真实 Mall/PostgreSQL/Embedding/模型，不部署、不重启、不生成或修改真实 `.env` / 集群 Secret。新增 MVCC 集成用例只在显式可丢弃 DSN 下创建隔离 schema，未执行；不能把驱动替身或内存 gRPC 的通过写成真实隔离、多进程或网络故障验收。
+- 快照表示同一读取时间点，不保证索引发布或用户看到推荐时价格/库存仍相同。Token 只在建流时校验，不增加防重放、mTLS 或流中途撤销；资源上限不是压测结论，海量目录和长事务对实际库的影响仍需隔离验证。
+- 存量索引绑定迁移、影子模型切换和旧版进程停写要求沿用 M3.2b1；Mall 新 RPC 需先于新 Agent 部署。下一步 M3.2c：候选证据、严格有界实时校验及价格变化后的组合重算。M3.2b 的外部验收保持未完成，M3.2/M3 没有整体结项。

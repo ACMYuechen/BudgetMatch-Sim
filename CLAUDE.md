@@ -267,7 +267,8 @@ curl -X POST http://localhost:10002/api/agent/recommend/stream \
 - **auth-rpc 先启动**：本地 `make dev` 中 auth-rpc 最先启动，负责自动建表（agent-rpc 的向量表由自己建）。
 - **agent-rpc 商品数据来自 mall-rpc**：语义检索（RAG）优先，关键词回退；未配置 `MallRpc` 时才使用 `mock_product_provider.go`（详见"依赖降级矩阵"）。RAG 演示前需先给 mall 造商品数据。
 - **agent-rpc 无模型时自动降级**：未配置 LLM 时，走确定性规则推荐；配置 LLM 后，失败也会降级到规则推荐。
-- **RAG 首轮同步有延迟**：服务启动后商品向量在后台异步索引，完成前检索回退关键词模式，日志出现 `rag sync completed` 即就绪。
+- **RAG 全量读取必须来自完整快照**：后台只调用 Mall `ScanProductIndex`，先升级 Mall；不要回退旧 `ListProductIndex` 的实时页。源端使用同一只读事务，事务结束后的完成帧加正常 EOF 才能授权发布/清理；RPC 上限 30 秒、5 万 SKU、32 MiB，超限失败不截断。源快照、目标会话锁和最终候选实时校验是不同保证，详见 [快照协议](docs/agent.md#212-mall-跨页一致快照m32b2)。
+- **RAG 首轮同步有延迟**：服务启动后商品向量在后台异步索引，完成前检索回退关键词模式，日志出现 `rag sync completed` 表示本轮索引发布成功，不代表候选当前价格/库存已实时校验。
 - **SSE 是阶段事件流**：`POST /api/agent/recommend/stream` 目前是网关侧包装的阶段事件流，底层 agent-rpc 仍是 unary RPC，不是 token 级或工具调用级真实流式。
 - **不要编辑生成代码**：`pb/`、`client/`、`types.go`、`routes.go` 等由 goctl 生成，修改会被 `make api-all` 覆盖。
 - **MCP 并发治理待补**：启用且白名单非空时，每请求启动独立 stdio 子进程；已有超时与回收，尚无进程并发配额。是否池化应依据耗时证据，并防止跨用户状态串用。
