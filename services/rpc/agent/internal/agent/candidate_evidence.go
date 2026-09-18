@@ -29,6 +29,7 @@ const (
 // observed start of the source read (0 = unknown/legacy), not a row update time.
 // VerifiedAtUnixMs is a past check, never a promise or stock reservation.
 type CandidateEvidence struct {
+	DemandCategory    DemandCategoryEvidence
 	Ranking           CandidateRanking
 	Source            RetrievalSource
 	ProductID         string
@@ -38,6 +39,14 @@ type CandidateEvidence struct {
 	RetrievedAtUnixMs int64
 	State             VerificationState
 	VerifiedAtUnixMs  int64
+}
+
+// Set only by the opt-in Mall classification verifier. Display category,
+// indexed metadata and model text cannot supply this evidence.
+type DemandCategoryEvidence struct {
+	Code            string
+	TaxonomyVersion string
+	Revision        int64
 }
 
 // CandidateRanking keeps lane ranks and fusion score separate from the vector

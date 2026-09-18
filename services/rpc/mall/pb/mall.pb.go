@@ -3444,10 +3444,12 @@ func (x *ListProductIndexResp) GetComplete() bool {
 
 // Online check: normal user JWT, no Redis cache and no index-service credential.
 type CheckProductCandidatesReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SkuIds        []string               `protobuf:"bytes,1,rep,name=sku_ids,json=skuIds,proto3" json:"sku_ids,omitempty"` // 1..32 unique IDs, at most 64 bytes each
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	SkuIds []string               `protobuf:"bytes,1,rep,name=sku_ids,json=skuIds,proto3" json:"sku_ids,omitempty"` // 1..32 unique IDs, at most 64 bytes each
+	// Opt-in join against operator-managed classification; false preserves old reads.
+	IncludeDemandCategory bool `protobuf:"varint,2,opt,name=include_demand_category,json=includeDemandCategory,proto3" json:"include_demand_category,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *CheckProductCandidatesReq) Reset() {
@@ -3487,17 +3489,25 @@ func (x *CheckProductCandidatesReq) GetSkuIds() []string {
 	return nil
 }
 
+func (x *CheckProductCandidatesReq) GetIncludeDemandCategory() bool {
+	if x != nil {
+		return x.IncludeDemandCategory
+	}
+	return false
+}
+
 type CandidateFacts struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SkuId         string                 `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
-	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	ProductName   string                 `protobuf:"bytes,3,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
-	SkuName       string                 `protobuf:"bytes,4,opt,name=sku_name,json=skuName,proto3" json:"sku_name,omitempty"`
-	Price         int64                  `protobuf:"varint,5,opt,name=price,proto3" json:"price,omitempty"`
-	Stock         int64                  `protobuf:"varint,6,opt,name=stock,proto3" json:"stock,omitempty"`
-	Sold          int64                  `protobuf:"varint,7,opt,name=sold,proto3" json:"sold,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SkuId          string                 `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
+	ProductId      string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	ProductName    string                 `protobuf:"bytes,3,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
+	SkuName        string                 `protobuf:"bytes,4,opt,name=sku_name,json=skuName,proto3" json:"sku_name,omitempty"`
+	Price          int64                  `protobuf:"varint,5,opt,name=price,proto3" json:"price,omitempty"`
+	Stock          int64                  `protobuf:"varint,6,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sold           int64                  `protobuf:"varint,7,opt,name=sold,proto3" json:"sold,omitempty"`
+	DemandCategory *DemandCategoryFact    `protobuf:"bytes,8,opt,name=demand_category,json=demandCategory,proto3" json:"demand_category,omitempty"` // only when explicitly requested
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CandidateFacts) Reset() {
@@ -3579,6 +3589,73 @@ func (x *CandidateFacts) GetSold() int64 {
 	return 0
 }
 
+func (x *CandidateFacts) GetDemandCategory() *DemandCategoryFact {
+	if x != nil {
+		return x.DemandCategory
+	}
+	return nil
+}
+
+type DemandCategoryFact struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Code            string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	TaxonomyVersion string                 `protobuf:"bytes,2,opt,name=taxonomy_version,json=taxonomyVersion,proto3" json:"taxonomy_version,omitempty"`
+	Revision        int64                  `protobuf:"varint,3,opt,name=revision,proto3" json:"revision,omitempty"` // 0 only for an unmapped/unknown product
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DemandCategoryFact) Reset() {
+	*x = DemandCategoryFact{}
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DemandCategoryFact) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DemandCategoryFact) ProtoMessage() {}
+
+func (x *DemandCategoryFact) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DemandCategoryFact.ProtoReflect.Descriptor instead.
+func (*DemandCategoryFact) Descriptor() ([]byte, []int) {
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *DemandCategoryFact) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *DemandCategoryFact) GetTaxonomyVersion() string {
+	if x != nil {
+		return x.TaxonomyVersion
+	}
+	return ""
+}
+
+func (x *DemandCategoryFact) GetRevision() int64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
 type CandidateCheck struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SkuId         string                 `protobuf:"bytes,1,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
@@ -3590,7 +3667,7 @@ type CandidateCheck struct {
 
 func (x *CandidateCheck) Reset() {
 	*x = CandidateCheck{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[51]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3602,7 +3679,7 @@ func (x *CandidateCheck) String() string {
 func (*CandidateCheck) ProtoMessage() {}
 
 func (x *CandidateCheck) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[51]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3615,7 +3692,7 @@ func (x *CandidateCheck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CandidateCheck.ProtoReflect.Descriptor instead.
 func (*CandidateCheck) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{51}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CandidateCheck) GetSkuId() string {
@@ -3643,13 +3720,15 @@ type CheckProductCandidatesResp struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Results         []*CandidateCheck      `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`                                             // exactly one result per requested ID
 	CheckedAtUnixMs int64                  `protobuf:"varint,2,opt,name=checked_at_unix_ms,json=checkedAtUnixMs,proto3" json:"checked_at_unix_ms,omitempty"` // server-observed query start, not a stock reservation
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Required handshake when include_demand_category=true; old servers cannot certify it.
+	DemandCategoryContract string `protobuf:"bytes,3,opt,name=demand_category_contract,json=demandCategoryContract,proto3" json:"demand_category_contract,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CheckProductCandidatesResp) Reset() {
 	*x = CheckProductCandidatesResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[52]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3661,7 +3740,7 @@ func (x *CheckProductCandidatesResp) String() string {
 func (*CheckProductCandidatesResp) ProtoMessage() {}
 
 func (x *CheckProductCandidatesResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[52]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3674,7 +3753,7 @@ func (x *CheckProductCandidatesResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckProductCandidatesResp.ProtoReflect.Descriptor instead.
 func (*CheckProductCandidatesResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{52}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *CheckProductCandidatesResp) GetResults() []*CandidateCheck {
@@ -3691,6 +3770,13 @@ func (x *CheckProductCandidatesResp) GetCheckedAtUnixMs() int64 {
 	return 0
 }
 
+func (x *CheckProductCandidatesResp) GetDemandCategoryContract() string {
+	if x != nil {
+		return x.DemandCategoryContract
+	}
+	return ""
+}
+
 type ScanProductIndexReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // 0 = 100; otherwise 1..200
@@ -3700,7 +3786,7 @@ type ScanProductIndexReq struct {
 
 func (x *ScanProductIndexReq) Reset() {
 	*x = ScanProductIndexReq{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[53]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3712,7 +3798,7 @@ func (x *ScanProductIndexReq) String() string {
 func (*ScanProductIndexReq) ProtoMessage() {}
 
 func (x *ScanProductIndexReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[53]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3725,7 +3811,7 @@ func (x *ScanProductIndexReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScanProductIndexReq.ProtoReflect.Descriptor instead.
 func (*ScanProductIndexReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{53}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ScanProductIndexReq) GetPageSize() int32 {
@@ -3749,7 +3835,7 @@ type ScanProductIndexResp struct {
 
 func (x *ScanProductIndexResp) Reset() {
 	*x = ScanProductIndexResp{}
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[54]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3761,7 +3847,7 @@ func (x *ScanProductIndexResp) String() string {
 func (*ScanProductIndexResp) ProtoMessage() {}
 
 func (x *ScanProductIndexResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[54]
+	mi := &file_services_rpc_mall_proto_mall_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3774,7 +3860,7 @@ func (x *ScanProductIndexResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScanProductIndexResp.ProtoReflect.Descriptor instead.
 func (*ScanProductIndexResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{54}
+	return file_services_rpc_mall_proto_mall_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ScanProductIndexResp) GetList() []*ProductIndexEntry {
@@ -4086,9 +4172,10 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\x04list\x18\x01 \x03(\v2\x17.mall.ProductIndexEntryR\x04list\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
 	"nextCursor\x12\x1a\n" +
-	"\bcomplete\x18\x03 \x01(\bR\bcomplete\"4\n" +
+	"\bcomplete\x18\x03 \x01(\bR\bcomplete\"l\n" +
 	"\x19CheckProductCandidatesReq\x12\x17\n" +
-	"\asku_ids\x18\x01 \x03(\tR\x06skuIds\"\xc4\x01\n" +
+	"\asku_ids\x18\x01 \x03(\tR\x06skuIds\x126\n" +
+	"\x17include_demand_category\x18\x02 \x01(\bR\x15includeDemandCategory\"\x87\x02\n" +
 	"\x0eCandidateFacts\x12\x15\n" +
 	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12\x1d\n" +
 	"\n" +
@@ -4097,14 +4184,20 @@ const file_services_rpc_mall_proto_mall_proto_rawDesc = "" +
 	"\bsku_name\x18\x04 \x01(\tR\askuName\x12\x14\n" +
 	"\x05price\x18\x05 \x01(\x03R\x05price\x12\x14\n" +
 	"\x05stock\x18\x06 \x01(\x03R\x05stock\x12\x12\n" +
-	"\x04sold\x18\a \x01(\x03R\x04sold\"\x7f\n" +
+	"\x04sold\x18\a \x01(\x03R\x04sold\x12A\n" +
+	"\x0fdemand_category\x18\b \x01(\v2\x18.mall.DemandCategoryFactR\x0edemandCategory\"o\n" +
+	"\x12DemandCategoryFact\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12)\n" +
+	"\x10taxonomy_version\x18\x02 \x01(\tR\x0ftaxonomyVersion\x12\x1a\n" +
+	"\brevision\x18\x03 \x01(\x03R\brevision\"\x7f\n" +
 	"\x0eCandidateCheck\x12\x15\n" +
 	"\x06sku_id\x18\x01 \x01(\tR\x05skuId\x12*\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x14.mall.CandidateStateR\x05state\x12*\n" +
-	"\x05facts\x18\x03 \x01(\v2\x14.mall.CandidateFactsR\x05facts\"y\n" +
+	"\x05facts\x18\x03 \x01(\v2\x14.mall.CandidateFactsR\x05facts\"\xb3\x01\n" +
 	"\x1aCheckProductCandidatesResp\x12.\n" +
 	"\aresults\x18\x01 \x03(\v2\x14.mall.CandidateCheckR\aresults\x12+\n" +
-	"\x12checked_at_unix_ms\x18\x02 \x01(\x03R\x0fcheckedAtUnixMs\"2\n" +
+	"\x12checked_at_unix_ms\x18\x02 \x01(\x03R\x0fcheckedAtUnixMs\x128\n" +
+	"\x18demand_category_contract\x18\x03 \x01(\tR\x16demandCategoryContract\"2\n" +
 	"\x13ScanProductIndexReq\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\"\xdd\x01\n" +
 	"\x14ScanProductIndexResp\x12+\n" +
@@ -4176,7 +4269,7 @@ func file_services_rpc_mall_proto_mall_proto_rawDescGZIP() []byte {
 }
 
 var file_services_rpc_mall_proto_mall_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
+var file_services_rpc_mall_proto_mall_proto_msgTypes = make([]protoimpl.MessageInfo, 56)
 var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(OrderStatus)(0),                   // 0: mall.OrderStatus
 	(PaymentStatus)(0),                 // 1: mall.PaymentStatus
@@ -4232,10 +4325,11 @@ var file_services_rpc_mall_proto_mall_proto_goTypes = []any{
 	(*ListProductIndexResp)(nil),       // 51: mall.ListProductIndexResp
 	(*CheckProductCandidatesReq)(nil),  // 52: mall.CheckProductCandidatesReq
 	(*CandidateFacts)(nil),             // 53: mall.CandidateFacts
-	(*CandidateCheck)(nil),             // 54: mall.CandidateCheck
-	(*CheckProductCandidatesResp)(nil), // 55: mall.CheckProductCandidatesResp
-	(*ScanProductIndexReq)(nil),        // 56: mall.ScanProductIndexReq
-	(*ScanProductIndexResp)(nil),       // 57: mall.ScanProductIndexResp
+	(*DemandCategoryFact)(nil),         // 54: mall.DemandCategoryFact
+	(*CandidateCheck)(nil),             // 55: mall.CandidateCheck
+	(*CheckProductCandidatesResp)(nil), // 56: mall.CheckProductCandidatesResp
+	(*ScanProductIndexReq)(nil),        // 57: mall.ScanProductIndexReq
+	(*ScanProductIndexResp)(nil),       // 58: mall.ScanProductIndexResp
 }
 var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	3,  // 0: mall.GetProductResp.product:type_name -> mall.Product
@@ -4255,61 +4349,62 @@ var file_services_rpc_mall_proto_mall_proto_depIdxs = []int32{
 	39, // 14: mall.ListOrderOutboxResp.list:type_name -> mall.OrderOutboxEvent
 	39, // 15: mall.GetOrderOutboxResp.event:type_name -> mall.OrderOutboxEvent
 	49, // 16: mall.ListProductIndexResp.list:type_name -> mall.ProductIndexEntry
-	2,  // 17: mall.CandidateCheck.state:type_name -> mall.CandidateState
-	53, // 18: mall.CandidateCheck.facts:type_name -> mall.CandidateFacts
-	54, // 19: mall.CheckProductCandidatesResp.results:type_name -> mall.CandidateCheck
-	49, // 20: mall.ScanProductIndexResp.list:type_name -> mall.ProductIndexEntry
-	5,  // 21: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
-	7,  // 22: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
-	9,  // 23: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
-	11, // 24: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
-	13, // 25: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
-	15, // 26: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
-	17, // 27: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
-	19, // 28: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
-	21, // 29: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
-	23, // 30: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
-	52, // 31: mall.ProductService.CheckProductCandidates:input_type -> mall.CheckProductCandidatesReq
-	27, // 32: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
-	29, // 33: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
-	31, // 34: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
-	33, // 35: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
-	35, // 36: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
-	37, // 37: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
-	41, // 38: mall.OrderService.GetOrderOutboxStats:input_type -> mall.GetOrderOutboxStatsReq
-	43, // 39: mall.OrderService.ListOrderOutbox:input_type -> mall.ListOrderOutboxReq
-	45, // 40: mall.OrderService.GetOrderOutbox:input_type -> mall.GetOrderOutboxReq
-	47, // 41: mall.OrderService.ReplayOrderOutbox:input_type -> mall.ReplayOrderOutboxReq
-	50, // 42: mall.ProductIndexService.ListProductIndex:input_type -> mall.ListProductIndexReq
-	56, // 43: mall.ProductIndexService.ScanProductIndex:input_type -> mall.ScanProductIndexReq
-	6,  // 44: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
-	8,  // 45: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
-	10, // 46: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
-	12, // 47: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
-	14, // 48: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
-	16, // 49: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
-	18, // 50: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
-	20, // 51: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
-	22, // 52: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
-	24, // 53: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
-	55, // 54: mall.ProductService.CheckProductCandidates:output_type -> mall.CheckProductCandidatesResp
-	28, // 55: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
-	30, // 56: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
-	32, // 57: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
-	34, // 58: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
-	36, // 59: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
-	38, // 60: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
-	42, // 61: mall.OrderService.GetOrderOutboxStats:output_type -> mall.GetOrderOutboxStatsResp
-	44, // 62: mall.OrderService.ListOrderOutbox:output_type -> mall.ListOrderOutboxResp
-	46, // 63: mall.OrderService.GetOrderOutbox:output_type -> mall.GetOrderOutboxResp
-	48, // 64: mall.OrderService.ReplayOrderOutbox:output_type -> mall.ReplayOrderOutboxResp
-	51, // 65: mall.ProductIndexService.ListProductIndex:output_type -> mall.ListProductIndexResp
-	57, // 66: mall.ProductIndexService.ScanProductIndex:output_type -> mall.ScanProductIndexResp
-	44, // [44:67] is the sub-list for method output_type
-	21, // [21:44] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	54, // 17: mall.CandidateFacts.demand_category:type_name -> mall.DemandCategoryFact
+	2,  // 18: mall.CandidateCheck.state:type_name -> mall.CandidateState
+	53, // 19: mall.CandidateCheck.facts:type_name -> mall.CandidateFacts
+	55, // 20: mall.CheckProductCandidatesResp.results:type_name -> mall.CandidateCheck
+	49, // 21: mall.ScanProductIndexResp.list:type_name -> mall.ProductIndexEntry
+	5,  // 22: mall.ProductService.CreateProduct:input_type -> mall.CreateProductReq
+	7,  // 23: mall.ProductService.UpdateProduct:input_type -> mall.UpdateProductReq
+	9,  // 24: mall.ProductService.DeleteProduct:input_type -> mall.DeleteProductReq
+	11, // 25: mall.ProductService.GetProduct:input_type -> mall.GetProductReq
+	13, // 26: mall.ProductService.ListProducts:input_type -> mall.ListProductsReq
+	15, // 27: mall.ProductService.CreateSku:input_type -> mall.CreateSkuReq
+	17, // 28: mall.ProductService.UpdateSku:input_type -> mall.UpdateSkuReq
+	19, // 29: mall.ProductService.DeleteSku:input_type -> mall.DeleteSkuReq
+	21, // 30: mall.ProductService.GetSku:input_type -> mall.GetSkuReq
+	23, // 31: mall.ProductService.ListSkusByProduct:input_type -> mall.ListSkusByProductReq
+	52, // 32: mall.ProductService.CheckProductCandidates:input_type -> mall.CheckProductCandidatesReq
+	27, // 33: mall.OrderService.CreateOrder:input_type -> mall.CreateOrderReq
+	29, // 34: mall.OrderService.GetOrder:input_type -> mall.GetOrderReq
+	31, // 35: mall.OrderService.ListOrders:input_type -> mall.ListOrdersReq
+	33, // 36: mall.OrderService.CancelOrder:input_type -> mall.CancelOrderReq
+	35, // 37: mall.OrderService.UpdateOrderStatus:input_type -> mall.UpdateOrderStatusReq
+	37, // 38: mall.OrderService.ConfirmPayment:input_type -> mall.ConfirmPaymentReq
+	41, // 39: mall.OrderService.GetOrderOutboxStats:input_type -> mall.GetOrderOutboxStatsReq
+	43, // 40: mall.OrderService.ListOrderOutbox:input_type -> mall.ListOrderOutboxReq
+	45, // 41: mall.OrderService.GetOrderOutbox:input_type -> mall.GetOrderOutboxReq
+	47, // 42: mall.OrderService.ReplayOrderOutbox:input_type -> mall.ReplayOrderOutboxReq
+	50, // 43: mall.ProductIndexService.ListProductIndex:input_type -> mall.ListProductIndexReq
+	57, // 44: mall.ProductIndexService.ScanProductIndex:input_type -> mall.ScanProductIndexReq
+	6,  // 45: mall.ProductService.CreateProduct:output_type -> mall.CreateProductResp
+	8,  // 46: mall.ProductService.UpdateProduct:output_type -> mall.UpdateProductResp
+	10, // 47: mall.ProductService.DeleteProduct:output_type -> mall.DeleteProductResp
+	12, // 48: mall.ProductService.GetProduct:output_type -> mall.GetProductResp
+	14, // 49: mall.ProductService.ListProducts:output_type -> mall.ListProductsResp
+	16, // 50: mall.ProductService.CreateSku:output_type -> mall.CreateSkuResp
+	18, // 51: mall.ProductService.UpdateSku:output_type -> mall.UpdateSkuResp
+	20, // 52: mall.ProductService.DeleteSku:output_type -> mall.DeleteSkuResp
+	22, // 53: mall.ProductService.GetSku:output_type -> mall.GetSkuResp
+	24, // 54: mall.ProductService.ListSkusByProduct:output_type -> mall.ListSkusByProductResp
+	56, // 55: mall.ProductService.CheckProductCandidates:output_type -> mall.CheckProductCandidatesResp
+	28, // 56: mall.OrderService.CreateOrder:output_type -> mall.CreateOrderResp
+	30, // 57: mall.OrderService.GetOrder:output_type -> mall.GetOrderResp
+	32, // 58: mall.OrderService.ListOrders:output_type -> mall.ListOrdersResp
+	34, // 59: mall.OrderService.CancelOrder:output_type -> mall.CancelOrderResp
+	36, // 60: mall.OrderService.UpdateOrderStatus:output_type -> mall.UpdateOrderStatusResp
+	38, // 61: mall.OrderService.ConfirmPayment:output_type -> mall.ConfirmPaymentResp
+	42, // 62: mall.OrderService.GetOrderOutboxStats:output_type -> mall.GetOrderOutboxStatsResp
+	44, // 63: mall.OrderService.ListOrderOutbox:output_type -> mall.ListOrderOutboxResp
+	46, // 64: mall.OrderService.GetOrderOutbox:output_type -> mall.GetOrderOutboxResp
+	48, // 65: mall.OrderService.ReplayOrderOutbox:output_type -> mall.ReplayOrderOutboxResp
+	51, // 66: mall.ProductIndexService.ListProductIndex:output_type -> mall.ListProductIndexResp
+	58, // 67: mall.ProductIndexService.ScanProductIndex:output_type -> mall.ScanProductIndexResp
+	45, // [45:68] is the sub-list for method output_type
+	22, // [22:45] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_mall_proto_mall_proto_init() }
@@ -4323,7 +4418,7 @@ func file_services_rpc_mall_proto_mall_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_mall_proto_mall_proto_rawDesc), len(file_services_rpc_mall_proto_mall_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   55,
+			NumMessages:   56,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

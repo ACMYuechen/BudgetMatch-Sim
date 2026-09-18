@@ -26,6 +26,7 @@ type (
 	DeleteProductResp          = pb.DeleteProductResp
 	DeleteSkuReq               = pb.DeleteSkuReq
 	DeleteSkuResp              = pb.DeleteSkuResp
+	DemandCategoryFact         = pb.DemandCategoryFact
 	GetProductReq              = pb.GetProductReq
 	GetProductResp             = pb.GetProductResp
 	GetSkuReq                  = pb.GetSkuReq

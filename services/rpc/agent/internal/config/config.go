@@ -38,7 +38,7 @@ type Config struct {
 }
 
 type DemandExecutionConfig struct {
-	Mode string `json:"mode,optional"` // empty/disabled or explicit demo; no live mode yet.
+	Mode string `json:"mode,optional"` // empty/disabled, isolated demo, or explicit mall.
 }
 
 // ValidateDemandExecution must run before any external clients or database I/O.
@@ -50,8 +50,12 @@ func (c Config) ValidateDemandExecution() error {
 		if !c.MallConfigured() {
 			return nil
 		}
+	case "mall":
+		if c.MallConfigured() {
+			return nil
+		}
 	}
-	return fmt.Errorf("demand execution requires disabled mode or explicit demo mode without Mall")
+	return fmt.Errorf("demand execution requires disabled, demo without Mall, or mall with Mall configured")
 }
 
 // ValidateRetrieval rejects typos and unmet experimental dependencies before I/O.

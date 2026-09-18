@@ -36,12 +36,13 @@ type catalogFile struct {
 	Entries []CategoryEntry `json:"entries"`
 }
 
-// Catalog is immutable after loading. No caller can replace entries while
-// retaining a different mapping's digest. This first loader is DEMO ONLY.
+// Catalog is immutable after construction. Demo mappings and request-local
+// Mall snapshots have separate evidence policies and cannot classify each other.
 type Catalog struct {
 	metadata CatalogMetadata
 	sha256   string
 	entries  map[string]CategoryEntry
+	mall     map[string]mallBinding
 }
 
 var versionID = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,79}$`)
@@ -82,14 +83,17 @@ type Classification struct {
 }
 
 // Classify does not read candidate.Category, Name, Tags or model text. Exact
-// SKU + parent identity AND explicit demo provenance are required. Live Mall
-// candidates can never acquire demo hard-category evidence from this loader.
+// Exact SKU + parent identity AND the catalog's own provenance are required.
+// Mall candidates can never acquire hard-category evidence from a demo catalog.
 func (c *Catalog) Classify(candidate agent.ProductCandidate) Classification {
 	out := Classification{Category: Unknown, Reason: "mapping_unavailable"}
 	if c == nil || c.sha256 == "" {
 		return out
 	}
 	out.MappingVersion, out.MappingSHA256 = c.metadata.Version, c.sha256
+	if c.mall != nil {
+		return c.classifyMall(candidate, out)
+	}
 	if candidate.Evidence.Source != agent.RetrievalDemo || candidate.Evidence.State != agent.VerificationDemo {
 		out.Reason = "not_demo_source"
 		return out
@@ -108,4 +112,24 @@ func (c *Catalog) Classify(candidate agent.ProductCandidate) Classification {
 		out.Reason = "unclassified_demo"
 	}
 	return out
+}
+
+// AcceptsEvidence gates the search even when no hard categories were requested.
+// Unknown demo categories remain permitted under the existing exclusion rules.
+func (c *Catalog) AcceptsEvidence(candidate agent.ProductCandidate) bool {
+	if c == nil || c.sha256 == "" {
+		return false
+	}
+	if c.mall != nil {
+		reason := c.Classify(candidate).Reason
+		return reason == "mapped_mall" || reason == "unclassified_mall"
+	}
+	return candidate.Evidence.Source == agent.RetrievalDemo && candidate.Evidence.State == agent.VerificationDemo
+}
+
+func (c *Catalog) Scope() string {
+	if c != nil && c.mall != nil {
+		return "mall_checked_snapshot_only"
+	}
+	return "synthetic_demo_snapshot_only"
 }

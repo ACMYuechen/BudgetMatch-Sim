@@ -85,7 +85,7 @@ type node struct {
 }
 
 // Select returns only full hard-constraint solutions, never an actionable
-// partial bundle. NoFeasibleBundle means not found in this bounded demo search,
+// partial bundle. NoFeasibleBundle means not found in this bounded snapshot search,
 // NOT global infeasibility. External cancellation returns an error and no result.
 func (s *Selector) Select(ctx context.Context, state demand.State, catalog *demand.Catalog, candidates []agent.ProductCandidate) (Result, error) {
 	if s == nil || !s.config.valid() || s.now == nil {
@@ -103,7 +103,7 @@ func (s *Selector) Select(ctx context.Context, state demand.State, catalog *dema
 		return Result{}, ErrInput
 	}
 	state = copyState(state)
-	out := Result{Strategy: StrategyVersion, Scope: SnapshotScope, Status: NoFeasibleBundle,
+	out := Result{Strategy: StrategyVersion, Scope: catalog.Scope(), Status: NoFeasibleBundle,
 		Evidence: []ItemEvidence{}, UnscoredPreferences: []demand.Preference{},
 		Stats: Stats{InputSnapshots: len(candidates), Filtered: map[string]int{}, StopReason: stopFinished}}
 	for _, p := range state.Preferences {

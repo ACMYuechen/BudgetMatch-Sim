@@ -17,7 +17,7 @@ type Assessment struct {
 	Violations           []string   `json:"violations"`
 }
 
-// AssessSelection checks ONE supplied selection against demo category evidence
+// AssessSelection checks ONE supplied selection against bound category evidence
 // and snapshot limits. It neither searches for a bundle nor checks live facts,
 // and a failure is NOT proof of global infeasibility. Preferences are unscored.
 func AssessSelection(s State, catalog *Catalog, selected []agent.ProductCandidate) (Assessment, error) {
@@ -43,6 +43,9 @@ func AssessSelection(s State, catalog *Catalog, selected []agent.ProductCandidat
 			continue
 		}
 		seen[candidate.Id] = true
+		if !catalog.AcceptsEvidence(candidate) {
+			violations["invalid_evidence"] = true
+		}
 		// At most 256 prices, each <= MaxBudgetCents; the sum cannot overflow.
 		out.TotalPriceCents += candidate.PriceCents
 		category := catalog.Classify(candidate).Category

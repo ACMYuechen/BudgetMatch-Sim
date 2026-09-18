@@ -370,6 +370,8 @@ message ListProductIndexResp {
 // Online check: normal user JWT, no Redis cache and no index-service credential.
 message CheckProductCandidatesReq {
   repeated string sku_ids = 1; // 1..32 unique IDs, at most 64 bytes each
+  // Opt-in join against operator-managed classification; false preserves old reads.
+  bool include_demand_category = 2;
 }
 
 enum CandidateState {
@@ -386,6 +388,13 @@ message CandidateFacts {
   int64 price = 5;
   int64 stock = 6;
   int64 sold = 7;
+  DemandCategoryFact demand_category = 8; // only when explicitly requested
+}
+
+message DemandCategoryFact {
+  string code = 1;
+  string taxonomy_version = 2;
+  int64 revision = 3; // 0 only for an unmapped/unknown product
 }
 
 message CandidateCheck {
@@ -397,6 +406,8 @@ message CandidateCheck {
 message CheckProductCandidatesResp {
   repeated CandidateCheck results = 1; // exactly one result per requested ID
   int64 checked_at_unix_ms = 2; // server-observed query start, not a stock reservation
+  // Required handshake when include_demand_category=true; old servers cannot certify it.
+  string demand_category_contract = 3;
 }
 
 service ProductService {

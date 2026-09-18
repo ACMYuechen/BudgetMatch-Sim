@@ -80,11 +80,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
 	service := recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient))
-	if c.DemandExecution.Mode == "demo" {
-		executor, err := demandexec.NewBuiltinDemo()
-		if err != nil {
-			panic(safety.Protect(err))
-		}
+	executor, err := newDemandExecutor(c.DemandExecution.Mode, mallClient)
+	if err != nil {
+		panic(safety.Protect(err))
+	}
+	if executor != nil {
 		service.WithDemandExecutor(executor)
 	}
 
@@ -93,6 +93,24 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RecommendService: service,
 		Syncer:           syncer,
 	}
+}
+
+// Pure wiring, also exercised by the authenticated in-process RPC regression.
+func newDemandExecutor(mode string, client productservice.ProductService) (*demandexec.Executor, error) {
+	switch mode {
+	case "", "disabled":
+		return nil, nil
+	case "demo":
+		if client == nil {
+			return demandexec.NewBuiltinDemo()
+		}
+	case "mall":
+		if client != nil {
+			// Dedicated bounded keyword path; never share index credentials.
+			return demandexec.NewMall(tools.NewMallProductProvider(client), client)
+		}
+	}
+	return nil, agentcore.ErrDemandNotExecutable
 }
 
 func newResultFinalizer(mallClient tools.CandidateCheckClient) recommendagent.ResultFinalizer {

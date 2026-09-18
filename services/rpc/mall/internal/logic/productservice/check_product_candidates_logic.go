@@ -42,13 +42,24 @@ func (l *CheckProductCandidatesLogic) CheckProductCandidates(in *pb.CheckProduct
 		return nil, status.FromContextError(err).Err()
 	}
 	checkedAt := time.Now().UnixMilli()
-	rows, err := l.svcCtx.CandidateStore.FindActiveCandidates(ctx, in.SkuIds)
+	read := l.svcCtx.CandidateStore.FindActiveCandidates
+	if in.IncludeDemandCategory {
+		store, ok := l.svcCtx.CandidateStore.(product_index.DemandCandidateReader)
+		if !ok {
+			return nil, status.Error(codes.Unavailable, "demand classification unavailable")
+		}
+		read = store.FindActiveDemandCandidates
+	}
+	rows, err := read(ctx, in.SkuIds)
 	if stopped := ctx.Err(); stopped != nil {
 		return nil, status.FromContextError(stopped).Err()
 	}
 	if err != nil {
 		l.Logger.Error("candidate check read failed")
 		return nil, status.Error(codes.Unavailable, "candidate store unavailable")
+	}
+	if len(rows) > len(in.SkuIds) {
+		return nil, status.Error(codes.Unavailable, "invalid candidate store response")
 	}
 	requested := make(map[string]bool, len(in.SkuIds))
 	for _, id := range in.SkuIds {
@@ -60,15 +71,25 @@ func (l *CheckProductCandidatesLogic) CheckProductCandidates(in *pb.CheckProduct
 		if !requested[row.SkuId] || duplicate || !candidatecontract.ValidID(row.ProductId) {
 			return nil, status.Error(codes.Unavailable, "invalid candidate store response")
 		}
+		if in.IncludeDemandCategory && !candidatecontract.ValidDemandCategoryFact(row.CategoryCode, row.CategoryTaxonomy, row.CategoryRevision) {
+			return nil, status.Error(codes.Unavailable, "invalid demand classification")
+		}
 		byID[row.SkuId] = row
 	}
 	resp := &pb.CheckProductCandidatesResp{CheckedAtUnixMs: checkedAt}
+	if in.IncludeDemandCategory {
+		resp.DemandCategoryContract = candidatecontract.DemandCategoryContract
+	}
 	for _, id := range in.SkuIds {
 		check := &pb.CandidateCheck{SkuId: id, State: pb.CandidateState_CANDIDATE_STATE_UNAVAILABLE}
 		if row, ok := byID[id]; ok {
 			check.State = pb.CandidateState_CANDIDATE_STATE_ACTIVE
 			check.Facts = &pb.CandidateFacts{SkuId: id, ProductId: row.ProductId,
 				ProductName: row.ProductName, SkuName: row.SkuName, Price: row.Price, Stock: row.Stock, Sold: row.Sold}
+			if in.IncludeDemandCategory {
+				check.Facts.DemandCategory = &pb.DemandCategoryFact{Code: row.CategoryCode,
+					TaxonomyVersion: row.CategoryTaxonomy, Revision: row.CategoryRevision}
+			}
 		}
 		resp.Results = append(resp.Results, check)
 	}

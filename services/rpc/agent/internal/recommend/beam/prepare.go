@@ -49,7 +49,8 @@ func validPayload(candidates []agent.ProductCandidate) bool {
 		if len(c.Tags) > MaxTagsPerSKU {
 			return false
 		}
-		for _, value := range []string{c.Id, c.Name, c.Category, c.Source, c.Evidence.ProductID, c.Evidence.Ranking.Method} {
+		for _, value := range []string{c.Id, c.Name, c.Category, c.Source, c.Evidence.ProductID, c.Evidence.Ranking.Method,
+			c.Evidence.DemandCategory.Code, c.Evidence.DemandCategory.TaxonomyVersion} {
 			if len(value) > remaining {
 				return false
 			}
@@ -128,8 +129,11 @@ func (s *Selector) prepare(g *guard, state demand.State, catalog *demand.Catalog
 			code = "invalid_parent"
 		case c.PriceCents <= 0 || c.PriceCents > agent.MaxBudgetCents || c.Stock <= 0 || c.Sold < 0:
 			code = "invalid_facts"
-		case c.Evidence.Source != agent.RetrievalDemo || c.Evidence.State != agent.VerificationDemo:
+		case !catalog.AcceptsEvidence(c):
 			code = "non_demo_evidence"
+			if catalog.Scope() != SnapshotScope {
+				code = "untrusted_mall_evidence"
+			}
 		case !rankingOK:
 			code = "invalid_ranking"
 		case c.PriceCents > state.BudgetCents:

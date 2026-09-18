@@ -22,6 +22,7 @@ type CandidateCheckClient interface {
 
 type CandidateBatch struct {
 	Candidates      []ProductCandidate
+	Unavailable     []string // includes active SKUs whose checked facts are not purchasable
 	CheckedAtUnixMs int64
 }
 
@@ -31,10 +32,19 @@ type CandidateVerifier interface {
 
 // MallCandidateVerifier makes one bounded RPC using the online user client.
 // Errors/partial replies never become successful stale-snapshot recommendations.
-type MallCandidateVerifier struct{ client CandidateCheckClient }
+type MallCandidateVerifier struct {
+	client         CandidateCheckClient
+	demandCategory bool
+}
 
 func NewMallCandidateVerifier(client CandidateCheckClient) *MallCandidateVerifier {
 	return &MallCandidateVerifier{client: client}
+}
+
+// NewMallDemandVerifier requires both an explicit version handshake and a
+// category fact for every active SKU, including explicitly unknown categories.
+func NewMallDemandVerifier(client CandidateCheckClient) *MallCandidateVerifier {
+	return &MallCandidateVerifier{client: client, demandCategory: true}
 }
 
 func candidateDependencyError() error {
@@ -46,6 +56,9 @@ func (v *MallCandidateVerifier) Verify(ctx context.Context, candidates []Product
 		return CandidateBatch{}, err
 	}
 	if v == nil || v.client == nil {
+		return CandidateBatch{}, candidateDependencyError()
+	}
+	if len(candidates) < 1 || len(candidates) > candidatecontract.MaxCandidates {
 		return CandidateBatch{}, candidateDependencyError()
 	}
 	ids := make([]string, 0, len(candidates))
@@ -66,7 +79,7 @@ func (v *MallCandidateVerifier) Verify(ctx context.Context, candidates []Product
 	checkCtx, cancel := context.WithTimeout(ctx, candidatecontract.MaxDuration)
 	defer cancel()
 	started := time.Now()
-	resp, err := v.client.CheckProductCandidates(checkCtx, &pb.CheckProductCandidatesReq{SkuIds: ids},
+	resp, err := v.client.CheckProductCandidates(checkCtx, &pb.CheckProductCandidatesReq{SkuIds: ids, IncludeDemandCategory: v.demandCategory},
 		grpc.MaxCallRecvMsgSize(candidatecontract.MaxResponseBytes))
 	if stopped := ctx.Err(); stopped != nil {
 		return CandidateBatch{}, stopped
@@ -80,6 +93,9 @@ func (v *MallCandidateVerifier) Verify(ctx context.Context, candidates []Product
 	}
 	if checkCtx.Err() != nil || resp == nil || len(resp.Results) != len(ids) ||
 		proto.Size(resp) > candidatecontract.MaxResponseBytes {
+		return CandidateBatch{}, candidateDependencyError()
+	}
+	if v.demandCategory && resp.DemandCategoryContract != candidatecontract.DemandCategoryContract {
 		return CandidateBatch{}, candidateDependencyError()
 	}
 	// Allow small host clock skew, but never accept obviously stale/future checks.
@@ -110,13 +126,28 @@ func (v *MallCandidateVerifier) Verify(ctx context.Context, candidates []Product
 			if facts == nil || facts.SkuId != item.SkuId || facts.ProductId != candidate.Evidence.ProductID {
 				return CandidateBatch{}, candidateDependencyError()
 			}
+			// Always clear old evidence. Even a legacy check must not preserve
+			// classification from an earlier request or a vector document.
+			candidate.Evidence.DemandCategory = agentcore.DemandCategoryEvidence{}
+			if v.demandCategory {
+				category := facts.DemandCategory
+				if category == nil || !candidatecontract.ValidDemandCategoryFact(category.Code, category.TaxonomyVersion, category.Revision) {
+					return CandidateBatch{}, candidateDependencyError()
+				}
+				candidate.Evidence.DemandCategory = agentcore.DemandCategoryEvidence{Code: category.Code,
+					TaxonomyVersion: category.TaxonomyVersion, Revision: category.Revision}
+			}
 			if facts.Price <= 0 || facts.Price > agentcore.MaxBudgetCents || facts.Stock <= 0 || facts.Sold < 0 {
 				continue // confirmed but not a valid purchasable candidate
 			}
 			candidate.Name = joinName(facts.ProductName, facts.SkuName)
 			candidate.PriceCents, candidate.Stock, candidate.Sold = facts.Price, facts.Stock, facts.Sold
-			// Mall has no authoritative category yet; do not certify an old vector label.
+			// The default path still never certifies a category. Demand execution
+			// opts into the independently maintained Mall classification table.
 			candidate.Category = ""
+			if v.demandCategory {
+				candidate.Category = candidate.Evidence.DemandCategory.Code
+			}
 			candidate.Source = "mall"
 			if candidate.Evidence.Source == agentcore.RetrievalMallVector {
 				candidate.Source = "mall+rag"
@@ -133,6 +164,8 @@ func (v *MallCandidateVerifier) Verify(ctx context.Context, candidates []Product
 	for _, id := range ids {
 		if candidate, ok := checked[id]; ok {
 			batch.Candidates = append(batch.Candidates, candidate)
+		} else {
+			batch.Unavailable = append(batch.Unavailable, id)
 		}
 	}
 	return batch, nil
