@@ -1,5 +1,5 @@
-// Package demand defines the M4 domain foundation. It is not yet wired into
-// Planner, RPC, memory or bundle selection; ready means a valid intent only.
+// Package demand defines the M4 domain foundation used by planning-only turns.
+// Bundle selection does not consume it yet; ready means a valid intent only.
 package demand
 
 import (

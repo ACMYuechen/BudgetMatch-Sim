@@ -107,6 +107,7 @@
 | `/api/seckill/orders` | POST | 用户；网关注入当前用户 ID，并传秒杀令牌 |
 | `/api/seckill/orders/:order_id` | GET | 用户；RPC 从认证上下文判断订单归属 |
 | `/api/agent/recommend` | POST | 用户；只使用当前用户的会话空间 |
+| `/api/agent/intent/plan` | POST | 用户；只规划/保存本人需求，不执行模型、检索或推荐 |
 | `/api/agent/recommend/stream` | POST | 同上；HTTP SSE 包装，同样要求 Authorization，不是独立免鉴权流接口 |
 | `/api/agent/conversations` | GET | 用户；只列出本人会话 |
 | `/api/agent/conversations/:conversation_id/turns` | GET | 用户；只查看本人会话轮次 |
@@ -241,6 +242,7 @@
 | RPC（package `agent`） | 当前权限 | 数据范围 |
 | --- | --- | --- |
 | `RecommendService.Recommend` | 用户 | 用户 ID 仅从认证上下文取得，按用户 + 会话执行推荐和记忆读写 |
+| `RecommendService.PlanDemand` | 用户 | 同样仅信任认证上下文；显式变更本人需求状态，不接受模型自行放宽条件 |
 | `RecommendService.ListConversations` | 用户 | 只列出本人会话 |
 | `RecommendService.ListConversationTurns` | 用户 | 在本人命名空间查会话；不存在或他人会话返回 `NotFound` |
 | `RecommendService.DeleteConversation` | 用户 | 只删除本人会话；未命中时返回 `deleted=false`，不是越权删除 |
