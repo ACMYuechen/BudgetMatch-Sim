@@ -13,8 +13,8 @@ import (
 
 func testDemandState() IntentState {
 	return IntentState{BudgetCents: 10000, MaxItems: 3, Keywords: []string{"desk"}, Preferences: []string{"quiet"},
-		PlanningOnly: true,
-		Demand:       &agent.DemandState{SchemaVersion: 1, Required: []string{"keyboard"}, Optional: []string{"mouse"}, Excluded: []string{"phone"}}}
+		PlanningOnly: true, DemandPlanTurnID: "plan-v2", DemandPlanReady: true,
+		Demand: &agent.DemandState{SchemaVersion: 1, Required: []string{"keyboard"}, Optional: []string{"mouse"}, Excluded: []string{"phone"}}}
 }
 
 func mutateDemandState(state IntentState) {

@@ -274,12 +274,15 @@ func TestDeterminismOwnershipAndConcurrency(t *testing.T) {
 	group.Wait()
 	first.Selected[0].Tags[0] = "OUTPUT MUTATION"
 	first.Selected[0].PriceCents = 999
+	first.Window[0].Tags[0] = "WINDOW MUTATION"
 	stateAfter, _ := json.Marshal(state)
 	require.Equal(t, stateBefore, stateAfter)
 	require.Equal(t, snapshots, candidates)
 	replayed, err := s.Select(context.Background(), state, catalog, candidates)
 	require.NoError(t, err)
 	require.Equal(t, int64(50), replayed.TotalPriceCents)
+	require.Equal(t, "UNTRUSTED-TAG", replayed.Selected[0].Tags[0])
+	replayed.Window[0].Tags[0] = "SEPARATE WINDOW MUTATION"
 	require.Equal(t, "UNTRUSTED-TAG", replayed.Selected[0].Tags[0])
 	for _, c := range candidates {
 		c.Tags[0] = "INPUT MUTATION"
