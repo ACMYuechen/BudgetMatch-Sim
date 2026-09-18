@@ -1,5 +1,6 @@
-// Package demand defines the M4 domain foundation used by planning-only turns.
-// Bundle selection does not consume it yet; ready means a valid intent only.
+// Package demand defines the M4 domain foundation used by planning-only turns
+// and the internal demo search experiment. Production recommendation does not
+// consume it yet; ready means a valid intent, not a feasible recommendation.
 package demand
 
 import (
@@ -45,8 +46,8 @@ func knownCategory(c Category) bool {
 	return false
 }
 
-// Preferences are soft objectives, not inferred product facts. This step does
-// not score them or claim that a product satisfies quiet/battery requirements.
+// Preferences are soft objectives, not inferred product facts. In particular,
+// this state cannot prove that a product satisfies quiet/battery requirements.
 type Preference string
 
 func knownPreference(p Preference) bool {
