@@ -1,0 +1,3474 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "dataset_version": "retrieval_rankings_v1",
+    "dataset_sha256": "c261ee9dbceca64a9e82d0f93804332c1cc2cfea192f0d152f6f54716e2ed05f",
+    "protocol": "bounded-rank-replay-v1",
+    "protocol_sha256": "af23263b08d10271649bafa0d5ab335512f68de5062b1711b91dc527f2ab4d94",
+    "code_revision": "0d4c823+M3.3b-worktree",
+    "provenance": "synthetic_rankings",
+    "annotation_status": "pending_human_review",
+    "top_k": 4,
+    "initial_k": 8,
+    "max_k": 16,
+    "rrf_constant": 60,
+    "timeout_millis": 3000,
+    "go_version": "go1.26.8",
+    "os": "linux",
+    "arch": "amd64",
+    "gomaxprocs": 2,
+    "case_concurrency": 1
+  },
+  "strategies": [
+    {
+      "id": "keyword_only",
+      "summary": {
+        "cases": 18,
+        "quality_cases": 10,
+        "fault_cases": 8,
+        "outcome_accuracy": {
+          "numerator": 18,
+          "denominator": 18,
+          "value": 1
+        },
+        "violation_cases": 0,
+        "recall_at_k_micro": {
+          "numerator": 12,
+          "denominator": 20,
+          "value": 0.6
+        },
+        "precision_at_k": {
+          "numerator": 12,
+          "denominator": 40,
+          "value": 0.3
+        },
+        "ndcg_at_k_macro": {
+          "sum": 4.4113162996710225,
+          "samples": 8,
+          "value": 0.5514145374588778
+        },
+        "no_relevant_cases": 2,
+        "negative_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 2,
+          "value": 0.5
+        },
+        "all_work": {
+          "keyword_calls": 25,
+          "vector_calls": 0,
+          "expansions": 9,
+          "fallbacks": 0,
+          "degraded_successes": 0
+        },
+        "quality_work": {
+          "keyword_calls": 15,
+          "vector_calls": 0,
+          "expansions": 5,
+          "fallbacks": 0,
+          "degraded_successes": 0
+        },
+        "quality_replay_p50_ms": 0.276018,
+        "quality_replay_p95_ms": 17.447516,
+        "gate_passed": true
+      },
+      "cases": [
+        {
+          "id": "consensus_match",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "n1",
+            "k2",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 0.9197207891481877,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 17.447516
+        },
+        {
+          "id": "complementary_lanes",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "n1",
+            "k2",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 4,
+          "ndcg_at_k": 0.5855700749881526,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.284292
+        },
+        {
+          "id": "vector_alias",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n2",
+            "n3",
+            "n4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 2,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.089185
+        },
+        {
+          "id": "keyword_exact",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k4",
+            "n1",
+            "n2",
+            "n3"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 1,
+          "relevant_total": 1,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.103777
+        },
+        {
+          "id": "consensus_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n2",
+            "n3",
+            "k1"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 1,
+          "relevant_total": 3,
+          "ndcg_at_k": 0.20210734650054762,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.067946
+        },
+        {
+          "id": "filtered_prefix",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 4,
+          "relevant_total": 4,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 9,
+              "VectorRank": 0,
+              "FusionScore": 0.014492753623188406
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 10,
+              "VectorRank": 0,
+              "FusionScore": 0.014285714285714285
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 11,
+              "VectorRank": 0,
+              "FusionScore": 0.014084507042253521
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 12,
+              "VectorRank": 0,
+              "FusionScore": 0.013888888888888888
+            }
+          ],
+          "replay_ms": 0.514267
+        },
+        {
+          "id": "duplicate_ranks",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "n1",
+            "k2"
+          ],
+          "raw_count": 3,
+          "relevant_hits": 2,
+          "relevant_total": 3,
+          "ndcg_at_k": 0.7039180890341348,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.288092
+        },
+        {
+          "id": "missing_relevant",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n2"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 1,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.529904
+        },
+        {
+          "id": "negative_with_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n2"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.233516
+        },
+        {
+          "id": "empty_slice",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.276018
+        },
+        {
+          "id": "vector_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.067329
+        },
+        {
+          "id": "keyword_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 1.593936
+        },
+        {
+          "id": "both_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.040451
+        },
+        {
+          "id": "vector_denied",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.04141
+        },
+        {
+          "id": "keyword_denied",
+          "kind": "fault",
+          "outcome": "unauthenticated",
+          "expected": "unauthenticated",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.022603
+        },
+        {
+          "id": "empty_keyword_vector_failed",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.028473
+        },
+        {
+          "id": "wider_keyword_failed",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.030229
+        },
+        {
+          "id": "vector_deadline_code",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.008144
+        }
+      ]
+    },
+    {
+      "id": "vector_only",
+      "summary": {
+        "cases": 18,
+        "quality_cases": 10,
+        "fault_cases": 8,
+        "outcome_accuracy": {
+          "numerator": 18,
+          "denominator": 18,
+          "value": 1
+        },
+        "violation_cases": 0,
+        "recall_at_k_micro": {
+          "numerator": 16,
+          "denominator": 20,
+          "value": 0.8
+        },
+        "precision_at_k": {
+          "numerator": 16,
+          "denominator": 40,
+          "value": 0.4
+        },
+        "ndcg_at_k_macro": {
+          "sum": 5.781607270050167,
+          "samples": 8,
+          "value": 0.7227009087562709
+        },
+        "no_relevant_cases": 2,
+        "negative_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 2,
+          "value": 0.5
+        },
+        "all_work": {
+          "keyword_calls": 0,
+          "vector_calls": 24,
+          "expansions": 10,
+          "fallbacks": 0,
+          "degraded_successes": 0
+        },
+        "quality_work": {
+          "keyword_calls": 0,
+          "vector_calls": 15,
+          "expansions": 5,
+          "fallbacks": 0,
+          "degraded_successes": 0
+        },
+        "quality_replay_p50_ms": 0.036491,
+        "quality_replay_p95_ms": 1.434841,
+        "gate_passed": true
+      },
+      "cases": [
+        {
+          "id": "consensus_match",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "n3",
+            "n4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.414606
+        },
+        {
+          "id": "complementary_lanes",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k3",
+            "n4",
+            "k4",
+            "n5"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 4,
+          "ndcg_at_k": 0.5855700749881526,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 1.434841
+        },
+        {
+          "id": "vector_alias",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "n1",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.036491
+        },
+        {
+          "id": "keyword_exact",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n4",
+            "n5",
+            "n6",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 1,
+          "relevant_total": 1,
+          "ndcg_at_k": 0.43067655807339306,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.028554
+        },
+        {
+          "id": "consensus_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "n1"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 3,
+          "relevant_total": 3,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.050361
+        },
+        {
+          "id": "filtered_prefix",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 4,
+          "relevant_total": 4,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 9,
+              "FusionScore": 0.014492753623188406
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 10,
+              "FusionScore": 0.014285714285714285
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 11,
+              "FusionScore": 0.014084507042253521
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 12,
+              "FusionScore": 0.013888888888888888
+            }
+          ],
+          "replay_ms": 0.114802
+        },
+        {
+          "id": "duplicate_ranks",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k2",
+            "k3",
+            "n2"
+          ],
+          "raw_count": 3,
+          "relevant_hits": 2,
+          "relevant_total": 3,
+          "ndcg_at_k": 0.7653606369886218,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.045428
+        },
+        {
+          "id": "missing_relevant",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n3",
+            "n4"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 1,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.032809
+        },
+        {
+          "id": "negative_with_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n3",
+            "n4"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.017093
+        },
+        {
+          "id": "empty_slice",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.007984
+        },
+        {
+          "id": "vector_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.018944
+        },
+        {
+          "id": "keyword_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.018427
+        },
+        {
+          "id": "both_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.008904
+        },
+        {
+          "id": "vector_denied",
+          "kind": "fault",
+          "outcome": "permission_denied",
+          "expected": "permission_denied",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.019327
+        },
+        {
+          "id": "keyword_denied",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.01632
+        },
+        {
+          "id": "empty_keyword_vector_failed",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.007722
+        },
+        {
+          "id": "wider_keyword_failed",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.007471
+        },
+        {
+          "id": "vector_deadline_code",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.008435
+        }
+      ]
+    },
+    {
+      "id": "vector_first",
+      "summary": {
+        "cases": 18,
+        "quality_cases": 10,
+        "fault_cases": 8,
+        "outcome_accuracy": {
+          "numerator": 18,
+          "denominator": 18,
+          "value": 1
+        },
+        "violation_cases": 0,
+        "recall_at_k_micro": {
+          "numerator": 12,
+          "denominator": 20,
+          "value": 0.6
+        },
+        "precision_at_k": {
+          "numerator": 12,
+          "denominator": 40,
+          "value": 0.3
+        },
+        "ndcg_at_k_macro": {
+          "sum": 4.781607270050167,
+          "samples": 8,
+          "value": 0.5977009087562709
+        },
+        "no_relevant_cases": 2,
+        "negative_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 2,
+          "value": 0.5
+        },
+        "all_work": {
+          "keyword_calls": 5,
+          "vector_calls": 18,
+          "expansions": 0,
+          "fallbacks": 5,
+          "degraded_successes": 2
+        },
+        "quality_work": {
+          "keyword_calls": 1,
+          "vector_calls": 10,
+          "expansions": 0,
+          "fallbacks": 1,
+          "degraded_successes": 0
+        },
+        "quality_replay_p50_ms": 0.004615,
+        "quality_replay_p95_ms": 3.031416,
+        "gate_passed": true
+      },
+      "cases": [
+        {
+          "id": "consensus_match",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "n3",
+            "n4"
+          ],
+          "raw_count": 5,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.004486
+        },
+        {
+          "id": "complementary_lanes",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k3",
+            "n4",
+            "k4",
+            "n5"
+          ],
+          "raw_count": 5,
+          "relevant_hits": 2,
+          "relevant_total": 4,
+          "ndcg_at_k": 0.5855700749881526,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.00465
+        },
+        {
+          "id": "vector_alias",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "n1",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.004713
+        },
+        {
+          "id": "keyword_exact",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n4",
+            "n5",
+            "n6",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 1,
+          "relevant_total": 1,
+          "ndcg_at_k": 0.43067655807339306,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.002861
+        },
+        {
+          "id": "consensus_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "n1"
+          ],
+          "raw_count": 6,
+          "relevant_hits": 3,
+          "relevant_total": 3,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.004615
+        },
+        {
+          "id": "filtered_prefix",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 1,
+          "relevant_hits": 0,
+          "relevant_total": 4,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.005186
+        },
+        {
+          "id": "duplicate_ranks",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k2",
+            "k3",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 3,
+          "ndcg_at_k": 0.7653606369886218,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.006511
+        },
+        {
+          "id": "missing_relevant",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n3",
+            "n4"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 1,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.001306
+        },
+        {
+          "id": "negative_with_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n3",
+            "n4"
+          ],
+          "raw_count": 2,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.001454
+        },
+        {
+          "id": "empty_slice",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": true,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 3.031416
+        },
+        {
+          "id": "vector_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": true,
+          "degraded": true,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.076201
+        },
+        {
+          "id": "keyword_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.004931
+        },
+        {
+          "id": "both_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": true,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.017103
+        },
+        {
+          "id": "vector_denied",
+          "kind": "fault",
+          "outcome": "permission_denied",
+          "expected": "permission_denied",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.000718
+        },
+        {
+          "id": "keyword_denied",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            },
+            {
+              "Method": "",
+              "KeywordRank": 0,
+              "VectorRank": 0,
+              "FusionScore": 0
+            }
+          ],
+          "replay_ms": 0.002049
+        },
+        {
+          "id": "empty_keyword_vector_failed",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": true,
+          "degraded": true,
+          "rankings": [],
+          "replay_ms": 0.004803
+        },
+        {
+          "id": "wider_keyword_failed",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": true,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.009742
+        },
+        {
+          "id": "vector_deadline_code",
+          "kind": "fault",
+          "outcome": "deadline_exceeded",
+          "expected": "deadline_exceeded",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.000518
+        }
+      ]
+    },
+    {
+      "id": "hybrid_rrf",
+      "summary": {
+        "cases": 18,
+        "quality_cases": 10,
+        "fault_cases": 8,
+        "outcome_accuracy": {
+          "numerator": 18,
+          "denominator": 18,
+          "value": 1
+        },
+        "violation_cases": 0,
+        "recall_at_k_micro": {
+          "numerator": 16,
+          "denominator": 20,
+          "value": 0.8
+        },
+        "precision_at_k": {
+          "numerator": 16,
+          "denominator": 40,
+          "value": 0.4
+        },
+        "ndcg_at_k_macro": {
+          "sum": 5.911242246722287,
+          "samples": 8,
+          "value": 0.7389052808402858
+        },
+        "no_relevant_cases": 2,
+        "negative_false_positive_rate": {
+          "numerator": 1,
+          "denominator": 2,
+          "value": 0.5
+        },
+        "all_work": {
+          "keyword_calls": 22,
+          "vector_calls": 21,
+          "expansions": 4,
+          "fallbacks": 0,
+          "degraded_successes": 3
+        },
+        "quality_work": {
+          "keyword_calls": 12,
+          "vector_calls": 12,
+          "expansions": 2,
+          "fallbacks": 0,
+          "degraded_successes": 0
+        },
+        "quality_replay_p50_ms": 0.026567,
+        "quality_replay_p95_ms": 0.339503,
+        "gate_passed": true
+      },
+      "cases": [
+        {
+          "id": "consensus_match",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "n1"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 1,
+              "FusionScore": 0.03278688524590164
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 2,
+              "FusionScore": 0.03200204813108039
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 5,
+              "VectorRank": 5,
+              "FusionScore": 0.03076923076923077
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.071692
+        },
+        {
+          "id": "complementary_lanes",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k3",
+            "n1",
+            "n4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 4,
+          "ndcg_at_k": 0.6366824387328317,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.026567
+        },
+        {
+          "id": "vector_alias",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n2",
+            "k1",
+            "k2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 2,
+          "ndcg_at_k": 0.5706417189553201,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 3,
+              "FusionScore": 0.032266458495966696
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 4,
+              "FusionScore": 0.031754032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.012605
+        },
+        {
+          "id": "keyword_exact",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k4",
+            "n4",
+            "n1",
+            "n5"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 1,
+          "relevant_total": 1,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 4,
+              "FusionScore": 0.032018442622950824
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.339503
+        },
+        {
+          "id": "consensus_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "n1",
+            "k2",
+            "n2"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 2,
+          "relevant_total": 3,
+          "ndcg_at_k": 0.7039180890341348,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 1,
+              "FusionScore": 0.032018442622950824
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 4,
+              "FusionScore": 0.032018442622950824
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 5,
+              "VectorRank": 2,
+              "FusionScore": 0.0315136476426799
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 5,
+              "FusionScore": 0.0315136476426799
+            }
+          ],
+          "replay_ms": 0.048034
+        },
+        {
+          "id": "filtered_prefix",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 4,
+          "relevant_total": 4,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 9,
+              "VectorRank": 9,
+              "FusionScore": 0.028985507246376812
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 10,
+              "VectorRank": 10,
+              "FusionScore": 0.02857142857142857
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 11,
+              "VectorRank": 11,
+              "FusionScore": 0.028169014084507043
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 12,
+              "VectorRank": 12,
+              "FusionScore": 0.027777777777777776
+            }
+          ],
+          "replay_ms": 0.155638
+        },
+        {
+          "id": "duplicate_ranks",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k2",
+            "k1",
+            "k3",
+            "n1"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 3,
+          "relevant_total": 3,
+          "ndcg_at_k": 1,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 1,
+              "FusionScore": 0.032018442622950824
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            }
+          ],
+          "replay_ms": 0.036401
+        },
+        {
+          "id": "missing_relevant",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n3",
+            "n2",
+            "n4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 1,
+          "ndcg_at_k": 0,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.010894
+        },
+        {
+          "id": "negative_with_noise",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "n1",
+            "n3",
+            "n2",
+            "n4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            }
+          ],
+          "replay_ms": 0.008263
+        },
+        {
+          "id": "empty_slice",
+          "kind": "quality",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.022077
+        },
+        {
+          "id": "vector_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": true,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.024888
+        },
+        {
+          "id": "keyword_unavailable",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": true,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 1,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 2,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 3,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 0,
+              "VectorRank": 4,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.013131
+        },
+        {
+          "id": "both_unavailable",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.258843
+        },
+        {
+          "id": "vector_denied",
+          "kind": "fault",
+          "outcome": "permission_denied",
+          "expected": "permission_denied",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.013613
+        },
+        {
+          "id": "keyword_denied",
+          "kind": "fault",
+          "outcome": "unauthenticated",
+          "expected": "unauthenticated",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.015457
+        },
+        {
+          "id": "empty_keyword_vector_failed",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.007439
+        },
+        {
+          "id": "wider_keyword_failed",
+          "kind": "fault",
+          "outcome": "unavailable",
+          "expected": "unavailable",
+          "outcome_matched": true,
+          "returned_ids": [],
+          "raw_count": 0,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "keyword",
+              "window": 16
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 16
+            }
+          ],
+          "expanded": true,
+          "fallback": false,
+          "degraded": false,
+          "rankings": [],
+          "replay_ms": 0.014408
+        },
+        {
+          "id": "vector_deadline_code",
+          "kind": "fault",
+          "outcome": "ok",
+          "expected": "ok",
+          "outcome_matched": true,
+          "returned_ids": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "raw_count": 4,
+          "relevant_hits": 0,
+          "relevant_total": 0,
+          "ndcg_at_k": null,
+          "violations": [],
+          "reads": [
+            {
+              "lane": "keyword",
+              "window": 8
+            },
+            {
+              "lane": "vector",
+              "window": 8
+            }
+          ],
+          "expanded": false,
+          "fallback": false,
+          "degraded": true,
+          "rankings": [
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 1,
+              "VectorRank": 0,
+              "FusionScore": 0.01639344262295082
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 2,
+              "VectorRank": 0,
+              "FusionScore": 0.016129032258064516
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 3,
+              "VectorRank": 0,
+              "FusionScore": 0.015873015873015872
+            },
+            {
+              "Method": "hybrid_rrf_v1",
+              "KeywordRank": 4,
+              "VectorRank": 0,
+              "FusionScore": 0.015625
+            }
+          ],
+          "replay_ms": 0.007451
+        }
+      ]
+    }
+  ],
+  "hybrid_comparisons": [
+    {
+      "baseline": "keyword_only",
+      "ndcg_improved": [
+        "consensus_match",
+        "complementary_lanes",
+        "vector_alias",
+        "consensus_noise",
+        "duplicate_ranks"
+      ],
+      "ndcg_regressed": [],
+      "ndcg_tied": [
+        "keyword_exact",
+        "filtered_prefix",
+        "missing_relevant"
+      ]
+    },
+    {
+      "baseline": "vector_only",
+      "ndcg_improved": [
+        "complementary_lanes",
+        "keyword_exact",
+        "duplicate_ranks"
+      ],
+      "ndcg_regressed": [
+        "vector_alias",
+        "consensus_noise"
+      ],
+      "ndcg_tied": [
+        "consensus_match",
+        "filtered_prefix",
+        "missing_relevant"
+      ]
+    },
+    {
+      "baseline": "vector_first",
+      "ndcg_improved": [
+        "complementary_lanes",
+        "keyword_exact",
+        "filtered_prefix",
+        "duplicate_ranks"
+      ],
+      "ndcg_regressed": [
+        "vector_alias",
+        "consensus_noise"
+      ],
+      "ndcg_tied": [
+        "consensus_match",
+        "missing_relevant"
+      ]
+    }
+  ],
+  "gate_passed": true,
+  "real_embedding": "not_run",
+  "real_mall": "not_run",
+  "final_live_check": "not_run",
+  "real_model": "not_run",
+  "token_usage": null,
+  "cost_usd": null
+}
