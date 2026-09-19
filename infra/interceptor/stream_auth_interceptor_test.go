@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"budgetmatch-sim/infra/auth"
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/infra/serviceauth"
 
 	"github.com/stretchr/testify/require"
@@ -95,5 +97,60 @@ func TestStreamDeadlinePolicyRunsBeforeHandler(t *testing.T) {
 			require.Equal(t, tc.code, status.Code(err))
 			require.Equal(t, tc.code == codes.OK, called)
 		})
+	}
+}
+
+func TestUserStreamDeadlinePreservesIdentityAndCancellation(t *testing.T) {
+	const method = "/agent.RecommendService/RecommendStream"
+	token, err := auth.GenerateToken("trusted", testUserSecret, 3600, role.RoleUser)
+	require.NoError(t, err)
+	cfg := AuthConfig{Secret: testUserSecret, StreamMaxDurations: map[string]time.Duration{method: time.Second}}
+	for _, duration := range []time.Duration{0, time.Minute, -time.Second, time.Second} {
+		ctx := incomingBearerContext(token)
+		cancel := func() {}
+		if duration != 0 {
+			ctx, cancel = context.WithTimeout(ctx, duration)
+		}
+		called := false
+		err := StreamServerInterceptor(cfg)(nil, &authTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: method}, func(_ interface{}, stream grpc.ServerStream) error {
+			called = true
+			require.Equal(t, "trusted", stream.Context().Value(ContextKeyUserId))
+			require.Equal(t, token, stream.Context().Value(ContextKeyToken))
+			require.Nil(t, stream.Context().Value(ContextKeyServiceName))
+			deadline, _ := ctx.Deadline()
+			actual, _ := stream.Context().Deadline()
+			require.Equal(t, deadline, actual)
+			cancel()
+			require.ErrorIs(t, stream.Context().Err(), context.Canceled)
+			return nil
+		})
+		cancel()
+		if duration == time.Second {
+			require.NoError(t, err)
+			require.True(t, called)
+		} else {
+			require.Error(t, err)
+			require.False(t, called)
+		}
+	}
+	// A stream-only deadline policy does not change unary admission.
+	_, err = UnaryServerInterceptor(cfg)(incomingBearerContext(token), nil, &grpc.UnaryServerInfo{FullMethod: method}, func(context.Context, interface{}) (interface{}, error) { return nil, nil })
+	require.NoError(t, err)
+}
+
+func TestStreamDeadlineUsesStricterServiceOrMethodLimit(t *testing.T) {
+	const method = "/mall.ProductIndexService/ScanProductIndex"
+	token, err := serviceauth.GenerateToken(serviceauth.ServiceAgent, serviceauth.ServiceMall, testServiceSecret, time.Minute)
+	require.NoError(t, err)
+	for _, limits := range [][2]time.Duration{{time.Second, time.Minute}, {time.Minute, time.Second}} {
+		cfg := AuthConfig{ServiceSecret: testServiceSecret,
+			ServiceMethods:     map[string]ServiceMethodPolicy{method: {Caller: serviceauth.ServiceAgent, Audience: serviceauth.ServiceMall, MaxStreamDuration: limits[0]}},
+			StreamMaxDurations: map[string]time.Duration{method: limits[1]}}
+		ctx, cancel := context.WithTimeout(incomingBearerContext(token), 10*time.Second)
+		called := false
+		err := StreamServerInterceptor(cfg)(nil, &authTestStream{ctx: ctx}, &grpc.StreamServerInfo{FullMethod: method}, func(interface{}, grpc.ServerStream) error { called = true; return nil })
+		cancel()
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+		require.False(t, called)
 	}
 }
