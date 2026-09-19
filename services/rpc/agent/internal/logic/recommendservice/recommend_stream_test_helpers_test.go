@@ -144,8 +144,8 @@ func readStream(t *testing.T, client pb.RecommendServiceClient, ctx context.Cont
 			return events, err
 		}
 		events = append(events, event)
-		if len(events) > 3 {
-			t.Fatal("v1 emitted too many lifecycle frames")
+		if len(events) > streamcontract.MaxProgressEvents+3 {
+			t.Fatal("v1 emitted too many frames")
 		}
 	}
 }
@@ -174,6 +174,11 @@ func assertStreamEnvelope(t *testing.T, events []*pb.RecommendStreamEvent, names
 			require.NotNil(t, event.GetError())
 		case streamcontract.Done:
 			require.NotNil(t, event.GetDone())
+		case streamcontract.AnswerDelta:
+			require.NotNil(t, event.GetAnswerDelta())
+			require.True(t, event.GetAnswerDelta().Provisional)
+		case streamcontract.ToolStarted, streamcontract.ToolCompleted:
+			require.NotNil(t, event.GetTool())
 		}
 	}
 }
