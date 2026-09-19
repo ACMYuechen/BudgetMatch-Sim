@@ -21,6 +21,56 @@ const sse = (name: string, data: unknown) => `event: ${name}\ndata: ${JSON.strin
 const streamPattern = '**/api/agent/recommend/stream'
 const historyPattern = '**/api/agent/conversations/conversation-a/turns?**'
 
+interface LiveStreamControls {
+  requests: Record<string, unknown>[]
+  accept: string | null
+  aborted: boolean
+  send: (kind: string, payload: Record<string, unknown>) => void
+  finish: (stage: 'final' | 'done' | 'close') => void
+}
+
+async function installLiveStream(page: Page) {
+  await page.addInitScript((template) => {
+    const scope = window as unknown as { streamTest: LiveStreamControls }
+    const original = window.fetch.bind(window)
+    const requests: Record<string, unknown>[] = []
+    window.fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+      if (!url.endsWith('/agent/recommend/stream')) return original(input, init)
+      const request = JSON.parse(String(init?.body)) as Record<string, unknown>
+      requests.push(request)
+      let sequence = 0
+      let producer!: ReadableStreamDefaultController<Uint8Array>
+      const controls: LiveStreamControls = {
+        requests, accept: new Headers(init?.headers).get('Accept'), aborted: false,
+        send(kind, payload) {
+          sequence++
+          const data = { schema_version: 1, execution_id: `execution-${requests.length}`, conversation_id: request.conversation_id, turn_id: request.turn_id, sequence, event: kind, ...payload }
+          producer.enqueue(new TextEncoder().encode(`id: ${data.execution_id}:${sequence}\nevent: ${kind}\ndata: ${JSON.stringify(data)}\n\n`))
+        },
+        finish(stage) {
+          if (stage === 'final') controls.send('recommendation.final', { final: { ...template, conversation_id: request.conversation_id, turn_id: request.turn_id } })
+          if (stage === 'done') controls.send('done', { done: { ok: true, replayed: false } })
+          if (stage === 'close') producer.close()
+        },
+      }
+      scope.streamTest = controls
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          producer = controller
+          controls.send('request.accepted', { accepted: {} })
+          controls.send('tool.started', { tool: { call_id: 'tool-1', name: 'tool.search_products', status: 'running', duration_ms: 0 } })
+          controls.send('tool.completed', { tool: { call_id: 'tool-1', name: 'tool.search_products', status: 'succeeded', duration_ms: 12 } })
+          controls.send('answer.delta', { answer_delta: { text: '临时解释 <img src=x onerror=alert(1)>', provisional: true } })
+          init?.signal?.addEventListener('abort', () => { controls.aborted = true; try { controller.error(new DOMException('aborted', 'AbortError')) } catch { /* already closed */ } }, { once: true })
+        },
+        cancel() { controls.aborted = true },
+      })
+      return new Response(body, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8; version=1' } })
+    }
+  }, result)
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript((profile) => {
     localStorage.setItem('budgetmatch:token', JSON.stringify('test-token'))
@@ -146,7 +196,7 @@ test('新对话按钮清理未发送草稿，未完成请求不会跳回旧会�
   await page.route(streamPattern, async (route) => {
     const body = route.request().postDataJSON()
     await new Promise<void>((resolve) => { release = resolve })
-    await route.fulfill({ contentType: 'text/event-stream', body: sse('recommendation.final', { ...result, conversation_id: body.conversation_id, turn_id: body.turn_id }) })
+    await route.fulfill({ contentType: 'text/event-stream', body: sse('recommendation.final', { ...result, conversation_id: body.conversation_id, turn_id: body.turn_id }) + sse('done', { ok: true }) })
     responded = true
   })
   await page.goto('/recommend')
@@ -334,7 +384,7 @@ test('超时中止等待，保留原请求供重试', async ({ page }) => {
   await page.goto('/recommend')
   await send(page)
   await expect.poll(() => !!release).toBe(true)
-  await page.clock.fastForward(120001)
+  await page.clock.fastForward(35001)
   await expect(page.getByRole('alert')).toContainText('等待推荐超时')
   await expect(page.getByRole('button', { name: '重试原请求' })).toBeEnabled()
   release?.()
@@ -345,7 +395,7 @@ test('空需求被拦截，空推荐结果仍能继续对话', async ({ page }) 
   await page.route(streamPattern, (route) => {
     calls++
     const body = route.request().postDataJSON()
-    return route.fulfill({ contentType: 'text/event-stream', body: sse('recommendation.final', { ...result, items: [], total_price_cents: 0, conversation_id: body.conversation_id, turn_id: body.turn_id }) })
+    return route.fulfill({ contentType: 'text/event-stream', body: sse('recommendation.final', { ...result, items: [], total_price_cents: 0, conversation_id: body.conversation_id, turn_id: body.turn_id }) + sse('done', { ok: true }) })
   })
   await page.goto(routeA)
   await expect(page.getByText(result.summary)).toBeVisible()
@@ -355,6 +405,79 @@ test('空需求被拦截，空推荐结果仍能继续对话', async ({ page }) 
   await send(page, '需要一个特殊的商品')
   await expect(page.getByText('暂时没有找到合适的商品，试试调整预算或换个需求描述。')).toBeVisible()
   await expect(page.getByRole('button', { name: '发送需求' })).toBeEnabled()
+})
+
+test('v1 临时解释与工具状态实时展示，正常终帧和 EOF 后才出现商品方案', async ({ page }, testInfo) => {
+  await installLiveStream(page)
+  await page.goto('/recommend')
+  await send(page)
+  await expect(page.getByLabel('临时解释')).toContainText('最终方案以校验结果为准')
+  await expect(page.getByLabel('工具执行状态')).toContainText('检索商品')
+  await expect(page.getByLabel('工具执行状态')).toContainText('已完成')
+  await expect(page.locator('.recommend-provisional img')).toHaveCount(0)
+  const wire = await page.evaluate(() => {
+    const controls = (window as unknown as { streamTest: LiveStreamControls }).streamTest
+    return { accept: controls.accept, request: controls.requests[0] }
+  })
+  expect(wire.accept).toBe('text/event-stream')
+  expect(wire.request.stream_version).toBe(1)
+  expect(wire.request.conversation_id).toBeTruthy()
+  expect(wire.request.turn_id).toBeTruthy()
+  await page.screenshot({ path: testInfo.outputPath('stream-provisional.png'), fullPage: true })
+  await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.finish('final'))
+  await expect(page.getByText(result.summary)).toHaveCount(0)
+  await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.finish('done'))
+  await expect(page.getByText(result.summary)).toHaveCount(0)
+  await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.finish('close'))
+  await expect(page.getByText(result.summary)).toBeVisible()
+  await expect(page.getByLabel('临时解释')).toHaveCount(0)
+  await expect(page.getByLabel('工具执行状态')).toHaveCount(0)
+})
+
+test('v1 增量后失败清除临时内容，重试保持原始请求身份', async ({ page }) => {
+  await installLiveStream(page)
+  await page.goto('/recommend')
+  await send(page, '只看本轮请求')
+  await expect(page.getByLabel('临时解释')).toBeVisible()
+  await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.send('error', { error: { code: 500000, message: '最终核验失败', retryable: false } }))
+  await expect(page.getByRole('alert')).toContainText('最终核验失败')
+  await expect(page.getByLabel('临时解释')).toHaveCount(0)
+  await expect(page.getByLabel('工具执行状态')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: '购物需求' })).toHaveValue('只看本轮请求')
+  await page.getByRole('button', { name: '重试原请求' }).click()
+  await expect(page.getByLabel('临时解释')).toBeVisible()
+  const requests = await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.requests)
+  expect(requests).toHaveLength(2)
+  expect(requests[1]).toEqual(requests[0])
+  await page.getByRole('button', { name: '停止生成' }).click()
+})
+
+for (const mode of ['停止', '超时']) {
+  test(`v1 ${mode}清除所有临时内容并关闭流`, async ({ page }) => {
+    await installLiveStream(page)
+    if (mode === '超时') await page.clock.install()
+    await page.goto('/recommend')
+    await send(page)
+    await expect(page.getByLabel('临时解释')).toBeVisible()
+    if (mode === '停止') await page.getByRole('button', { name: '停止生成' }).click()
+    else await page.clock.fastForward(35001)
+    await expect(page.getByLabel('临时解释')).toHaveCount(0)
+    await expect(page.getByLabel('工具执行状态')).toHaveCount(0)
+    await expect(page.getByText(result.summary)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '重试原请求' })).toBeEnabled()
+    expect(await page.evaluate(() => (window as unknown as { streamTest: LiveStreamControls }).streamTest.aborted)).toBe(true)
+  })
+}
+
+test('旧协议只有 final 没有 done 时也不确认成功', async ({ page }) => {
+  await page.route(streamPattern, (route) => {
+    const request = route.request().postDataJSON()
+    return route.fulfill({ contentType: 'text/event-stream', body: sse('recommendation.final', { ...result, conversation_id: request.conversation_id, turn_id: request.turn_id }) })
+  })
+  await page.goto('/recommend')
+  await send(page)
+  await expect(page.getByRole('alert')).toContainText('完成确认')
+  await expect(page.getByText(result.summary)).toHaveCount(0)
 })
 
 for (const width of [360, 768, 1280]) {
