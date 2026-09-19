@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 工具边界与后台索引身份更新至 2026-09-18 M3.2b2（含流式快照鉴权）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M5.1（含推荐流式 RPC 的可信身份和 deadline）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -243,6 +243,7 @@
 | RPC（package `agent`） | 当前权限 | 数据范围 |
 | --- | --- | --- |
 | `RecommendService.Recommend` | 用户 | 用户 ID 仅从认证上下文取得，按用户 + 会话执行推荐和记忆读写 |
+| `RecommendService.RecommendStream` | 用户 | stream 拦截器在首次接收请求前验证用户 JWT 和 ≤30 秒的传输 deadline；共用 unary 会话/轮次隔离及原子保存，final 仅在保存成功后发送 |
 | `RecommendService.PlanDemand` | 用户 | 同样仅信任认证上下文；显式变更本人需求状态，不接受模型自行放宽条件 |
 | `RecommendService.ExecuteDemand` | 用户 | 只执行本人会话中匹配 `plan_turn_id` 的最新就绪规划；不接收新需求/预算覆盖，不调用旧 Agent 或兜底 |
 | `RecommendService.ListConversations` | 用户 | 只列出本人会话 |
@@ -250,6 +251,8 @@
 | `RecommendService.DeleteConversation` | 用户 | 只删除本人会话；未命中时返回 `deleted=false`，不是越权删除 |
 
 RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user_id, conversation_id)` 复合身份，Redis/内存实现也按用户分区。同一 `conversation_id` 可以在不同用户空间出现，并不意味着共享会话。管理员使用这些接口仍只能访问自己的会话。
+
+`RecommendStream` 是新增的 RPC 生命周期流，不是模型 Token 流；网页 SSE 尚未切换，仍调用 unary。它以认证后的传输 context 执行并传播取消；伪造 `user_id` metadata 或同名 string context key 不生效，后台索引服务 JWT 不能调用。App 的 Agent 流式客户端从可信 context 透传 Token，覆盖已有 authorization metadata；不修改原 deadline。JWT 在建流时验签，不逐事件重新验证过期/撤销。完成重放只发已保存结果和 done，不再调用工具；提交已成功但响应丢失时用相同请求重试。异常/慢连接、原子完成和公开错误边界见 [M5.1 协议](agent.md#104-m51-已交付的-rpc-生命周期流)。
 
 结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 要求无 MallRpc，`mall` 要求已配置 MallRpc；非法值/依赖组合在外部初始化前拒绝。mall 模式使用独立有界关键词链和两次用户身份核验，不用后台索引凭据或演示标签。分类请求要求版本握手和逐项分类事实，旧 Mall/缺表/错误证据均失败，不回退旧契约。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求重放原结果，不重查商品；关闭/切换模式也不把历史快照标记为实时。私有规划标记和请求指纹不进入公开会话状态，旧 Recommend/SSE 保护不解除。
 
@@ -311,7 +314,7 @@ Agent 索引服务 JWT 的额外边界：
 
 5 个 RPC 的数据库配置模板使用同一个数据库和 `root` 账号，连接参数包含 `sslmode=disable`，没有体现按服务分配的数据库最小权限。因此，代码层“由某个服务负责某张表”不等于数据库层已禁止其他服务访问该表。本文不据此推断实际部署环境的账号权限或防火墙规则。
 
-RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 unary 拦截器，不应把它描述成覆盖所有流式/调试/健康服务的统一授权。本项目推荐 SSE 的底层仍是 unary RPC。
+RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享方法策略的 stream 鉴权，其 reflection 流按默认用户策略要求用户 JWT；只有明确配置的方法带 admission deadline（Agent 推荐流、Mall 索引流均为 ≤30 秒）。其它服务不能因注册了 unary 鉴权就推断流式/调试/健康服务都已受保护。网页推荐 SSE 的底层仍是 unary RPC，尚未改用新增 RecommendStream。
 
 依据：[Compose](../docker-compose.yml)、各服务 `etc/config.yaml` 和 `main.go`、[etcd 配置中心](../infra/configcenter/configcenter.go)。
 
@@ -357,6 +360,7 @@ RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 u
 | [支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)、[商城支付入口](../cmd/app/internal/logic/mall/payment_logic_test.go) | 部分跨用户/金额/通知检查 | 已真实调用支付宝、或完整支付链路无缺口 |
 | [支付确认身份](../services/rpc/mall/internal/logic/orderservice/confirm_payment_auth_test.go) | logic 拒绝缺失/错误服务身份，正确身份进入参数校验 | 完成了真实数据库支付确认事务测试 |
 | [Agent 身份提取与历史脱敏](../services/rpc/agent/internal/logic/recommendservice/common_test.go)、[文件隔离](../services/rpc/agent/internal/filetools/security_linux_test.go)、[MCP 策略](../services/rpc/agent/internal/agent/recommend/llm/mcp_test.go) | 可信身份、用户私有文件、保存授权、路径竞态、工具白名单和元数据脱敏 | MCP 已被 OS/网络沙箱化、外部服务端确实只读或真实部署已验收 |
+| [Agent 流式内存 RPC](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_transport_test.go)、[流式故障注入](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_failure_test.go)、[流式 Token 透传](../infra/interceptor/stream_client_interceptor_test.go) | 无/过期/伪造 Token、错误角色、服务凭据、无界 deadline 被拒绝；同名会话用户隔离、取消/慢 Fake Send、原子保存后发送及提交后重放 | 已接入网页或真实模型增量、经过代理断连/真实多进程测试，或网络投递/工具副作用恰好一次 |
 
 2026-09-16 文档初次核对执行并通过以下现有测试，当时未修改业务代码，也未运行真实跨服务越权请求或生产数据操作；后续 M1.3 验证见 [Agent 执行记录](agent.md#14-执行记录)：
 

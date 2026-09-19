@@ -218,7 +218,8 @@ make docker-down
 - `go run ./services/rpc/agent/cmd/eval -suite retrieval -format markdown` 比较固定排序输入上的关键词/向量单路消融、向量优先与 RRF；质量、故障、读取窗口和调用量分开报告。它不运行真实语义检索、不评估最终组合，也不自动切换默认策略。
 - `go run ./services/rpc/agent/cmd/eval -suite demand -format markdown` 另跑同快照贪心/Beam 及受限策略对照、独立穷举和商城核验内存回放；保留漏解反例，分开报告安全、覆盖和计算开销。仅为合成回归，不改旧基线、线上策略或真实配置，详见 [M4.3a 报告](services/rpc/agent/testdata/eval/demand-baseline.v1/report.md)。
 - 人工复核准备入口：`go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001`，输出全量工作单与待填写记录；`-check <review.json>` 校验数据版本和完整性，不认证人工身份、不自动通过验收。
-- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3 本地安全/检索实验已交付，默认仍为向量优先。M4.1 规划、M4.2a/b 有界搜索与独立演示执行、M4.2c Mall 分类核验及重选、M4.3a 离线效果/反例/开销报告已完成本地实现：`/intent/execute` 默认关闭，显式 `mall` 模式使用有界关键词检索、独立分类表和两次事实核验；未执行迁移、回填或启用实例，不代表真实数据已验收。规划仍不推荐，旧入口继续拒绝规划会话。下一本地步 M5.1 流式契约及身份/取消边界；M4.3b 真实数据库/服务与分类数据验收、向量链效果及真实流式仍未完成）。
+- 新增 `RecommendStream` RPC 生命周期流：用户 JWT、≤30 秒传输 deadline、共享校验/原子保存、已完成轮次重放及取消传播。当前只发执行阶段和最终结果，不生成伪模型增量；网页 SSE 仍包装 unary，尚未切换，详见 [M5.1 协议](docs/agent.md#104-m51-已交付的-rpc-生命周期流)。
+- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)（M2 按用户决定阶段收尾、独立复核后置；M3 本地安全/检索实验已交付，默认仍为向量优先。M4.1 规划、M4.2a/b 有界搜索与独立演示执行、M4.2c Mall 分类核验及重选、M4.3a 离线效果/反例/开销报告和 M5.1 RPC 边界已完成本地实现：`/intent/execute` 默认关闭，未执行迁移、回填或启用实例，不代表真实数据已验收。规划仍不推荐，新旧推荐入口继续拒绝规划会话。下一本地步 M5.2 模型/工具增量事件；M4.3b 真实数据库/服务与分类数据验收、向量链效果及端到端流式仍未完成）。
 
 ## 错误处理与日志规范
 

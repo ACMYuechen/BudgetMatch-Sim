@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照选品/核验回放报告已完成本地实现。执行默认关闭，显式 `mall` 模式另走有界关键词链；未执行分类迁移/回填，未启用真实实例。下一本地任务为 M5.1 流式 RPC 契约与身份/取消边界；M4.3b 真实分类数据与数据库/服务验收仍待授权，M4/M3.2/M3.3 整体不据此结项。规划仍独立，旧推荐入口继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标，详见[执行记录](#14-执行记录)。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照选品/核验回放报告、M5.1 流式 RPC 契约及身份/取消边界已完成本地实现。结构化执行默认关闭，未迁移/回填或启用真实实例。新 RPC 暂仅输出执行阶段及已保存结果，旧网页 SSE 仍调用 unary；下一本地任务为 M5.2 Eino/Fake Model 增量与工具事件。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，旧推荐及新流式入口继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标，详见[执行记录](#14-执行记录)。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -28,6 +28,8 @@
 推荐接口使用 `conversation_id` 关联同一认证用户的多轮上下文，并使用 `turn_id` 保证单轮请求幂等。首次请求可不传 `conversation_id`，服务端生成后返回；前端应为每次发送生成新的 `turn_id`，网络重试沿用原值。
 
 RPC 不再接受 `user_id`。Agent RPC 只信任认证拦截器写入的用户身份；即使两个用户使用相同 `conversation_id`，数据也按 `user_id + conversation_id` 隔离。
+
+M5.1 新增独立 `RecommendService.RecommendStream` RPC，保留 unary。它提供有鉴权、有截止时间的执行阶段/结果流，并非模型逐 Token 输出；网页 `/api/agent/recommend/stream` 尚未切换，仍使用原 unary 包装。已交付协议与限制见[第 10.4 节](#104-m51-已交付的-rpc-生命周期流)。
 
 M4.1b 另有 `POST /api/agent/intent/plan` 需求规划接口，沿用同样的身份与会话边界，但不执行推荐。M4.2b/c 的独立 `/api/agent/intent/execute` 支持显式 demo/mall 模式，默认关闭，详见第 9.2 节。以下旧推荐示例只适用于未进入规划模式的会话；规划提议、澄清、幂等与升级限制见第 9.1 节。
 
@@ -893,7 +895,7 @@ GOMAXPROCS=2 go test -p 1 ./services/rpc/agent/internal/eval \
 
 ### 10.1 流式链路及鉴权
 
-新增 `RecommendStream` 服务端流式 RPC，保留 `Recommend` unary RPC。二者共享约束、幂等、校验和持久化流程，不维护两套业务逻辑。
+新增 `RecommendStream` 服务端流式 RPC，保留 `Recommend` unary RPC。二者共享约束、幂等、校验和持久化流程，不维护两套业务逻辑。以下为 M5 完整目标链路；M5.1 只完成第 10.4 节的 RPC 生命周期流，未连接模型增量或切换网页入口。
 
 ```text
 浏览器带认证的 POST + fetch
@@ -906,7 +908,7 @@ GOMAXPROCS=2 go test -p 1 ./services/rpc/agent/internal/eval \
 
 Eino ReAct 提供流式执行能力，具体接入以 [go.mod](../go.mod) 锁定版本及本地源码为准，不直接套用最新版文档示例。框架流程参考 [Eino ReAct 官方说明](https://www.cloudwego.io/docs/eino/core_modules/flow_integration_components/react_agent_manual/)。
 
-- 当前 Agent 注册的是 unary 认证拦截器；基础设施已有供 Mall 索引流使用的 stream 鉴权。新 Agent RPC 上线前必须接入对应服务策略、可信身份注入、客户端 Token 透传及错误映射，不能因基础拦截器已存在就认定 Agent 流式已受保护。
+- M5.1 已在 Agent 注册共享方法策略的 unary/stream 认证拦截器，App 的 Agent 客户端补齐流式 Token 透传。新流式方法要求普通用户 JWT 和不超过 30 秒的传输 deadline；索引服务凭据不能授权在线推荐。实际部署与 HTTP 端到端接入仍未验收。
 - HTTP 网关仍执行已有认证；直接访问 streaming RPC 也必须通过认证。测试伪造 metadata、无 Token、过期 Token 与跨用户同名会话。
 - 核对网关、RPC 客户端、RPC 服务端、模型超时与代理空闲超时，显式配置并传播剩余 deadline；不能只增大模型超时。
 - HTTP 开始流之前的错误使用正常状态码；流开始后通过脱敏 `error` 事件传递，不能尝试重新写 HTTP 状态。
@@ -943,6 +945,28 @@ Eino ReAct 提供流式执行能力，具体接入以 [go.mod](../go.mod) 锁定
 - MCP 子进程池化不是必做项；先补启动/调用并发上限、超时和清理测试，再依据耗时证据决定是否复用，防止跨用户状态串用。
 
 验收：Fake Stream 在 final 前产生可见回答增量，工具状态正确关联；直接 RPC 无认证被拒绝；取消、慢消费者和中途错误不产生虚假的完成轮次或泄漏任务；同步与流式相同请求得到同一持久化结果。真实模型首个增量时延另行实测。
+
+### 10.4 M5.1 已交付的 RPC 生命周期流
+
+契约见 [agent.proto](../services/rpc/agent/proto/agent.proto)，公共限制见 [streamcontract](../services/rpc/agent/streamcontract/contract.go)。使用原 `RecommendReq`，不接收 `user_id`；所有事件带 `schema_version=1`、每次 RPC 独立的 `execution_id`、稳定的 `conversation_id/turn_id` 和从 1 开始的 `sequence`。事件名对应 protobuf `oneof` 负载，后续消费者需忽略未知事件/字段，不能只凭 EOF 判断推荐成功。
+
+| 路径 | 正常连接下的事件 / 终态 |
+| --- | --- |
+| 新轮次成功 | `request.accepted` → `recommendation.final` → `done(ok=true,replayed=false)` → OK EOF |
+| 已完成且请求完全相同 | `recommendation.final` → `done(ok=true,replayed=true)` → OK EOF |
+| 受理后执行/核验/保存失败 | `request.accepted` → 脱敏 `error` → `done(ok=false)` → OK EOF；无 final，业务失败 |
+| 鉴权、deadline、输入、轮次冲突或规划模式检查失败 | 无事件，返回脱敏 gRPC 错误 |
+| 取消 / 传输发送失败 | 停止执行与发送；不承诺 error/done 送达，客户端不能认定成功 |
+
+`request.accepted` 在身份/输入校验、取得会话锁和重放/规划模式检查之后，Agent 执行之前发送；仅表示新轮次获准执行，不回显查询或工具参数。流式业务与 unary 使用同一个 Service、同一把用户/会话锁及相同轮次命名空间。流式路径必须配置完整 `ConversationStore`，不能以旧兼容记忆的尽力写入冒充原子完成。
+
+`final` 只来自共享约束校验、Finalizer 和原子保存之后的结果；重放不再执行模型/工具、实时核验或保存，工具元数据仍经过当前脱敏规则。只有 final、`done(ok=true)` 和正常 EOF 全部匹配，才算完整收到成功结果。已保存结果是历史快照，不是库存预留或重新核验。
+
+传输 admission 在首次 `RecvMsg` 前验证 JWT 和 deadline，不接受无期限或超过 30 秒的推荐流；只用普通用户策略，管理员仍无跨用户会话特权。流式客户端透传受信任 context Token，覆盖而非追加已有 authorization metadata，保留其它 metadata 与原始 deadline/cancel。没有 Token 时不凭空建立身份。Agent 以认证后的 `stream.Context()` 为执行上下文，不依赖另一份构造 context。
+
+M5.1 每条流最多三个业务事件，采用同步 Send、无后台发送 goroutine/无事件队列；慢 Send 由原始传输 deadline 限界，取消不进入普通失败兜底。不会因客户端断连启动后台任务补做未完成执行。取消与提交存在竞争：未提交工作应停止，若提交已成功但响应丢失，不回滚已保存轮次，改用同一请求标识重试恢复；不宣称工具副作用或网络投递恰好一次。受理后的 `error.retryable` 仅对 `Unavailable/ResourceExhausted` 为 true，表示可以使用同一请求重试，不保证成功；原始状态正文和 DebugInfo 不进入事件。
+
+本步**没有** `answer.delta`、工具实时事件、Eino Stream、HTTP 转发、前端增量展示或按事件 ID 断点续传，也不把最终摘要拆成伪增量。仍需 M5.2 的模型/工具事件与背压，M5.3 的网关/前端兼容接入，以及运行预算、可观测性和真实代理/模型验收。客户端首轮也应自行生成两个稳定 ID；若省略且尚未收到 accepted 就断线，不承诺恢复该轮。
 
 ## 11. M6：并发、故障与交付验证
 
@@ -1055,12 +1079,14 @@ git diff --check
     - [x] M4.3a：独立合成需求数据、同快照选品对照/穷举、商城核验故障回放、报告与微基准；不改变旧样本/基线或线上策略。
     - [ ] M4.3b：经独立复核的真实分类数据、数据库/服务联调与效果/开销验收；另行授权，不以合成报告替代。
 - [ ] M5：流式 RPC 鉴权、事件协议、取消传播、执行预算与追踪。
-  - [ ] M5.1：流式契约及可信身份/取消边界，先使用本地内存流与 Fake Stream 验证，不调用真实模型。
+  - [x] M5.1：独立 RPC 生命周期契约、可信身份/传输 deadline、共享落库/重放及取消边界；本地内存 RPC/Fake Stream 验证，不调用真实模型，不切换网页 SSE。
+  - [ ] M5.2：接入 Eino/Fake Model 可见回答增量与脱敏工具事件、有界背压；不发送推理或原始参数，不伪造模型增量。
+  - [ ] M5.3：网关/前端转发新协议、首次请求稳定 ID、失败清理与兼容回退；补齐执行预算/追踪和端到端验收，真实调用另行授权。
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一本地任务 M5.1：新增 Agent 流式契约、接入可信身份与取消传播边界，以内存 RPC/Fake Stream 验证，复用现有服务鉴权及会话规则，不立即启用真实模型流。M4.3a 已提供独立合成数据的对照/反例/开销报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 继续拒绝规划会话。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
+下一本地任务 M5.2：在 M5.1 共享执行/落库边界上接入 Eino/Fake Model 的可见回答增量、脱敏工具事件与有界背压；按锁定依赖的本地源码实现，不启用真实模型。网页 SSE 仍为 unary 包装，切换放在 M5.3。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -2029,3 +2055,49 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite demand -revision f
 收尾审阅补充一项先失败后修复的回归：因排除项违规而将覆盖计分归零，不应据此额外误报实际已覆盖的必需类别缺失。只修正新评估器的诊断原因、同步未提交首版归档的两处冗余原因；固定输入、质量分母、指标及被测生产算法不变。修正后上述两个评测包的 48 项顶层测试再次重复 10 轮全部通过（含子测试/Fuzz seed 1,710 项），根模块静态检查/构建再次通过，需求 CLI 复跑仍为 85 个选择结果 + 18 个执行结果，归档与实际输出仅实测时间不同。文档 190 个本地文件链接、Go 格式与补丁空白检查通过。
 
 过程日志、微基准原始输出及非归档报告位于 `/tmp/budgetmatch-agent-m43.sP18t0`。本轮未修改旧样本/标签/人工复核/历史归档、真实 `.env`、依赖或 CI/CD；未访问真实 Mall/PostgreSQL/Embedding/模型/MCP，未迁移、回填、启用实例、部署、重启或推送。M4.3a 新代码保持未提交，执行默认仍关闭。下一本地任务为 M5.1 流式契约及身份/取消边界；M4.3b 真实分类数据与数据库/服务验收、M3.2/M3.3 真实环境验收和独立人工复核继续后置，M4 整体不结项。
+
+### 2026-09-19：M5.1 流式 RPC 契约、可信身份与取消边界
+
+按用户“继续完成下一步”，在干净的 `refactor/agent`、`23c1572` 基础上完成本地开发；不自动提交或推送。M4.3a 已在上一轮分别提交为 `31bad61`（功能）、`a945cbf`（测试）、`23c1572`（文档）。本步没有启用真实实例、读取/修改 `.env`、更新依赖/CI/CD 或改变评测样本与基线。
+
+交付：
+
+- [Proto](../services/rpc/agent/proto/agent.proto) 新增 server-streaming `RecommendStream` 和版本化 `oneof` 事件信封，保留 unary；本步只提供 accepted/final/error/done，未伪造 Token 增量。完整完成/失败/重放语义见第 10.4 节。
+- [RPC 逻辑](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_logic.go) 只信任认证后的传输 context，复用 [Service](../services/rpc/agent/internal/agent/recommend/service.go) 的锁、约束、Finalizer、原子保存及重放；拒绝不支持完整轮次保存的兼容记忆。新执行在重放/规划检查后才发 accepted；最终结果只在保存成功后发送。
+- Agent 注册 stream 鉴权；共享拦截器新增按方法限定传输 deadline 的能力，存在服务专用限制时取更严格值，不改变 unary 策略。新推荐流 ≤30 秒，首次接收请求之前检查；索引服务 Token 不能调用。App 的 Agent 客户端补齐用户 Token 透传，但旧网页 SSE 暂不切换。
+- 采用同步 Send、没有后台发送任务或无界队列；取消/发送失败停止后续执行与发送，提交后的结果仍可用同一轮次重放。公开错误按现有业务码与安全映射生成，不发送原始错误、DebugInfo、工具参数或文件正文。
+
+生成使用本机现有 goctl 1.10.2、protoc 3.21.12、protoc-gen-go 1.36.11、protoc-gen-go-grpc 1.6.0；没有手改 `pb`、client 或 server。生成命令：
+
+```bash
+goctl rpc protoc services/rpc/agent/proto/agent.proto \
+  --go_out=services/rpc/agent --go-grpc_out=services/rpc/agent \
+  --zrpc_out=services/rpc/agent --style=go_zero -m \
+  -I . -I services/rpc/agent/proto \
+  --plugin=protoc-gen-go-grpc=/home/yue_chen/go/bin/protoc-gen-go-grpc
+```
+
+上述 plugin 路径是本机工具位置，其它机器使用相同版本的实际路径。第二次生成后四个生成文件 SHA-256 全部一致；仅移除生成器新建的重复 `agent.go` / `etc/agent.yaml` 脚手架，保留项目原 `main.go` / `etc/config.yaml`。
+
+验证全部使用 `GOMAXPROCS=2`、`-p 1` 和临时编译缓存，显式取消三个真实数据库测试变量，不读取 `.env`：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 \
+  -run 'TestRecommendStream|TestUserStreamDeadline|TestStreamDeadlineUses|TestStreamClient' \
+  ./services/rpc/agent/internal/logic/recommendservice ./infra/interceptor
+```
+
+首轮四包定向 race：119 个顶层测试通过，含子测试 333 项。全范围首次运行中，测试用 miniredis 因沙箱禁止 `listen tcp 127.0.0.1:0` 而失败（`operation not permitted`）；未改实现/断言或降低门禁，经授权在沙箱外原命令重跑，39 个测试包、478 个顶层测试通过，含子测试/Fuzz seed 共 1,690 项，无竞态。12 项真实数据库测试按未设置 DSN 跳过，不计为通过。新增 17 项顶层流式/鉴权测试再重复 10 轮：170 项通过，含子测试共 430 项，无失败/跳过。
+
+同样环境下，根 Go 模块 `go vet -p 1 ./...` 和 `go build -p 1 ./...` 均通过；Go 格式、`git diff --check` 及三份文档的 200 个本地文件链接检查通过。不包含独立嵌套模块、Web 构建或部署，未单独重跑 CLI 四套评测报告（相关评测/归档回归测试包含在上面的全范围测试中）。
+
+测试包含真实内存 gRPC 传输及业务 handler，不使用真实模型：缺失/过期/错误签名/错误角色/服务 Token 拒绝、伪造身份 metadata 无效、无界建流在首个请求前拒绝、相同会话 ID 的用户隔离、Token/deadline 进入执行上下文、先受理后完成、双向 unary/stream 重放及冲突、共享锁等待取消、取消后迟到结果不得保存或兜底、最终校验/保存失败、规划模式保护、原始错误和工具元数据脱敏。Fake Stream 另测 accepted/final/done 发送失败、慢 Send、校验时取消和提交后取消；同步调用返回且同会话重试可继续，不把这些隔离用例当成代理/模型的真实取消验收。
+
+过程 JSON 测试日志、stderr 和检查输出位于 `/tmp/budgetmatch-agent-m51.9Nizz1`。M5.1 不包含 Eino Stream、增量文本、工具实时事件、HTTP 转发、前端调整、实际模型首 Token 时延、真实存储/多进程/代理断连验证；deadline 也不等于可以强杀不遵守 context 的下游函数。下一本地任务 M5.2，M5 整体不结项；M4.3b/M3 的真实验收和 M2 独立人工复核继续后置。代码保持未提交，未部署、重启、迁移、回填或推送。
