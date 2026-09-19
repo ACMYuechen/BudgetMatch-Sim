@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/demand"
 	"budgetmatch-sim/services/rpc/agent/internal/demandexec"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/runtrace"
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/schema"
@@ -99,6 +101,8 @@ func (s *Service) RecommendStream(ctx context.Context, input agentcore.Input, ac
 	if len(progress) == 1 && progress[0] != nil {
 		ctx = context.WithValue(ctx, progressKey{}, progress[0])
 	}
+	ctx, cancel := runtrace.StreamContext(ctx)
+	defer cancel()
 	return s.execute(ctx, input, nil, "", accepted)
 }
 
@@ -134,10 +138,13 @@ func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *dem
 	if input.TurnId == "" {
 		input.TurnId = uuid.NewString()
 	}
+	trace := runtrace.From(ctx)
+	endLocalWait := trace.Stage("lock")
 	release, err := s.locks.acquire(ctx, conversationLockKey{
 		userId:         input.UserId,
 		conversationId: input.ConversationId,
 	})
+	endLocalWait()
 	if err != nil {
 		logx.WithContext(ctx).Errorw("wait for conversation execution failed",
 			logx.Field("user_id", safety.Label(input.UserId)),
@@ -154,11 +161,14 @@ func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *dem
 			operation = "demand planning"
 		}
 		var result *agentcore.Result
+		endStoreWait := sync.OnceFunc(trace.Stage("lock"))
 		err = store.WithConversationLock(ctx, input.UserId, input.ConversationId, func(lockedCtx context.Context) error {
+			endStoreWait()
 			var executeErr error
 			result, executeErr = s.recommendWithStore(lockedCtx, store, input, patch, fingerprint, accepted)
 			return executeErr
 		})
+		endStoreWait()
 		if stopped := ctx.Err(); stopped != nil {
 			return nil, stopped
 		}
@@ -240,7 +250,11 @@ func (s *Service) recommendWithStore(ctx context.Context, store memory.Conversat
 		if !sameTurnRequest(saved, input, fingerprint) {
 			return nil, agentcore.ErrTurnConflict
 		}
-		return decodeSavedResult(saved)
+		result, err := decodeSavedResult(saved)
+		if err == nil {
+			runtrace.From(ctx).Replay()
+		}
+		return result, err
 	}
 	if conversation, exists, err := store.GetConversation(ctx, input.UserId, input.ConversationId); err != nil {
 		return nil, err
@@ -272,10 +286,13 @@ func (s *Service) recommendWithStore(ctx context.Context, store memory.Conversat
 	result.ConversationId = input.ConversationId
 	result.ConversationTitle = s.conversationTitle(ctx, input)
 	result.TurnId = input.TurnId
+	endSave := runtrace.From(ctx).Stage("save")
 	storedConversation, _, err := s.saveTurn(ctx, store, input, result, fingerprint)
+	endSave()
 	if err != nil {
 		return nil, err
 	}
+	runtrace.From(ctx).Commit()
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -325,8 +342,20 @@ func (s *Service) planDemand(ctx context.Context, input agentcore.Input, patch d
 
 // run 在编排结束后只校验一次；校验失败不能触发 fallback 绕过严格策略。
 func (s *Service) run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
-	result, err := s.runCandidate(ctx, input)
+	generation, cancel := runtrace.GenerationContext(ctx)
+	endGeneration := runtrace.From(ctx).Stage("generation")
+	result, err := s.runCandidate(generation, input)
+	if stopped := generation.Err(); stopped != nil {
+		err = stopped
+	}
+	cancel()
+	endGeneration()
 	if err != nil {
+		return nil, err
+	}
+	endFinalization := runtrace.From(ctx).Stage("finalization")
+	defer endFinalization()
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if s.finalizer != nil {
@@ -374,9 +403,11 @@ func (s *Service) runCandidate(ctx context.Context, input agentcore.Input) (*age
 	// 只覆盖传给 Agent 的执行副本；Recommend/saveTurn 仍保存原始输入以判定幂等。
 	input.BudgetCents, input.MaxItems = intent.BudgetCents, intent.MaxItems
 	if s.primary == nil {
+		runtrace.From(ctx).Route("fallback_only", nil)
 		return s.runChecked(ctx, s.fallback, input, intent)
 	}
 
+	runtrace.From(ctx).Route("primary", nil)
 	result, err := s.runChecked(ctx, s.primary, input, intent)
 	if err == nil {
 		return result, nil
@@ -586,6 +617,7 @@ func shortTitle(text string) string {
 
 // fallbackAfterFailure 在 primary 失败时降级到 fallback，并附加一条失败工具记录。
 func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Input, intent agentcore.Intent, cause error) (*agentcore.Result, error) {
+	runtrace.From(ctx).Route("fallback", cause)
 	result, err := s.runChecked(ctx, s.fallback, input, intent)
 	if err != nil {
 		return nil, err

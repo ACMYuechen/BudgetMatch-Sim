@@ -8,6 +8,7 @@ import (
 
 	apperrors "budgetmatch-sim/infra/errors"
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/runtrace"
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
 	"budgetmatch-sim/services/rpc/agent/pb"
@@ -36,7 +37,7 @@ func NewRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContext) *R
 // RecommendStream emits lifecycle and opt-in model/tool progress. All
 // sends are synchronous: no unbounded queue or background send goroutine. The
 // admission deadline bounds a stalled transport; Send failure stops execution.
-func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.RecommendService_RecommendStreamServer) error {
+func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.RecommendService_RecommendStreamServer) (retErr error) {
 	if in == nil || stream == nil {
 		return apperrors.Invalid
 	}
@@ -62,7 +63,27 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 	var conversationID, turnID string
 	var sequence uint64
 	var sendErr error
+	var executionErr error
 	var sendMu sync.Mutex
+	ctx, trace := runtrace.Start(ctx, executionID)
+	defer func() {
+		cause := retErr
+		if cause == nil {
+			cause = executionErr
+		}
+		logConversation, logTurn := conversationID, turnID
+		if logConversation == "" {
+			logConversation = in.ConversationId
+		}
+		if logTurn == "" {
+			logTurn = in.TurnId
+		}
+		logx.WithContext(ctx).Infow("recommendation stream summary",
+			logx.Field("execution", trace.Finish(cause, sendErr != nil)),
+			logx.Field("user_id", safety.Label(userID)),
+			logx.Field("conversation_id", safety.Label(logConversation)),
+			logx.Field("turn_id", safety.Label(logTurn)))
+	}()
 	accepted := false
 	send := func(event *pb.RecommendStreamEvent) error {
 		sendMu.Lock()
@@ -77,6 +98,8 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 		sendErr = stream.Send(event)
 		if sendErr != nil {
 			cancel()
+		} else {
+			trace.Sent(event.Event, len(event.GetAnswerDelta().GetText()))
 		}
 		return sendErr
 	}
@@ -93,6 +116,7 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 		accepted = true
 		return nil
 	}, progress)
+	executionErr = err
 	progress.Close()
 	// Broken/canceled transports cannot reliably receive an error/done pair.
 	// Do not retry Send or use a detached context to finish uncommitted work.

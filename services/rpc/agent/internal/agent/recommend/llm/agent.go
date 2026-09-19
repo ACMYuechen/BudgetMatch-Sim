@@ -14,6 +14,7 @@ import (
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/runtrace"
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
@@ -28,8 +29,8 @@ import (
 )
 
 // logCallbacks 是全局复用的 Eino 组件日志回调：
-// 挂在 ReAct Generate/Stream 上；流式模型的实际 Usage 汇总仍待补充，
-// 不能用已有同步 OnEnd 日志冒充完整的流式成本观测。
+// 挂在 ReAct Generate/Stream 上；流式 Usage 另由 boundedStreamModel 按请求汇总，
+// 不依赖可能缺失的同步 OnEnd，也不把 Token 数当成费用。
 var logCallbacks = einolog.NewHandler()
 
 // AgentName 是 LLM 推荐 Agent 的名称标识。
@@ -137,6 +138,7 @@ func (a *Agent) run(ctx context.Context, input agentcore.Input, progress agentco
 	if a.provider == nil || a.selector == nil {
 		return nil, errors.New("product provider and bundle selector are required")
 	}
+	runtrace.From(ctx).Provider(a.provider.Name())
 
 	intent, err := a.planner.Resolve(input, nil)
 	if err != nil {
