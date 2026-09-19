@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照回放报告、M5.1 流式 RPC 身份/取消边界、M5.2 Eino 增量与工具事件及 M5.3a 网关/前端版本化接入已完成本地实现。新网页显式选择 v1，展示临时解释与脱敏工具状态；旧请求保留 unary 阶段 SSE，流中错误不自动重跑。最终方案仅在 final、成功 done 和正常 EOF 全部匹配后展示。Chromium 下载受阻，下一步先补 M5.3a 浏览器交互验收，再推进 M5.3b 校验/保存预算预留与请求级 Usage/追踪；验证范围见最新[执行记录](#14-执行记录)。结构化执行默认关闭，未迁移/回填或启用真实实例。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，新旧推荐继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照报告、M5.1 流式 RPC、M5.2 Eino 增量、M5.3a 网关/前端和 M5.3b 分段预算/请求级 Usage 汇总已完成本地实现。已恢复 Chromium 测试环境，推荐页 26 项交互测试通过；新网页展示临时解释/脱敏工具状态，final + 成功 done + 正常 EOF 后才显示方案。流式生成预留最终核验/保存和发送时间；Usage 缺失记 unknown，不捏造费用。下一本地任务为 M6 的隔离故障矩阵与交付材料，真实多实例/代理/供应商实验仍需授权；验证范围与环境波动见最新[执行记录](#14-执行记录)。结构化执行默认关闭，未迁移/回填或启用真实实例。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，新旧推荐继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -966,7 +966,7 @@ Eino ReAct 提供流式执行能力，具体接入以 [go.mod](../go.mod) 锁定
 
 M5.1 初版每条流最多三个生命周期事件，M5.2 增加第 10.5 节的有界进度事件。仍采用同步 Send、无后台发送 goroutine/无事件队列；慢 Send 由原始传输 deadline 限界，取消不进入普通失败兜底。不会因客户端断连启动后台任务补做未完成执行。取消与提交存在竞争：未提交工作应停止，若提交已成功但响应丢失，不回滚已保存轮次，改用同一请求标识重试恢复；不宣称工具副作用或网络投递恰好一次。受理后的 `error.retryable` 对 `Unavailable/ResourceExhausted` 为 true，但 M5.2 本地固定资源上限错误为 false；重试标记不保证成功，原始状态正文和 DebugInfo 不进入事件。
 
-M5.1 单步没有模型/工具增量，现由 M5.2 补充，HTTP/前端由 M5.3a 接入；仍不支持按事件 ID 断点续传。M5.3b 继续补齐预算/观测，真实端到端验收另行授权。客户端首轮也应自行生成两个稳定 ID；若省略且尚未收到 accepted 就断线，不承诺恢复该轮。
+M5.1 单步没有模型/工具增量，现由 M5.2 补充，HTTP/前端由 M5.3a 接入，分段预算与汇总由 M5.3b 补齐；仍不支持按事件 ID 断点续传，真实端到端验收另行授权。客户端首轮也应自行生成两个稳定 ID；若省略且尚未收到 accepted 就断线，不承诺恢复该轮。
 
 ### 10.5 M5.2 模型增量、工具事件与有界背压
 
@@ -996,7 +996,7 @@ M5.1 单步没有模型/工具增量，现由 M5.2 补充，HTTP/前端由 M5.3a
 
 公开事件发送采用**零队列、单发送者同步背压**；等待发送权可被 context 取消，首次错误保留，后续 Emit 不再发送，结束屏障阻止 final/error 之后的迟到进度。模型 reader 在退出时关闭，请求 context 同时取消；没有每 chunk 新建的超时 goroutine 或断连后补做任务。私有分类所需的有限缓存、Eino 分支副本与 SDK 缓冲不是公开事件队列；载荷预算也不是 SDK 解码前的内存硬上限。忽略 context 且永久阻塞 Recv 的第三方实现无法被此逻辑强制杀死。
 
-本地 Fake Model 通过真实 Eino 编排与内存 gRPC 验证首个增量在模型完成前到达、私有字段隔离、工具关联、失败/取消/背压，以及保存后跨 unary/stream 重放（只返回 final/done，不重播解释/工具）。未调用真实模型、Embedding、Mall 或数据库。消费者兼容性、失败清理和稳定 ID 由 M5.3a 接入；校验/保存时间预留及请求级实际 Usage/首增量/成本追踪留待 M5.3b，不能用现有同步模型 OnEnd 日志冒充完整的流式观测。
+本地 Fake Model 通过真实 Eino 编排与内存 gRPC 验证首个增量在模型完成前到达、私有字段隔离、工具关联、失败/取消/背压，以及保存后跨 unary/stream 重放（只返回 final/done，不重播解释/工具）。未调用真实模型、Embedding、Mall 或数据库。消费者兼容性、失败清理和稳定 ID 由 M5.3a 接入；校验/保存时间预留及请求级 Usage/首增量追踪见 M5.3b。实际费用仍 unknown，不能用同步模型 OnEnd 日志或本地 Token 估算冒充完整计费量。
 
 ### 10.6 M5.3a 网关与网页版本化接入
 
@@ -1028,7 +1028,40 @@ v1 响应类型为 `text/event-stream; charset=utf-8; version=1`；每帧有 `id
 - 请求的 Accept 必须精确为 `text/event-stream`，使当前 go-zero 超时中间件走非缓冲路径。自有日志 writer 增加 `Unwrap`，让 ResponseController 访问底层期限；隐藏该能力的自定义/verbose writer 会让 v1 在执行前失败，不能静默退回无界写。真实代理的缓冲/空闲超时仍需部署验收。
 - 临时解释使用普通 React 文本节点，不解释 HTML/Markdown，不保存、不参与最终结果或购买；工具只显示本地化名称/状态。成功后用权威结果替换；失败、断连、停止、超时或页面卸载清除临时文本和工具状态，保留原始输入供用户重试。旧成功结果不冒充本轮结果。
 
-API 类型先改 `.api` 再生成；流式 handler 的特例委托写入 `tpls/api/handler.tpl`，业务实现留在 logic，不手改生成物。前端测试使用单独 Vite 配置，关闭部署 `.env` 加载与真实后端代理，只运行隔离 fixture。验证结果及浏览器运行环境限制见最新执行记录。M5.3b 尚未交付：请求级实际 Usage（缺失应为 unknown）、首增量/总耗时追踪、校验/保存时间预留和更细的全轮预算；真实供应商/代理/多实例实验仍需额外授权。
+API 类型先改 `.api` 再生成；流式 handler 的特例委托写入 `tpls/api/handler.tpl`，业务实现留在 logic，不手改生成物。前端测试使用单独 Vite 配置，关闭部署 `.env` 加载与真实后端代理，只运行隔离 fixture。推荐页 26 项浏览器交互已补验通过；全套结果及环境波动见最新执行记录。M5.3b 的本地预算/统计见下节，真实供应商/代理/多实例实验仍需额外授权。
+
+### 10.7 M5.3b 分段预算与请求级用量追踪
+
+入口：[预算划分](../services/rpc/agent/internal/runtrace/budget.go)、[请求级记录器](../services/rpc/agent/internal/runtrace/recorder.go)、[共享编排](../services/rpc/agent/internal/agent/recommend/service.go)、[流式模型包装](../services/rpc/agent/internal/agent/recommend/llm/stream_model.go)、[RPC 汇总日志](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_logic.go)。不改变 Proto/API、数据库或依赖，不增加定价、付费实验及配置开关。
+
+只对 RecommendStream 增加分段预算。以本次剩余传输时间 R 计算：结果发送预留 `min(250ms, R/20)`，最终核验/保存预留 `min(3s, R/5)`；直接调用领域流式方法而无 deadline 时也限定 30 秒，生产 RPC 的原 admission 规则不变。
+
+| 剩余传输时间为 30 秒时 | 最晚期限（相对预算建立时刻） |
+| --- | --- |
+| 候选生成：历史/规划、模型、工具及解释流 | 26.75 秒 |
+| 最终核验、标题恢复、SaveTurn 与锁释放返回 | 29.75 秒 |
+| RPC/HTTP 终态发送 | 30 秒 |
+
+- 本地与存储锁等待计入同一轮时间，不在拿锁后重新获得完整生成预算。模型/规则生成使用从持锁 context 派生的较短期限，保留数据库连接/租约与追踪值；生成结束立即取消其子 context，最终核验和保存仍使用较长的持锁 context。已完成重放不重新生成/核验/保存。
+- 生成超时，即使下游迟到返回看似合法的结果，也不得保存或兜底；若传输尚可写，发送 error + done(false)。取消/原始传输超时仍可能无法送达错误；保存成功后取消不撤回已提交轮次，同 ID 可恢复。
+- 时间预留属于协作式预算，不承诺精确墙钟或可强杀依赖。同步 Send 仍受传输 deadline 限制，阻塞的 Send、不响应 context 的 SDK/驱动及现有锁清理实现可能耗尽预留时间。没有改写 PostgreSQL/Redis 锁清理与真实租约机制，也没有证明真实故障下所有 goroutine/连接都已退出。
+- 每次模型调用前仍校验消息与工具 Schema 的上下文上限，追加全轮 `65,536` 个近似 Token 准入预算：每次累加“估算输入 + 请求的最大输出”，WithTools 副本共享，不因短回答退还。次数上限 9、单次输出 ≤1,024（解释 ≤512）保持不变；超限在调用底层模型前拒绝。它不统计 Embedding 或底层 SDK 的内部重试，不是供应商计费或货币支出硬上限；unary 仍沿原行为。
+
+每次已通过身份/传输准入且进入业务的 RPC 写一条 `recommendation stream summary`，与公共事件相同的随机 `execution_id` 和现有 logx trace context 关联；用户/会话/轮次仅按现有安全标签规则输出，不作为 Prometheus 标签。每次重试是独立执行记录，同一已保存轮次可标识为 replayed。请求局部记录器有锁、最多 9 条模型元数据，结束后冻结；不缓存查询、正文、参数、原始异常或每个 chunk，也没有额外消费分支/发送 goroutine。
+
+| 统计 | 含义与限制 |
+| --- | --- |
+| `outcome/error_code/replayed/committed` | 区分成功、业务失败、取消、期限、传输失败和历史重放；error + done(false) 的正常 gRPC EOF 仍是业务失败。committed 仅表示 SaveTurn 返回成功；false 不证明数据库绝未提交 |
+| `lock_wait_ms/generation_ms/finalization_ms/save_ms/duration_ms` | 本次锁等待、阶段耗时及 RPC 业务总时长；不把各阶段之和当成全链路网络时延 |
+| `first_delta_ms/events_sent/tool_starts_sent/answer_bytes_sent` | 首个非空公开解释的 RPC Send 返回时刻及成功发送统计；不是浏览器渲染、模型内部首 Token 或工具副作用完成次数；无增量时省略首增量时间 |
+| `path/fallback_code/selected_provider` | 有限 primary/fallback_only/fallback 路径、静态降级原因及安全标签化的配置 Provider；不冒充实际 RRF 命中来源，流式执行后不允许整轮 fallback 的边界保持不变 |
+| `model_calls/model_ms/reserved_estimated_tokens` | 本包装实际发起的模型尝试、累计耗时及本地预留估算；模型早退/未 EOF 的未确认时段最多计至汇总结束 |
+| `usage_status/usage_known_calls/usage_unknown_calls/usage_invalid_calls/reported_usage` | 汇总供应商报告，不由估算推导；partial 时 reported_usage 只覆盖已确认的调用，不能当全轮用量 |
+| `cost_status` | 固定 unknown：未配置/核实模型单价、缓存折扣或账单规则，不输出伪造的 0 元或成本收益 |
+
+Usage 直接取 Eino 消息的 `ResponseMeta.Usage`，包含私有编排与解释调用；不依赖仅同步执行才有的 OnEnd 回调。接受每调用累计快照，重复不叠加，校验非负、总量一致、单调和有界；只有正常 EOF 后才能计入已确认量。缺失、负数、倒退、矛盾、早关或错误结束均标记未知；已正常报告的调用也可能属于最终业务失败请求，不能只统计成功请求。状态为 `complete`、`partial`、`unknown`，没有模型调用的规则/重放单独为 `no_model_calls`；缺失时不写 Token 数为 0。锁定 SDK 保留缺失 Usage 为 nil，但未实测任何真实兼容供应商的报告规则；增量式而非累计式 Usage 不在本版支持契约内。
+
+本步完成本地实现及隔离测试，不包含真实模型首增量/费用对照、供应商取消兼容性、代理缓冲/断连、多实例与真实存储故障验收；没有部署新的指标/trace 收集服务。M5 不能因此整体结项。
 
 ## 11. M6：并发、故障与交付验证
 
@@ -1144,13 +1177,14 @@ git diff --check
   - [x] M5.1：独立 RPC 生命周期契约、可信身份/传输 deadline、共享落库/重放及取消边界；本地内存 RPC/Fake Stream 验证，不调用真实模型，不切换网页 SSE。
   - [x] M5.2：Eino 私有编排 + 独立数字摘要解释 Stream、脱敏工具事件与有界背压；Fake Model/内存 RPC 验证，不转发隐藏字段或原始参数，不伪造增量，不改变网页入口。
   - [ ] M5.3：网关/前端新协议、执行预算/追踪与端到端验收，真实调用另行授权。
-    - [ ] M5.3a：版本协商、HTTP/RPC 终态屏障、稳定 ID、临时解释/工具状态与失败清理；代码、Go 回归及前端协议测试已完成，Chromium 下载受阻，浏览器交互验收待补。
-    - [ ] M5.3b：校验/保存预算预留、请求级实际 Usage/首增量/总耗时与成本边界；真实供应商/代理/多实例验收另行授权。
+    - [x] M5.3a：版本协商、HTTP/RPC 终态屏障、稳定 ID、临时解释/工具状态与失败清理；已补齐推荐页 26 项浏览器交互验收，真实代理验收不在此范围。
+    - [x] M5.3b：生成/完成/传输分段预算、全轮估算准入及请求级 Usage/首增量/耗时/路径日志；本地隔离验证，缺失用量与真实费用不伪造为 0。
+    - [ ] 真实供应商报告/取消/首增量及费用、代理断连/背压、多实例与真实存储验收；需另行授权。
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一步先补 M5.3a 浏览器交互验收（本机 Chromium 缺失且下载受阻），然后推进 M5.3b：校验/保存时间预留、请求级实际 Usage（缺失标记 unknown）、首个回答增量与总耗时追踪，补齐预算/成本边界；仍先使用隔离 Fake Model，不自行启用真实服务。M5.3a 新网页已显式选择版本化 RPC/SSE，旧请求保留 unary，失败不自动重跑；本地测试不能替代真实部署验收。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
+下一本地任务为 M6 的隔离故障矩阵、验收清单与交付材料，先使用 Fake Model/内存存储核对已有不变量，不能以此代替真实故障实验。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑；供应商/代理/多实例验收后置，M5 整体不结项。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -2248,3 +2282,61 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/budgetmatch-playwright-browsers \
 - 前端测试配置禁用部署 `.env` 文件与真实后端代理。常规 `npm run build` 首轮也通过，但 Vite 会按惯例加载已有生产构建环境；最终另用隔离配置重跑构建。未打开/修改根 `.env` 或前端密钥文件，也未连接实际业务后端。
 
 日志位于 `/tmp/budgetmatch-agent-m53.GTT6Ze`。未访问真实 Mall/PostgreSQL/Embedding/模型或启用 MCP，无付费调用、部署、重启、迁移、回填或远程推送。没有独立重跑四套 CLI 评测，既有评测/归档回归包含在 Go 全范围测试，未改数据/基线。下一步先恢复浏览器环境并完成 M5.3a 交互验收，再推进 M5.3b 校验/保存时间预留、实际 Usage/首增量/请求追踪。M5 仍未结项，M4.3b/M3 真实验收及 M2 独立复核继续后置。
+
+### 2026-09-19：补齐 M5.3a 浏览器验收，交付 M5.3b 分段预算与用量汇总
+
+按用户“提交到本地，然后完成下一步开发”，先复跑网关 logic/handler/middleware 竞态测试与 Web lint，随后在 `refactor/agent` 提交 M5.3a：`50453ff`（功能）、`4dae7f2`（测试）、`f941f3a`（测试环境配置）、`3dc32aa`（文档）。提交后工作区干净，未推送。开发完成时，本步 M5.3b 与验收记录保持未提交；后续本地提交以分支 Git 历史为准。
+
+先补上一步的测试环境：复用官方 Headless Shell 153.0.8010.12 / Playwright 1243 下载分块，从同一官方存储补齐剩余内容，完整归档匹配官方响应的 MD5 后，由锁定 Playwright 的安装器解包到 `/tmp/budgetmatch-playwright-browsers`。首次启动发现唯一缺失共享库 `libasound.so.2`，从已配置的 Ubuntu 软件源下载 `libasound2t64` 并仅解压到临时目录，通过测试进程的 LD_LIBRARY_PATH 使用；没有安装系统包、提权、修改系统动态库配置或项目依赖。网页全部使用隔离 Vite 配置及合成 API fixture，不访问真实登录、订单、支付或推荐后端。
+
+本步交付：
+
+- 流式领域执行从原期限划分生成、核验/保存和传输预算，短 deadline 按比例缩小预留；持锁连接/上下文值保留，等待不重置全轮时间，迟到合法结果也拒绝保存。unary 不增加分段期限。
+- 模型包装在原有每调用上下文/输出与 9 次准入限制上，共享全轮 65,536 近似 Token 预留；WithTools 不能绕过，超限不调用底层模型。这是本地准入估算，不是供应商精确 Token 或费用上限。
+- 新增请求局部 runtrace，收集累计 Usage 快照、缺失/异常/未 EOF 情况及有限阶段/路径数据；基于锁定 Eino v0.9.9 的 WithOnEOF/WithErrWrapper 观察完成，不新增消费 goroutine 或复制消息队列。缺失不写为 0，重复不累加，错误请求也参与观测；真实费用始终 unknown。
+- RPC 每执行汇总一次，execution_id 与公开事件一致，关联已有 logx trace context。明确区分已确认提交与投递结果、业务失败与正常 gRPC EOF、完成重放与新模型调用；结束冻结，晚到回调不改写已记录结果。无请求正文、模型/工具内容或原始异常进入汇总。
+
+新增 8 项顶层测试，涵盖 31 项含子测试：长/短/过期 deadline 分配与 context 继承、生成取消后仍可核验/保存、生成/核验超时和保存失败不落库/兜底、确认提交后取消、已完成重放；Usage 重复/增长/倒退/负数/矛盾/超限/缺失/早关/错误 EOF、并发隔离/冻结、模型估算跨 WithTools 副本生效；真实 Eino Fake Model 四次调用汇总为 40 prompt + 8 completion = 48 reported tokens、保存/发送失败口径及重放零新调用。没有真实供应商账单。
+
+验证命令（Go 命令顺序执行，不在测试/构建时改 Go 源文件）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
+  -run 'TestStreamBudget|TestUsageSnapshots|TestRunTrace|TestBoundedStreamUsage|TestBoundedStreamWhole|TestStreamService|TestRecommendStreamTrace' \
+  ./services/rpc/agent/internal/runtrace ./services/rpc/agent/internal/agent/recommend \
+  ./services/rpc/agent/internal/agent/recommend/llm ./services/rpc/agent/internal/logic/recommendservice
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 ./...
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go build -p 1 ./...
+
+# web-ui；只对当前测试进程设置临时库/浏览器路径
+LD_LIBRARY_PATH=/tmp/budgetmatch-agent-m53b.AD2SW1/browser-libs/usr/lib/x86_64-linux-gnu \
+  PLAYWRIGHT_BROWSERS_PATH=/tmp/budgetmatch-playwright-browsers \
+  npm run test:e2e -- tests/recommendation.spec.ts
+
+# 同样的两项环境变量下，再执行全套以及失败项单独复测：
+npm run test:e2e
+npm run test:e2e -- tests/commerce.spec.ts tests/recommendation.spec.ts --workers=1 \
+  --grep '超过单页|支付流水 0|商城四个页面在 1280|推荐 SKU 正确定位'
+
+npm run lint
+npm run build -- --config vite.e2e.config.ts
+git diff --check
+```
+
+实际结果与边界：
+
+- Go 全范围 41 个测试包、523 项顶层 / 1,833 项含子测试与 Fuzz seed 通过；12 项真实数据库测试按未设置独立 DSN 跳过，不计通过。新增 8 项重复 10 轮共 80 项顶层 / 310 项含子测试通过，无失败、跳过或竞态。首次回归中旧测试期待外层 gRPC DeadlineExceeded，新分段期限提前返回 error/done(false)；已更新为验证失败事件、正常 EOF、无 final/保存/兜底及原请求可重试，没有删除取消或迟到结果断言。
+- 推荐页 26 项 Chromium 交互全部通过，包含 v1 实时临时解释/工具状态、HTML 作为纯文本、final/done/EOF 屏障、同 ID 重试、停止/超时清理及旧协议缺 done 拒绝。仍是浏览器 fixture 与后端隔离测试分别验证，不代表真实供应商经代理到浏览器的完整外部链路。
+- Web 全套 113 项首轮为 109 通过、4 失败；4 份 trace 均记录本机 `net::ERR_NETWORK_CHANGED` 导致本地 JS 模块加载失败，包括 SKU 分页、支付状态、商城桌面布局与推荐 SKU 跳转。未修改业务代码或放宽断言，4 项用原断言、单 worker 单独复测全部通过。明确保留首轮环境失败，不将复测结果写成一次稳定全绿的全套运行；Node.js 为本机 22.23.2，未另验 Node.js 20。
+- 另单独复跑 v1 实时展示用例通过，并查看其临时解释截图；HTML 载荷显示为纯文本。本机缺少中文字体，截图中的中文为缺字方框，因此只确认 DOM 文案断言、交互与截图中的结构，不将它记为中文字体/排版视觉验收。
+- 根 Go 模块 vet/build、Web lint 与隔离配置下的 TypeScript/Vite 构建通过，保留原有大于 500 KiB 的 chunk 提醒。Go 格式、`git diff --check` 及三份文档的 227 个本地文件链接检查通过；不包含独立嵌套 Go 模块，未独立重跑 CLI 评测报告，既有评测回归包含在上述 Go 测试中。
+
+过程日志位于 `/tmp/budgetmatch-agent-m53b.AD2SW1`，浏览器下载复用了上一步临时归档。未读取/修改 `.env` 或密钥文件；未调用真实 Mall/PostgreSQL/Embedding/模型/MCP，没有付费调用、部署、重启、迁移、回填或远程推送。未改基线、样本、依赖、CI 或默认结构化执行开关。下一本地任务为 M6 隔离故障矩阵与交付清单；M5 真实供应商/代理/多实例验收、M4.3b/M3 真实环境及 M2 独立复核继续后置，不能以本步本地测试代替。
