@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M6.2a（含流式 RPC/HTTP/前端身份、分段预算、日志、Redis 租约提交与隔离验收入口边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 相关增量更新至 2026-09-20 M6.2b（含流式 RPC/HTTP/前端身份、分段预算、日志、Redis 租约提交、隔离真实存储及恢复验收边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -262,7 +262,11 @@ M5.3b 在同一原始期限内给生成设置更早的子 deadline，为最终�
 
 M6.1 修复 Redis-only 旧持有者在租约过期后仍可写入的边界：租约保留 2 分钟，等待/执行 context 最长 90 秒且不延长调用方期限，锁令牌绑定存储对象与用户/会话；保存、删除、追加和标题写入通过同连接 WATCH/令牌读取/MULTI/EXEC 条件提交。失效租约不自动重获锁，原令牌只能清理自身锁；清理 context 单独限制 5 秒，但不等于强杀底层 I/O。此令牌是内部协调凭据，不替代 RPC JWT 或数据归属校验。单进程双 Service + miniredis 验证不是实际多进程、Redis Cluster/切主、PostgreSQL 事务或跨系统副作用验收；共享 Redis-only 写实例需全部包含该保护，旧写二进制混跑不作安全承诺。详见 [M6 本地证据与部署边界](agent.md#111-m61-本地故障矩阵与-redis-提交保护)。
 
-M6.2a 的独立验收包不进入运行时服务，也不改变上述 JWT/用户身份策略。真实入口必须显式给出私有 JSON 与匹配的 run ID，只允许字面量 loopback 非默认端口、固定专用 PG 用户/派生库名、独立 Redis DB 0，两个存储先通过本次所有权标记校验；拒绝 `PG*` 环境覆盖，不加载 `.env` 或旧测试 DSN。子进程不继承部署环境，测试口令经 stdin 传递而非命令行/日志。标记仅防误连，不是操作业务数据的授权；会话表/索引写入、删除及 TTL 注入只能发生在另行确认的新建可丢弃实例。本轮 8 项 OS 多进程用例仍共享 miniredis，真实数据库/Redis 未运行，详见 [入口及影响范围](agent.md#113-m62a-多进程验收入口与真实存储运行条件)。
+M6.2a 的独立验收包不进入运行时服务，也不改变上述 JWT/用户身份策略。真实入口必须显式给出私有 JSON 与匹配的 run ID，只允许字面量 loopback 非默认端口、固定专用 PG 用户/派生库名、独立 Redis DB 0，两个存储先通过本次所有权标记校验；拒绝 `PG*` 环境覆盖，不加载 `.env` 或旧测试 DSN。子进程不继承部署环境，测试口令经 stdin 传递而非命令行/日志。标记仅防误连，不是操作业务数据的授权；会话表/索引写入、删除及 TTL 注入只能发生在另行确认的新建可丢弃实例。M6.2a 的 8 项 OS 多进程框架用例共享 miniredis，后续 M6.2b 已另行实跑，详见 [入口及影响范围](agent.md#113-m62a-多进程验收入口与真实存储运行条件)。
+
+M6.2b 获用户授权后，通过[隔离运行器](../scripts/agent-storage-acceptance.py)创建本机独立 PG/Redis 并完成故障、重启和备份恢复验证，未连接现有业务库或启用部署模式。新的 PG 测试角色禁用 superuser/建库/建角色能力，管理身份仅用于本次新集群的初始化；这不代表已收紧现有服务数据库账号。恢复测试预装 pgvector，备份/恢复排除 owner、ACL、comments，不提升业务测试角色以修改管理员所属扩展，因此不证明生产权限恢复。临时实例已停止，私有配置/口令与备份仅留 `0700` 临时目录，不提交仓库；原有集成测试只获得另一个本次新建空库的显式 DSN，并清理它们自己的合成表/schema。授权范围不延伸到外部模型、部署服务或业务数据，详见 [M6.2b 证据与限制](agent.md#114-m62b-独立真实存储重启与备份恢复验收)。
+
+2026-09-20 用户另行确认：后续普通联调可使用当前 `.env` 配置的本地开发数据库并保留明确标识的测试记录，不自动清理或覆盖已有数据。这不是生产库、清库、迁移、服务重启或付费调用授权；既有清理性测试仍只运行于可丢弃环境，不自动读取 `.env`。本轮未连接或写入该开发库，执行前检查与保留规则见 [开发库联调约定](agent.md#115-开发库联调与记录保留约定)。
 
 结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 要求无 MallRpc，`mall` 要求已配置 MallRpc；非法值/依赖组合在外部初始化前拒绝。mall 模式使用独立有界关键词链和两次用户身份核验，不用后台索引凭据或演示标签。分类请求要求版本握手和逐项分类事实，旧 Mall/缺表/错误证据均失败，不回退旧契约。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求重放原结果，不重查商品；关闭/切换模式也不把历史快照标记为实时。私有规划标记和请求指纹不进入公开会话状态，旧 Recommend/SSE 保护不解除。
 
@@ -375,6 +379,7 @@ RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享�
 | [网关 HTTP/RPC](../cmd/app/internal/logic/agent/agent_stream_http_test.go)、[网关协议](../cmd/app/internal/logic/agent/agent_stream_protocol_test.go)、[浏览器协议](../web-ui/tests/recommendation-stream.spec.ts)、[页面交互用例](../web-ui/tests/recommendation.spec.ts) | 本地 HTTP + 内存 gRPC 走生产 Token 验签，验证先增量后终态、取消/写入失败、不自动重跑、身份/序号与兼容边界；协议与页面用例的实际运行结果见最新执行记录 | 真实部署/代理/供应商验收、全链路日志均已脱敏，或尚未运行的交互用例已经通过 |
 | [分段预算/记录器](../services/rpc/agent/internal/runtrace/recorder_test.go)、[Service 预算](../services/rpc/agent/internal/agent/recommend/service_budget_test.go)、[模型用量](../services/rpc/agent/internal/agent/recommend/llm/stream_usage_test.go)、[RPC 汇总](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_trace_test.go) | 短期限预留、持锁值保留、迟到结果拒绝、提交后取消、累计 Usage 去重与 unknown、并发隔离/冻结、汇总日志无敏感正文、重放不产生新用量 | 真实账单/供应商完成标记、页面首 Token 时延、第三方任务被强杀或真实 DB/代理故障已验收 |
 | [Redis 租约故障](../services/rpc/agent/internal/memory/redis_fault_test.go)、[共享存储 RPC 矩阵](../services/rpc/agent/internal/logic/recommendservice/recommend_fault_matrix_test.go)、[两级缓存故障](../services/rpc/agent/internal/memory/tiered_fault_test.go) | 两个独立 Service 的同轮重放、跨用户/会话隔离与删除顺序；过期/替换锁不得写入或误删后继锁，WATCH 连接丢失不裸重试；缓存失效失败不掩盖 durable 提交边界 | 真实多进程/数据库、Redis 切主/Cluster、真实滚动回滚、缓存替身代表 PostgreSQL 事务，或所有写实例已升级 |
+| [真实存储多进程矩阵](../services/rpc/agent/internal/storageacceptance/matrix_test.go)、[重启/恢复重放](../services/rpc/agent/internal/storageacceptance/recovery_test.go)、[运行器保护测试](../scripts/test_agent_storage_acceptance.py) | 用户授权的新建 PG/Redis 单节点上验证多进程存储边界、异常停止后重放和新 PG 数据目录恢复；只持有所建进程句柄，忽略原部署 DSN，实际版本/运行记录见 M6.2b | 已收紧现有数据库角色、完成生产权限/ACL 恢复、外部模型/部署流式联合验收、Cluster/切主/掉电或实际版本回滚 |
 
 2026-09-16 文档初次核对执行并通过以下现有测试，当时未修改业务代码，也未运行真实跨服务越权请求或生产数据操作；后续 M1.3 验证见 [Agent 执行记录](agent.md#14-执行记录)：
 
