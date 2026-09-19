@@ -334,6 +334,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid #53a695; outline-offs
 .recommend-empty-result { padding: 20px; color: #7a887b; font-size: 13px; line-height: 1.9; border: 1px dashed #d9e4d4; border-radius: 10px; }
 .recommend-pending { display: flex; flex-direction: column; gap: 18px; }
 .recommend-progress { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #537c61; }
+.recommend-stream-tools { display: flex; flex-wrap: wrap; gap: 8px 16px; list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.recommend-stream-tools li { display: flex; align-items: center; gap: 8px; }
+.recommend-provisional { background: #f3f6f2; border: 1px dashed #b8c8b4; border-radius: 12px; padding: 14px 18px; overflow-wrap: anywhere; }
+.recommend-provisional > span { color: #647360; font-size: 12px; }
+.recommend-provisional p { white-space: pre-wrap; margin: 8px 0 0; line-height: 1.7; }
 .recommend-recovery { display: flex; flex-direction: column; gap: 12px; }
 .recommend-recovery > div { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .recommend-recovery a { color: #176b5b; }

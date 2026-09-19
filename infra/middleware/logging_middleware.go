@@ -106,11 +106,19 @@ type flushingResponseWriter struct {
 }
 
 func (writer *flushingResponseWriter) Flush() {
+	_ = writer.FlushError()
+}
+
+// FlushError preserves transport errors for synchronous streaming backpressure.
+func (writer *flushingResponseWriter) FlushError() error {
 	if !writer.wroteHeader {
 		writer.WriteHeader(http.StatusOK)
 	}
-	writer.flusher.Flush()
+	return http.NewResponseController(writer.ResponseWriter).Flush()
 }
+
+// Unwrap lets ResponseController reach the connection's write deadline.
+func (w *responseWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
 // WriteHeader 记录首次写入的状态码，然后透传给原始 ResponseWriter。
 func (w *responseWriter) WriteHeader(code int) {

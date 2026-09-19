@@ -1,4 +1,20 @@
-// Code scaffolded by goctl. Not to edit.
+{{if eq .HandlerName "AgentRecommendStreamHandler"}}// Code scaffolded by goctl. Not to edit.
+
+package {{.PkgName}}
+
+import (
+	"net/http"
+
+	"budgetmatch-sim/cmd/app/internal/logic/agent"
+	"budgetmatch-sim/cmd/app/internal/svc"
+)
+
+func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		agent.NewAgentRecommendStreamLogic(r.Context(), svcCtx).ServeHTTP(w, r)
+	}
+}
+{{else}}// Code scaffolded by goctl. Not to edit.
 
 package {{.PkgName}}
 
@@ -56,3 +72,4 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 	}
 {{end}}}
+{{end}}

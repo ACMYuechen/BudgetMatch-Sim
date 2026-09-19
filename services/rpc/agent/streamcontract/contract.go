@@ -24,4 +24,7 @@ const (
 	MaxModelBytes     = 256 << 10
 	MaxModelCalls     = 9 // <= 8 orchestration calls plus one tool-free explanation
 	MaxToolCalls      = 32
+
+	MaxEventBytes = 256 << 10 // each gateway RPC message / complete SSE frame, including final
+	MaxHTTPBytes  = 1 << 20   // total serialized SSE bytes per attempt
 )

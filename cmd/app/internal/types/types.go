@@ -335,6 +335,53 @@ type AgentRecommendReq struct {
 	TurnId         string `json:"turn_id,optional" validate:"max=128"`
 }
 
+type AgentRecommendStreamReq struct {
+	AgentRecommendReq
+	StreamVersion int `json:"stream_version,optional" validate:"oneof=0 1"`
+}
+
+type AgentStreamEvent struct {
+	SchemaVersion  uint32                  `json:"schema_version"`
+	ExecutionId    string                  `json:"execution_id"`
+	ConversationId string                  `json:"conversation_id"`
+	TurnId         string                  `json:"turn_id"`
+	Sequence       uint64                  `json:"sequence"`
+	Event          string                  `json:"event"`
+	Accepted       *AgentStreamAccepted    `json:"accepted,omitempty"`
+	AnswerDelta    *AgentStreamAnswerDelta `json:"answer_delta,omitempty"`
+	Tool           *AgentStreamTool        `json:"tool,omitempty"`
+	Final          *AgentRecommendResp     `json:"final,omitempty"`
+	Error          *AgentStreamError       `json:"error,omitempty"`
+	Done           *AgentStreamDone        `json:"done,omitempty"`
+}
+
+type AgentStreamAccepted struct {
+}
+
+type AgentStreamAnswerDelta struct {
+	Text        string `json:"text"`
+	Provisional bool   `json:"provisional"`
+}
+
+type AgentStreamTool struct {
+	CallId     string `json:"call_id"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	DurationMs int64  `json:"duration_ms"`
+	ErrorCode  string `json:"error_code,omitempty"`
+}
+
+type AgentStreamError struct {
+	Code      int64  `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+type AgentStreamDone struct {
+	Ok       bool `json:"ok"`
+	Replayed bool `json:"replayed"`
+}
+
 type AgentIntent struct {
 	BudgetCents int64             `json:"budget_cents"`
 	MaxItems    int32             `json:"max_items"`

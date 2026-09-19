@@ -7,7 +7,8 @@ import { getConversationHistory, recommendStream, type AgentRecommendReq } from 
 import { useResource } from '@/hooks/useResource'
 import { RecommendationResult } from './RecommendationResult'
 import { formatPrice } from '@/utils/format'
-import { isRecommendation, MAX_BUDGET_YUAN, recommendationError } from '@/utils/recommendation'
+import { MAX_BUDGET_YUAN, recommendationError } from '@/utils/recommendation'
+import type { StreamTool } from '@/utils/recommendationStream'
 import type { AgentConversationTurn, AgentRecommendResp } from '@/types/api'
 
 interface FormValues { query: string; budget?: number | null; max_items?: number | null }
@@ -31,6 +32,8 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
   const [localTurns, setLocalTurns] = useState<AgentConversationTurn[]>(() => seed ? [seed] : [])
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
+  const [provisional, setProvisional] = useState('')
+  const [streamTools, setStreamTools] = useState<StreamTool[]>([])
   const [pending, setPending] = useState<Attempt | null>(null)
   const [notice, setNotice] = useState<{ kind: 'error' | 'warning'; text: string } | null>(null)
   const active = useRef<AbortController | null>(null)
@@ -47,7 +50,7 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
   useEffect(() => {
     const element = transcriptRef.current
     if (element) element.scrollTop = element.scrollHeight
-  }, [turns.length, busy])
+  }, [turns.length, busy, provisional, streamTools])
   useEffect(() => {
     if (!busy && pending && history.data?.turns.some((turn) => turn.turn_id === pending.turn_id)) {
       attempt.current = null
@@ -65,6 +68,8 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
     setPending(request)
     setBusy(true)
     setNotice(null)
+    setProvisional('')
+    setStreamTools([])
     setProgress('正在理解你的需求…')
     const startedAt = Date.now()
     timerRef.current = setTimeout(() => {
@@ -72,23 +77,22 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
       active.current = null
       controller.abort()
       setBusy(false)
+      setProvisional('')
+      setStreamTools([])
       setNotice({ kind: 'error', text: '等待推荐超时，可重试原请求或先刷新会话确认结果。' })
-    }, 120000)
+    }, 35000)
     try {
       let result: AgentRecommendResp | undefined
       for await (const event of recommendStream(request, controller.signal)) {
         if (controller.signal.aborted || active.current !== controller) return
-        if (event.event === 'rpc.started') setProgress('正在检索商品、核对预算并组合方案…')
-        if (event.event === 'error') {
-          const payload = event.data as { message?: string }
-          throw new Error(payload?.message || '推荐服务暂时不可用，请重试')
+        if (event.event === 'rpc.started' || event.event === 'request.accepted') setProgress('正在检索商品、核对预算并组合方案…')
+        if (event.event === 'answer.delta') {
+          setProgress('正在整理解释，等待最终核验…')
+          setProvisional((text) => text + event.text)
         }
+        if (event.event === 'tool.started' || event.event === 'tool.completed') setStreamTools((tools) => [...tools.filter((tool) => tool.call_id !== event.tool.call_id), event.tool])
         if (event.event === 'recommendation.final') {
-          if (!isRecommendation(event.data) || event.data.conversation_id !== request.conversation_id || event.data.turn_id !== request.turn_id) {
-            throw new Error('推荐结果不完整或与本次请求不匹配，请重试原请求')
-          }
-          result = event.data
-          break
+          result = event.result // emitted only after final + done + normal EOF
         }
       }
       if (controller.signal.aborted || active.current !== controller) return
@@ -102,7 +106,7 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
       setPending(null)
       form.resetFields()
       form.setFieldsValue({ query: '', budget: undefined, max_items: undefined })
-      // final 已包含完整方案；不因随后读取历史失败而丢掉已经收到的结果。
+      // The complete stream is confirmed; later history failure cannot undo it.
       if (!conversationId) navigate(`/recommend/${encodeURIComponent(result.conversation_id)}`, { replace: true, state: { completedTurn: completed } })
       else setLocalTurns((items) => [...items.filter((item) => item.turn_id !== completed.turn_id), completed])
       onChanged()
@@ -113,6 +117,8 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
         clearTimeout(timerRef.current)
         active.current = null
         setBusy(false)
+        setProvisional('')
+        setStreamTools([])
       }
     }
   }
@@ -134,6 +140,8 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
     active.current = null
     clearTimeout(timerRef.current)
     setBusy(false)
+    setProvisional('')
+    setStreamTools([])
     setNotice({ kind: 'warning', text: '已停止等待。服务端可能已经完成处理，可刷新会话确认，或重试原请求。' })
   }
 
@@ -152,7 +160,14 @@ export function RecommendationWorkspace({ conversationId, initialQuery, initialB
         <div className="recommend-answer-label"><RobotOutlined aria-hidden /> 预算助手</div>
         <RecommendationResult result={turn.result} />
       </article>)}
-      {pending && <div className="recommend-pending"><div className="recommend-user-message"><span>本次需求</span><p>{pending.query}</p></div>{busy && <div className="recommend-progress" role="status"><span className="status-dot" />{progress}</div>}</div>}
+      {pending && <div className="recommend-pending"><div className="recommend-user-message"><span>本次需求</span><p>{pending.query}</p></div>{busy && <>
+        <div className="recommend-progress" role="status"><span className="status-dot" />{progress}</div>
+        {!!streamTools.length && <ul className="recommend-stream-tools" aria-label="工具执行状态">{streamTools.map((tool) => <li key={tool.call_id}>
+          <span>{({ 'tool.search_products': '检索商品', 'tool.select_bundle': '组合方案', 'tool.read_file': '读取授权文件', 'tool.write_file': '写入授权文件' } as Record<string, string>)[tool.name] || '外部只读工具'}</span>
+          <Tag color={tool.status === 'failed' ? 'orange' : tool.status === 'succeeded' ? 'green' : 'blue'}>{tool.status === 'running' ? '进行中' : tool.status === 'succeeded' ? '已完成' : '未成功'}</Tag>
+        </li>)}</ul>}
+        {provisional && <div className="recommend-provisional" aria-label="临时解释"><span>临时解释 · 最终方案以校验结果为准</span><p>{provisional}</p></div>}
+      </>}</div>}
       {notice && <Alert type={notice.kind} showIcon message={notice.text} description={<div className="recommend-recovery"><span>重试原请求会复用会话与轮次标识；修改内容后发送则视为新的请求。</span><div><Button disabled={busy || blocked} onClick={() => { if (attempt.current) void run(attempt.current) }}>重试原请求</Button>{pending && !conversationId && <Link to={`/recommend/${encodeURIComponent(pending.conversation_id)}`}>查看本次会话</Link>}</div></div>} />}
     </div>
     <div className="recommend-composer">

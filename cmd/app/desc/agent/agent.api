@@ -8,6 +8,54 @@ type AgentRecommendReq {
 	TurnId         string `json:"turn_id,optional" validate:"max=128"`
 }
 
+// 0 keeps the legacy lifecycle SSE; 1 negotiates the versioned RPC stream.
+type AgentRecommendStreamReq {
+	AgentRecommendReq
+	StreamVersion int `json:"stream_version,optional" validate:"oneof=0 1"`
+}
+
+// Exactly one payload matches Event. Unknown event kinds may be ignored.
+type AgentStreamEvent {
+	SchemaVersion uint32 `json:"schema_version"`
+	ExecutionId string `json:"execution_id"`
+	ConversationId string `json:"conversation_id"`
+	TurnId string `json:"turn_id"`
+	Sequence uint64 `json:"sequence"`
+	Event string `json:"event"`
+	Accepted *AgentStreamAccepted `json:"accepted,omitempty"`
+	AnswerDelta *AgentStreamAnswerDelta `json:"answer_delta,omitempty"`
+	Tool *AgentStreamTool `json:"tool,omitempty"`
+	Final *AgentRecommendResp `json:"final,omitempty"`
+	Error *AgentStreamError `json:"error,omitempty"`
+	Done *AgentStreamDone `json:"done,omitempty"`
+}
+
+type AgentStreamAccepted {}
+
+type AgentStreamAnswerDelta {
+	Text string `json:"text"`
+	Provisional bool `json:"provisional"`
+}
+
+type AgentStreamTool {
+	CallId string `json:"call_id"`
+	Name string `json:"name"`
+	Status string `json:"status"`
+	DurationMs int64 `json:"duration_ms"`
+	ErrorCode string `json:"error_code,omitempty"`
+}
+
+type AgentStreamError {
+	Code int64 `json:"code"`
+	Message string `json:"message"`
+	Retryable bool `json:"retryable"`
+}
+
+type AgentStreamDone {
+	Ok bool `json:"ok"`
+	Replayed bool `json:"replayed"`
+}
+
 type AgentIntent {
 	BudgetCents int64    `json:"budget_cents"`
 	MaxItems    int32    `json:"max_items"`
@@ -177,9 +225,9 @@ service app {
 	@handler AgentRecommend
 	post /recommend (AgentRecommendReq) returns (AgentRecommendResp)
 
-	@doc "Agent 推荐 SSE"
+	@doc "Agent 推荐 SSE（stream_version=1 接入版本化增量；省略保留旧阶段流）"
 	@handler AgentRecommendStream
-	post /recommend/stream (AgentRecommendReq)
+	post /recommend/stream (AgentRecommendStreamReq)
 
 	@doc "Agent 会话列表"
 	@handler AgentConversationList

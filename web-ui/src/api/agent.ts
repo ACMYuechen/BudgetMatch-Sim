@@ -1,5 +1,6 @@
 import request from './request'
-import { readServerEvents } from '@/utils/sse'
+import { v4 as uuidv4 } from 'uuid'
+import { readRecommendationEvents } from '@/utils/recommendationStream'
 import { useAuthStore } from '@/stores/authStore'
 import { expireSession } from '@/utils/session'
 import type {
@@ -50,20 +51,22 @@ export function deleteConversation(conversationId: string, signal?: AbortSignal)
 
 /**
  * 发起带鉴权的 SSE 推荐请求。
- * 解析状态跨网络 chunk 保留，兼容 CRLF、多行 data 以及末尾没有空行的事件。
+ * 解析状态跨网络 chunk 保留；v1 严格校验帧及终态，旧协议仅保留解析兼容。
  */
 export async function* recommendStream(
   data: AgentRecommendReq,
   signal?: AbortSignal
 ) {
   const token = useAuthStore.getState().token
+  const input = { ...data, conversation_id: data.conversation_id || uuidv4(), turn_id: data.turn_id || uuidv4(), stream_version: 1 }
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/agent/recommend/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(input),
     signal,
   })
 
@@ -89,7 +92,14 @@ export async function* recommendStream(
     await res.body.cancel()
     throw new Error('服务未返回推荐事件流，请稍后重试')
   }
-  yield* readServerEvents(res.body)
+  const version = /;\s*version\s*=\s*"?([^";\s]+)/i.exec(res.headers.get('content-type') || '')?.[1]
+  if (version && version !== '1') {
+    await res.body.cancel()
+    throw new Error('推荐事件版本不兼容，请稍后重试')
+  }
+  // An older gateway ignores stream_version and responds with legacy SSE.
+  // Consume that SAME attempt; never rerun unary after a partial/error stream.
+  yield* readRecommendationEvents(res.body, input, version === '1')
 }
 
 /** 全量摘要按最近更新排序，所有分页复用同一个取消信号。 */

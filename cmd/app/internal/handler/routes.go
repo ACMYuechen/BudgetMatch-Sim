@@ -230,7 +230,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: agent.AgentRecommendHandler(serverCtx),
 				},
 				{
-					// Agent 推荐 SSE
+					// Agent 推荐 SSE（stream_version=1 接入版本化增量；省略保留旧阶段流）
 					Method:  http.MethodPost,
 					Path:    "/recommend/stream",
 					Handler: agent.AgentRecommendStreamHandler(serverCtx),
