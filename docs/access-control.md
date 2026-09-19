@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M5.2（含推荐流式 RPC 的可信身份、deadline 和模型/工具公开边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M5.3a（含推荐流式 RPC、HTTP/前端接入的可信身份、deadline 和公开事件边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -109,7 +109,7 @@
 | `/api/agent/recommend` | POST | 用户；只使用当前用户的会话空间 |
 | `/api/agent/intent/plan` | POST | 用户；只规划/保存本人需求，不执行模型、检索或推荐 |
 | `/api/agent/intent/execute` | POST | 用户；仅执行本人当前已就绪的规划轮次；默认关闭，显式 demo/mall 模式分别使用隔离演示/用户身份商城核验 |
-| `/api/agent/recommend/stream` | POST | 同上；HTTP SSE 包装，同样要求 Authorization，不是独立免鉴权流接口 |
+| `/api/agent/recommend/stream` | POST | 同上；`stream_version: 1` 走流式 RPC，省略/0 保留 unary 阶段 SSE；两者都要求 Authorization |
 | `/api/agent/conversations` | GET | 用户；只列出本人会话 |
 | `/api/agent/conversations/:conversation_id/turns` | GET | 用户；只查看本人会话轮次 |
 | `/api/agent/conversations/:conversation_id` | DELETE | 用户；只删除本人会话 |
@@ -252,9 +252,11 @@
 
 RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user_id, conversation_id)` 复合身份，Redis/内存实现也按用户分区。同一 `conversation_id` 可以在不同用户空间出现，并不意味着共享会话。管理员使用这些接口仍只能访问自己的会话。
 
-`RecommendStream` 在 M5.1 生命周期流上增加 M5.2 Eino Stream 和脱敏工具事件；网页 SSE 尚未切换，仍调用 unary。它以认证后的传输 context 执行并传播取消；伪造 `user_id` metadata 或同名 string context key 不生效，后台索引服务 JWT 不能调用。App 的 Agent 流式客户端从可信 context 透传 Token，覆盖已有 authorization metadata；不修改原 deadline。JWT 在建流时验签，不逐事件重新验证过期/撤销。完成重放只发已保存结果和 done，不再调用工具；提交已成功但响应丢失时用相同请求重试。异常/慢连接、原子完成和公开错误边界见 [M5.1 协议](agent.md#104-m51-已交付的-rpc-生命周期流)。
+`RecommendStream` 在 M5.1 生命周期流上增加 M5.2 Eino Stream 和脱敏工具事件，M5.3a 新网页显式选择 v1 后经网关接入；旧请求仍调用 unary。它以认证后的传输 context 执行并传播取消；伪造 `user_id` metadata 或同名 string context key 不生效，后台索引服务 JWT 不能调用。App 的 Agent 流式客户端从可信 context 透传 Token，覆盖已有 authorization metadata；不修改原 deadline。HTTP 入口另限制总期限不超过 30 秒，并继承更短期限。JWT 在建流时验签，不逐事件重新验证过期/撤销。完成重放只发已保存结果和 done，不再调用工具；提交已成功但响应丢失时用相同请求重试。异常/慢连接、原子完成和公开错误边界见 [M5.1 协议](agent.md#104-m51-已交付的-rpc-生命周期流)。
 
 公开 `answer.delta` 不是 ReAct 消息直通：私有编排完整有界分类，另用禁用工具的模型仅接收预算/件数/总价四个数字并输出临时解释，不接收查询、历史、商品名/ID、文件或工具正文。只转发 Content，不转发隐藏推理/元数据；提示要求不等于能保证自然语言不会幻觉。工具事件只带本地关联 ID、脱敏名称、状态/耗时/有限错误码。增量不持久化，校验/保存前不发 final；开始流式执行后的错误不得触发整轮兜底重跑。次数/载荷、串行工具及零队列背压边界见 [M5.2](agent.md#105-m52-模型增量工具事件与有界背压)。不增加工具权限，也不承诺未保存轮次重试时工具副作用恰好一次。
+
+HTTP v1 同步转发有界公开事件，验证身份/序号/工具关联，只在匹配终态及正常 RPC EOF 后转发 final/done；网页也等待成功 done 与正常 HTTP EOF，失败清除临时解释和工具状态。解释是普通文本节点，不执行 HTML，不作为购买依据。请求 16 KiB、单帧 256 KiB、累计 1 MiB，底层写期限覆盖 handler 返回后的 flush；不能设置期限的 writer 在调用 RPC 前拒绝。旧协议按请求预选或按旧网关响应在同次请求中消费，不在 v1 出错后重跑 unary。新逻辑日志不记录请求正文或原始错误，这不等于已审计/清理 go-zero verbose、代理或其他服务的日志。兼容矩阵、Accept 精确匹配和部署限制见 [M5.3a](agent.md#106-m53a-网关与网页版本化接入)。
 
 结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 要求无 MallRpc，`mall` 要求已配置 MallRpc；非法值/依赖组合在外部初始化前拒绝。mall 模式使用独立有界关键词链和两次用户身份核验，不用后台索引凭据或演示标签。分类请求要求版本握手和逐项分类事实，旧 Mall/缺表/错误证据均失败，不回退旧契约。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求重放原结果，不重查商品；关闭/切换模式也不把历史快照标记为实时。私有规划标记和请求指纹不进入公开会话状态，旧 Recommend/SSE 保护不解除。
 
@@ -316,7 +318,7 @@ Agent 索引服务 JWT 的额外边界：
 
 5 个 RPC 的数据库配置模板使用同一个数据库和 `root` 账号，连接参数包含 `sslmode=disable`，没有体现按服务分配的数据库最小权限。因此，代码层“由某个服务负责某张表”不等于数据库层已禁止其他服务访问该表。本文不据此推断实际部署环境的账号权限或防火墙规则。
 
-RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享方法策略的 stream 鉴权，其 reflection 流按默认用户策略要求用户 JWT；只有明确配置的方法带 admission deadline（Agent 推荐流、Mall 索引流均为 ≤30 秒）。其它服务不能因注册了 unary 鉴权就推断流式/调试/健康服务都已受保护。网页推荐 SSE 的底层仍是 unary RPC，尚未改用新增 RecommendStream。
+RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享方法策略的 stream 鉴权，其 reflection 流按默认用户策略要求用户 JWT；只有明确配置的方法带 admission deadline（Agent 推荐流、Mall 索引流均为 ≤30 秒）。其它服务不能因注册了 unary 鉴权就推断流式/调试/健康服务都已受保护。网页推荐 SSE 的 v1 走 RecommendStream，旧请求保留 unary；不会因为 HTTP 已认证而省略 RPC 流式认证。
 
 依据：[Compose](../docker-compose.yml)、各服务 `etc/config.yaml` 和 `main.go`、[etcd 配置中心](../infra/configcenter/configcenter.go)。
 
@@ -364,6 +366,7 @@ RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享�
 | [Agent 身份提取与历史脱敏](../services/rpc/agent/internal/logic/recommendservice/common_test.go)、[文件隔离](../services/rpc/agent/internal/filetools/security_linux_test.go)、[MCP 策略](../services/rpc/agent/internal/agent/recommend/llm/mcp_test.go) | 可信身份、用户私有文件、保存授权、路径竞态、工具白名单和元数据脱敏 | MCP 已被 OS/网络沙箱化、外部服务端确实只读或真实部署已验收 |
 | [Agent 流式内存 RPC](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_transport_test.go)、[流式故障注入](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_failure_test.go)、[流式 Token 透传](../infra/interceptor/stream_client_interceptor_test.go) | 无/过期/伪造 Token、错误角色、服务凭据、无界 deadline 被拒绝；同名会话用户隔离、取消/慢 Fake Send、原子保存后发送及提交后重放 | 已接入网页或真实模型增量、经过代理断连/真实多进程测试，或网络投递/工具副作用恰好一次 |
 | [Eino 流式集成](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_model_test.go)、[事件预算/背压](../services/rpc/agent/internal/logic/recommendservice/stream_progress_test.go)、[模型预算/工具事件](../services/rpc/agent/internal/agent/recommend/llm/stream_test.go) | Fake Model 实际 Pipe 增量早于生成完成；晚到工具调用、隐藏字段隔离、工具关联、协议/资源拒绝、发送失败与取消、增量后核验/保存失败无 final、不整轮兜底、已完成重放不重跑 | 真实模型兼容性/费用/时延、网页端到端、第三方依赖可被强杀，或临时自然语言已通过事实校验 |
+| [网关 HTTP/RPC](../cmd/app/internal/logic/agent/agent_stream_http_test.go)、[网关协议](../cmd/app/internal/logic/agent/agent_stream_protocol_test.go)、[浏览器协议](../web-ui/tests/recommendation-stream.spec.ts)、[页面交互用例](../web-ui/tests/recommendation.spec.ts) | 本地 HTTP + 内存 gRPC 走生产 Token 验签，验证先增量后终态、取消/写入失败、不自动重跑、身份/序号与兼容边界；协议与页面用例的实际运行结果见最新执行记录 | 真实部署/代理/供应商验收、全链路日志均已脱敏，或尚未运行的交互用例已经通过 |
 
 2026-09-16 文档初次核对执行并通过以下现有测试，当时未修改业务代码，也未运行真实跨服务越权请求或生产数据操作；后续 M1.3 验证见 [Agent 执行记录](agent.md#14-执行记录)：
 
