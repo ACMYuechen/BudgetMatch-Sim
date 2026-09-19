@@ -6,7 +6,7 @@
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
 - 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置。M3 本地安全/检索回放、M4.1～M4.3a 规划/搜索/分类核验/报告及 M5.1～M5.3b 流式链路/分段预算/请求用量汇总已实现。M6.1 共享存储故障矩阵与 Redis 过期提交保护、M6.2a 多进程验收框架均已完成；用户授权后，M6.2b 在新建的独立 PostgreSQL/pgvector/Redis 上完成真实矩阵、异常停止后重放及新数据目录备份恢复。M6.2 在本机单节点、合成数据的范围内结项，证据与限制见[第 11.4 节](#114-m62b-独立真实存储重启与备份恢复验收)和最新[执行记录](#14-执行记录)。下一步为 M6.3 真实供应商/代理/版本回滚与最终报告，外部调用仍需另行授权，整个 M6 未结项。M5.3a 推荐页 26 项交互已通过，最终方案仍要求 final + 成功 done + 正常 EOF；Usage/费用未知不伪造为 0。结构化执行默认关闭，未在业务环境迁移/回填或启用，新需求执行尚未接入向量/RRF 召回。M4.3b 真实业务分类数据/服务、M3 检索收益、M5 真实流式及 M2 独立复核均未结项。旧规则任务成功仍为 25/40，人工复核记录仍为 0/64；存储验收不能替代这些质量目标。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
-- 后续联调约定：2026-09-20 用户确认使用当前 `.env` 所配置的本地开发数据库做普通联调并保留测试记录；不授权清库、覆盖原数据或在该库进行破坏性故障测试，具体范围见[第 11.5 节](#115-开发库联调与记录保留约定)。本轮尚未连接或写入该库。
+- 后续联调约定：2026-09-20 用户确认使用当前 `.env` 所配置的本地开发数据库做普通联调并保留测试记录；不授权清库、覆盖原数据或在该库进行破坏性故障测试，具体范围见[第 11.5 节](#115-开发库联调与记录保留约定)。已补齐 M6.3a1 的独立预检/演示会话入口（第 11.6 节），不自动加载模型或迁移；按已确认的 `.env` 目标执行，不切换为服务模板中的另一个库。目标连接尚未就绪，未保留开发库记录，页面实际读取的数据库也未核实。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
 保留 Go、go-zero、Eino ReAct、PostgreSQL、Redis 和 pgvector。不为增加技术名词重写框架，不以多 Agent、模型微调或新增向量数据库作为本轮前提。
@@ -1258,6 +1258,41 @@ M6.2 在该范围内完成；不外推到 Redis 默认持久化策略、Cluster/
 - 普通 `go test` 仍不自动加载 `.env`，既有真实数据库测试 DSN 不自动映射为开发库 DSN；其中可能包含表/schema 清理。开发库联调应使用单独审查过的非破坏性入口，不能整套套用现有数据库集成测试。
 - 本次确认不包括数据库迁移、已有索引接管/重建、服务部署/重启、修改执行模式或外部模型/Embedding/MCP 调用；这些操作及费用范围仍需另行确认。使用 Fake Agent 的记录应明确标识，不记作真实模型效果。
 
+### 11.6 M6.3a1 开发库只读预检与保留演示会话入口
+
+[dev-records 命令](../services/rpc/agent/cmd/dev-records/main.go) 与[实现/目标保护](../services/rpc/agent/internal/devrecords/config.go)为单独的开发工具，不由服务或普通测试自动调用。默认只读预检；显式 `-write-demo` 才申请保存两轮演示推荐。M6.2 的故障运行器没有改成复用开发库，也不把开发库连接串注入原有集成测试。
+
+本次配置核对发现：当前 `.env` 只有 `BUDGETMATCH_TEST_POSTGRES_DSN`，目标为 `127.0.0.1:15432/budgetmatch_sim_test`；Agent/Mall/Auth 仓库配置模板的 `Database.DSN` 指向同端口的 `budgetmatch-sim`。这两个库不等价，且部署可能另有配置中心覆盖；**不能因 `.env` 有一个 DSN 就认定网页从该库读取**。联调目标沿用用户已确认的 `.env`，服务模板差异只作为后续页面展示的待核实项，不要求重复选择库。本机该端口未监听，未自动改库名、启动服务或灌入数据。
+
+入口边界：
+
+- `-env` 与 `-config` 必须二选一，再提供 `-allow-local-dev-db` 和独立确认的 `-expect-db`；后者只能核对，不能覆盖源库名。dotenv 只提取 `-dsn-key`，不执行 shell/变量替换、不采用进程环境 DSN；YAML 只使用字面量 `Database.DSN`，不初始化其余服务依赖。源文件必须是普通非符号链接文件且不超过 256 KiB，重复 dotenv 目标键拒绝。
+- 为避免误连，仅支持仓库使用的 libpq `key=value` DSN、字面量 loopback IP、显式非特权端口/账号/口令/库名及 `sslmode=disable`。支持单引号/反斜杠转义，不支持连接 URL、DNS、Unix socket、多主机、service/passfile、额外 runtime options 或 `PG*` 环境覆盖；错误不回显原 DSN/驱动详情。仅用于本机开发，不是通用连接工具或生产 TLS 方案。
+- 使用新构造的连接参数，固定 `public` 搜索路径、UTC、连接/SQL/锁等待/空闲事务期限和单连接池；整个命令限时 30 秒。预检连接由 PostgreSQL `default_transaction_read_only=on` 强制只读，核对当前库、固定五张表的存在性与最多 1,001 行的有界计数，以及会话 schema 是否齐备。`preflight_only` 只表示完成只读检查，不代表 `schema_ready` / `user_ready` 或服务可用；不会自动建表、补索引或迁移。
+- 写入额外要求显式 `-user-id`（已有启用账号的 ID，不是用户名）和 `-run-id`。不新建账号、修改密码/角色或替用户挑选身份；只读报告不列出账号资料。写入事务内以 `FOR SHARE` 再次核对账号，使用与生产相同的用户/会话 advisory lock 键；忙时失败，不强占。两轮落库与检查同处一个外层事务，任一步失败回滚；提交确认丢失时报告结果可能未知，不能宣称必然未写入。
+- 会话 ID 固定为 `dev-demo-v1-<run-id>`，两轮预算依次为 600 元/最多 3 件、400 元/最多 2 件；复用规则 Agent、Service、Postgres Store 和明确演示 Finalizer，不使用配置中的 LLM/Embedding/Mall/MCP。标题含“开发演示”，摘要标明非实时商城库存；商品为内存 Mock，不导入真实商品表/向量，也不能用其 SKU 下单。
+- 同账号/同 run ID 再执行时，先逐字段核对版本化演示内容，再通过 Service 重放，既有会话/状态/轮次/时间均不得变化；不同或不完整内容直接拒绝，不补写或清理。新建时数据库执行路径的 Mock Provider 搜索 2 次，已有记录时 0 次；两种情况均用新的 Service 再核对零新增生成的重放。为校验预期内容，命令另在内存中计算固定规则样例，该工作不是外部模型调用。重放检查在本次事务中完成，不能据此宣称经历过进程/数据库重启。
+- `-report` 可将脱敏 JSON 结果保存为新的 `0600` 文件，拒绝覆盖现有文件；报告无法创建时不连接库。不自动删除记录、报告或重置缓存。不修改服务存储配置；页面可见还要求实际 Agent 连接同一库并使用相同登录账号，当前未做 HTTP/RPC/浏览器联合验收。
+
+使用示例（先明确目标；两个源不能同时提供）：
+
+```bash
+# 只核对 .env 当前指定的库；不建表、不写演示记录。
+GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
+  -env .env -dsn-key BUDGETMATCH_TEST_POSTGRES_DSN \
+  -expect-db budgetmatch_sim_test -allow-local-dev-db
+
+# 若另行确认使用服务模板中的开发库，改用这一组源参数：
+# -config services/rpc/agent/etc/config.yaml -expect-db budgetmatch-sim
+
+# 在已确认的源参数后追加以下选项，才会保留演示会话：
+# -write-demo -user-id '<已有启用账号ID>' -run-id desktop-demo-001 \
+# -report /绝对路径/新的私有目录/demo-001.json
+# 同 ID 再运行用于重放验证；报告文件必须换新路径或省略 -report。
+```
+
+本步只交付入口及本地验证，不把连接失败、缺表、缺账号或未写入描述为开发库验收通过。后续 M6.3a2 需确保已确认的 `.env` 目标就绪并选择账号，再做保留记录的实际运行；缺表迁移、启用服务或外部模型费用仍另行授权。M6.3 的供应商/代理/版本回滚与最终报告继续未完成。
+
 ## 12. 契约、配置与回滚
 
 ### 12.1 契约变更
@@ -1275,7 +1310,7 @@ M6.2 在该范围内完成；不外推到 Redis 默认持久化策略、Cluster/
 - 安全校验和用户隔离不设“关闭后恢复旧漏洞”的开关；检索/组合/流式策略可独立回退。
 - 无 LLM/Embedding 配置时继续支持规则/关键词模式；配置了 Mall 就不能自动混入 Mock。
 - 只有真实需要新环境变量时才更新 `.env.example` 和密钥说明，不把普通调优项全部变成密钥配置；不提交 `.env`。
-- 运行预算不能超过外层 deadline。Redis-only 的 M6.1 本地实现已具备短于租约的执行期限和过期提交保护；真实 Redis/多进程/故障恢复验收仍需完成，不能用 TTL 本身代替提交检查。
+- 运行预算不能超过外层 deadline。Redis-only 的 M6.1 实现具备短于租约的执行期限和过期提交保护；M6.2b 已完成第 11.4 节范围内的真实 Redis/多进程/恢复验证，但不覆盖 Cluster/切主，不能用 TTL 本身代替提交检查。
 - 新字段可缺省读取，旧会话不做破坏性重建；有存量结构变更时先做测试环境迁移与恢复演练。
 
 ### 12.3 发布与回滚顺序
@@ -1293,6 +1328,8 @@ M6.2 在该范围内完成；不外推到 Redis 默认持久化策略、Cluster/
 ```bash
 # 相关回归；数据库变量未设置时，部分集成测试会跳过
 env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   go test -race -count=1 ./services/rpc/agent/... ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
 # M3/M5 改动共享认证后，补跑身份、Mall 方法策略与支付回归；禁止误连真实测试库
@@ -1356,6 +1393,10 @@ git diff --check
     - [x] M6.2a：专用配置/所有权保护、独立 OS 子进程屏障/终止、8 项 miniredis 多进程回归，真实 PostgreSQL/pgvector/Redis 用例入口；真实入口默认 skip。
     - [x] M6.2b：三轮真实矩阵、PG immediate-stop / Redis SIGKILL 后重放、全新 PG 数据目录的备份恢复、已有真实 DB 集成用例、实例关闭与日志归档；无业务数据/部署变更。
   - [ ] M6.3：真实模型/代理取消与背压、费用/时延、实际兼容回滚、最终演示和验收归档；外部调用单独授权，不替代独立人工复核。
+    - [x] M6.3a1：独立开发库预检、显式目标/账号保护、保留两轮演示会话与严格重放入口；本地回归，不是开发库写入或网页验收。
+    - [ ] M6.3a2：使已确认的 `.env` 目标就绪、选择已有账号，实际保留记录并核实页面读取目标后联调展示；不默认启动/迁移。
+    - [ ] M6.3b：真实供应商/代理取消、背压及 Usage/时延/费用实验；需要调用范围和费用上限。
+    - [ ] M6.3c：部署版本兼容/实际回滚、最终演示与验收归档；部署范围另行确认。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
@@ -2648,3 +2689,40 @@ git diff --check
 ### 2026-09-20：确认后续开发库联调与记录保留
 
 用户提出以后测试直接使用项目数据库以保留记录，并明确确认目标为当前 `.env` 配置的本地开发库。按第 11.5 节记录普通联调的授权与数据保留要求；破坏性测试继续隔离，外部调用/迁移/部署不包含在本次确认中。仅更新文档并检查补丁空白和本地文件链接，不读取 `.env`、不连接或写入数据库、不运行服务或测试，也不提交/推送；M6.2 的历史执行结论不变。
+
+### 2026-09-20：M6.2b 本地提交与 M6.3a1 保留记录入口
+
+按用户“有用就提交，然后进行下一步开发”，先复核全部 6 份待提交文件：恢复运行器与测试用于重复真实存储验收，三份文档保留实际证据、失败尝试和开发库授权约定，均有用途。提交前 Python 4 项通过；storageacceptance 的单轮竞态回归 8 项顶层 / 45 项含子测试通过，3 个真实入口显式跳过；补丁空白和三份文档 257 个本地文件链接检查通过。按类型本地提交 `1e54045`（恢复验收测试）和 `992a9d8`（文档），没有推送。随后从干净的 `992a9d8` 开发本步，新改动不自动再次提交。
+
+新增 `cmd/dev-records` 和 `internal/devrecords`：显式源/目标/授权校验、服务器只读预检、有界行数报告、已有账号检查，以及仅操作独立演示会话的两轮规则推荐/重放。写入不迁移、不建账号、不清理商品或向量；事务绑定同一连接及生产会话锁键，拒绝不同/不完整的同名记录，并区分提交确认丢失的未知结果。报告独占新建为 `0600`，连接错误不输出原始 DSN/口令。复用已有 go-zero 配置解码，不新增依赖、环境变量、生产接口、生成文件或默认启用项；不触碰 CI/CD、Web、样本与评测基线。设计及运行条件见第 11.6 节。
+
+测试入口（Go 顺序执行，期间不修改 Go 源文件）：
+
+```bash
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
+  ./services/rpc/agent/internal/devrecords ./services/rpc/agent/cmd/dev-records
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 ./...
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go build -p 1 ./...
+git diff --check
+```
+
+结果与边界：
+
+- 新增 17 项顶层 / 40 项含子测试通过，重复 10 轮为 170 / 400，无失败、跳过或竞态。覆盖目标/授权缺失、多个配置源、PG 覆盖、非 loopback/重复 DSN 键、口令转义与错误脱敏、符号链接、报告不可覆盖；两轮历史与预算变更、同 ID 零新增生成/保存、用户/运行空间隔离、不同/部分数据拒绝、取消、账号/锁失败回滚、提交结果未知及完整 JSON/时间比较。
+- 完整竞态回归 44 个测试包、559 项顶层 / 1,948 项含子测试与 Fuzz seed 通过，15 项真实数据库/验收入口按未配置目标跳过，不计通过。随后配置解码最终改为复用现有 go-zero loader，两个受影响的新包再次重复 10 轮通过（`devrecords-repeat-final.jsonl`）。最终代码的根模块 vet/build 和独立 CLI 构建通过；不包含独立嵌套 Go 模块。Go 格式、补丁空白及三份文档的 261 个本地文件链接检查通过。
+- 数据库事务测试使用拒绝所有写 SQL 的协议替身，验证已有记录重放的事务/账号锁/会话锁顺序、零 DDL/DML 及失败回滚；不是新入口真实 PG 写入通过的证据。内存用例验证规则 Service 与保留策略；本步没有启动新的独立 PG/Redis，也没有将已有 M6.2b 的结果冒充新入口验收。
+- 实际读取 `.env` 时只提取所需数据库项，发现指向 `budgetmatch_sim_test`；服务仓库模板指向 `budgetmatch-sim`，尚未读取配置中心来证明部署实际目标。已向用户询问库的选择，不修改 `.env` 或静默替换库名。`ss` 未发现 `15432` 监听；目标容器的只读状态查询遇到当前 WSL Docker 命令不可用，未自行安装/配置 Docker，也未获知容器实际状态。
+- 使用最终 CLI 对已获准的 `.env` 目标执行默认只读预检，输出 `status=blocked`、`database_connected=false` 并退出 1；不是通过或 skip。首次构建及最终构建各有一份相同边界的失败报告。尚不能核实空库、schema、已有账号或页面可见性，**未执行 `-write-demo`，没有灌入数据**。没有尝试另一个库、自动建表或启动/重启既有服务。
+
+过程日志和脱敏预检报告位于 `/tmp/budgetmatch-agent-devrecords.CFXVqN`，包含 `precommit.jsonl`、`devrecords-repeat-final.jsonl`、`full.jsonl`、`vet.log`、`build.log`、临时 CLI 及 `development-preflight-final.json`。源码/文档之外的配置与报告没有加入提交。本轮未修改 `.env`、数据库、已有服务、默认策略或依赖；没有外部模型/Embedding/MCP/Mall 调用、费用、迁移、部署或远程推送。Web 未改，不重跑浏览器；未另生成四套 CLI 评测报告，已有评测回归包含在 Go 测试中。
+
+M6.3a1 的本地入口已交付，M6.3a2 实际保留记录仍待目标库明确、连接就绪与已有账号选择；启动环境/迁移和外部调用需要相应范围确认。M6.3b/c、M2 独立复核、M3 检索收益与 M4 真实业务分类/服务验收继续未完成；旧规则 25/40、复核 0/64 没有新证据改变。
