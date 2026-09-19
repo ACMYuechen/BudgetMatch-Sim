@@ -110,7 +110,7 @@ message RecommendResp {
   DemandExecution execution = 11;
 }
 
-// v1 lifecycle stream; NOT model token streaming. Unknown event kinds/fields
+// Additive v1 stream. Unknown event kinds/fields
 // must be ignored. Only final contains authoritative, already persisted items.
 message RecommendStreamEvent {
   uint32 schema_version = 1;
@@ -118,12 +118,14 @@ message RecommendStreamEvent {
   string conversation_id = 3;
   string turn_id = 4;
   uint64 sequence = 5; // starts at 1 within this execution_id
-  string event = 6; // request.accepted / recommendation.final / error / done
+  string event = 6; // lifecycle plus answer.delta / tool.started / tool.completed
   oneof payload {
     StreamAccepted accepted = 10;
     RecommendResp final = 11;
     StreamError error = 12;
     StreamDone done = 13;
+    StreamAnswerDelta answer_delta = 14;
+    StreamToolEvent tool = 15;
   }
 }
 
@@ -136,6 +138,21 @@ message StreamError {
 message StreamDone {
   bool ok = 1;
   bool replayed = 2; // completed snapshot replay; not a new stock verification
+}
+
+// Provisional explanation only; final replaces it, error/disconnect discards it.
+// Not persisted, not an item card, not an order/stock authorization.
+message StreamAnswerDelta {
+  string text = 1;
+  bool provisional = 2;
+}
+
+message StreamToolEvent {
+  string call_id = 1; // server-generated correlation, not model-supplied raw IDs
+  string name = 2; // built-in allowlisted label or stable digest
+  string status = 3; // running / succeeded / failed
+  int64 duration_ms = 4;
+  string error_code = 5; // sanitized category, never error text/arguments/result
 }
 
 message ConversationSummary {

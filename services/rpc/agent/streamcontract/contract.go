@@ -1,5 +1,5 @@
-// Package streamcontract defines the v1 recommendation lifecycle stream limits.
-// Model deltas/tool progress and HTTP SSE forwarding are separate milestones.
+// Package streamcontract defines the additive v1 recommendation stream limits.
+// These are local resource bounds, not provider billing or heap-size estimates.
 package streamcontract
 
 import "time"
@@ -8,8 +8,20 @@ const (
 	Version     = 1
 	MaxDuration = 30 * time.Second
 
-	Accepted = "request.accepted"
-	Final    = "recommendation.final"
-	Error    = "error"
-	Done     = "done"
+	Accepted      = "request.accepted"
+	Final         = "recommendation.final"
+	Error         = "error"
+	Done          = "done"
+	AnswerDelta   = "answer.delta"
+	ToolStarted   = "tool.started"
+	ToolCompleted = "tool.completed"
+
+	MaxProgressEvents = 256
+	MaxProgressBytes  = 64 << 10
+	MaxDeltaBytes     = 2 << 10
+	MaxAnswerBytes    = 16 << 10
+	MaxModelChunks    = 2048
+	MaxModelBytes     = 256 << 10
+	MaxModelCalls     = 9 // <= 8 orchestration calls plus one tool-free explanation
+	MaxToolCalls      = 32
 )

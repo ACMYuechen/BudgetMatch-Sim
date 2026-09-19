@@ -28,7 +28,8 @@ import (
 )
 
 // logCallbacks 是全局复用的 Eino 组件日志回调：
-// 挂在每次 Generate 上，模型/工具以及工具内部触发的检索、嵌入组件都会被同一 handler 记录。
+// 挂在 ReAct Generate/Stream 上；流式模型的实际 Usage 汇总仍待补充，
+// 不能用已有同步 OnEnd 日志冒充完整的流式成本观测。
 var logCallbacks = einolog.NewHandler()
 
 // AgentName 是 LLM 推荐 Agent 的名称标识。
@@ -57,6 +58,7 @@ type Agent struct {
 
 // 确保 Agent 实现 agentcore.Agent。
 var _ agentcore.Agent = (*Agent)(nil)
+var _ agentcore.StreamingAgent = (*Agent)(nil)
 
 // NewAgent 创建基于 Eino ReAct 的推荐 Agent。
 func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector,
@@ -105,6 +107,26 @@ func (a *Agent) Name() string {
 
 // Run 执行一次完整的 ReAct 推荐流程。
 func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentcore.Result, err error) {
+	return a.run(ctx, input, nil)
+}
+
+// RunStream keeps orchestration private and streams a separate, tool-free
+// explanation from a numeric public projection. No history/tool bodies enter
+// that explanation call; all text is provisional and never replaces facts.
+func (a *Agent) RunStream(ctx context.Context, input agentcore.Input, progress agentcore.ProgressSink) (*agentcore.Result, error) {
+	if progress == nil {
+		return nil, agentcore.ErrInvalidInput
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	result, err := a.run(ctx, input, progress)
+	if err != nil {
+		return nil, safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, err))
+	}
+	return result, nil
+}
+
+func (a *Agent) run(ctx context.Context, input agentcore.Input, progress agentcore.ProgressSink) (result *agentcore.Result, err error) {
 	defer func() { err = safety.Protect(err) }()
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -144,6 +166,7 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentco
 		defer workspace.Close()
 	}
 	s := newSession(a.provider, a.selector, intent)
+	s.progress = progress
 
 	reactTools, err := businessTools(s, workspace)
 	if err != nil {
@@ -156,11 +179,22 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentco
 	defer cleanup()
 	reactTools = append(reactTools, mcpToolList...)
 
-	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
+	reactConfig := &react.AgentConfig{
 		ToolCallingModel: a.model,
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: reactTools},
 		MaxStep:          a.maxStep,
-	})
+	}
+	var streamingModel *boundedStreamModel
+	if progress != nil {
+		streamingModel = newBoundedStreamModel(a.model, a.maxContextTokens)
+		reactConfig.ToolCallingModel = streamingModel
+		reactConfig.MaxStep = min(a.maxStep, defaultMaxStep)
+		reactConfig.ToolsConfig.ExecuteSequentially = true
+		// Full bounded inspection handles text-before-tool models. These
+		// orchestration chunks are NEVER the public answer stream.
+		reactConfig.StreamToolCallChecker = inspectToolStream
+	}
+	reactAgent, err := react.NewAgent(ctx, reactConfig)
 	if err != nil {
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
@@ -178,8 +212,12 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentco
 		return nil, err
 	}
 
-	_, err = reactAgent.Generate(ctx, messages,
-		einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
+	if progress == nil {
+		_, err = reactAgent.Generate(ctx, messages,
+			einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
+	} else {
+		err = drainOrchestration(ctx, reactAgent, messages)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +225,14 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentco
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return a.assemble(ctx, input, intent, s)
+	result, err = a.assemble(ctx, input, intent, s)
+	if err != nil || progress == nil {
+		return result, err
+	}
+	if err := streamExplanation(ctx, streamingModel, result, progress); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loadHistory 读取会话历史。记忆未启用或读取失败时返回空——

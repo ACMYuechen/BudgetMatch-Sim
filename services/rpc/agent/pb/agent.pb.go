@@ -979,7 +979,7 @@ func (x *RecommendResp) GetExecution() *DemandExecution {
 	return nil
 }
 
-// v1 lifecycle stream; NOT model token streaming. Unknown event kinds/fields
+// Additive v1 stream. Unknown event kinds/fields
 // must be ignored. Only final contains authoritative, already persisted items.
 type RecommendStreamEvent struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
@@ -988,13 +988,15 @@ type RecommendStreamEvent struct {
 	ConversationId string                 `protobuf:"bytes,3,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
 	TurnId         string                 `protobuf:"bytes,4,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
 	Sequence       uint64                 `protobuf:"varint,5,opt,name=sequence,proto3" json:"sequence,omitempty"` // starts at 1 within this execution_id
-	Event          string                 `protobuf:"bytes,6,opt,name=event,proto3" json:"event,omitempty"`        // request.accepted / recommendation.final / error / done
+	Event          string                 `protobuf:"bytes,6,opt,name=event,proto3" json:"event,omitempty"`        // lifecycle plus answer.delta / tool.started / tool.completed
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*RecommendStreamEvent_Accepted
 	//	*RecommendStreamEvent_Final
 	//	*RecommendStreamEvent_Error
 	//	*RecommendStreamEvent_Done
+	//	*RecommendStreamEvent_AnswerDelta
+	//	*RecommendStreamEvent_Tool
 	Payload       isRecommendStreamEvent_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1115,6 +1117,24 @@ func (x *RecommendStreamEvent) GetDone() *StreamDone {
 	return nil
 }
 
+func (x *RecommendStreamEvent) GetAnswerDelta() *StreamAnswerDelta {
+	if x != nil {
+		if x, ok := x.Payload.(*RecommendStreamEvent_AnswerDelta); ok {
+			return x.AnswerDelta
+		}
+	}
+	return nil
+}
+
+func (x *RecommendStreamEvent) GetTool() *StreamToolEvent {
+	if x != nil {
+		if x, ok := x.Payload.(*RecommendStreamEvent_Tool); ok {
+			return x.Tool
+		}
+	}
+	return nil
+}
+
 type isRecommendStreamEvent_Payload interface {
 	isRecommendStreamEvent_Payload()
 }
@@ -1135,6 +1155,14 @@ type RecommendStreamEvent_Done struct {
 	Done *StreamDone `protobuf:"bytes,13,opt,name=done,proto3,oneof"`
 }
 
+type RecommendStreamEvent_AnswerDelta struct {
+	AnswerDelta *StreamAnswerDelta `protobuf:"bytes,14,opt,name=answer_delta,json=answerDelta,proto3,oneof"`
+}
+
+type RecommendStreamEvent_Tool struct {
+	Tool *StreamToolEvent `protobuf:"bytes,15,opt,name=tool,proto3,oneof"`
+}
+
 func (*RecommendStreamEvent_Accepted) isRecommendStreamEvent_Payload() {}
 
 func (*RecommendStreamEvent_Final) isRecommendStreamEvent_Payload() {}
@@ -1142,6 +1170,10 @@ func (*RecommendStreamEvent_Final) isRecommendStreamEvent_Payload() {}
 func (*RecommendStreamEvent_Error) isRecommendStreamEvent_Payload() {}
 
 func (*RecommendStreamEvent_Done) isRecommendStreamEvent_Payload() {}
+
+func (*RecommendStreamEvent_AnswerDelta) isRecommendStreamEvent_Payload() {}
+
+func (*RecommendStreamEvent_Tool) isRecommendStreamEvent_Payload() {}
 
 type StreamAccepted struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1291,6 +1323,136 @@ func (x *StreamDone) GetReplayed() bool {
 	return false
 }
 
+// Provisional explanation only; final replaces it, error/disconnect discards it.
+// Not persisted, not an item card, not an order/stock authorization.
+type StreamAnswerDelta struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Provisional   bool                   `protobuf:"varint,2,opt,name=provisional,proto3" json:"provisional,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamAnswerDelta) Reset() {
+	*x = StreamAnswerDelta{}
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamAnswerDelta) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamAnswerDelta) ProtoMessage() {}
+
+func (x *StreamAnswerDelta) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamAnswerDelta.ProtoReflect.Descriptor instead.
+func (*StreamAnswerDelta) Descriptor() ([]byte, []int) {
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *StreamAnswerDelta) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *StreamAnswerDelta) GetProvisional() bool {
+	if x != nil {
+		return x.Provisional
+	}
+	return false
+}
+
+type StreamToolEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"` // server-generated correlation, not model-supplied raw IDs
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                   // built-in allowlisted label or stable digest
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`               // running / succeeded / failed
+	DurationMs    int64                  `protobuf:"varint,4,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	ErrorCode     string                 `protobuf:"bytes,5,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"` // sanitized category, never error text/arguments/result
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamToolEvent) Reset() {
+	*x = StreamToolEvent{}
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamToolEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamToolEvent) ProtoMessage() {}
+
+func (x *StreamToolEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamToolEvent.ProtoReflect.Descriptor instead.
+func (*StreamToolEvent) Descriptor() ([]byte, []int) {
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *StreamToolEvent) GetCallId() string {
+	if x != nil {
+		return x.CallId
+	}
+	return ""
+}
+
+func (x *StreamToolEvent) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *StreamToolEvent) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *StreamToolEvent) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *StreamToolEvent) GetErrorCode() string {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ""
+}
+
 type ConversationSummary struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ConversationId    string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
@@ -1305,7 +1467,7 @@ type ConversationSummary struct {
 
 func (x *ConversationSummary) Reset() {
 	*x = ConversationSummary{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1317,7 +1479,7 @@ func (x *ConversationSummary) String() string {
 func (*ConversationSummary) ProtoMessage() {}
 
 func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[15]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1330,7 +1492,7 @@ func (x *ConversationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationSummary.ProtoReflect.Descriptor instead.
 func (*ConversationSummary) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{15}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ConversationSummary) GetConversationId() string {
@@ -1392,7 +1554,7 @@ type ConversationTurn struct {
 
 func (x *ConversationTurn) Reset() {
 	*x = ConversationTurn{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1404,7 +1566,7 @@ func (x *ConversationTurn) String() string {
 func (*ConversationTurn) ProtoMessage() {}
 
 func (x *ConversationTurn) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[16]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1579,7 @@ func (x *ConversationTurn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationTurn.ProtoReflect.Descriptor instead.
 func (*ConversationTurn) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{16}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ConversationTurn) GetTurnId() string {
@@ -1493,7 +1655,7 @@ type ListConversationsReq struct {
 
 func (x *ListConversationsReq) Reset() {
 	*x = ListConversationsReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1505,7 +1667,7 @@ func (x *ListConversationsReq) String() string {
 func (*ListConversationsReq) ProtoMessage() {}
 
 func (x *ListConversationsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[17]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1518,7 +1680,7 @@ func (x *ListConversationsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsReq.ProtoReflect.Descriptor instead.
 func (*ListConversationsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{17}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListConversationsReq) GetPage() int32 {
@@ -1547,7 +1709,7 @@ type ListConversationsResp struct {
 
 func (x *ListConversationsResp) Reset() {
 	*x = ListConversationsResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1559,7 +1721,7 @@ func (x *ListConversationsResp) String() string {
 func (*ListConversationsResp) ProtoMessage() {}
 
 func (x *ListConversationsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[18]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +1734,7 @@ func (x *ListConversationsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResp.ProtoReflect.Descriptor instead.
 func (*ListConversationsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{18}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListConversationsResp) GetList() []*ConversationSummary {
@@ -1614,7 +1776,7 @@ type ListConversationTurnsReq struct {
 
 func (x *ListConversationTurnsReq) Reset() {
 	*x = ListConversationTurnsReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[19]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1626,7 +1788,7 @@ func (x *ListConversationTurnsReq) String() string {
 func (*ListConversationTurnsReq) ProtoMessage() {}
 
 func (x *ListConversationTurnsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[19]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1639,7 +1801,7 @@ func (x *ListConversationTurnsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationTurnsReq.ProtoReflect.Descriptor instead.
 func (*ListConversationTurnsReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{19}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListConversationTurnsReq) GetConversationId() string {
@@ -1676,7 +1838,7 @@ type ListConversationTurnsResp struct {
 
 func (x *ListConversationTurnsResp) Reset() {
 	*x = ListConversationTurnsResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[20]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1688,7 +1850,7 @@ func (x *ListConversationTurnsResp) String() string {
 func (*ListConversationTurnsResp) ProtoMessage() {}
 
 func (x *ListConversationTurnsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[20]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1701,7 +1863,7 @@ func (x *ListConversationTurnsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationTurnsResp.ProtoReflect.Descriptor instead.
 func (*ListConversationTurnsResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{20}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListConversationTurnsResp) GetConversation() *ConversationSummary {
@@ -1748,7 +1910,7 @@ type DeleteConversationReq struct {
 
 func (x *DeleteConversationReq) Reset() {
 	*x = DeleteConversationReq{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[21]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1760,7 +1922,7 @@ func (x *DeleteConversationReq) String() string {
 func (*DeleteConversationReq) ProtoMessage() {}
 
 func (x *DeleteConversationReq) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[21]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1773,7 +1935,7 @@ func (x *DeleteConversationReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationReq.ProtoReflect.Descriptor instead.
 func (*DeleteConversationReq) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{21}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DeleteConversationReq) GetConversationId() string {
@@ -1792,7 +1954,7 @@ type DeleteConversationResp struct {
 
 func (x *DeleteConversationResp) Reset() {
 	*x = DeleteConversationResp{}
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[22]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1804,7 +1966,7 @@ func (x *DeleteConversationResp) String() string {
 func (*DeleteConversationResp) ProtoMessage() {}
 
 func (x *DeleteConversationResp) ProtoReflect() protoreflect.Message {
-	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[22]
+	mi := &file_services_rpc_agent_proto_agent_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1817,7 +1979,7 @@ func (x *DeleteConversationResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationResp.ProtoReflect.Descriptor instead.
 func (*DeleteConversationResp) Descriptor() ([]byte, []int) {
-	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{22}
+	return file_services_rpc_agent_proto_agent_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DeleteConversationResp) GetDeleted() bool {
@@ -1919,7 +2081,7 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\tR\x06status\x12@\n" +
 	"\x10demand_conflicts\x18\n" +
 	" \x03(\v2\x15.agent.DemandConflictR\x0fdemandConflicts\x124\n" +
-	"\texecution\x18\v \x01(\v2\x16.agent.DemandExecutionR\texecution\"\x97\x03\n" +
+	"\texecution\x18\v \x01(\v2\x16.agent.DemandExecutionR\texecution\"\x84\x04\n" +
 	"\x14RecommendStreamEvent\x12%\n" +
 	"\x0eschema_version\x18\x01 \x01(\rR\rschemaVersion\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12'\n" +
@@ -1931,7 +2093,9 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	" \x01(\v2\x15.agent.StreamAcceptedH\x00R\baccepted\x12,\n" +
 	"\x05final\x18\v \x01(\v2\x14.agent.RecommendRespH\x00R\x05final\x12*\n" +
 	"\x05error\x18\f \x01(\v2\x12.agent.StreamErrorH\x00R\x05error\x12'\n" +
-	"\x04done\x18\r \x01(\v2\x11.agent.StreamDoneH\x00R\x04doneB\t\n" +
+	"\x04done\x18\r \x01(\v2\x11.agent.StreamDoneH\x00R\x04done\x12=\n" +
+	"\fanswer_delta\x18\x0e \x01(\v2\x18.agent.StreamAnswerDeltaH\x00R\vanswerDelta\x12,\n" +
+	"\x04tool\x18\x0f \x01(\v2\x16.agent.StreamToolEventH\x00R\x04toolB\t\n" +
 	"\apayload\"\x10\n" +
 	"\x0eStreamAccepted\"Y\n" +
 	"\vStreamError\x12\x12\n" +
@@ -1941,7 +2105,18 @@ const file_services_rpc_agent_proto_agent_proto_rawDesc = "" +
 	"\n" +
 	"StreamDone\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1a\n" +
-	"\breplayed\x18\x02 \x01(\bR\breplayed\"\xf9\x01\n" +
+	"\breplayed\x18\x02 \x01(\bR\breplayed\"I\n" +
+	"\x11StreamAnswerDelta\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\x12 \n" +
+	"\vprovisional\x18\x02 \x01(\bR\vprovisional\"\x96\x01\n" +
+	"\x0fStreamToolEvent\x12\x17\n" +
+	"\acall_id\x18\x01 \x01(\tR\x06callId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1f\n" +
+	"\vduration_ms\x18\x04 \x01(\x03R\n" +
+	"durationMs\x12\x1d\n" +
+	"\n" +
+	"error_code\x18\x05 \x01(\tR\terrorCode\"\xf9\x01\n" +
 	"\x13ConversationSummary\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12-\n" +
 	"\x12conversation_title\x18\x02 \x01(\tR\x11conversationTitle\x12#\n" +
@@ -2004,7 +2179,7 @@ func file_services_rpc_agent_proto_agent_proto_rawDescGZIP() []byte {
 	return file_services_rpc_agent_proto_agent_proto_rawDescData
 }
 
-var file_services_rpc_agent_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_services_rpc_agent_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_services_rpc_agent_proto_agent_proto_goTypes = []any{
 	(*RecommendReq)(nil),              // 0: agent.RecommendReq
 	(*Intent)(nil),                    // 1: agent.Intent
@@ -2021,14 +2196,16 @@ var file_services_rpc_agent_proto_agent_proto_goTypes = []any{
 	(*StreamAccepted)(nil),            // 12: agent.StreamAccepted
 	(*StreamError)(nil),               // 13: agent.StreamError
 	(*StreamDone)(nil),                // 14: agent.StreamDone
-	(*ConversationSummary)(nil),       // 15: agent.ConversationSummary
-	(*ConversationTurn)(nil),          // 16: agent.ConversationTurn
-	(*ListConversationsReq)(nil),      // 17: agent.ListConversationsReq
-	(*ListConversationsResp)(nil),     // 18: agent.ListConversationsResp
-	(*ListConversationTurnsReq)(nil),  // 19: agent.ListConversationTurnsReq
-	(*ListConversationTurnsResp)(nil), // 20: agent.ListConversationTurnsResp
-	(*DeleteConversationReq)(nil),     // 21: agent.DeleteConversationReq
-	(*DeleteConversationResp)(nil),    // 22: agent.DeleteConversationResp
+	(*StreamAnswerDelta)(nil),         // 15: agent.StreamAnswerDelta
+	(*StreamToolEvent)(nil),           // 16: agent.StreamToolEvent
+	(*ConversationSummary)(nil),       // 17: agent.ConversationSummary
+	(*ConversationTurn)(nil),          // 18: agent.ConversationTurn
+	(*ListConversationsReq)(nil),      // 19: agent.ListConversationsReq
+	(*ListConversationsResp)(nil),     // 20: agent.ListConversationsResp
+	(*ListConversationTurnsReq)(nil),  // 21: agent.ListConversationTurnsReq
+	(*ListConversationTurnsResp)(nil), // 22: agent.ListConversationTurnsResp
+	(*DeleteConversationReq)(nil),     // 23: agent.DeleteConversationReq
+	(*DeleteConversationResp)(nil),    // 24: agent.DeleteConversationResp
 }
 var file_services_rpc_agent_proto_agent_proto_depIdxs = []int32{
 	2,  // 0: agent.Intent.demand:type_name -> agent.DemandState
@@ -2043,31 +2220,33 @@ var file_services_rpc_agent_proto_agent_proto_depIdxs = []int32{
 	10, // 9: agent.RecommendStreamEvent.final:type_name -> agent.RecommendResp
 	13, // 10: agent.RecommendStreamEvent.error:type_name -> agent.StreamError
 	14, // 11: agent.RecommendStreamEvent.done:type_name -> agent.StreamDone
-	1,  // 12: agent.ConversationSummary.state:type_name -> agent.Intent
-	1,  // 13: agent.ConversationTurn.intent:type_name -> agent.Intent
-	10, // 14: agent.ConversationTurn.result:type_name -> agent.RecommendResp
-	15, // 15: agent.ListConversationsResp.list:type_name -> agent.ConversationSummary
-	15, // 16: agent.ListConversationTurnsResp.conversation:type_name -> agent.ConversationSummary
-	16, // 17: agent.ListConversationTurnsResp.list:type_name -> agent.ConversationTurn
-	0,  // 18: agent.RecommendService.Recommend:input_type -> agent.RecommendReq
-	0,  // 19: agent.RecommendService.RecommendStream:input_type -> agent.RecommendReq
-	4,  // 20: agent.RecommendService.PlanDemand:input_type -> agent.PlanDemandReq
-	6,  // 21: agent.RecommendService.ExecuteDemand:input_type -> agent.ExecuteDemandReq
-	17, // 22: agent.RecommendService.ListConversations:input_type -> agent.ListConversationsReq
-	19, // 23: agent.RecommendService.ListConversationTurns:input_type -> agent.ListConversationTurnsReq
-	21, // 24: agent.RecommendService.DeleteConversation:input_type -> agent.DeleteConversationReq
-	10, // 25: agent.RecommendService.Recommend:output_type -> agent.RecommendResp
-	11, // 26: agent.RecommendService.RecommendStream:output_type -> agent.RecommendStreamEvent
-	5,  // 27: agent.RecommendService.PlanDemand:output_type -> agent.PlanDemandResp
-	10, // 28: agent.RecommendService.ExecuteDemand:output_type -> agent.RecommendResp
-	18, // 29: agent.RecommendService.ListConversations:output_type -> agent.ListConversationsResp
-	20, // 30: agent.RecommendService.ListConversationTurns:output_type -> agent.ListConversationTurnsResp
-	22, // 31: agent.RecommendService.DeleteConversation:output_type -> agent.DeleteConversationResp
-	25, // [25:32] is the sub-list for method output_type
-	18, // [18:25] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	15, // 12: agent.RecommendStreamEvent.answer_delta:type_name -> agent.StreamAnswerDelta
+	16, // 13: agent.RecommendStreamEvent.tool:type_name -> agent.StreamToolEvent
+	1,  // 14: agent.ConversationSummary.state:type_name -> agent.Intent
+	1,  // 15: agent.ConversationTurn.intent:type_name -> agent.Intent
+	10, // 16: agent.ConversationTurn.result:type_name -> agent.RecommendResp
+	17, // 17: agent.ListConversationsResp.list:type_name -> agent.ConversationSummary
+	17, // 18: agent.ListConversationTurnsResp.conversation:type_name -> agent.ConversationSummary
+	18, // 19: agent.ListConversationTurnsResp.list:type_name -> agent.ConversationTurn
+	0,  // 20: agent.RecommendService.Recommend:input_type -> agent.RecommendReq
+	0,  // 21: agent.RecommendService.RecommendStream:input_type -> agent.RecommendReq
+	4,  // 22: agent.RecommendService.PlanDemand:input_type -> agent.PlanDemandReq
+	6,  // 23: agent.RecommendService.ExecuteDemand:input_type -> agent.ExecuteDemandReq
+	19, // 24: agent.RecommendService.ListConversations:input_type -> agent.ListConversationsReq
+	21, // 25: agent.RecommendService.ListConversationTurns:input_type -> agent.ListConversationTurnsReq
+	23, // 26: agent.RecommendService.DeleteConversation:input_type -> agent.DeleteConversationReq
+	10, // 27: agent.RecommendService.Recommend:output_type -> agent.RecommendResp
+	11, // 28: agent.RecommendService.RecommendStream:output_type -> agent.RecommendStreamEvent
+	5,  // 29: agent.RecommendService.PlanDemand:output_type -> agent.PlanDemandResp
+	10, // 30: agent.RecommendService.ExecuteDemand:output_type -> agent.RecommendResp
+	20, // 31: agent.RecommendService.ListConversations:output_type -> agent.ListConversationsResp
+	22, // 32: agent.RecommendService.ListConversationTurns:output_type -> agent.ListConversationTurnsResp
+	24, // 33: agent.RecommendService.DeleteConversation:output_type -> agent.DeleteConversationResp
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_services_rpc_agent_proto_agent_proto_init() }
@@ -2080,6 +2259,8 @@ func file_services_rpc_agent_proto_agent_proto_init() {
 		(*RecommendStreamEvent_Final)(nil),
 		(*RecommendStreamEvent_Error)(nil),
 		(*RecommendStreamEvent_Done)(nil),
+		(*RecommendStreamEvent_AnswerDelta)(nil),
+		(*RecommendStreamEvent_Tool)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2087,7 +2268,7 @@ func file_services_rpc_agent_proto_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_rpc_agent_proto_agent_proto_rawDesc), len(file_services_rpc_agent_proto_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

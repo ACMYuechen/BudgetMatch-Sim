@@ -86,18 +86,23 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 // replay/planning checks, before running any Agent. A send failure aborts work.
 // The caller must bound transport sends and propagate ctx cancellation. No
 // model deltas are synthesized. The result is authoritative only after SaveTurn.
-func (s *Service) RecommendStream(ctx context.Context, input agentcore.Input, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
+func (s *Service) RecommendStream(ctx context.Context, input agentcore.Input, accepted func(context.Context, string, string) error, progress ...agentcore.ProgressSink) (*agentcore.Result, error) {
 	if s == nil {
 		return nil, agentcore.ErrAgentNotFound
 	}
 	if _, ok := s.memory.(memory.ConversationStore); !ok {
 		return nil, status.Error(codes.FailedPrecondition, "recommendation stream requires a conversation store")
 	}
-	if accepted == nil {
+	if accepted == nil || len(progress) > 1 {
 		return nil, agentcore.ErrInvalidInput
+	}
+	if len(progress) == 1 && progress[0] != nil {
+		ctx = context.WithValue(ctx, progressKey{}, progress[0])
 	}
 	return s.execute(ctx, input, nil, "", accepted)
 }
+
+type progressKey struct{}
 
 // PlanDemand persists a planning-only turn. A separate RPC prevents old servers
 // from silently ignoring a new hard constraint on the legacy Recommend method.
@@ -383,14 +388,27 @@ func (s *Service) runCandidate(ctx context.Context, input agentcore.Input) (*age
 }
 
 // runChecked 在共享编排边界校验两条路径；异常结果不会进入 SaveTurn。
-func (s *Service) runChecked(ctx context.Context, runner agentcore.Agent, input agentcore.Input, intent agentcore.Intent) (*agentcore.Result, error) {
+func (s *Service) runChecked(ctx context.Context, runner agentcore.Agent, input agentcore.Input, intent agentcore.Intent) (result *agentcore.Result, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	// 每次执行隔离可变切片，primary 不能污染 fallback 的有效约束。
 	prior := cloneIntent(intent)
 	input.PriorIntent = &prior
-	result, err := runner.Run(ctx, input)
+	progress, _ := ctx.Value(progressKey{}).(agentcore.ProgressSink)
+	if streaming, ok := runner.(agentcore.StreamingAgent); ok && progress != nil {
+		defer func() {
+			if err != nil {
+				err = errors.Join(agentcore.ErrStreamInterrupted, err)
+			}
+		}()
+		result, err = streaming.RunStream(ctx, input, progress)
+		if progressErr := progress.Err(); progressErr != nil {
+			err = progressErr
+		}
+	} else {
+		result, err = runner.Run(ctx, input)
+	}
 	if stopped := ctx.Err(); stopped != nil {
 		return nil, stopped
 	}

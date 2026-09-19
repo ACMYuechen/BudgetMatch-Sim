@@ -38,9 +38,15 @@ var (
 // ErrUnsafeResult 表示 Agent 结果违反业务约束或与商品事实不符，禁止保存和返回。
 var ErrUnsafeResult = errors.New("unsafe agent recommendation result")
 
+// ErrStreamInterrupted prevents retries/fallback after streamed execution may
+// have exposed provisional output or performed tools. Keep the underlying
+// status/context error for public mapping and cancellation checks.
+var ErrStreamInterrupted = errors.New("agent stream interrupted")
+var ErrStreamLimit = errors.New("agent stream limit exceeded")
+
 // IsExecutionStopped 识别不得转为工具自我恢复或规则降级的终止/权限错误。
 func IsExecutionStopped(err error) bool {
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrStreamInterrupted) {
 		return true
 	}
 	switch status.Code(err) {

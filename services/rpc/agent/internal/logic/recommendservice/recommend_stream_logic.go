@@ -2,6 +2,8 @@ package recommendservicelogic
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"time"
 
 	apperrors "budgetmatch-sim/infra/errors"
@@ -31,7 +33,7 @@ func NewRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContext) *R
 	}
 }
 
-// RecommendStream emits lifecycle events, never synthesized model deltas. All
+// RecommendStream emits lifecycle and opt-in model/tool progress. All
 // sends are synchronous: no unbounded queue or background send goroutine. The
 // admission deadline bounds a stalled transport; Send failure stops execution.
 func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.RecommendService_RecommendStreamServer) error {
@@ -60,8 +62,11 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 	var conversationID, turnID string
 	var sequence uint64
 	var sendErr error
+	var sendMu sync.Mutex
 	accepted := false
 	send := func(event *pb.RecommendStreamEvent) error {
+		sendMu.Lock()
+		defer sendMu.Unlock()
 		if err := ctx.Err(); err != nil {
 			sendErr = err
 			return err
@@ -75,6 +80,7 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 		}
 		return sendErr
 	}
+	progress := newStreamProgress(send)
 	result, err := l.svcCtx.RecommendService.RecommendStream(ctx, agentcore.Input{
 		Query: in.Query, BudgetCents: in.BudgetCents, MaxItems: in.MaxItems,
 		UserId: userID, ConversationId: in.ConversationId, TurnId: in.TurnId,
@@ -86,7 +92,8 @@ func (l *RecommendStreamLogic) RecommendStream(in *pb.RecommendReq, stream pb.Re
 		}
 		accepted = true
 		return nil
-	})
+	}, progress)
+	progress.Close()
 	// Broken/canceled transports cannot reliably receive an error/done pair.
 	// Do not retry Send or use a detached context to finish uncommitted work.
 	if sendErr != nil {
@@ -128,5 +135,5 @@ func publicRecommendStreamError(err error) *pb.StreamError {
 	response := body.(apperrors.HTTPResponse)
 	code := status.Code(err)
 	return &pb.StreamError{Code: response.Code, Message: response.Message,
-		Retryable: code == codes.Unavailable || code == codes.ResourceExhausted}
+		Retryable: (code == codes.Unavailable || code == codes.ResourceExhausted) && !errors.Is(err, agentcore.ErrStreamLimit)}
 }

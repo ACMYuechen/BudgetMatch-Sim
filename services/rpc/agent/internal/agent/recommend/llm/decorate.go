@@ -10,6 +10,7 @@ import (
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/safety"
+	"budgetmatch-sim/services/rpc/agent/streamcontract"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
@@ -53,6 +54,19 @@ func (t *recordingTool) InvokableRun(ctx context.Context, argumentsInJSON string
 		return "", err
 	}
 	started := time.Now()
+	name := "tool." + safety.Label(t.resolveName(ctx))
+	var callID string
+	if t.session.progress != nil {
+		call := t.session.progressCalls.Add(1)
+		if call > streamcontract.MaxToolCalls {
+			return "", streamLimitError()
+		}
+		callID = fmt.Sprintf("tool-%d", call)
+		if err := t.session.progress.Emit(ctx, agentcore.Progress{Kind: streamcontract.ToolStarted,
+			CallID: callID, ToolName: name, Status: "running"}); err != nil {
+			return "", safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, err))
+		}
+	}
 	var out string
 	var err error
 	switch {
@@ -75,7 +89,16 @@ func (t *recordingTool) InvokableRun(ctx context.Context, argumentsInJSON string
 	if errors.Is(err, os.ErrPermission) {
 		err = status.Error(codes.PermissionDenied, "tool access denied")
 	}
-	name := "tool." + safety.Label(t.resolveName(ctx))
+	if t.session.progress != nil {
+		event := agentcore.Progress{Kind: streamcontract.ToolCompleted, CallID: callID,
+			ToolName: name, Status: "succeeded", DurationMS: time.Since(started).Milliseconds()}
+		if err != nil {
+			event.Status, event.ErrorCode = "failed", safety.ErrorCode(err)
+		}
+		if emitErr := t.session.progress.Emit(ctx, event); emitErr != nil {
+			return "", safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, emitErr))
+		}
+	}
 	if err != nil {
 		t.session.recordCall(agentcore.ToolCall{Name: name, Success: false, Detail: fmt.Sprintf("error_code=%s duration_ms=%d", safety.ErrorCode(err), time.Since(started).Milliseconds())})
 		if agentcore.IsExecutionStopped(err) {

@@ -34,8 +34,10 @@ type (
 	RecommendResp             = pb.RecommendResp
 	RecommendStreamEvent      = pb.RecommendStreamEvent
 	StreamAccepted            = pb.StreamAccepted
+	StreamAnswerDelta         = pb.StreamAnswerDelta
 	StreamDone                = pb.StreamDone
 	StreamError               = pb.StreamError
+	StreamToolEvent           = pb.StreamToolEvent
 	ToolCall                  = pb.ToolCall
 
 	RecommendService interface {

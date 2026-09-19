@@ -3,6 +3,7 @@ package llm
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -18,9 +19,11 @@ import (
 //
 // 这样最终结果直接从 session 读取类型化数据，无需再从 Eino 消息流里反解 JSON。
 type session struct {
-	provider tools.ProductProvider
-	selector *selector.BundleSelector
-	intent   agentcore.Intent
+	provider      tools.ProductProvider
+	selector      *selector.BundleSelector
+	intent        agentcore.Intent
+	progress      agentcore.ProgressSink
+	progressCalls atomic.Uint32
 
 	mu         sync.Mutex
 	candidates []tools.ProductCandidate
