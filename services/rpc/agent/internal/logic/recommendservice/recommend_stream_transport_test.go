@@ -207,14 +207,26 @@ func TestRecommendStreamCancelStopsLateResultWithoutFallbackOrSave(t *testing.T)
 			case <-time.After(5 * time.Second):
 				t.Fatal("Agent did not start")
 			}
-			want := codes.DeadlineExceeded
 			if stop == "cancel" {
 				cancel()
-				want = codes.Canceled
+				_, err = stream.Recv()
+				require.Equal(t, codes.Canceled, status.Code(err))
+				require.Error(t, waitStreamFinished(t, h))
+			} else {
+				// Generation expires before transport, preserving time to report
+				// an explicit failure. A late candidate must still never be saved.
+				failure, err := stream.Recv()
+				require.NoError(t, err)
+				require.Equal(t, streamcontract.Error, failure.Event)
+				require.NotNil(t, failure.GetError())
+				done, err := stream.Recv()
+				require.NoError(t, err)
+				require.Equal(t, streamcontract.Done, done.Event)
+				require.False(t, done.GetDone().Ok)
+				_, err = stream.Recv()
+				require.ErrorIs(t, err, io.EOF)
+				require.NoError(t, waitStreamFinished(t, h))
 			}
-			_, err = stream.Recv()
-			require.Equal(t, want, status.Code(err))
-			require.Error(t, waitStreamFinished(t, h))
 			require.Zero(t, fallback.calls.Load())
 			require.Zero(t, finalizer.calls.Load())
 			require.Zero(t, store.saves.Load())

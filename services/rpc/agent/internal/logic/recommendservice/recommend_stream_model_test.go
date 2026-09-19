@@ -46,6 +46,7 @@ type modelStreamScript struct {
 	closed    chan struct{}
 	inputs    [][]*schema.Message
 	options   []*model.Options
+	usage     bool
 }
 
 type modelStreamStub struct {
@@ -90,6 +91,9 @@ func (m *modelStreamStub) Stream(ctx context.Context, input []*schema.Message, o
 		chunks = s.answer
 	default:
 		return nil, errors.New("model was rerun unexpectedly")
+	}
+	if s.usage {
+		chunks = append(append([]*schema.Message(nil), chunks...), &schema.Message{ResponseMeta: &schema.ResponseMeta{Usage: &schema.TokenUsage{PromptTokens: 10, CompletionTokens: 2, TotalTokens: 12}}})
 	}
 	reader, writer := schema.Pipe[*schema.Message](1)
 	go func() {
