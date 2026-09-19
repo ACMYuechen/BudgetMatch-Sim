@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照报告、M5.1 流式 RPC、M5.2 Eino 增量、M5.3a 网关/前端和 M5.3b 分段预算/请求级 Usage 汇总已完成本地实现。已恢复 Chromium 测试环境，推荐页 26 项交互测试通过；新网页展示临时解释/脱敏工具状态，final + 成功 done + 正常 EOF 后才显示方案。流式生成预留最终核验/保存和发送时间；Usage 缺失记 unknown，不捏造费用。下一本地任务为 M6 的隔离故障矩阵与交付材料，真实多实例/代理/供应商实验仍需授权；验证范围与环境波动见最新[执行记录](#14-执行记录)。结构化执行默认关闭，未迁移/回填或启用真实实例。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，新旧推荐继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置。M3 本地安全/检索回放、M4.1～M4.3a 规划/搜索/分类核验/报告及 M5.1～M5.3b 流式链路/分段预算/请求用量汇总已实现。进入 M6，M6.1 新增共享 Redis 模拟器上的双 Service/RPC 故障矩阵，并修复租约过期后旧持有者仍可写入的边界；本地证据与交付清单见[第 11 节](#11-m6并发故障与交付验证)，验证结果见最新[执行记录](#14-执行记录)。下一步为 M6.2 独立真实存储/多进程验收，再完成 M6.3 供应商/代理/回滚与最终报告；这些外部实验需另行授权。M5.3a 推荐页 26 项交互已通过，最终方案仍要求 final + 成功 done + 正常 EOF；Usage/费用未知不伪造为 0。结构化执行默认关闭，未迁移/回填或启用真实实例，新需求执行尚未接入向量/RRF 召回。M4.3b 真实分类数据/服务、M3 检索收益、M5 真实流式及 M2 独立复核均未结项。旧规则任务成功仍为 25/40，人工复核记录仍为 0/64；本地故障测试不能替代这些质量目标。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -158,7 +158,7 @@ Redis 故障只降低缓存命中率，不覆盖 PostgreSQL。只配置 Database
 
 - 预算、最多件数、关键词和偏好以结构化状态持久化，不依赖旧文本是否还在短期窗口；当前轮明确值优先。
 - `Memory.MaxHistory` 控制注入模型的最近文本消息数；`Memory.MaxContextTokens` 是系统提示、当前请求和历史消息的严格近似总上限。历史按完整轮次从旧到新淘汰；系统提示与当前请求自身超限时返回 400，不会截断问题或悄悄降级。
-- InMemory 使用进程内会话锁，Redis 使用带令牌的分布式锁，PostgreSQL 使用连接级 advisory lock。相同用户的同一会话按顺序执行与删除，不同用户或不同会话可并行。
+- InMemory 使用进程内会话锁，Redis 使用带令牌的会话锁，PostgreSQL 使用连接级 advisory lock。相同用户的同一会话按锁获得顺序执行与删除，不同用户或不同会话可并行。M6.1 为 Redis-only 增加短于租约的执行期限与提交时的 WATCH/令牌条件校验；实际部署限制见[第 11.1 节](#111-m61-本地故障矩阵与-redis-提交保护)。
 
 ### 2.8 文件工具与 MCP 权限
 
@@ -1044,7 +1044,7 @@ API 类型先改 `.api` 再生成；流式 handler 的特例委托写入 `tpls/a
 
 - 本地与存储锁等待计入同一轮时间，不在拿锁后重新获得完整生成预算。模型/规则生成使用从持锁 context 派生的较短期限，保留数据库连接/租约与追踪值；生成结束立即取消其子 context，最终核验和保存仍使用较长的持锁 context。已完成重放不重新生成/核验/保存。
 - 生成超时，即使下游迟到返回看似合法的结果，也不得保存或兜底；若传输尚可写，发送 error + done(false)。取消/原始传输超时仍可能无法送达错误；保存成功后取消不撤回已提交轮次，同 ID 可恢复。
-- 时间预留属于协作式预算，不承诺精确墙钟或可强杀依赖。同步 Send 仍受传输 deadline 限制，阻塞的 Send、不响应 context 的 SDK/驱动及现有锁清理实现可能耗尽预留时间。没有改写 PostgreSQL/Redis 锁清理与真实租约机制，也没有证明真实故障下所有 goroutine/连接都已退出。
+- 时间预留属于协作式预算，不承诺精确墙钟或可强杀依赖。同步 Send 仍受传输 deadline 限制，阻塞的 Send、不响应 context 的 SDK/驱动及锁清理可能耗尽预留时间。M5.3b 本身未改写锁清理；后续 M6.1 补充 Redis 执行/释放 context 期限及提交保护，仍未证明真实故障下所有 goroutine/连接都已退出。
 - 每次模型调用前仍校验消息与工具 Schema 的上下文上限，追加全轮 `65,536` 个近似 Token 准入预算：每次累加“估算输入 + 请求的最大输出”，WithTools 副本共享，不因短回答退还。次数上限 9、单次输出 ≤1,024（解释 ≤512）保持不变；超限在调用底层模型前拒绝。它不统计 Embedding 或底层 SDK 的内部重试，不是供应商计费或货币支出硬上限；unary 仍沿原行为。
 
 每次已通过身份/传输准入且进入业务的 RPC 写一条 `recommendation stream summary`，与公共事件相同的随机 `execution_id` 和现有 logx trace context 关联；用户/会话/轮次仅按现有安全标签规则输出，不作为 Prometheus 标签。每次重试是独立执行记录，同一已保存轮次可标识为 replayed。请求局部记录器有锁、最多 9 条模型元数据，结束后冻结；不缓存查询、正文、参数、原始异常或每个 chunk，也没有额外消费分支/发送 goroutine。
@@ -1065,7 +1065,9 @@ Usage 直接取 Eino 消息的 `ResponseMeta.Usage`，包含私有编排与解�
 
 ## 11. M6：并发、故障与交付验证
 
-使用独立、可丢弃的 PostgreSQL/pgvector 与 Redis 测试环境，至少覆盖以下矩阵：
+本阶段分三步：M6.1 本地隔离故障矩阵与交付准备；M6.2 经授权的独立真实存储/多进程故障验收；M6.3 经授权的供应商/代理/实际回滚验证和最终报告。M6.1 不启动部署服务、不读取 `.env`、不调用外部模型，不能据此勾选整个 M6。
+
+最终验收使用独立、可丢弃的 PostgreSQL/pgvector 与 Redis 测试环境，至少覆盖以下矩阵：
 
 | 场景 | 必须验证的行为 |
 | --- | --- |
@@ -1088,6 +1090,64 @@ Redis-only 是短期存储模式，租约与持久性能力不同于 PostgreSQL 
 
 交付材料包括：固定数据与配置版本、测试输出、性能/成本报告、故障复现步骤、演示流程、已知限制和回滚记录。简历只引用已复现的数据，注明样本规模和本地/测试环境。
 
+### 11.1 M6.1 本地故障矩阵与 Redis 提交保护
+
+故障回归发现：原 Redis-only 实现只在解锁时比较随机令牌，旧请求在租约到期后仍可能执行 SaveTurn、删除、追加消息或创建标题。仅缩短模型 deadline 或在事务外先 GET 锁都不足以关闭“检查之后、提交之前”的竞争窗口。
+
+本地修复入口：[Redis 会话锁](../services/rpc/agent/internal/memory/redis_lock.go)、[存储写入](../services/rpc/agent/internal/memory/redis.go)。
+
+- 保留 2 分钟租约，等待锁与回调执行共用最长 90 秒的 context；已有更短期限优先，流式仍受原 30 秒及 M5.3b 分段期限约束，不在获得锁后重置预算。context 绑定存储对象、会话锁 key 与随机令牌，跨用户/会话/存储对象复用会被拒绝。
+- SaveTurn、DeleteConversation/Clear、Append、GetOrCreateTitle 均走同一个受保护写入口。服务调用复用原租约，兼容的直接调用自动获取锁；失效回调不能偷偷重获锁并提交旧结果。
+- 在同一 Redis 连接中 WATCH 锁 key、读取令牌与业务数据，再通过该连接的 MULTI/EXEC 提交；租约删除/过期/替换导致条件提交失败，不自动重试陈旧状态。读取也使用事务连接，测试用连接池大小 1 验证不会在事务内再占第二条连接。
+- 解锁仍比较原令牌，不删除后继锁；取消/panic 也清理，清理 context 单独限制为 5 秒。执行错误优先于清理错误；已经提交但清理响应丢失时，调用可能报错，必须用原用户/会话/轮次 ID 重试查询结果，不能假定已回滚。
+- 这些期限是协作式的，不强杀忽略 context 的模型/驱动；实际网络超时仍受客户端选项及底层实现影响。条件提交只保护当前 Redis 实例上的协作写入，不是跨系统的单调 fencing token，不证明 Cluster、主从切换、网络分区、落盘或第三方副作用恰好一次。
+- 不改变已有 key、轮次 JSON、Proto/API 或默认执行模式，也没有新增依赖/迁移。共享 Redis-only 的写实例需全部具备提交保护；新旧写二进制混跑、直接绕过存储层改 key，以及回滚到缺少保护的旧实现均不在安全承诺内。
+
+本地证据定位（是否实际运行及次数，以执行记录为准）：
+
+| 故障/并发边界 | 可复现测试与范围 |
+| --- | --- |
+| 两个 Service 的同轮重试、不同轮串行、等待取消 | [RPC 故障矩阵](../services/rpc/agent/internal/logic/recommendservice/recommend_fault_matrix_test.go)：独立 Service、本地锁、Redis 客户端及内存 gRPC Server，共享 miniredis；stream → unary → stream 重放不重复生成，下一轮读取已提交约束 |
+| 不同用户/会话并行、删除与推荐竞争 | 同上：第一轮受控阻塞时其他空间可完成；删除等待先持锁的推荐提交，删除后新请求可以重建，不承诺永久墓碑 |
+| 旧持有者/提交瞬间过期、跨空间使用租约 | [Redis 故障矩阵](../services/rpc/agent/internal/memory/redis_fault_test.go)：四种写操作均拒绝；检查之后、EXEC 之前注入过期/替换，数据不变且后继锁保留；过期 Service 不覆盖另一个 Service 的结果 |
+| WATCH 连接断开、清理确认丢失 | 同上：事务发送前切断本地连接，即使 SDK 重试开启也不重连裸发事务；提交后解锁响应丢失保留结果，重试不增轮次。不是一次真实 Redis failover |
+| 保存失败、提交后缓存失效失败、版本源不可用 | [两级缓存故障矩阵](../services/rpc/agent/internal/memory/tiered_fault_test.go)：durable 替身与缓存替身区分提交边界；旧版本不能命中，事实源版本不可读时不盲信缓存。未验证 PostgreSQL 驱动/事务 |
+| 提交前取消、提交后投递失败、迟到结果 | [RPC 故障测试](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_failure_test.go)、[分段预算测试](../services/rpc/agent/internal/agent/recommend/service_budget_test.go)：隔离存储/传输故障，不等于 OS 进程崩溃恢复 |
+| 模型/工具失败、取消、公开增量后的保存失败 | [Eino 流测试](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_model_test.go)：实际编排 + Fake Model，不调用真实供应商 |
+| HTTP 慢写/断流/flush 失败与终态屏障 | [本地 HTTP/RPC 测试](../cmd/app/internal/logic/agent/agent_stream_http_test.go)、[协议测试](../cmd/app/internal/logic/agent/agent_stream_protocol_test.go)：真实本地 HTTP 连接与内存 RPC；未经过部署代理 |
+| 索引分页中断、部分准备失败及取消 | [扫描协议](../services/rpc/agent/internal/rag/loader_test.go)、[索引流水线](../services/rpc/agent/internal/rag/pipeline_test.go)：隔离 snapshot/store/Embedding，不把部分准备发布为完整索引 |
+| MCP 生命周期 | [受控子进程测试](../services/rpc/agent/internal/agent/recommend/llm/mcp_process_linux_test.go)：Linux helper 进程关闭与超时清理；没有启用真实 MCP 服务 |
+
+### 11.2 本地演示、兼容回滚与交付清单
+
+本地演示优先复现测试，不启动部署中的服务：
+
+```bash
+# 从仓库根目录运行；直接展示并发重试、过期写入、删除竞争和缓存故障
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 go test -p 1 -race -count=1 -v \
+  -run 'TestRedisLease|TestTieredFaultMatrix|TestFaultMatrix' \
+  ./services/rpc/agent/internal/memory \
+  ./services/rpc/agent/internal/logic/recommendservice
+
+# 复现同一合成数据的规则结果，不能作为真实模型效果演示
+GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite rule \
+  -compare services/rpc/agent/testdata/eval/baseline.v2/report.json \
+  -revision '<实际提交或提交+worktree>' -format markdown
+```
+
+协议兼容已有新旧网关/客户端矩阵（第 10.6 节）；新增共享存储测试证明当前实现的 unary/stream 可复用同一个持久化格式。没有运行旧发布二进制或真实滚动回滚，不能把“协议兼容”写成“生产回滚已验收”。实际回退应保留安全/租约修复，仅回退已经验证的检索、选择或流式策略；不删除会话，不回到无校验版本，不自动触发 unary 重做半途失败的流式请求。
+
+交付时逐项保留：
+
+- 代码提交/工作区标识、Go/Node 版本、数据 SHA-256、固定参数与执行命令；改动未提交时明确标记 worktree。
+- 原始测试日志、失败/复测/跳过项分开列出，不能把真实 DB 测试 skip 算作通过，也不能把同进程双 Service 当成真实多实例。
+- 四套离线报告沿用原数据、标签和基线，保留漏解/失败案例；旧规则任务成功率与新需求套件不能互换分母。
+- 实际时延、并发容量、供应商 Usage/费用、真实重启/代理/回滚记录尚未测量的字段写 `not_run/unknown`，不从单元测试时间外推。
+- 独立环境地址和操作范围另行确认；运行前核对数据库可丢弃性、分类数据与索引归属、外部调用及费用上限，运行后记录清理/恢复结果。
+
+M6.2/6.3 及后置 M2/M3/M4/M5 验收仍按第 13 节保持未勾选。本地交付材料已准备不代表整个项目已经具备生产上线结论。
+
 ## 12. 契约、配置与回滚
 
 ### 12.1 契约变更
@@ -1105,7 +1165,7 @@ Redis-only 是短期存储模式，租约与持久性能力不同于 PostgreSQL 
 - 安全校验和用户隔离不设“关闭后恢复旧漏洞”的开关；检索/组合/流式策略可独立回退。
 - 无 LLM/Embedding 配置时继续支持规则/关键词模式；配置了 Mall 就不能自动混入 Mock。
 - 只有真实需要新环境变量时才更新 `.env.example` 和密钥说明，不把普通调优项全部变成密钥配置；不提交 `.env`。
-- 运行预算不能超过外层 deadline。Redis-only 模式还需证明锁租约覆盖执行或具备续租/过期提交保护。
+- 运行预算不能超过外层 deadline。Redis-only 的 M6.1 本地实现已具备短于租约的执行期限和过期提交保护；真实 Redis/多进程/故障恢复验收仍需完成，不能用 TTL 本身代替提交检查。
 - 新字段可缺省读取，旧会话不做破坏性重建；有存量结构变更时先做测试环境迁移与恢复演练。
 
 ### 12.3 发布与回滚顺序
@@ -1181,10 +1241,13 @@ git diff --check
     - [x] M5.3b：生成/完成/传输分段预算、全轮估算准入及请求级 Usage/首增量/耗时/路径日志；本地隔离验证，缺失用量与真实费用不伪造为 0。
     - [ ] 真实供应商报告/取消/首增量及费用、代理断连/背压、多实例与真实存储验收；需另行授权。
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
+  - [x] M6.1：本地双 Service/RPC + miniredis 故障矩阵、Redis 过期提交保护、两级缓存故障、兼容与交付清单；不是多进程/真实数据库验收。
+  - [ ] M6.2：独立真实 PostgreSQL/pgvector/Redis、多进程并发/退出、事务与连接池边界、索引发布和数据恢复；需确认可丢弃环境及操作范围。
+  - [ ] M6.3：真实模型/代理取消与背压、费用/时延、实际兼容回滚、最终演示和验收归档；外部调用单独授权，不替代独立人工复核。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一本地任务为 M6 的隔离故障矩阵、验收清单与交付材料，先使用 Fake Model/内存存储核对已有不变量，不能以此代替真实故障实验。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑；供应商/代理/多实例验收后置，M5 整体不结项。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
+M6.1 本地隔离验证与交付准备完成，下一步为 M6.2 独立真实存储/多进程验收，再推进 M6.3 供应商/代理/回滚与最终报告；先确认环境和操作范围，不自行连接现有实例。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑，M5 整体未结项。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体未结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，历史 `complete` 也不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。代码开发不自动授权迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -2340,3 +2403,40 @@ git diff --check
 - 根 Go 模块 vet/build、Web lint 与隔离配置下的 TypeScript/Vite 构建通过，保留原有大于 500 KiB 的 chunk 提醒。Go 格式、`git diff --check` 及三份文档的 227 个本地文件链接检查通过；不包含独立嵌套 Go 模块，未独立重跑 CLI 评测报告，既有评测回归包含在上述 Go 测试中。
 
 过程日志位于 `/tmp/budgetmatch-agent-m53b.AD2SW1`，浏览器下载复用了上一步临时归档。未读取/修改 `.env` 或密钥文件；未调用真实 Mall/PostgreSQL/Embedding/模型/MCP，没有付费调用、部署、重启、迁移、回填或远程推送。未改基线、样本、依赖、CI 或默认结构化执行开关。下一本地任务为 M6 隔离故障矩阵与交付清单；M5 真实供应商/代理/多实例验收、M4.3b/M3 真实环境及 M2 独立复核继续后置，不能以本步本地测试代替。
+
+### 2026-09-19：M6.1 隔离故障矩阵与 Redis 租约提交保护
+
+按用户“进入最后阶段”，从 `refactor/agent` 的干净 `353f5e5` 开始 M6.1。本轮只改本地代码/测试与原有三份文档，没有自动提交或推送；M6 拆分为本地隔离验证、独立真实存储/多进程验收、供应商/代理/回滚及最终归档，不将本次测试标记为整个项目结项。
+
+先加入租约到期及提交瞬间替换的回归，在原实现上确认失败：SaveTurn、DeleteConversation、Append、GetOrCreateTitle 仍返回成功，缺少提交时保护。随后修复为同连接 WATCH + 令牌校验 + MULTI/EXEC，复用锁 context、绑定写入空间、短于租约的执行期限与有限清理期限；旧持有者/失败事务不自动重新获取锁。key/JSON/API 与默认配置不变，未手改生成代码，未升级依赖或 CI。真实网络/Redis 部署边界见第 11.1 节。
+
+新增 11 项顶层测试、30 项含子测试：四种写入的租约到期与 EXEC 前过期/替换、上下文/期限/空间绑定、取消/panic 清理、提交后解锁确认丢失及同 ID 恢复；开启 SDK 重试后在事务发送前切断本地连接，验证 WATCH 连接失效不裸重试事务。双 Service、双 Redis 客户端与双内存 gRPC Server 验证跨 stream/unary 的同轮重放、不同轮约束继承、等待取消、不同会话/用户并行、删除排序与允许后续重建，以及过期执行不得覆盖后继结果。两级缓存用替身覆盖 SaveTurn 提交前失败、提交后失效失败及版本事实源不可用。
+
+验证命令（顺序执行 Go 检查，运行期间不修改 Go 源文件，不加载 `.env`）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
+  -run 'TestRedisLease|TestTieredFaultMatrix|TestFaultMatrix' \
+  ./services/rpc/agent/internal/memory ./services/rpc/agent/internal/logic/recommendservice
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 ./...
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go build -p 1 ./...
+git diff --check
+```
+
+本地测试结果：
+
+- 新增用例重复 10 轮，2 个测试包、110 项顶层 / 300 项含子测试全部通过，无失败、跳过或竞态。过期时钟与执行阶段通过模拟时钟/信号同步，不靠真实等待两分钟来制造竞争。
+- 全范围 41 个测试包、534 项顶层 / 1,863 项含子测试与 Fuzz seed 通过；12 项真实数据库测试因未设置独立 DSN 跳过，不计通过。Go 版本为 1.26.8 linux/amd64；不包含独立嵌套 Go 模块。
+- 根 Go 模块 vet/build 均通过，Go 格式、`git diff --check` 与三份文档的 245 个本地文件链接检查通过。Web 代码未改，本轮不重新运行浏览器测试，M5.3a 的 26 项交互及全套网络失败/复测情况保留上一条记录的口径。
+- 另构建临时 `agent-eval` 二进制，分别执行 `-suite rule/scripted/retrieval/demand`，代码标记为 `353f5e5+M6.1-worktree`，报告写入本轮临时目录中的四个新建子目录；rule 同时使用 `-compare services/rpc/agent/testdata/eval/baseline.v2/report.json`。四套门禁均通过：规则预期终态 64/64、任务成功 25/40、硬约束违规 0/50、事实/重放各 50/50；脚本 16/16、33 次 Fake Model 调用；检索四策略合计 72/72；需求套件默认 Beam 合成可满足任务 11/11，独立 Mall 替身回放预期终态 18/18、最终检索快照可满足任务 6/7。保留旧规则失败及独立需求漏解，不混用分母，不宣称真实模型/检索效果或线上性能提高；真实 Token/费用仍未测量。
+- 规则对比的 changes、修复与退化列表均为空；逐字段比较脚本、检索、需求的既有归档后，脚本仅代码标记不同，检索/需求仅代码标记与各自实测回放时间不同。未重写样本、标签、复核记录或基线，也不将未控制负载下的时间变化解释为性能收益。
+
+日志与临时报告目录：`/tmp/budgetmatch-agent-m61.pvZbuI`。本轮未读取/修改真实 `.env`，未访问现有 Redis/PostgreSQL/Mall/Embedding/模型或启用真实 MCP，无付费调用、部署、重启、迁移、回填或远程操作。故障 Redis 是测试进程自行创建/关闭的 loopback miniredis，不是系统 Redis 服务；同进程双 Service 不能替代多进程/进程崩溃实验。M6.2/6.3、M2 独立复核和 M3/M4/M5 真实环境及效果验收继续未完成。

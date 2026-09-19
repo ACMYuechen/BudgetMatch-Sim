@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M5.3b（含流式 RPC/HTTP/前端的可信身份、分段预算及请求日志边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 相关增量更新至 2026-09-19 M6.1（含流式 RPC/HTTP/前端身份、分段预算、日志与 Redis 租约提交边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -260,6 +260,8 @@ HTTP v1 同步转发有界公开事件，验证身份/序号/工具关联，只�
 
 M5.3b 在同一原始期限内给生成设置更早的子 deadline，为最终核验/保存及传输留出时间；保留持锁 context 的连接/租约值，不更换身份或绕过锁。生成期限耗尽的迟到结果不得落库/兜底，已确认提交后断连仍可同 ID 重放。请求级汇总只记录随机 execution_id、安全身份标签、有限路径/错误码、计数与耗时；模型 Usage 缺失/不合法/未 EOF 为未知，费用未配置时始终 unknown。记录器请求隔离、最多 9 条模型元数据，结束后冻结，不保留提示词、隐藏推理、工具正文或凭据，不增加高基数指标标签。此处不代表真实 DB 锁清理、SDK 内部重试/计费或所有服务日志均已审计，完整口径见 [M5.3b](agent.md#107-m53b-分段预算与请求级用量追踪)。
 
+M6.1 修复 Redis-only 旧持有者在租约过期后仍可写入的边界：租约保留 2 分钟，等待/执行 context 最长 90 秒且不延长调用方期限，锁令牌绑定存储对象与用户/会话；保存、删除、追加和标题写入通过同连接 WATCH/令牌读取/MULTI/EXEC 条件提交。失效租约不自动重获锁，原令牌只能清理自身锁；清理 context 单独限制 5 秒，但不等于强杀底层 I/O。此令牌是内部协调凭据，不替代 RPC JWT 或数据归属校验。单进程双 Service + miniredis 验证不是实际多进程、Redis Cluster/切主、PostgreSQL 事务或跨系统副作用验收；共享 Redis-only 写实例需全部包含该保护，旧写二进制混跑不作安全承诺。详见 [M6 本地证据与部署边界](agent.md#111-m61-本地故障矩阵与-redis-提交保护)。
+
 结构化执行由 `DemandExecution.Mode` 控制：缺省/`disabled` 拒绝新执行；`demo` 要求无 MallRpc，`mall` 要求已配置 MallRpc；非法值/依赖组合在外部初始化前拒绝。mall 模式使用独立有界关键词链和两次用户身份核验，不用后台索引凭据或演示标签。分类请求要求版本握手和逐项分类事实，旧 Mall/缺表/错误证据均失败，不回退旧契约。规划、执行、旧推荐共用用户/会话锁和轮次命名空间；执行要求当前规划就绪且版本匹配，待澄清或过期规划不能绕过。已完成的同请求重放原结果，不重查商品；关闭/切换模式也不把历史快照标记为实时。私有规划标记和请求指纹不进入公开会话状态，旧 Recommend/SSE 保护不解除。
 
 `product_demand_categories` 是 Mall 维护的 SPU 分类，只有显式分类核验查询读取；没有面向用户/模型的分类写接口，不修改管理员现有商品 CRUD 权限。本次只提供独立迁移文件，不自动迁移、赋权或回填。部署时须审核分类写入流程及数据库权限，不能因业务代码只读就声称现有数据库账号已收权；真实分类准确性/权限验收尚未完成。迁移、版本递增和启用边界见 [M4.2c](agent.md#9-m4需求驱动的受约束组合推荐)。
@@ -370,6 +372,7 @@ RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享�
 | [Eino 流式集成](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_model_test.go)、[事件预算/背压](../services/rpc/agent/internal/logic/recommendservice/stream_progress_test.go)、[模型预算/工具事件](../services/rpc/agent/internal/agent/recommend/llm/stream_test.go) | Fake Model 实际 Pipe 增量早于生成完成；晚到工具调用、隐藏字段隔离、工具关联、协议/资源拒绝、发送失败与取消、增量后核验/保存失败无 final、不整轮兜底、已完成重放不重跑 | 真实模型兼容性/费用/时延、网页端到端、第三方依赖可被强杀，或临时自然语言已通过事实校验 |
 | [网关 HTTP/RPC](../cmd/app/internal/logic/agent/agent_stream_http_test.go)、[网关协议](../cmd/app/internal/logic/agent/agent_stream_protocol_test.go)、[浏览器协议](../web-ui/tests/recommendation-stream.spec.ts)、[页面交互用例](../web-ui/tests/recommendation.spec.ts) | 本地 HTTP + 内存 gRPC 走生产 Token 验签，验证先增量后终态、取消/写入失败、不自动重跑、身份/序号与兼容边界；协议与页面用例的实际运行结果见最新执行记录 | 真实部署/代理/供应商验收、全链路日志均已脱敏，或尚未运行的交互用例已经通过 |
 | [分段预算/记录器](../services/rpc/agent/internal/runtrace/recorder_test.go)、[Service 预算](../services/rpc/agent/internal/agent/recommend/service_budget_test.go)、[模型用量](../services/rpc/agent/internal/agent/recommend/llm/stream_usage_test.go)、[RPC 汇总](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_trace_test.go) | 短期限预留、持锁值保留、迟到结果拒绝、提交后取消、累计 Usage 去重与 unknown、并发隔离/冻结、汇总日志无敏感正文、重放不产生新用量 | 真实账单/供应商完成标记、页面首 Token 时延、第三方任务被强杀或真实 DB/代理故障已验收 |
+| [Redis 租约故障](../services/rpc/agent/internal/memory/redis_fault_test.go)、[共享存储 RPC 矩阵](../services/rpc/agent/internal/logic/recommendservice/recommend_fault_matrix_test.go)、[两级缓存故障](../services/rpc/agent/internal/memory/tiered_fault_test.go) | 两个独立 Service 的同轮重放、跨用户/会话隔离与删除顺序；过期/替换锁不得写入或误删后继锁，WATCH 连接丢失不裸重试；缓存失效失败不掩盖 durable 提交边界 | 真实多进程/数据库、Redis 切主/Cluster、真实滚动回滚、缓存替身代表 PostgreSQL 事务，或所有写实例已升级 |
 
 2026-09-16 文档初次核对执行并通过以下现有测试，当时未修改业务代码，也未运行真实跨服务越权请求或生产数据操作；后续 M1.3 验证见 [Agent 执行记录](agent.md#14-执行记录)：
 
