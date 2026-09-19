@@ -28,6 +28,12 @@ func (s *RecommendServiceServer) Recommend(ctx context.Context, in *pb.Recommend
 	return l.Recommend(in)
 }
 
+// Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+func (s *RecommendServiceServer) RecommendStream(in *pb.RecommendReq, stream pb.RecommendService_RecommendStreamServer) error {
+	l := recommendservicelogic.NewRecommendStreamLogic(stream.Context(), s.svcCtx)
+	return l.RecommendStream(in, stream)
+}
+
 func (s *RecommendServiceServer) PlanDemand(ctx context.Context, in *pb.PlanDemandReq) (*pb.PlanDemandResp, error) {
 	l := recommendservicelogic.NewPlanDemandLogic(ctx, s.svcCtx)
 	return l.PlanDemand(in)

@@ -37,3 +37,21 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
+
+// StreamClientInterceptor forwards the trusted caller token without changing
+// the caller's deadline/cancellation. Unlike append, Set cannot leave a forged
+// first authorization value ahead of the trusted identity. Other metadata is
+// preserved, and the parent context's metadata is never mutated.
+func StreamClientInterceptor() grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string,
+		streamer grpc.Streamer, opts ...grpc.CallOption,
+	) (grpc.ClientStream, error) {
+		if token := TokenFromContext(ctx); token != "" {
+			md, _ := metadata.FromOutgoingContext(ctx)
+			md = md.Copy()
+			md.Set("authorization", "Bearer "+token)
+			ctx = metadata.NewOutgoingContext(ctx, md)
+		}
+		return streamer(ctx, desc, cc, method, opts...)
+	}
+}

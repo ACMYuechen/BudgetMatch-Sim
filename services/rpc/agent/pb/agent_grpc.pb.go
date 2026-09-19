@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RecommendService_Recommend_FullMethodName             = "/agent.RecommendService/Recommend"
+	RecommendService_RecommendStream_FullMethodName       = "/agent.RecommendService/RecommendStream"
 	RecommendService_PlanDemand_FullMethodName            = "/agent.RecommendService/PlanDemand"
 	RecommendService_ExecuteDemand_FullMethodName         = "/agent.RecommendService/ExecuteDemand"
 	RecommendService_ListConversations_FullMethodName     = "/agent.RecommendService/ListConversations"
@@ -32,6 +33,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RecommendServiceClient interface {
 	Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error)
+	// Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+	// only. Clients require final+done(ok=true)+OK EOF; EOF alone is not success.
+	RecommendStream(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RecommendStreamEvent], error)
 	PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error)
 	ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error)
 	ListConversations(ctx context.Context, in *ListConversationsReq, opts ...grpc.CallOption) (*ListConversationsResp, error)
@@ -56,6 +60,25 @@ func (c *recommendServiceClient) Recommend(ctx context.Context, in *RecommendReq
 	}
 	return out, nil
 }
+
+func (c *recommendServiceClient) RecommendStream(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RecommendStreamEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RecommendService_ServiceDesc.Streams[0], RecommendService_RecommendStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[RecommendReq, RecommendStreamEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RecommendService_RecommendStreamClient = grpc.ServerStreamingClient[RecommendStreamEvent]
 
 func (c *recommendServiceClient) PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -112,6 +135,9 @@ func (c *recommendServiceClient) DeleteConversation(ctx context.Context, in *Del
 // for forward compatibility.
 type RecommendServiceServer interface {
 	Recommend(context.Context, *RecommendReq) (*RecommendResp, error)
+	// Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+	// only. Clients require final+done(ok=true)+OK EOF; EOF alone is not success.
+	RecommendStream(*RecommendReq, grpc.ServerStreamingServer[RecommendStreamEvent]) error
 	PlanDemand(context.Context, *PlanDemandReq) (*PlanDemandResp, error)
 	ExecuteDemand(context.Context, *ExecuteDemandReq) (*RecommendResp, error)
 	ListConversations(context.Context, *ListConversationsReq) (*ListConversationsResp, error)
@@ -129,6 +155,9 @@ type UnimplementedRecommendServiceServer struct{}
 
 func (UnimplementedRecommendServiceServer) Recommend(context.Context, *RecommendReq) (*RecommendResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method Recommend not implemented")
+}
+func (UnimplementedRecommendServiceServer) RecommendStream(*RecommendReq, grpc.ServerStreamingServer[RecommendStreamEvent]) error {
+	return status.Error(codes.Unimplemented, "method RecommendStream not implemented")
 }
 func (UnimplementedRecommendServiceServer) PlanDemand(context.Context, *PlanDemandReq) (*PlanDemandResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PlanDemand not implemented")
@@ -183,6 +212,17 @@ func _RecommendService_Recommend_Handler(srv interface{}, ctx context.Context, d
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _RecommendService_RecommendStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RecommendReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RecommendServiceServer).RecommendStream(m, &grpc.GenericServerStream[RecommendReq, RecommendStreamEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RecommendService_RecommendStreamServer = grpc.ServerStreamingServer[RecommendStreamEvent]
 
 func _RecommendService_PlanDemand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PlanDemandReq)
@@ -306,6 +346,12 @@ var RecommendService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RecommendService_DeleteConversation_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "RecommendStream",
+			Handler:       _RecommendService_RecommendStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "services/rpc/agent/proto/agent.proto",
 }

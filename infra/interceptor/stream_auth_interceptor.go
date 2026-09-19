@@ -17,7 +17,11 @@ func StreamServerInterceptor(cfg AuthConfig) grpc.StreamServerInterceptor {
 	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		_, err := authenticate(stream.Context(), nil, &grpc.UnaryServerInfo{Server: srv, FullMethod: info.FullMethod},
 			func(ctx context.Context, _ interface{}) (interface{}, error) {
-				if limit := cfg.ServiceMethods[info.FullMethod].MaxStreamDuration; limit > 0 {
+				limit := cfg.ServiceMethods[info.FullMethod].MaxStreamDuration
+				if userLimit := cfg.StreamMaxDurations[info.FullMethod]; userLimit > 0 && (limit <= 0 || userLimit < limit) {
+					limit = userLimit
+				}
+				if limit > 0 {
 					if err := ctx.Err(); err != nil {
 						return nil, status.FromContextError(err).Err()
 					}

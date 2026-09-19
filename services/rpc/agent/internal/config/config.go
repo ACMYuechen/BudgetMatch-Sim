@@ -2,9 +2,11 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/database"
+	"budgetmatch-sim/infra/interceptor"
 	iredis "budgetmatch-sim/infra/redis"
 	"budgetmatch-sim/infra/serviceauth"
 	"budgetmatch-sim/services/rpc/agent/internal/filetools"
@@ -12,6 +14,8 @@ import (
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/model"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
+	"budgetmatch-sim/services/rpc/agent/pb"
+	"budgetmatch-sim/services/rpc/agent/streamcontract"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -39,6 +43,15 @@ type Config struct {
 
 type DemandExecutionConfig struct {
 	Mode string `json:"mode,optional"` // empty/disabled, isolated demo, or explicit mall.
+}
+
+// RPCAuthConfig shares the ordinary user policy across unary and streaming
+// recommendation. Index service credentials never authorize online requests.
+func (c Config) RPCAuthConfig() interceptor.AuthConfig {
+	return interceptor.AuthConfig{Secret: c.JwtAuth.Secret,
+		StreamMaxDurations: map[string]time.Duration{
+			pb.RecommendService_RecommendStream_FullMethodName: streamcontract.MaxDuration,
+		}}
 }
 
 // ValidateDemandExecution must run before any external clients or database I/O.

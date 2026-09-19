@@ -32,10 +32,16 @@ type (
 	PlanDemandResp            = pb.PlanDemandResp
 	RecommendReq              = pb.RecommendReq
 	RecommendResp             = pb.RecommendResp
+	RecommendStreamEvent      = pb.RecommendStreamEvent
+	StreamAccepted            = pb.StreamAccepted
+	StreamDone                = pb.StreamDone
+	StreamError               = pb.StreamError
 	ToolCall                  = pb.ToolCall
 
 	RecommendService interface {
 		Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error)
+		// Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+		RecommendStream(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (pb.RecommendService_RecommendStreamClient, error)
 		PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error)
 		ExecuteDemand(ctx context.Context, in *ExecuteDemandReq, opts ...grpc.CallOption) (*RecommendResp, error)
 		ListConversations(ctx context.Context, in *ListConversationsReq, opts ...grpc.CallOption) (*ListConversationsResp, error)
@@ -57,6 +63,12 @@ func NewRecommendService(cli zrpc.Client) RecommendService {
 func (m *defaultRecommendService) Recommend(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (*RecommendResp, error) {
 	client := pb.NewRecommendServiceClient(m.cli.Conn())
 	return client.Recommend(ctx, in, opts...)
+}
+
+// Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+func (m *defaultRecommendService) RecommendStream(ctx context.Context, in *RecommendReq, opts ...grpc.CallOption) (pb.RecommendService_RecommendStreamClient, error) {
+	client := pb.NewRecommendServiceClient(m.cli.Conn())
+	return client.RecommendStream(ctx, in, opts...)
 }
 
 func (m *defaultRecommendService) PlanDemand(ctx context.Context, in *PlanDemandReq, opts ...grpc.CallOption) (*PlanDemandResp, error) {

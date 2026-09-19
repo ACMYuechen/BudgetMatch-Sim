@@ -78,7 +78,25 @@ func NewService(fallback, primary agentcore.Agent, mem memory.Manager) *Service 
 
 // Recommend 执行推荐流程。
 func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
-	return s.execute(ctx, input, nil, "")
+	return s.execute(ctx, input, nil, "", nil)
+}
+
+// RecommendStream shares unary execution, locks, constraints, finalization and
+// persistence. accepted is synchronous, called ONLY for a new turn after the
+// replay/planning checks, before running any Agent. A send failure aborts work.
+// The caller must bound transport sends and propagate ctx cancellation. No
+// model deltas are synthesized. The result is authoritative only after SaveTurn.
+func (s *Service) RecommendStream(ctx context.Context, input agentcore.Input, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
+	if s == nil {
+		return nil, agentcore.ErrAgentNotFound
+	}
+	if _, ok := s.memory.(memory.ConversationStore); !ok {
+		return nil, status.Error(codes.FailedPrecondition, "recommendation stream requires a conversation store")
+	}
+	if accepted == nil {
+		return nil, agentcore.ErrInvalidInput
+	}
+	return s.execute(ctx, input, nil, "", accepted)
 }
 
 // PlanDemand persists a planning-only turn. A separate RPC prevents old servers
@@ -88,10 +106,10 @@ func (s *Service) PlanDemand(ctx context.Context, input agentcore.Input, rawPatc
 	if err != nil {
 		return nil, err
 	}
-	return s.execute(ctx, input, &patch, fingerprint)
+	return s.execute(ctx, input, &patch, fingerprint, nil)
 }
 
-func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *demand.Patch, fingerprint string) (*agentcore.Result, error) {
+func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *demand.Patch, fingerprint string, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
 	if s == nil || patch == nil && s.fallback == nil {
 		return nil, agentcore.ErrAgentNotFound
 	}
@@ -133,7 +151,7 @@ func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *dem
 		var result *agentcore.Result
 		err = store.WithConversationLock(ctx, input.UserId, input.ConversationId, func(lockedCtx context.Context) error {
 			var executeErr error
-			result, executeErr = s.recommendWithStore(lockedCtx, store, input, patch, fingerprint)
+			result, executeErr = s.recommendWithStore(lockedCtx, store, input, patch, fingerprint, accepted)
 			return executeErr
 		})
 		if stopped := ctx.Err(); stopped != nil {
@@ -210,7 +228,7 @@ func validateRequiredID(field, value string) error {
 
 // recommendWithStore 在会话锁内完成幂等检查、状态恢复、Agent 执行和原子保存。
 // 这四步不能拆开，否则并发请求可能生成重复轮次或读取过期约束。
-func (s *Service) recommendWithStore(ctx context.Context, store memory.ConversationStore, input agentcore.Input, patch *demand.Patch, fingerprint string) (*agentcore.Result, error) {
+func (s *Service) recommendWithStore(ctx context.Context, store memory.ConversationStore, input agentcore.Input, patch *demand.Patch, fingerprint string, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
 	if saved, found, err := store.FindTurn(ctx, input.UserId, input.ConversationId, input.TurnId); err != nil {
 		return nil, err
 	} else if found {
@@ -227,6 +245,14 @@ func (s *Service) recommendWithStore(ctx context.Context, store memory.Conversat
 		}
 		prior := intentFromState(conversation.State)
 		input.PriorIntent = &prior
+	}
+	if accepted != nil {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if err := accepted(ctx, input.ConversationId, input.TurnId); err != nil {
+			return nil, err
+		}
 	}
 	var result *agentcore.Result
 	var err error

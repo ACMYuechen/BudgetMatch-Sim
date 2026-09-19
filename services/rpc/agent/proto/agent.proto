@@ -110,6 +110,34 @@ message RecommendResp {
   DemandExecution execution = 11;
 }
 
+// v1 lifecycle stream; NOT model token streaming. Unknown event kinds/fields
+// must be ignored. Only final contains authoritative, already persisted items.
+message RecommendStreamEvent {
+  uint32 schema_version = 1;
+  string execution_id = 2; // unique per RPC attempt, including completed replay
+  string conversation_id = 3;
+  string turn_id = 4;
+  uint64 sequence = 5; // starts at 1 within this execution_id
+  string event = 6; // request.accepted / recommendation.final / error / done
+  oneof payload {
+    StreamAccepted accepted = 10;
+    RecommendResp final = 11;
+    StreamError error = 12;
+    StreamDone done = 13;
+  }
+}
+
+message StreamAccepted {} // validated identity/input and admitted new execution; not success
+message StreamError {
+  int64 code = 1; // public application code, never raw upstream status text/details
+  string message = 2;
+  bool retryable = 3; // if true, retry the SAME conversation_id/turn_id/input
+}
+message StreamDone {
+  bool ok = 1;
+  bool replayed = 2; // completed snapshot replay; not a new stock verification
+}
+
 message ConversationSummary {
   string conversation_id    = 1;
   string conversation_title = 2;
@@ -167,6 +195,9 @@ message DeleteConversationResp {
 
 service RecommendService {
   rpc Recommend(RecommendReq) returns (RecommendResp) {}
+  // Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+  // only. Clients require final+done(ok=true)+OK EOF; EOF alone is not success.
+  rpc RecommendStream(RecommendReq) returns (stream RecommendStreamEvent) {}
   rpc PlanDemand(PlanDemandReq) returns (PlanDemandResp) {}
   rpc ExecuteDemand(ExecuteDemandReq) returns (RecommendResp) {}
   rpc ListConversations(ListConversationsReq) returns (ListConversationsResp) {}

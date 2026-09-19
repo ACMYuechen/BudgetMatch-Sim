@@ -53,6 +53,10 @@ type AuthConfig struct {
 	ServiceSecrets map[string]string
 	// ServiceMethods 中的方法只能使用服务 JWT 调用
 	ServiceMethods map[string]ServiceMethodPolicy
+	// StreamMaxDurations requires a caller-supplied transport deadline for each
+	// listed stream (including user methods). If a service policy also sets a
+	// limit, the stricter positive limit wins. Unary calls ignore this map.
+	StreamMaxDurations map[string]time.Duration
 }
 
 // UnaryServerInterceptor 返回一个 gRPC 一元拦截器，完成 JWT 校验与角色鉴权：

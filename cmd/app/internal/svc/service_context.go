@@ -61,7 +61,8 @@ func NewServiceContext(c config.Config, redisClient redis.UniversalClient) *Serv
 	mallclient := zrpc.MustNewClient(c.MallRpc, tokenPropagator)
 	mallProductClient := productservice.NewProductService(mallclient)
 	mallOrderClient := orderservice.NewOrderService(mallclient)
-	agentClient := recommendservice.NewRecommendService(zrpc.MustNewClient(c.AgentRpc, tokenPropagator))
+	agentClient := recommendservice.NewRecommendService(zrpc.MustNewClient(c.AgentRpc, tokenPropagator,
+		zrpc.WithStreamClientInterceptor(interceptor.StreamClientInterceptor())))
 	paymentClient := paymentservice.NewPaymentService(zrpc.MustNewClient(c.PaymentRpc, tokenPropagator))
 
 	// 创建秒杀限流中间件（仅对 /token 和 /orders 路径限流，60 秒窗口内最多 10 次请求）
