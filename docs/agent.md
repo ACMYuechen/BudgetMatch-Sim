@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照选品/核验回放报告、M5.1 流式 RPC 契约及身份/取消边界已完成本地实现。结构化执行默认关闭，未迁移/回填或启用真实实例。新 RPC 暂仅输出执行阶段及已保存结果，旧网页 SSE 仍调用 unary；下一本地任务为 M5.2 Eino/Fake Model 增量与工具事件。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，旧推荐及新流式入口继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标，详见[执行记录](#14-执行记录)。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置，不再阻塞本地开发。M3 本地安全子步/检索回放与修复、M4.1 规划、M4.2a/b 搜索和独立演示执行、M4.2c Mall 分类/事实核验与重选、M4.3a 同快照选品/核验回放报告、M5.1 流式 RPC 身份/取消边界及 M5.2 Eino/Fake Model 增量与工具事件已完成本地实现。结构化执行默认关闭，未迁移/回填或启用真实实例。新 RPC 支持脱敏工具状态和独立数字摘要的临时解释增量，最终结果仍以校验/保存为准；旧网页 SSE 仍调用 unary。下一本地任务为 M5.3 网关/前端协议接入及预算/追踪补齐。M4.3b 真实分类数据、数据库/服务验收仍待授权，M4/M3.2/M3.3/M5 整体不据此结项。规划仍独立，旧推荐及新流式入口继续拒绝规划会话。旧规则任务成功率仍为 25/40，人工复核记录仍为 0/64，新合成需求报告不能替代该口径的质量目标，详见[执行记录](#14-执行记录)。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -29,7 +29,7 @@
 
 RPC 不再接受 `user_id`。Agent RPC 只信任认证拦截器写入的用户身份；即使两个用户使用相同 `conversation_id`，数据也按 `user_id + conversation_id` 隔离。
 
-M5.1 新增独立 `RecommendService.RecommendStream` RPC，保留 unary。它提供有鉴权、有截止时间的执行阶段/结果流，并非模型逐 Token 输出；网页 `/api/agent/recommend/stream` 尚未切换，仍使用原 unary 包装。已交付协议与限制见[第 10.4 节](#104-m51-已交付的-rpc-生命周期流)。
+M5.1 新增独立 `RecommendService.RecommendStream` RPC，保留 unary；M5.2 在生命周期事件之外接入 Eino Stream、脱敏工具状态和工具禁用的临时解释流。解释仅接收预算/件数/总价数字，不接收查询、历史或工具正文；不是 ReAct 内部文本直通。网页 `/api/agent/recommend/stream` 尚未切换，仍使用原 unary 包装。协议与限制见[第 10.4 节](#104-m51-已交付的-rpc-生命周期流)和[第 10.5 节](#105-m52-模型增量工具事件与有界背压)。
 
 M4.1b 另有 `POST /api/agent/intent/plan` 需求规划接口，沿用同样的身份与会话边界，但不执行推荐。M4.2b/c 的独立 `/api/agent/intent/execute` 支持显式 demo/mall 模式，默认关闭，详见第 9.2 节。以下旧推荐示例只适用于未进入规划模式的会话；规划提议、澄清、幂等与升级限制见第 9.1 节。
 
@@ -895,7 +895,7 @@ GOMAXPROCS=2 go test -p 1 ./services/rpc/agent/internal/eval \
 
 ### 10.1 流式链路及鉴权
 
-新增 `RecommendStream` 服务端流式 RPC，保留 `Recommend` unary RPC。二者共享约束、幂等、校验和持久化流程，不维护两套业务逻辑。以下为 M5 完整目标链路；M5.1 只完成第 10.4 节的 RPC 生命周期流，未连接模型增量或切换网页入口。
+新增 `RecommendStream` 服务端流式 RPC，保留 `Recommend` unary RPC。二者共享约束、幂等、校验和持久化流程，不维护两套业务逻辑。以下为 M5 完整目标链路；M5.1/5.2 已完成第 10.4/10.5 节的 RPC 生命周期及模型/工具增量，尚未切换网页入口或验收真实模型链路。
 
 ```text
 浏览器带认证的 POST + fetch
@@ -952,9 +952,9 @@ Eino ReAct 提供流式执行能力，具体接入以 [go.mod](../go.mod) 锁定
 
 | 路径 | 正常连接下的事件 / 终态 |
 | --- | --- |
-| 新轮次成功 | `request.accepted` → `recommendation.final` → `done(ok=true,replayed=false)` → OK EOF |
+| 新轮次成功 | `request.accepted` → 可选进度事件（M5.2）→ `recommendation.final` → `done(ok=true,replayed=false)` → OK EOF |
 | 已完成且请求完全相同 | `recommendation.final` → `done(ok=true,replayed=true)` → OK EOF |
-| 受理后执行/核验/保存失败 | `request.accepted` → 脱敏 `error` → `done(ok=false)` → OK EOF；无 final，业务失败 |
+| 受理后执行/核验/保存失败 | `request.accepted` → 可选进度事件（M5.2）→ 脱敏 `error` → `done(ok=false)` → OK EOF；无 final，业务失败 |
 | 鉴权、deadline、输入、轮次冲突或规划模式检查失败 | 无事件，返回脱敏 gRPC 错误 |
 | 取消 / 传输发送失败 | 停止执行与发送；不承诺 error/done 送达，客户端不能认定成功 |
 
@@ -964,9 +964,39 @@ Eino ReAct 提供流式执行能力，具体接入以 [go.mod](../go.mod) 锁定
 
 传输 admission 在首次 `RecvMsg` 前验证 JWT 和 deadline，不接受无期限或超过 30 秒的推荐流；只用普通用户策略，管理员仍无跨用户会话特权。流式客户端透传受信任 context Token，覆盖而非追加已有 authorization metadata，保留其它 metadata 与原始 deadline/cancel。没有 Token 时不凭空建立身份。Agent 以认证后的 `stream.Context()` 为执行上下文，不依赖另一份构造 context。
 
-M5.1 每条流最多三个业务事件，采用同步 Send、无后台发送 goroutine/无事件队列；慢 Send 由原始传输 deadline 限界，取消不进入普通失败兜底。不会因客户端断连启动后台任务补做未完成执行。取消与提交存在竞争：未提交工作应停止，若提交已成功但响应丢失，不回滚已保存轮次，改用同一请求标识重试恢复；不宣称工具副作用或网络投递恰好一次。受理后的 `error.retryable` 仅对 `Unavailable/ResourceExhausted` 为 true，表示可以使用同一请求重试，不保证成功；原始状态正文和 DebugInfo 不进入事件。
+M5.1 初版每条流最多三个生命周期事件，M5.2 增加第 10.5 节的有界进度事件。仍采用同步 Send、无后台发送 goroutine/无事件队列；慢 Send 由原始传输 deadline 限界，取消不进入普通失败兜底。不会因客户端断连启动后台任务补做未完成执行。取消与提交存在竞争：未提交工作应停止，若提交已成功但响应丢失，不回滚已保存轮次，改用同一请求标识重试恢复；不宣称工具副作用或网络投递恰好一次。受理后的 `error.retryable` 对 `Unavailable/ResourceExhausted` 为 true，但 M5.2 本地固定资源上限错误为 false；重试标记不保证成功，原始状态正文和 DebugInfo 不进入事件。
 
-本步**没有** `answer.delta`、工具实时事件、Eino Stream、HTTP 转发、前端增量展示或按事件 ID 断点续传，也不把最终摘要拆成伪增量。仍需 M5.2 的模型/工具事件与背压，M5.3 的网关/前端兼容接入，以及运行预算、可观测性和真实代理/模型验收。客户端首轮也应自行生成两个稳定 ID；若省略且尚未收到 accepted 就断线，不承诺恢复该轮。
+M5.1 单步没有模型/工具增量；现由 M5.2 补充，仍不包含 HTTP 转发、前端增量展示或按事件 ID 断点续传。M5.3 继续接入网关/前端、补齐预算/观测与端到端验收。客户端首轮也应自行生成两个稳定 ID；若省略且尚未收到 accepted 就断线，不承诺恢复该轮。
+
+### 10.5 M5.2 模型增量、工具事件与有界背压
+
+在 v1 protobuf `oneof` 中追加 `answer_delta` 和 `tool`，不改既有字段/生命周期含义。仅新 RPC 选择领域 `StreamingAgent`；unary 仍用 `Run`，规则 Agent 仍只输出生命周期，不把已生成摘要拆成假增量。公开进度由 [streamProgress](../services/rpc/agent/internal/logic/recommendservice/stream_progress.go) 统一验证与发送。
+
+锁定的 Eino v0.9.9 默认检查器在第一个非空 Content 时就判定为回答，无法安全处理“先有文本、稍后才出现工具调用”的输出。因此本地实现采用两个分开的通道：
+
+1. **私有工具编排**：实际调用 ReAct `Stream`，在每次输出的数量/载荷上限内完整分类后才决定工具/结束分支。工具前置文本、最终编排文本、`ReasoningContent` 和 `Extra` 均不进入公开流；不会把工具参数拼进回答。
+2. **临时解释**：确定性组装并验证候选结果后，另加一次禁用工具的模型 `Stream`。仅传固定提示和四个数字：`budget_cents/max_items/item_count/total_price_cents`；没有查询、历史、商品名/ID、模型前文、文件或工具正文。只转发模型实际到达的 Content chunk，不先完整生成再切片；要求显式 `finish_reason=stop` 和正常 EOF，拒绝截断、未知结束原因、工具/多模态/非助手消息及结束后的新增文本。
+3. **权威结果**：解释产生在 Service 的实时 Finalizer 和原子 SaveTurn **之前**，故所有 `answer.delta` 均为 `provisional=true`，不持久化、不参与幂等指纹。即使临时文字已显示，后续核验/保存失败也只输出 error/done(false)，无 final；正常 final 替换临时文字，错误/断连清除它，不能据增量生成下单卡片。
+
+该隔离方案增加最多一次受限模型调用，不宣称节省成本或降低首个回答增量时延；公开文字只解释数字摘要，不提供逐商品理由，也不保证模型自然语言绝不幻觉或夹带推理。隐藏字段不转发、私有输入不传入解释模型是代码边界，提示中的语言/格式要求不是安全证明。真实供应商的完成标记、取消、兼容性和费用尚未实测。
+
+工具装饰器在真实调用前后发送 `tool.started/tool.completed`：关联 ID 为本轮生成的 `tool-N`，不使用模型原始 ID；名称通过既有白名单/散列脱敏，状态为 running/succeeded/failed，附有界耗时和有限错误类别，不含参数/返回值/原始错误。可恢复工具错误仍可由同一轮模型修正；一旦调用过流式 Agent，执行、协议、输出校验或事件投递失败均禁止 Service 整轮 fallback，避免工具可能已执行后重新跑另一条链。客户端重试未保存轮次仍可能再次执行工具，不能据此承诺副作用恰好一次。
+
+固定上限见 [streamcontract](../services/rpc/agent/streamcontract/contract.go)，不是新环境变量：
+
+| 范围 | 当前上限 / 口径 |
+| --- | --- |
+| 传输总时间 | 沿用原始 ≤30 秒 deadline，包含锁等待、模型、校验、保存和发送 |
+| 公开进度 | 最多 256 个事件；负载累计 64 KiB（protobuf 大小，**不含**公共信封、生命周期/final 与传输开销） |
+| 回答 Content | 单个 provider chunk ≤2 KiB、累计 ≤16 KiB；超限终止，不截断或拆成假增量 |
+| 每次模型输出 | ≤2,048 chunks、JSON 编码载荷累计 ≤256 KiB；空 chunk、推理与元数据同样计数 |
+| 模型调用/输出请求 | 全轮最多 9 次准入（编排最多 8 次 + 解释 1 次）；编排请求输出 ≤1,024 tokens、解释 ≤512 tokens；不是实测计费量 |
+| ReAct / 工具 | 图 MaxStep ≤8，实际模型轮数可能更少；工具串行、全轮最多 32 次尝试 |
+| 每次模型输入 | 近似估算消息和工具 Schema，超过已有 `MaxContextTokens` 拒绝；不偷偷丢弃中间工具配对 |
+
+公开事件发送采用**零队列、单发送者同步背压**；等待发送权可被 context 取消，首次错误保留，后续 Emit 不再发送，结束屏障阻止 final/error 之后的迟到进度。模型 reader 在退出时关闭，请求 context 同时取消；没有每 chunk 新建的超时 goroutine 或断连后补做任务。私有分类所需的有限缓存、Eino 分支副本与 SDK 缓冲不是公开事件队列；载荷预算也不是 SDK 解码前的内存硬上限。忽略 context 且永久阻塞 Recv 的第三方实现无法被此逻辑强制杀死。
+
+本地 Fake Model 通过真实 Eino 编排与内存 gRPC 验证首个增量在模型完成前到达、私有字段隔离、工具关联、失败/取消/背压，以及保存后跨 unary/stream 重放（只返回 final/done，不重播解释/工具）。未调用真实模型、Embedding、Mall 或数据库。旧网页 SSE 未切换；M5.3 还需消费者兼容性、失败清理、稳定 ID、校验/保存时间预留及请求级实际 Usage/首增量/成本追踪，不能用现有同步模型 OnEnd 日志冒充完整的流式观测。
 
 ## 11. M6：并发、故障与交付验证
 
@@ -1080,13 +1110,13 @@ git diff --check
     - [ ] M4.3b：经独立复核的真实分类数据、数据库/服务联调与效果/开销验收；另行授权，不以合成报告替代。
 - [ ] M5：流式 RPC 鉴权、事件协议、取消传播、执行预算与追踪。
   - [x] M5.1：独立 RPC 生命周期契约、可信身份/传输 deadline、共享落库/重放及取消边界；本地内存 RPC/Fake Stream 验证，不调用真实模型，不切换网页 SSE。
-  - [ ] M5.2：接入 Eino/Fake Model 可见回答增量与脱敏工具事件、有界背压；不发送推理或原始参数，不伪造模型增量。
+  - [x] M5.2：Eino 私有编排 + 独立数字摘要解释 Stream、脱敏工具事件与有界背压；Fake Model/内存 RPC 验证，不转发隐藏字段或原始参数，不伪造增量，不改变网页入口。
   - [ ] M5.3：网关/前端转发新协议、首次请求稳定 ID、失败清理与兼容回退；补齐执行预算/追踪和端到端验收，真实调用另行授权。
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-下一本地任务 M5.2：在 M5.1 共享执行/落库边界上接入 Eino/Fake Model 的可见回答增量、脱敏工具事件与有界背压；按锁定依赖的本地源码实现，不启用真实模型。网页 SSE 仍为 unary 包装，切换放在 M5.3。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
+下一本地任务 M5.3：网关/前端转发版本化事件、首次请求稳定 ID、增量临时展示/失败清理与兼容回退，并补齐请求预算与实际 Usage/首增量追踪；仍先使用隔离 Fake Model，不自行启用真实服务。网页 SSE 当前仍为 unary 包装，M5.2 只交付 RPC 内的模型/工具增量。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体不结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，任何历史 `complete` 都不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。本地开发不自动授权连接真实库、执行迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -2101,3 +2131,41 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
 测试包含真实内存 gRPC 传输及业务 handler，不使用真实模型：缺失/过期/错误签名/错误角色/服务 Token 拒绝、伪造身份 metadata 无效、无界建流在首个请求前拒绝、相同会话 ID 的用户隔离、Token/deadline 进入执行上下文、先受理后完成、双向 unary/stream 重放及冲突、共享锁等待取消、取消后迟到结果不得保存或兜底、最终校验/保存失败、规划模式保护、原始错误和工具元数据脱敏。Fake Stream 另测 accepted/final/done 发送失败、慢 Send、校验时取消和提交后取消；同步调用返回且同会话重试可继续，不把这些隔离用例当成代理/模型的真实取消验收。
 
 过程 JSON 测试日志、stderr 和检查输出位于 `/tmp/budgetmatch-agent-m51.9Nizz1`。M5.1 不包含 Eino Stream、增量文本、工具实时事件、HTTP 转发、前端调整、实际模型首 Token 时延、真实存储/多进程/代理断连验证；deadline 也不等于可以强杀不遵守 context 的下游函数。下一本地任务 M5.2，M5 整体不结项；M4.3b/M3 的真实验收和 M2 独立人工复核继续后置。代码保持未提交，未部署、重启、迁移、回填或推送。
+
+### 2026-09-19：M5.2 Eino 增量、脱敏工具事件与有界背压
+
+按用户“提交到本地，然后进行下一步开发”，先在 `refactor/agent` 分别提交 M5.1：`4fbf5bc`（功能）、`2f60635`（测试）、`dc6db41`（文档），未推送。随后以干净的 `dc6db41` 为基线开发 M5.2，本步新改动保持未提交。
+
+交付与取舍：
+
+- 新增 opt-in `StreamingAgent/ProgressSink`，共享 Service 仍管理身份、锁、约束、实时校验和保存。流式 Agent 开始执行后，普通错误、违规结果和被生产者忽略的 Emit 错误都禁止整轮 fallback；unary 和规则路径不变。
+- 实际运行 Eino ReAct `Stream`，以受限完整分类处理“文本先于工具调用”的输出，私有编排文本不发布。确定性候选结果组装后另加一次数字摘要解释 Stream，仅转发 Content，明确标记 provisional，不保存解释。具体输入投影、完成标记、成本取舍和限制见[第 10.5 节](#105-m52-模型增量工具事件与有界背压)。
+- Proto v1 追加回答/工具 payload，工具装饰器产出真实开始/完成事件，RPC sink 负责安全映射、关联校验、零队列串行背压及事件/字节限制；每次模型输入/输出、全轮模型/工具次数另有固定预算。没有新增配置/依赖，也未改变工具授权。
+- 使用 M5.1 同一生成命令更新 PB/client；第二次生成后 PB、gRPC、client、server 四个文件的 SHA-256 全部一致。仅删除此次生成器重建的重复 `agent.go` / `etc/agent.yaml` 脚手架，可再次生成恢复；原入口和配置保留。未手改生成文件。
+
+新增 15 项顶层测试：实际 Eino 编排＋内存 gRPC 中，Fake Model 使用 Pipe 并暂停在两个回答 chunk 之间，证明首个公开增量早于生成完成/核验/保存；Generate 调用为 0，样例明确为 3 次私有编排 + 1 次解释 Stream。覆盖晚到工具调用、推理/元数据不公开、解释输入仅四个数字、工具状态及 ID 关联、缺失/错误/重复结束标记、晚到错误、工具/错误角色/无效 UTF-8、空回答和载荷/调用/上下文上限。另测取消后 producer 关闭、工具/回答发送失败、并发发送互斥与结束屏障、首次错误保留、增量后校验/保存失败无 final、无整轮重跑，以及完成后 unary/stream 重放不再调用模型/工具。
+
+验证命令（顺序执行，显式移除真实数据库测试变量，不加载 `.env`）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
+  -run 'Test(RecommendStreamEino|StreamProgress|StreamingTool|PrivateStream|BoundedStream|ServiceStream)' \
+  ./services/rpc/agent/internal/agent/recommend/llm \
+  ./services/rpc/agent/internal/agent/recommend \
+  ./services/rpc/agent/internal/logic/recommendservice
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 ./...
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go build -p 1 ./...
+git diff --check
+```
+
+实际结果：新增测试重复 10 轮共 150 项顶层 / 580 项含子测试通过，无失败、跳过或竞态。全范围 39 个测试包、493 项顶层测试通过，含子测试/Fuzz seed 共 1,748 项；12 项真实数据库测试按未设置独立 DSN 跳过，不计通过。根 Go 模块 vet/build、Go 格式、补丁空白及三份文档 206 个本地文件链接检查通过；不包含独立嵌套模块、Web 构建或真实环境验收。没有单独重跑四套 CLI 评测，既有评测/归档回归已包含在全范围测试中；未改样本、标签、阈值或基线。
+
+本轮过程日志位于 `/tmp/budgetmatch-agent-m52.kQQNkB`。未读取/修改真实 `.env`，未访问真实 Mall/PostgreSQL/Embedding/模型或启用真实 MCP，无付费调用、部署、重启、迁移、回填或远程推送。RPC 能力经 Fake Model 验证，不等于网页已接入、自然语言事实保证、真实模型兼容/费用验收或第三方任务可被强杀。下一本地任务 M5.3 网关/前端接入及预算/追踪补齐；M5 整体仍未结项，M4.3b/M3 真实环境验收和 M2 独立复核继续后置。
