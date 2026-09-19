@@ -4,7 +4,7 @@
 
 - 编写日期：2026-09-17。
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
-- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置。M3 本地安全/检索回放、M4.1～M4.3a 规划/搜索/分类核验/报告及 M5.1～M5.3b 流式链路/分段预算/请求用量汇总已实现。进入 M6，M6.1 新增共享 Redis 模拟器上的双 Service/RPC 故障矩阵，并修复租约过期后旧持有者仍可写入的边界；本地证据与交付清单见[第 11 节](#11-m6并发故障与交付验证)，验证结果见最新[执行记录](#14-执行记录)。下一步为 M6.2 独立真实存储/多进程验收，再完成 M6.3 供应商/代理/回滚与最终报告；这些外部实验需另行授权。M5.3a 推荐页 26 项交互已通过，最终方案仍要求 final + 成功 done + 正常 EOF；Usage/费用未知不伪造为 0。结构化执行默认关闭，未迁移/回填或启用真实实例，新需求执行尚未接入向量/RRF 召回。M4.3b 真实分类数据/服务、M3 检索收益、M5 真实流式及 M2 独立复核均未结项。旧规则任务成功仍为 25/40，人工复核记录仍为 0/64；本地故障测试不能替代这些质量目标。
+- 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置。M3 本地安全/检索回放、M4.1～M4.3a 规划/搜索/分类核验/报告及 M5.1～M5.3b 流式链路/分段预算/请求用量汇总已实现。M6.1 共享存储故障矩阵与 Redis 过期提交保护已完成；M6.2a 已准备独立验收入口、真实存储用例与 OS 子进程暂停/终止框架，并通过 miniredis 上的多进程回归。本地证据、运行条件与边界见[第 11 节](#11-m6并发故障与交付验证)，验证结果见最新[执行记录](#14-执行记录)。下一步 M6.2b 需获准建立独立 PostgreSQL/pgvector/Redis 后实跑，之后为 M6.3 供应商/代理/回滚与最终报告；真实存储未运行，M6.2 不能勾选。M5.3a 推荐页 26 项交互已通过，最终方案仍要求 final + 成功 done + 正常 EOF；Usage/费用未知不伪造为 0。结构化执行默认关闭，未迁移/回填或启用真实实例，新需求执行尚未接入向量/RRF 召回。M4.3b 真实分类数据/服务、M3 检索收益、M5 真实流式及 M2 独立复核均未结项。旧规则任务成功仍为 25/40，人工复核记录仍为 0/64；本地故障测试不能替代这些质量目标。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
@@ -1148,6 +1148,65 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite rule \
 
 M6.2/6.3 及后置 M2/M3/M4/M5 验收仍按第 13 节保持未勾选。本地交付材料已准备不代表整个项目已经具备生产上线结论。
 
+### 11.3 M6.2a 多进程验收入口与真实存储运行条件
+
+[验收测试包](../services/rpc/agent/internal/storageacceptance/matrix_test.go) 只包含测试代码，不由业务服务导入，不修改默认配置、API、依赖或部署。M6.2 拆为 a（框架/用例与隔离回归）和 b（确认环境后实跑、修复及归档）；本次只完成 a。
+
+每个请求启动独立测试二进制，创建自己的 Service、本地锁及容量为 1 的存储连接池。固定 Agent 不访问模型、Mall、Embedding 或 MCP；通过独立文件描述符报告阶段/PID，stdin 仅传本次配置和继续信号，不继承 `.env`、模型密钥、旧测试 DSN 或 `PG*` 环境。父进程在 SaveTurn 前/提交返回后控制屏障，使用 OS 进程终止验证无 defer 的退出；退出时只回收本测试创建的子进程，不停止数据库、Redis 或其他部署服务。子进程的命令行不包含测试口令。
+
+| 验收范围 | 断言及证据边界 |
+| --- | --- |
+| 同轮重试、同会话不同轮 | 独立进程共享锁，同轮 Fake Agent 只运行一次；下一轮实际获得上一轮持久化 Intent；检查完整结果、轮数与连续 sequence |
+| 用户/会话隔离、取消、删除 | 持锁请求暂停时其他用户/会话可完成；等待者 deadline 到期不生成；删除按同一锁排序并级联清理，后续请求允许重建 |
+| 进程终止 | 保存前退出没有完成轮次，重试允许再次生成；保存后、Service 返回前退出，重试从持久结果恢复且不再生成。不是已部署 RPC Server/主机重启实验 |
+| Redis 租约失效 | 旧进程暂停后令租约到期，后继进程提交，旧进程恢复后被拒绝。miniredis 快进时钟；真实 Redis 用例只缩短本轮自有锁的 PTTL，不冒充等待完整 2 分钟、服务重启或切主 |
+| PostgreSQL 事务、连接池 | 锁内操作复用单连接；轮次 INSERT 后使会话 UPDATE 因 JSONB NUL 失败，检查整笔回滚；单连接占用时另一会话等待超时，释放后可再次使用。真实数据库用例未运行 |
+| PostgreSQL + Redis 缓存 | 只关闭新增的失效写客户端，使真实缓存保留旧版本；持久提交成功后健康读者按版本回源。关闭额外 PG 池时不能盲信缓存。不是停止存储服务器或网络分区 |
+| pgvector 发布恢复 | 3 维合成向量；新行更新后元数据刷新失败，保留旧索引；独立新连接池完整重发后再清理过期行并向量查询。不调用真实 Embedding，不等于备份恢复或检索质量验收 |
+
+默认离线入口（Linux/Unix；Windows 子进程文件描述符不支持时跳过矩阵）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  GOMAXPROCS=2 go test -p 1 -race -count=1 -v \
+  ./services/rpc/agent/internal/storageacceptance
+```
+
+这会启动/关闭本测试进程中的 loopback miniredis，并实跑多进程矩阵；`TestRealStorageAcceptance` 明确输出 `not_run`/skip，不能将包级 PASS 当作真实数据库通过。
+
+真实入口默认关闭。取得独立环境授权后，准备专用 JSON（权限 `0600`、非符号链接、最多 16 KiB），不复用任何部署密钥；下例是占位格式，不是可直接运行的配置：
+
+```json
+{
+  "run_id": "<随机32位小写十六进制>",
+  "postgres_address": "127.0.0.1:25432",
+  "postgres_password": "<仅本次新实例的随机口令>",
+  "redis_address": "127.0.0.1:26379",
+  "redis_password": "<仅本次新实例的随机口令>"
+}
+```
+
+[目标保护](../services/rpc/agent/internal/storageacceptance/target_test.go) 不接受任意 DSN：只允许字面量 loopback IP、1024～65535 非默认端口，拒绝 `5432`/`6379`、DNS、Unix socket 和 `PG*` 环境覆盖。PG 用户固定为 `agent_m62`，库名固定为 `agent_m62_<run_id>`；Redis 固定 DB 0，必须是独立实例，不能用已有服务的另一个逻辑 DB 代替。两个口令均为 16～256 字节。口令/DSN 不进入测试日志。
+
+环境准备者需在**新建的可丢弃数据库**安装 pgvector，并让 `agent_m62` 拥有该库内建表权限；先创建 `public.agent_storage_acceptance_guard`（唯一 `run_id text` 行，值为本次 run ID），并在新 Redis 设置 `budgetmatch:agent:m62:owner` 为同一值。测试不自行创建/覆盖这些标记，校验 PG 当前库和两个标记后才允许建会话表；若 public 下存在验收范围之外的表/视图则拒绝执行。标记是防误操作措施，不是对现有环境的授权，也不能证明数据可以删除。
+
+获准且完成以上准备后才执行：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  AGENT_STORAGE_ACCEPTANCE_CONFIG='/绝对路径/独立验收.json' \
+  AGENT_STORAGE_ACCEPTANCE_RUN_ID='<与配置相同的run_id>' \
+  GOMAXPROCS=2 go test -p 1 -race -count=1 -timeout=180s -json \
+  -run '^TestRealStorageAcceptance$' ./services/rpc/agent/internal/storageacceptance
+```
+
+仅完全未设置两个变量时 skip；只设置一个、授权 ID 不匹配、配置不安全、连接失败、所有权标记不符或缺少 pgvector 都应失败，不能吞错跳过。默认不发现、创建、安装或停止真实服务，不读 `.env`，也不自动加载旧 `RAG_TEST_PG_DSN`/`AGENT_MEMORY_TEST_PG_DSN` 测试。
+
+真实用例会建/补齐该独立库中的 Agent 会话与索引表，写入合成会话/向量，执行同会话删除和完整索引发布/清理，并缩短本次自有 Redis 锁的 TTL；不能指向业务数据。结果保留在独立实例供诊断，不执行 FLUSHDB、DROP DATABASE 或自动删表。每个 run 使用不同 ID，单套环境不要并行启动多个验收运行；实例停止/归档/清理须由持有本次进程或容器句柄的环境准备者执行。
+
+日志包含实际服务版本（真实入口）、子进程 PID、Fake Agent 次数、请求/锁等待/持有时间、SQL 池等待及归还后的健康检查。Redis 未测 SQL 池指标记为 `-1`；屏障时间属于人为故障等待，不能解读为业务吞吐或线上 P95。基于真实存储仍待实跑的 PostgreSQL、pgvector 代码，不声明驱动/事务/持久性已验证，更不能据此结项 M6.2/6.3。
+
 ## 12. 契约、配置与回滚
 
 ### 12.1 契约变更
@@ -1243,11 +1302,13 @@ git diff --check
 - [ ] M6：真实多实例、故障注入、兼容回滚及项目演示材料。
   - [x] M6.1：本地双 Service/RPC + miniredis 故障矩阵、Redis 过期提交保护、两级缓存故障、兼容与交付清单；不是多进程/真实数据库验收。
   - [ ] M6.2：独立真实 PostgreSQL/pgvector/Redis、多进程并发/退出、事务与连接池边界、索引发布和数据恢复；需确认可丢弃环境及操作范围。
+    - [x] M6.2a：专用配置/所有权保护、独立 OS 子进程屏障/终止、8 项 miniredis 多进程回归，真实 PostgreSQL/pgvector/Redis 用例入口；真实入口默认 skip。
+    - [ ] M6.2b：获准创建独立真实实例后运行、修复和归档，补齐服务重启/恢复等尚未覆盖的验收；不以框架测试代替。
   - [ ] M6.3：真实模型/代理取消与背压、费用/时延、实际兼容回滚、最终演示和验收归档；外部调用单独授权，不替代独立人工复核。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
-M6.1 本地隔离验证与交付准备完成，下一步为 M6.2 独立真实存储/多进程验收，再推进 M6.3 供应商/代理/回滚与最终报告；先确认环境和操作范围，不自行连接现有实例。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑，M5 整体未结项。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体未结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，历史 `complete` 也不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。代码开发不自动授权迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
+M6.1 与 M6.2a 本地框架/用例准备完成，下一步为 M6.2b 获准后的独立真实存储实跑，再推进 M6.3 供应商/代理/回滚与最终报告；先确认环境和操作范围，不自行连接现有实例。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑，M5 整体未结项。M4.3a 已提供独立合成报告；M4.3b 的真实分类表/权限/数据、数据库与服务验收继续后置，M4 整体未结项。新需求执行尚未接入向量/RRF 召回。`intent_ready` 不是推荐成功，历史 `complete` 也不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M3.2/M3.3 的真实环境与收益验收、M2.3b 独立复核仍未完成。代码开发不自动授权迁移、回填、接管旧索引或部署；外部实验的数据、环境、调用数和费用上限仍需另行授权。
 
 ## 14. 执行记录
 
@@ -2440,3 +2501,40 @@ git diff --check
 - 规则对比的 changes、修复与退化列表均为空；逐字段比较脚本、检索、需求的既有归档后，脚本仅代码标记不同，检索/需求仅代码标记与各自实测回放时间不同。未重写样本、标签、复核记录或基线，也不将未控制负载下的时间变化解释为性能收益。
 
 日志与临时报告目录：`/tmp/budgetmatch-agent-m61.pvZbuI`。本轮未读取/修改真实 `.env`，未访问现有 Redis/PostgreSQL/Mall/Embedding/模型或启用真实 MCP，无付费调用、部署、重启、迁移、回填或远程操作。故障 Redis 是测试进程自行创建/关闭的 loopback miniredis，不是系统 Redis 服务；同进程双 Service 不能替代多进程/进程崩溃实验。M6.2/6.3、M2 独立复核和 M3/M4/M5 真实环境及效果验收继续未完成。
+
+### 2026-09-19：M6.1 本地提交与 M6.2a 多进程验收准备
+
+按用户“提交到本地，然后完成下一步”，先重跑 memory、recommendservice 的 `-race -count=1` 回归，通过后按类型分别本地提交：`4ec91ad`（Redis 租约提交修复）、`490f37f`（共享存储故障测试）、`8bec333`（M6.1 文档）。未执行推送。随后从干净的 `8bec333` 开发 M6.2a；本步新增代码仍留工作区，不自动二次提交。
+
+真实验收所需的独立实例及操作范围尚未获确认，因此没有读取 `.env`、连接现有 PostgreSQL/Redis、安装系统包或创建真实服务。本机只作工具可用性检查，发现 PostgreSQL 16 工具可用，但独立 Redis 服务程序与 pgvector 扩展还需准备；不能将既有部署或已有测试 DSN 当成默认授权目标。
+
+新增 `internal/storageacceptance` 独立测试包，全部为手写测试文件，不改业务代码、生成文件、依赖、CI、Web、默认策略或评测基线：
+
+- 专用配置与 run ID 双重显式选择、私有文件/长度/字段/地址校验、固定 PG 用户与派生库名、双存储所有权标记；拒绝远程/DNS/默认端口及 PG 环境覆盖，所有权检查阶段不写入。单元测试验证失败关闭与敏感内容不进入配置错误。
+- 每个请求实际启动独立 OS 子进程，子进程不继承父部署环境，复用生产 Service/存储代码；显式阶段屏障、PID、独立连接池和提交前后强制终止，区别于 M6.1 的同进程双 Service。
+- 8 项 Redis 模拟器多进程场景：同轮重放、下一轮状态继承、用户/会话独立执行、锁等待期限、提交前退出、提交后退出、删除排序/重建、过期持有者不得覆盖后继结果。一次完整矩阵启动 19 个请求子进程，其中 2 个在指定阶段强制终止。
+- 真实 PostgreSQL/Redis 复用同一矩阵，另准备事务 UPDATE 失败回滚、容量 1 的连接池等待/归还、提交后缓存失效失败/事实源不可用，以及 pgvector 完整发布失败后重新同步用例。真实入口未运行，这些用例只有编译/静态检查结果，没有真实驱动/SQL/存储验收结论。
+
+验证命令（顺序执行，Go 检查期间不改 Go 源文件；日志写到本次临时目录）：
+
+```bash
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -timeout=180s -json \
+  ./services/rpc/agent/internal/storageacceptance
+
+env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
+  ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
+  ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
+  ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
+
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 ./...
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go build -p 1 ./...
+git diff --check
+```
+
+结果：新增包重复 10 轮，70 项顶层 / 440 项含子测试通过，真实入口每轮 skip（合计 10），无失败或竞态；完整回归 42 个包、541 项顶层 / 1,907 项含子测试与 Fuzz seed 通过，13 项真实数据库/验收测试跳过，不计通过。根模块 vet/build、Go 格式、`git diff --check` 及三份文档的 249 个本地文件链接检查通过。Go 1.26.8 linux/amd64，范围不含独立嵌套 Go 模块；Web 未改，不重跑浏览器，也未另运行四套 CLI 报告，既有离线评测回归包含在上述测试中。旧规则 25/40、独立复核 0/64 等指标没有新证据更新。
+
+日志目录：`/tmp/budgetmatch-agent-m62a.6gelkx`，保留 `repeat.jsonl`、`full.jsonl`、`vet.log`、`build.log`。真实服务版本、存储重启/备份恢复、代理/供应商/费用、混合版本滚动回滚均为 `not_run/unknown`；Fake Agent、人工暂停时延及加速租约不能替代这些结果。下一步 M6.2b 需要确认新建独立可丢弃 PostgreSQL/pgvector/Redis、仅 loopback 监听、只写合成测试数据及结束后停止所建实例的范围，再执行真实验收并处理实际发现的问题。M6.2 整体与 M6.3 继续未勾选。
