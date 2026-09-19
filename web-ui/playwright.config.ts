@@ -12,7 +12,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
+    command: 'npm run dev -- --config vite.e2e.config.ts --host 127.0.0.1 --port 4173 --strictPort',
+    env: { VITE_API_BASE_URL: '/api' },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
   },
