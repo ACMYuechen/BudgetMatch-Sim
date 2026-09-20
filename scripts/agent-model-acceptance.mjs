@@ -91,11 +91,14 @@ export function flashRequest(raw) {
   let value;
   try { value = JSON.parse(raw.toString('utf8')); } catch { throw safeError(); }
   const allowed = new Set(['model', 'messages', 'max_tokens', 'stream', 'stream_options', 'tools', 'tool_choice',
-    'temperature', 'top_p', 'presence_penalty', 'frequency_penalty', 'stop', 'parallel_tool_calls', 'n']);
+    'temperature', 'top_p', 'presence_penalty', 'frequency_penalty', 'stop', 'parallel_tool_calls', 'n', 'thinking']);
   if (!value || Array.isArray(value) || Object.keys(value).some((key) => !allowed.has(key)) ||
       value.model !== 'deepseek-flash' || value.stream !== true || (value.n !== undefined && value.n !== 1) ||
       !Number.isSafeInteger(value.max_tokens) || value.max_tokens < 1 || value.max_tokens > LIMITS.output ||
       !Array.isArray(value.messages) || !value.messages.length || value.messages.length > 64) throw safeError();
+  if (value.thinking !== undefined && (!value.thinking || typeof value.thinking !== 'object' ||
+      Array.isArray(value.thinking) || Object.keys(value.thinking).length !== 1 ||
+      value.thinking.type !== 'disabled')) throw safeError();
   for (const message of value.messages) {
     if (!message || !['system', 'user', 'assistant', 'tool'].includes(message.role) ||
         (typeof message.content !== 'string' && !(message.role === 'assistant' && message.content == null)) ||
@@ -103,7 +106,8 @@ export function flashRequest(raw) {
   }
   if (value.tools !== undefined && (!Array.isArray(value.tools) || value.tools.length > 2 || value.tools.some((tool) =>
     tool?.type !== 'function' || !['search_products', 'select_bundle'].includes(tool.function?.name)))) throw safeError();
-  // Test-only explicit override; do not change the application's normal config.
+  // Accept the explicit application profile or the legacy omitted field, never
+  // broaden the experiment to thinking mode. No application config is mutated.
   value.thinking = { type: 'disabled' };
   value.stream_options = { include_usage: true };
   return { body: Buffer.from(JSON.stringify(value)), maxTokens: value.max_tokens };
