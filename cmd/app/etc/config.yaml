@@ -16,8 +16,8 @@ Auth:
 
 # Redis配置
 Redis:
-  Address: "127.0.0.1:6379"
-  Password: "12345678"
+  Address: "${REDIS_ADDRESS}"
+  Password: "${REDIS_PASSWORD}"
   DB: 2
   PoolSize: 10
   MinIdleConns: 5

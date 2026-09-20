@@ -14,16 +14,19 @@ services:
       - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
       - ETCD_INITIAL_CLUSTER=etcd-1=http://etcd:2380
       - ETCD_INITIAL_CLUSTER_STATE=new
+      - ETCD_DATA_DIR=/etcd-data
+    volumes:
+      - etcd_data:/etcd-data
     ports:
-      - "${ETCD_CLIENT_PORT:-12379}:2379"
+      - "127.0.0.1:${ETCD_CLIENT_PORT:-12379}:2379"
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
 
   # PostgreSQL 数据库（pgvector 版：官方 postgres:16 + vector 扩展，供 agent-rpc 商品语义检索）
-  # 注意：从 postgres:16-alpine 切换后建议 docker compose down -v 重建数据卷（musl→glibc 排序规则差异）
+  # 复用旧卷时先备份并确认版本/libc 兼容；可用 POSTGRES_IMAGE 保留原镜像，不要删除数据卷。
   postgres:
-    image: pgvector/pgvector:pg16
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:pg16}
     container_name: budgetmatch-sim-postgres
     environment:
       POSTGRES_USER: root
@@ -34,7 +37,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "15432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-15432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root -d budgetmatch-sim"]
       interval: 5s
@@ -52,7 +55,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "12345678", "ping"]
       interval: 5s
@@ -68,7 +71,7 @@ services:
     container_name: budgetmatch-sim-rocketmq-namesrv
     command: sh mqnamesrv
     ports:
-      - "${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
+      - "127.0.0.1:${ROCKETMQ_NAMESRV_PORT:-9876}:9876"
     networks:
       - budgetmatch-sim-network
     restart: unless-stopped
@@ -77,10 +80,21 @@ services:
   rocketmq-broker:
     image: apache/rocketmq:5.1.4
     container_name: budgetmatch-sim-rocketmq-broker
-    command: sh mqbroker -n rocketmq-namesrv:9876
+    environment:
+      # 宿主机运行 Go 服务时填 127.0.0.1；全容器模式留空，使用自动发现的容器 IP。
+      - ROCKETMQ_BROKER_IP1=${ROCKETMQ_BROKER_IP1:-}
+    command:
+      - sh
+      - -ec
+      - |
+        if [ -n "$${ROCKETMQ_BROKER_IP1}" ]; then
+          printf 'brokerIP1=%s\n' "$${ROCKETMQ_BROKER_IP1}" > /tmp/budgetmatch-broker.conf
+          exec sh mqbroker -n rocketmq-namesrv:9876 -c /tmp/budgetmatch-broker.conf
+        fi
+        exec sh mqbroker -n rocketmq-namesrv:9876
     ports:
-      - "10909:10909"
-      - "10911:10911"
+      - "127.0.0.1:10909:10909"
+      - "127.0.0.1:10911:10911"
     depends_on:
       rocketmq-namesrv:
         condition: service_started
@@ -341,6 +355,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  etcd_data:
 
 networks:
   budgetmatch-sim-network:

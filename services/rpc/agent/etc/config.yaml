@@ -44,7 +44,7 @@ Embedding:
 Database:
   LogLevel: 4
   Driver: "Postgres"
-  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=15432 sslmode=disable TimeZone=Asia/Shanghai"
+  DSN: "${DATABASE_DSN}"
   MaxOpenConns: 20
   MaxIdleConns: 5
   ConnMaxLifetime: 7200s
@@ -103,8 +103,8 @@ MallRpc:
 # PostgreSQL 会话的 Redis 一级缓存；未配置 PostgreSQL 时可独立保存短期记忆。
 # 注释掉整个块后，有 Database 则直接读写 PostgreSQL，否则退回进程内记忆。
 CacheRedis:
-  Address: "127.0.0.1:6379"
-  Password: "12345678"
+  Address: "${REDIS_ADDRESS}"
+  Password: "${REDIS_PASSWORD}"
   DB: 6            # 2=auth 3=seckill 4=mall 5=payment 已占用
   PoolSize: 10
   MinIdleConns: 5

@@ -24,6 +24,7 @@ ALIPAY_KEYS = {
     "ALIPAY_APP_ID", "ALIPAY_SELLER_ID", "ALIPAY_PRIVATE_KEY",
     "ALIPAY_PUBLIC_KEY", "ALIPAY_NOTIFY_URL", "ALIPAY_RETURN_URL",
 }
+DATA_KEYS = {"DATABASE_DSN", "REDIS_ADDRESS", "REDIS_PASSWORD"}
 PUBLIC_ENV = {
     "ETCD_HOSTS": "etcd:2379",
     "ROCKETMQ_NAMESERVERS": "rocketmq-namesrv:9876",
@@ -57,7 +58,7 @@ def check_secret_literals(value, location="config"):
             check_secret_literals(child, location)
 
 
-def server_config(root, name, overrides):
+def server_config(root, name, overrides, redis_address="redis:6379"):
     _, source_path, _ = SERVICES[name]
     config = yaml.safe_load((root / source_path / "etc/config.yaml").read_text())
     config["Mode"] = "pro"
@@ -70,7 +71,7 @@ def server_config(root, name, overrides):
     for cache_key in ["Redis", "CacheRedis"]:
         if cache_key in config:
             config[cache_key].update({
-                "Address": "redis:6379", "Password": "${REDIS_PASSWORD}",
+                "Address": redis_address, "Password": "${REDIS_PASSWORD}",
             })
     for rpc_name, endpoint in SERVICES.items():
         binary, _, port = endpoint
@@ -177,6 +178,10 @@ def render(root, settings, backend_image, web_image, sealed_secret=None):
             raise ValueError("release images must use an immutable sha256 digest")
     namespace = settings["namespace"]
     runtime_secret = settings["runtimeSecret"]
+    # Keep internal PostgreSQL/Redis credentials separate when applications
+    # switch to external dependencies. Legacy environments remain unchanged.
+    data_secret = settings.get("dataSecret", runtime_secret)
+    redis_address = "${REDIS_ADDRESS}" if "dataSecret" in settings else "redis:6379"
     documents = []
     sealed_checksum = None
     if sealed_secret is not None:
@@ -187,7 +192,7 @@ def render(root, settings, backend_image, web_image, sealed_secret=None):
         sealed_checksum = digest(json.dumps(sealed_secret["spec"], sort_keys=True))
     for name, (binary, _, port) in SERVICES.items():
         options = settings.get("services", {}).get(name, {})
-        config_text = server_config(root, name, options.get("config", {}))
+        config_text = server_config(root, name, options.get("config", {}), redis_address)
         documents.append(resource("ConfigMap", f"{name}-config", namespace, data={"config.yaml": config_text}))
         backend = deployment(name, namespace, backend_image, port,
                              options.get("requestMemory", "48Mi"), options.get("limitMemory", "256Mi"))
@@ -212,6 +217,8 @@ def render(root, settings, backend_image, web_image, sealed_secret=None):
             env_keys.add("EMBEDDING_DIMENSIONS")
         for key in sorted(env_keys):
             secret_name = "alipay" if name == "payment-rpc" and sealed_checksum and key in ALIPAY_KEYS else runtime_secret
+            if key in DATA_KEYS:
+                secret_name = data_secret
             reference = {"name": secret_name, "key": key}
             if name == "agent-rpc" and key in {"LLM_THINKING", "EMBEDDING_DIMENSIONS"}:
                 # Preserve old Secrets: absent embedding dimensions use 1536.
