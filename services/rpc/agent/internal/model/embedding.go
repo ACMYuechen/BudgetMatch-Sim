@@ -1,6 +1,9 @@
 package model
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 // defaultEmbeddingDim 是未配置向量维度时的默认值（text-embedding-3-small 的原生维度）。
 const defaultEmbeddingDim = 1536
@@ -8,11 +11,11 @@ const defaultEmbeddingDim = 1536
 // EmbeddingConfig 描述 Embedding 模型的连接配置，Provider 语义与 Config 一致（空为 noop）。
 // 注意 Embedding 与 LLM 是两套独立配置：部分 LLM 服务（如 DeepSeek）不提供 embeddings 接口。
 type EmbeddingConfig struct {
-	Provider   string `json:"provider,optional"`   // Provider 提供商，如 openai（OpenAI 兼容接口均可）
-	Model      string `json:"model,optional"`      // Model 模型名称，如 text-embedding-3-small
-	BaseURL    string `json:"baseUrl,optional"`    // BaseURL 模型 API 基础地址
-	APIKey     string `json:"apiKey,optional"`     // APIKey 访问模型服务的密钥
-	Dimensions int    `json:"dimensions,optional"` // Dimensions 向量维度，须与向量表一致，默认 1536
+	Provider   string `json:"provider,optional"`                            // Provider 提供商，如 openai（OpenAI 兼容接口均可）
+	Model      string `json:"model,optional"`                               // Model 模型名称，如 text-embedding-3-small
+	BaseURL    string `json:"baseUrl,optional"`                             // BaseURL 模型 API 基础地址
+	APIKey     string `json:"apiKey,optional"`                              // APIKey 访问模型服务的密钥
+	Dimensions int    `json:"dimensions,optional,env=EMBEDDING_DIMENSIONS"` // 环境变量优先，空则使用 YAML/默认 1536
 }
 
 // ProviderName 返回规范化的提供商名称；若未配置则返回 noop。
@@ -35,6 +38,27 @@ func (c EmbeddingConfig) Dim() int {
 		return c.Dimensions
 	}
 	return defaultEmbeddingDim
+}
+
+// Validate checks explicit embedding configuration without accessing a provider.
+// A fixed-width BGE-M3 index must not inherit the legacy 1536-dimensional default.
+func (c EmbeddingConfig) Validate() error {
+	if !c.Enabled() {
+		return nil
+	}
+	if c.ProviderName() != "openai" {
+		return errors.New("unsupported embedding provider")
+	}
+	if strings.TrimSpace(c.APIKey) == "" {
+		return errors.New("embedding api key is required when provider is openai")
+	}
+	if c.Dimensions < 0 {
+		return errors.New("embedding dimensions must not be negative")
+	}
+	if strings.TrimSpace(c.Model) == "BAAI/bge-m3" && c.Dim() != 1024 {
+		return errors.New("BAAI/bge-m3 requires Embedding.Dimensions=1024 (EMBEDDING_DIMENSIONS)")
+	}
+	return nil
 }
 
 // NormalizeBaseURL 归一化自定义 BaseURL：底层 go-openai 客户端期望地址包含 /v1 后缀。
