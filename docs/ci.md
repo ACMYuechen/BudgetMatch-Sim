@@ -46,6 +46,19 @@ Go 检查执行 `go mod download`、`go mod verify`、`go vet ./...`、竞态测
 
 GitHub Actions 提供专用 etcd 和 pgvector PostgreSQL 16，并设置前两个变量。自行提供变量时只能连接可丢弃的测试环境：测试会改写键值或创建、删除表，不能使用业务库或生产服务。`make test` 不负责启动这些依赖。
 
+### 可选真实 Nginx 代理回归
+
+[Agent Nginx 用例](../cmd/app/internal/logic/agent/agent_stream_nginx_test.go)默认跳过，仅在显式提供可信本机 Nginx 可执行文件绝对路径时运行：
+
+```bash
+BUDGETMATCH_TEST_NGINX_BIN=/usr/sbin/nginx \
+  go test -race -p 1 -count=1 -run '^TestNginxRepositoryTemplateStream$' ./cmd/app/internal/logic/agent
+```
+
+自行替换为已安装/解包的路径；入口不下载软件，不需要 root，不加载系统 Nginx 配置或 `.env`。它在临时目录生成独立配置，仅将仓库 `web-ui/nginx/default.conf` 的监听、上游与静态目录替换为本次自有 loopback 目标，先运行 `nginx -t`，再启动并关闭自己的代理。模板结构变化会要求复核地址替换，错误的显式路径会失败而不是跳过。
+
+真实 HTTP/TCP gRPC 搭配合成身份/生产者，覆盖增量及时转发、正常 EOF 终态屏障、迟到错误、缺失/非法终态和取消传播，断流不自动重跑 unary。该入口不连接数据库/模型，不等于 Auth、真实供应商、部署 Ingress 或饱和背压验收；本机真实服务与保留库的独立证据见 [Agent 第 11.16 节](agent.md#1116-m63b-本机真实-nginx-模板与保留库联调)。现有 CI 未安装/配置此入口，不能将默认 skip 算作 CI 已覆盖真实 Nginx。
+
 ## 前端检查
 
 `Web Check` 目前只执行 `npm ci`、`npm run lint`、`npm run build`。仓库已有 Playwright 测试，但尚未纳入该 Job，不能把 Web Check 成功当作浏览器回归已运行。
