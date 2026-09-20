@@ -6,12 +6,44 @@ set -Eeuo pipefail
 : "${BACKEND_IMAGE:?BACKEND_IMAGE is required}"
 : "${WEB_IMAGE:?WEB_IMAGE is required}"
 
-if [[ "$SOURCE_BRANCH" != main || "${GITHUB_REF:-}" != refs/heads/main || "${GITHUB_EVENT_NAME:-}" != workflow_dispatch ]]; then
-  echo 'Only a manual workflow_dispatch run on main may publish a VPS release.' >&2
+if [[ "$SOURCE_BRANCH" != main || "${GITHUB_EVENT_NAME:-}" != workflow_run ]]; then
+  echo 'Only a successful main CI workflow_run may publish VPS manifests.' >&2
   exit 1
 fi
 
+# workflow_run's GITHUB_SHA refers to the default branch, not necessarily the
+# commit that passed CI. Validate the originating run before touching Git.
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+import re
+
+try:
+    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+    run = event["workflow_run"]
+    valid = (
+        event["action"] == "completed"
+        and run["name"] == "CI"
+        and run["status"] == "completed"
+        and run["conclusion"] == "success"
+        and run["event"] in {"push", "workflow_dispatch"}
+        and run["head_branch"] == "main"
+        and run["head_repository"]["full_name"] == os.environ["GITHUB_REPOSITORY"]
+        and run["head_sha"] == os.environ["SOURCE_SHA"]
+        and re.fullmatch(r"[0-9a-f]{40}", run["head_sha"]) is not None
+    )
+except (KeyError, OSError, TypeError, ValueError):
+    valid = False
+if not valid:
+    raise SystemExit("A successful main CI run from this repository must match SOURCE_SHA.")
+PY
+
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
+if [[ "$(git rev-parse HEAD)" != "$SOURCE_SHA" ]]; then
+  echo 'The checked-out source does not match the commit that passed CI.' >&2
+  exit 1
+fi
 runtime_dir="$(mktemp -d)"
 trap 'rm -rf "$runtime_dir"' EXIT
 
@@ -58,3 +90,13 @@ export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 commit="$(printf 'deploy: %s\n' "$SOURCE_SHA" | git commit-tree "$tree" "${parent_args[@]}")"
 git push origin "$commit:refs/heads/gitops"
 echo "Published deployment manifests for $SOURCE_SHA."
+echo "Review GitOps revision $commit, then Sync it manually in Argo CD."
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  {
+    printf 'Source commit: `%s`\n\n' "$SOURCE_SHA"
+    printf 'GitOps revision: `%s`\n\n' "$commit"
+    printf 'Backend image: `%s`\n\n' "$BACKEND_IMAGE"
+    printf 'Web image: `%s`\n\n' "$WEB_IMAGE"
+    echo 'Review this revision and click Sync in Argo CD to deploy it.'
+  } >> "$GITHUB_STEP_SUMMARY"
+fi

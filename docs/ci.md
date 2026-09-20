@@ -25,16 +25,17 @@ scripts/ci/container-check.sh
 
 ## 触发、检查范围与 CI Gate
 
-- 工作流只在 Pull Request 的 `opened`、`synchronize`、`reopened`、`ready_for_review` 事件及手动 `workflow_dispatch` 时触发；没有独立的 `push` 或定时触发器。向已有 PR 的来源分支推送新提交会触发 PR 的 `synchronize`。
-- `Detect Changes` 根据 PR 目标分支到当前提交的完整差异，选择 Go、Web、安全检查及需要构建的镜像。不是仅看最后一次提交。
+- 工作流在 Pull Request 的 `opened`、`synchronize`、`reopened`、`ready_for_review`、`main` 分支 push 及手动 `workflow_dispatch` 时触发；没有定时触发器。向已有 PR 的来源分支推送新提交会触发 PR 的 `synchronize`。
+- `Detect Changes` 根据 PR 目标分支到当前提交的完整差异，或 `main` push 的 `before..sha`，选择 Go、Web、安全检查及需要构建的镜像。不是仅看最后一次提交。
 - 修改 `.github/`、`scripts/ci/`、`scripts/deploy/`、`deploy/`、`tests/cicd/` 或无法分类的路径，以及手动执行时，回退为全量检查；纯文档变更会跳过四类耗时检查，但仍执行变更检测和 `CI Gate`。
 - `CI Gate` 要求所有被选中的检查成功，未被选中的检查必须为 `skipped`。例如 `Security Check` 失败会连带导致 `CI Gate` 失败，应先查看上游失败任务。
+- 本仓库 `main` 的 push 或手动 CI 成功后，`Build VPS Images` 通过 `workflow_run` 构建该次 CI 的确切提交。PR、fork、失败或取消的 CI 不触发发布 job。镜像和候选清单自动生成，服务器部署仍需 Argo CD 手动 Sync。
 
 ## Go 检查与测试环境
 
 Go 检查执行 `go mod download`、`go mod verify`、`go vet ./...`、竞态测试和 `go build ./...`。当前 `check_formatting` 调用被注释，**格式检查尚未作为门禁执行**；竞态测试使用 `go test -race`，未设置初版需求中的 `-count=1`。
 
-脚本通过 `go list` 构建包依赖图。PR 下只测试修改包及其反向依赖；手动执行、无事件上下文的本地执行、Go 依赖定义、CI 执行文件、Proto 或无法可靠映射的变更会回退到全量竞态测试。脚本兼容显式传入的 `push` 上下文，但工作流当前没有配置该触发器。静态检查与构建始终覆盖整个仓库。
+脚本通过 `go list` 构建包依赖图。PR 和 `main` push 下只测试修改包及其反向依赖；手动执行、无事件上下文的本地执行、Go 依赖定义、CI 执行文件、Proto 或无法可靠映射的变更会回退到全量竞态测试。静态检查与构建始终覆盖整个仓库。
 
 | 环境变量 | 用途及当前行为 |
 | --- | --- |
@@ -88,7 +89,7 @@ CI_IMAGE_TARGETS="mall-rpc app" scripts/ci/container-check.sh
 
 ## CI/CD 工具回归
 
-`tests/cicd/` 集中验证变更范围选择、CI Gate、就绪等待、工作流路径、`main` 手动发布限制、清单渲染和支付宝加密输入。它们不启动 Docker，不连接服务器，也不会创建真实发布提交：
+`tests/cicd/` 集中验证变更范围选择、CI Gate、就绪等待、工作流路径、成功 CI 与发布提交的对应关系、Argo CD 手动同步策略、清单渲染和支付宝加密输入。发布集成测试在临时目录中创建本地 Git 仓库，验证候选清单、版本历史和重复发布；不启动 Docker，也不连接 GitHub 或服务器：
 
 ```bash
 python3 -m pip install -r deploy/requirements.txt
@@ -98,4 +99,4 @@ for script in scripts/ci/*.sh scripts/deploy/*.sh; do
 done
 ```
 
-这些回归也由 **Deploy VPS** 在构建镜像前运行，不能替代业务测试或完整 CI。
+这些回归也由 **Build VPS Images** 在构建镜像前运行，不能替代业务测试或完整 CI。

@@ -16,9 +16,9 @@ spec:
     namespace: budgetmatch-sim
   syncPolicy:
     automated:
-      enabled: true
+      enabled: false
       prune: false
-      selfHeal: true
+      selfHeal: false
       allowEmpty: false
     syncOptions:
       - FailOnSharedResource=true

@@ -177,7 +177,8 @@ class WorkflowLayoutTests(unittest.TestCase):
 
     def test_ci_entry_points_and_required_check_names_are_preserved(self):
         workflow = self.workflow("ci")
-        self.assertEqual({"pull_request", "workflow_dispatch"}, set(workflow["on"]))
+        self.assertEqual({"push", "pull_request", "workflow_dispatch"}, set(workflow["on"]))
+        self.assertEqual(["main"], workflow["on"]["push"]["branches"])
         self.assertEqual("CI", workflow["name"])
         self.assertEqual("CI Gate", workflow["jobs"]["ci-gate"]["name"])
         self.assertEqual(
