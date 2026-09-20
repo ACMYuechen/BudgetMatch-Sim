@@ -6,8 +6,9 @@
 - 优化方案设计基线：`132ea3f`；后续实现以实际分支差异与执行记录为准。
 - 当前状态：M1 已完成；2026-09-17 按用户“M2 完成先推进 M3”的决定收尾 M2，独立人工复核后置。M3 本地安全/检索回放、M4.1～M4.3a 规划/搜索/分类核验/报告及 M5.1～M5.3b 流式链路/分段预算/请求用量汇总已实现。M6.1 共享存储故障矩阵与 Redis 过期提交保护、M6.2a 多进程验收框架均已完成；用户授权后，M6.2b 在新建的独立 PostgreSQL/pgvector/Redis 上完成真实矩阵、异常停止后重放及新数据目录备份恢复。M6.2 在本机单节点、合成数据的范围内结项，证据与限制见[第 11.4 节](#114-m62b-独立真实存储重启与备份恢复验收)和最新[执行记录](#14-执行记录)。M6.3b 已在本轮 10 次 / 5 元授权内完成本机 Flash 真实流式、落库/重放和取消验收，并修复解释流空工具绑定问题（第 11.13 节）；部署代理、版本回滚与最终报告仍待完成，整个 M6 未结项。M5.3a 推荐页 26 项交互已通过，最终方案仍要求 final + 成功 done + 正常 EOF；Usage/费用未知不伪造为 0。结构化执行默认关闭，未在业务环境迁移/回填或启用，新需求执行尚未接入向量/RRF 召回。M4.3b 真实业务分类数据/服务、M3 检索收益、M5 部署链路及 M2 独立复核均未结项。旧规则任务成功仍为 25/40，人工复核记录仍为 0/64；存储和单轮模型验收不能替代这些质量目标。
 - 文档用途：统一维护现有接口与会话行为、优化技术设计、分阶段任务、验证方法与执行记录；本地验证不代表已上线。
-- 后续联调约定：2026-09-20 用户最新明确改用本机数据库并授权新建库。独立 PostgreSQL 16.15 仅监听 `127.0.0.1:15432`；`budgetmatch_agent_dev` 现保留 2 个普通账号、3 个会话和 5 轮记录。CLI/真实 RPC/正常重启验证见第 11.10 节，真实 Auth 登录、HTTP/SSE、页面恢复和双账号隔离已通过[第 11.11 节](#1111-m63a2-真实登录与保留库浏览器验收)的限定范围验收，M6.3a2 在本机规则 + Mock 模式下完成；新增 Flash 推荐记录见第 11.13 节，商品仍为 Mock。不覆盖 `.env` 或复用原测试 DSN，原本机集群及远程服务不变；测试服务已停止，仅新建数据库保留运行。此前误判远程目标及认证/TLS 失败的历史记录仍保留，不作为当前本地步骤的阻塞条件，也不被本次成功覆盖。
+- 后续联调约定：2026-09-20 用户最新明确改用本机数据库并授权新建库。独立 PostgreSQL 16.15 仅监听 `127.0.0.1:15432`；`budgetmatch_agent_dev` 现保留 2 个普通账号、3 个会话和 5 轮记录。CLI/真实 RPC/正常重启验证见第 11.10 节，真实 Auth 登录、HTTP/SSE、页面恢复和双账号隔离已通过[第 11.11 节](#1111-m63a2-真实登录与保留库浏览器验收)的限定范围验收，M6.3a2 在本机规则 + Mock 模式下完成；新增 Flash 推荐记录见第 11.13 节，商品仍为 Mock。随后获准同步 `.env`，仅更新模型参数、缺失可选键和新建独立测试库 DSN（第 11.15 节），保留库不用于清理性测试；原本机业务集群及远程服务不变。此前误判远程目标及认证/TLS 失败的历史记录仍保留，不作为当前本地步骤的阻塞条件，也不被本次成功覆盖。
 - 收尾增量：M6.3b 已补齐本机反向代理与 TCP gRPC 的取消、终态屏障和实际 socket 背压回归（第 11.9 节）；生产者为受控替身，不代表真实供应商、部署代理或存储联调通过。实际环境、费用及版本回滚的剩余门槛统一见[第 13.1 节](#131-最终收尾门槛)，M6.3 整体仍未完成。
+- 配置增量：第 11.14 节已将 Flash 非思考模式接入正式应用配置、启动前校验与 Compose/K8s 模板。第 11.15 节按新授权同步本机 `.env`，真实 SDK 最小请求与独立测试库检查通过；累计模型调用 9 次、费用保守上界 2.134714 元，仍在原 10 次 / 5 元内。部署 Secret 未修改，部署环境的切换仍未验收。
 - 目标：把已有推荐 Agent 完善为业务约束可验证、推荐效果可评估、故障行为可解释的系统，并积累可用于项目展示的真实实验材料。
 
 保留 Go、go-zero、Eino ReAct、PostgreSQL、Redis 和 pgvector。不为增加技术名词重写框架，不以多 Agent、模型微调或新增向量数据库作为本轮前提。
@@ -28,6 +29,8 @@
 - [真实登录与保留库浏览器验收](#1111-m63a2-真实登录与保留库浏览器验收)
 - [模型限额授权与只读预检](#1112-m63b-模型限额授权与只读预检)
 - [Flash 真实流式与取消验收](#1113-m63b-flash-真实流式与取消验收)
+- [Flash 正式配置与迁移边界](#1114-m63b-flash-正式配置接入与离线迁移检查)
+- [本机 .env 同步与真实配置验收](#1115-m63b-env-同步与真实配置验收)
 - [最终收尾门槛](#131-最终收尾门槛)
 - [验证入口与执行清单](#13-验证入口与执行清单)
 - [执行记录](#14-执行记录)
@@ -1521,6 +1524,47 @@ node --test scripts/test_agent_model_acceptance.mjs
 
 本步完成 M6.3b 的本机真实供应商部分。部署 Nginx/Ingress、真实链路饱和背压、实际账单核对、业务模型默认配置迁移、M6.3c 版本回滚及后置质量验收仍未完成；本机服务重启不是版本回滚，不能将 M6.3b 或 M6 整体勾选为通过。
 
+### 11.14 M6.3b Flash 正式配置接入与离线迁移检查
+
+第 11.13 节的非思考参数最初由私有验收代理补入，常规应用不能透传此设置，模板也仍引用旧模型名。2026-09-20 按“继续下一步”完成配置层实现与本地检查，不操作现有部署、不产生额外推理调用。官方说明思考模式默认开启，需要显式发送 `thinking.type=disabled`；只替换模型名不足以复用此前验收条件。[DeepSeek 思考模式](https://api-docs.deepseek.com/zh-cn/guides/thinking_mode/)。
+
+[模型配置](../services/rpc/agent/internal/model/config.go)增加可选 `Thinking`，由 [SDK 工厂](../services/rpc/agent/internal/agent/recommend/llm/chatmodel.go)通过锁定组件的额外字段机制发送一个固定参数，不开放任意 JSON 配置：
+
+- `Provider=openai`、`Model=deepseek-flash` 必须显式配 `Thinking=disabled`；缺失、拼错或 `enabled` 均拒绝。不自动映射旧模型名，也不选择其它付费模型。
+- 其他兼容模型的 `Thinking` 留空，保持原请求字段和默认模型行为。`Provider` 留空/`noop` 仍关闭 LLM，保留的模型名/模式不妨碍规则模式启动。
+- [服务组装](../services/rpc/agent/internal/svc/service_context.go)在创建 Mall 客户端、打开数据库、初始化 RAG/模型之前校验；直接调用 SDK 工厂也校验。错误不回显配置值、BaseURL 或密钥。校验配置不等于验证远端模型可用。
+- 普通 Generate、Stream、绑定工具后的模型副本和仅四个数字的解释流都透传非思考参数；旧 `512`/`1,024` 流式输出限制、工具隔离、Usage 统计和终态协议不变。该字段不是跨请求的人民币费用限额。
+
+模板新增 `LLM_THINKING`，Flash 配置示例为：
+
+```dotenv
+LLM_PROVIDER=openai
+LLM_MODEL=deepseek-flash
+LLM_THINKING=disabled
+LLM_BASE_URL=https://api.deepseek.com/v1
+# LLM_API_KEY 从私密配置提供，示例不含凭据
+```
+
+`.env.example`、Agent YAML 和 Compose 透传同步更新；现有 `.env` 不会自动迁移，本轮也没有覆盖它。切换其它模型时要清空 `LLM_THINKING`。K8s [渲染器](../scripts/deploy/render.py)只将新增 `LLM_THINKING` 的 Secret 引用设为可选，避免旧的非 Flash/规则环境仅因缺新键而不能创建容器；Flash 缺值仍由应用拒绝，API Key 等其它原有引用仍必需。渲染测试只验证清单输出，没有应用到集群。运行时 Secret 变化不会仅凭此字段保证服务完成滚动更新，仍须配套确认镜像、配置版本和发布窗口。
+
+[验收保护层](../scripts/agent-model-acceptance.mjs)兼容应用显式发送的 `{"type":"disabled"}`，也保留旧测试客户端省略该字段时的固定覆盖；其它值、空对象、数组或附带额外字段仍拒绝，拒绝时不预留额度、不访问上游。原 10 次 / 5 元限额、完整上下文费用预留、未知 Usage 保留、TLS 目标、取消和禁止重试/重定向规则不变。之后再做真实实验须继承原累计 8 次记录，不能把本地测试重新建的合成账本当成额度重置。
+
+验证以本机 `httptest`/合成输入为限：[SDK 请求回归](../services/rpc/agent/internal/agent/recommend/llm/chatmodel_config_test.go)、[解释流回归](../services/rpc/agent/internal/agent/recommend/llm/stream_openai_test.go)、[配置校验](../services/rpc/agent/internal/model/config_test.go)、[启动前拒绝](../services/rpc/agent/internal/svc/model_config_test.go)、[模板解析](../services/rpc/agent/internal/config/model_config_test.go)、[清单兼容](../tests/cicd/test_agent_model_config.py)、[保护层回归](../scripts/test_agent_model_acceptance.mjs)。先复现 4 种 Flash 请求均缺少参数以及原保护层拒绝显式参数，再修复复验；最终执行命令与结果见最新执行记录。
+
+尚未完成的是**现有环境实际切换与验收**。不能把旧二进制换成 Flash 配置后视为已支持非思考模式，也不能假定旧版本会识别新字段；回退应选择保留安全修复的规则模式或已验收兼容版本，不删除会话或存储。部署代理/真实饱和背压、账单、实际版本回滚及独立质量验收继续后置，本步不勾选整个 M6.3b。
+
+### 11.15 M6.3b .env 同步与真实配置验收
+
+用户明确要求“环境参数有问题就同步修改，.env 必须保证可用”后，核对实际文件与模板，不以 shell `source` 执行私密配置。修正旧 `deepseek-chat` 为 `deepseek-flash`，增加 `LLM_THINKING=disabled`；补齐缺失的 `AGENT_MALL_INDEX_SECRET`、`ALIPAY_RETURN_URL` 可选键，保持 RAG 关闭及既有第三方/JWT/Payment 密钥不变。所有模板键现均存在，`.env` 仍为 `0600`、被 Git 忽略，不加入提交。
+
+原 `BUDGETMATCH_TEST_POSTGRES_DSN` 使用 root 账号，实际连接失败；核实目标为本次自有 `127.0.0.1:15432` 集群、测试角色和库均不存在后，另建 `budgetmatch_sim_test` 与随机口令的 `budgetmatch_test`。该角色无 superuser、建库、建角色、复制或绕过 RLS 权限，新库取消 PUBLIC 默认访问；只更新测试 DSN，不把保留记录的开发库交给清理性测试。测试账号连接及建 schema/表、写入、读取、回滚通过，原开发库全部用户/会话/轮次摘要前后一致，仍为 2/3/5。未修改已有角色、HBA、监听地址或重启 PostgreSQL。
+
+模型检查先进行一次只读 `GET /v1/models`：HTTP 200，Flash 在列表中。随后使用临时构建覆盖文件复用正式 `conf.UseEnv()`、配置结构和 SDK 工厂，从实际 `.env` 加载模型/模式；只有传输地址与认证替换为本机自有出站保护层，供应商 Key 不进入 Go 请求日志。请求发送前观测原始 SDK JSON，确认非思考参数来自应用而非保护层补入。只发合成提示“Reply with exactly OK.”，输出上限 16 Token，实际回复匹配、`stop` 和正常 EOF、完整 Usage 均通过：输入 9、输出 1、合计 10 Token。
+
+原 8 次账本全部继承，旧未知取消预留不释放，只新增 1 次推理；现累计 **9 次**，已知用量的峰时缓存未命中费用上界 0.029370 元，加原未知预留共 **2.134714 元**，并非实际账单。无重试、重定向或额度重置；后续只剩 1 次请求额度，不足以重跑通常需要 4 次模型调用的完整推荐。价格在调用前重新核对：[官方价目表](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)。
+
+私密材料位于 `/home/yue_chen/.local/share/budgetmatch-agent-local.PnMxrN/env-migration.a6SZOs`，包含配置备份、测试库检查、累计账本、模型报告和临时构建文件；均不提交。这里的“可用”只覆盖已验证的模型配置、密钥/模型访问、真实最小推理及独立测试库，不将未验证的 SMTP/OSS/支付、整套开发启动或部署环境说成可用。当前 WSL Docker 不可用，`make dev` 仍需可用 Docker 和基础设施；不因该命令会按端口终止进程而直接执行它。现有短 JWT 密钥未自动轮换，避免使已有令牌失效，后续安全轮换仍需配套处理。
+
 ## 12. 契约、配置与回滚
 
 ### 12.1 契约变更
@@ -1626,6 +1670,8 @@ git diff --check
     - [ ] M6.3b：真实供应商/代理取消、背压及 Usage/时延/费用实验；本机 Flash 限定验收已通过（第 11.13 节），部署代理、真实链路饱和背压与实际账单仍未验收。
       - [x] 本机代理预验收：Go 反向代理 + TCP gRPC 的 8 种合成场景，终态屏障、断连取消、实际 socket 写超时及零重试；不代表部署代理或供应商通过。
       - [x] 本机真实供应商：修复解释流空工具绑定，Flash 非思考流式、落库/重放、就绪后的重启恢复与取消通过；累计 8 次调用，总费用保守上界 2.134688 元，取消 Usage/实际账单未知。
+      - [x] 正式配置代码/模板：Flash 非思考透传、初始化前校验、旧配置与保护层兼容，本地 SDK/渲染检查通过（第 11.14 节）；不是现有 `.env`/Secret 切换或部署验收。
+      - [x] 本机 `.env` 同步：模型及独立测试库配置修正，实际 SDK 最小请求通过；累计 9 次推理、费用保守上界 2.134714 元（第 11.15 节）。部署 Secret 未变。
     - [ ] M6.3c：部署版本兼容/实际回滚、最终演示与验收归档；部署范围另行确认。
 
 每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
@@ -1638,7 +1684,7 @@ M6.3a2 的本机保留记录与真实登录/浏览器链路已完成，第 11.10
 
 | 待完成项 | 执行前需要 | 完成时应保留的证据 |
 | --- | --- | --- |
-| M6.3b：部署代理与剩余供应商验收 | 本机 Flash 已通过限定验收；仍需确认部署代理/故障注入范围、模型配置迁移与账单核对来源。继续调用须继承本轮 8 次记录，不能重置额度；扩大实验另行确认 | 部署代理配置版本及断连/饱和背压证据、配置迁移验证与供应商账单；未知部分仍记 unknown |
+| M6.3b：部署代理与剩余供应商验收 | 本机 Flash 与 `.env` 配置已通过限定验收；仍需确认部署代理/故障注入范围、部署环境模型配置切换与账单核对来源。继续调用须继承累计 9 次记录，仅剩 1 次，不能重置额度；扩大实验另行确认 | 部署代理配置版本及断连/饱和背压证据、实际部署配置迁移验证与供应商账单；未知部分仍记 unknown |
 | M6.3c：版本回滚与最终归档 | 明确目标环境、待上线/回滚版本与操作窗口、部署和回滚授权 | 保留安全修复的兼容/回滚记录、数据不被删除的验证、最终演示及分项通过/失败/未运行报告 |
 
 后置质量工作另列：M2 独立人工复核仍为 0/64；M3 真实检索收益及 M4 业务分类/数据效果尚未验收，新需求执行未接入向量/RRF。旧规则 25/40 不变。上述项目需要独立复核人员或已确认的真实数据/实验条件，不能由合成代理/存储测试补齐，也不承诺无需任何后续代码修改。
@@ -3122,3 +3168,43 @@ README、权限文档及本页当前目标/收尾清单改为最新新建本机�
 验证：Go 1.26.8 下按 `GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache`、`-p 1` 顺序构建 Auth/App/Agent，修复后重建 Agent；推荐、LLM、RecommendService、runtrace、App Agent logic 共五包 `go test -race` 和 `go vet` 通过。新增 Node 13 项测试全部通过，未使用真实供应商或数据库作为单元测试依赖。没有重跑全仓 Go/前端浏览器/质量评测，也不改动依赖、生成文件、CI/CD 或旧基线。旧规则 25/40、独立复核 0/64 不变；M6.3b 本机供应商部分完成，部署代理/真实饱和背压、账单核对、配置迁移与 M6.3c 仍未完成。
 
 最终检查：Go 格式、两份 Node 脚本语法、已跟踪及新增文件的补丁空白检查通过；三份文档的 287 个本地文件链接存在，新增章节标题有效。新增内容未发现本轮选定的模型 Key、服务密钥或测试账号口令。改动仅为解释流修复、真实 SDK 回归、两份限额测试脚本及三份同步文档，均未提交；私密证据和测试进程不进入仓库。
+
+### 2026-09-20：M6.3b Flash 正式配置接入与离线迁移检查
+
+上一步已拆为 `23a2bb8`（解释流修复）、`abff0e6`（SDK/限额测试）、`6a4dd0d`（验收文档）三个本地提交。本轮按“继续进行下一步”，从干净的 `refactor/agent` 开发第 11.14 节；新改动留在工作区，不自动提交或推送。
+
+- 先加入不经过验收代理的真实 SDK + loopback HTTP 回归，复现 Flash 普通/流式、绑定/未绑定工具四种请求均没有 `thinking` 字段；其他模型和默认模型用例通过。新增正式配置透传后复验通过，解释流仍只发送四个数字且清除预绑定工具。
+- 增加 `Model.Thinking` 校验与初始化前拒绝；Flash 必须显式非思考，其他模型留空，关闭 Provider 兼容保留配置。直接 SDK 工厂与服务组装均覆盖校验，错误不回显原始配置值。
+- 更新 `.env.example`、Agent YAML、Compose 与部署渲染器；只有新增 `LLM_THINKING` 的 Secret 引用可选，原有必需凭据不放宽。补充 5 项配置渲染/示例检查，原 15 项渲染回归也通过。没有改 GitHub Actions、依赖、生成代码、部署环境覆盖值或实际 Secret。
+- 原验收保护层会把应用显式非思考字段判为越界，先复现 HTTP 403，再限定接受精确的 disabled 对象；异常字段仍零出站/零额度预留，计数、费用和取消行为不变。14 项 Node 保护测试全部通过，无真实供应商调用。
+
+最终验证：
+
+```bash
+# 显式取消真实存储测试入口，不能继承本机保留库或现有部署 DSN。
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN -u BUDGETMATCH_TEST_POSTGRES_DSN \
+  -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
+  -u AGENT_STORAGE_ACCEPTANCE_RECOVERY -u AGENT_STORAGE_ACCEPTANCE_WORKER \
+  GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache \
+  go test -race -p 1 ./services/rpc/agent/... \
+  ./cmd/app/internal/logic/agent ./cmd/app/internal/handler/agent -count=1
+GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go vet -p 1 \
+  ./services/rpc/agent/... ./cmd/app/internal/logic/agent ./cmd/app/internal/handler/agent
+node --test scripts/test_agent_model_acceptance.mjs
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/cicd -p test_agent_model_config.py -v
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/cicd -p test_render.py -v
+```
+
+Go 竞态测试：29 个有测试的包、500 项顶层 / 1,754 项含子测试通过，7 项真实 PostgreSQL/pgvector/存储矩阵入口按范围跳过，无失败；同范围 vet 和 Agent 二进制构建通过。Go 格式、Node 语法、补丁空白检查通过，五份文档的 306 个本地文件链接存在。竞态测试使用 `-json` 保存逐项结果，日志及未运行的构建产物位于 `/tmp/budgetmatch-agent-flash-config.V38fXU`；测试未连接保留库，既有 2 账号 / 3 会话 / 5 轮记录沿用上步结果，本轮不将其当作新的数据库复查证据。
+
+`.env` 前后摘要一致；没有读取其中模型配置值、追加推理调用、访问远程数据库/部署、迁移数据或修改已有服务。没有运行前端/全仓 Go/真实质量评测；旧规则 25/40、独立复核 0/64 不变。只完成正式配置代码/模板，现有环境切换、部署代理/真实饱和背压、实际账单与 M6.3c 版本回滚仍按第 13.1 节等待明确环境和操作范围，不把此步作为整体结项。
+
+### 2026-09-20：授权同步 .env、真实配置验收与提交前复查
+
+按用户“环境参数有问题就同步修改、.env 必须可用，提交后进入下一步”执行第 11.15 节。只修正已查明的问题：旧模型名、非思考参数缺失、两个缺失可选键，以及认证失败的测试 DSN。新测试库/角色与保留开发库隔离；不轮换已有密钥、不修改现有服务配置或调用 `make dev` 的端口清理逻辑。
+
+实际模型列表 HTTP 200，正式 SDK 从 `.env` 加载 Flash/disabled 后的单次最小推理通过，输入 9 / 输出 1 Token；累计由 8 次增至 9 次，总费用保守上界 2.134714 元，旧取消预留保持。没有重跑完整推荐，也没有扩大原 10 次 / 5 元授权。
+
+提交前顺序复测 model、config、LLM、svc、memory、Mall product_index 六包：`go test -race -p 1 -count=1` 共 108 项顶层 / 251 项含子测试通过，无失败/跳过；其中真实会话持久化、候选提交可见性、目录 MVCC 快照三项使用新独立测试库实际运行。Node 14 项保护测试、Python 新增 5 项配置检查及原 15 项渲染检查通过。测试后只读核对保留库，用户/会话/轮次仍为 2/3/5，完整快照摘要与建测试库前相同。没有重跑本轮未改代码的全仓/浏览器或实际部署测试。
+
+补丁空白检查及新增内容的选定凭据检查通过，`.env` 仍为 `0600`、未跟踪；仅源码、测试、模板和同步文档进入后续本地提交，不包含真实配置、口令、日志或临时构建产物，不推送。当前本机 Docker 不可用，K3s 默认 kubeconfig 无读取权限，另一个用户 kubeconfig 指向 Docker Desktop；未改 kubeconfig 或接管集群。提交后的下一步限定为本机自有 Nginx 实例加载仓库代理模板，与独立 Auth/App/Agent 和保留库联调；它不等同于现有 VPS/K3s 的部署验收，也不授权业务服务重启或升级。
