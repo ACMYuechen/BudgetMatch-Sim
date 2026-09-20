@@ -71,7 +71,8 @@ class RenderTests(unittest.TestCase):
             pod = documents["Deployment", name]["spec"]["template"]["spec"]
             for setting in pod["containers"][0]["env"]:
                 if "valueFrom" in setting:
-                    self.assertEqual("runtime", setting["valueFrom"]["secretKeyRef"]["name"])
+                    expected = self.settings["dataSecret"] if setting["name"] in render.DATA_KEYS else "runtime"
+                    self.assertEqual(expected, setting["valueFrom"]["secretKeyRef"]["name"])
         app = yaml.safe_load(documents["ConfigMap", "app-config"]["data"]["config.yaml"])
         self.assertEqual(60000, app["AgentRpc"]["Timeout"])
         self.assertEqual(["payment-rpc:10007"], app["PaymentRpc"]["Endpoints"])
@@ -99,10 +100,44 @@ class RenderTests(unittest.TestCase):
                 if "valueFrom" not in setting:
                     continue
                 expected = "alipay" if name == "payment-rpc" and setting["name"] in render.ALIPAY_KEYS else "runtime"
+                if setting["name"] in render.DATA_KEYS:
+                    expected = self.settings["dataSecret"]
                 self.assertEqual(expected, setting["valueFrom"]["secretKeyRef"]["name"])
             old_annotations = template["metadata"]["annotations"]
             new_annotations = after["Deployment", name]["spec"]["template"]["metadata"]["annotations"]
             self.assertEqual(name != "payment-rpc", old_annotations == new_annotations)
+
+    def test_external_data_credentials_and_addresses_are_wired_together(self):
+        documents = self.resources()
+        consumers = {"auth-rpc", "mall-rpc", "seckill-rpc", "agent-rpc", "payment-rpc", "app"}
+        for name in render.SERVICES:
+            config = yaml.safe_load(documents["ConfigMap", f"{name}-config"]["data"]["config.yaml"])
+            pod = documents["Deployment", name]["spec"]["template"]["spec"]
+            refs = {e["name"]: e["valueFrom"]["secretKeyRef"]
+                    for e in pod["containers"][0]["env"] if "valueFrom" in e}
+            self.assertEqual(name in consumers, "REDIS_ADDRESS" in refs)
+            for field in ("Redis", "CacheRedis"):
+                if field in config:
+                    self.assertEqual("${REDIS_ADDRESS}", config[field]["Address"])
+            for key in render.DATA_KEYS & refs.keys():
+                self.assertEqual({"name": "external-data", "key": key}, refs[key])
+            if "Database" in config:
+                self.assertEqual("${DATABASE_DSN}", config["Database"]["DSN"])
+                self.assertIn("DATABASE_DSN", refs)
+
+    def test_legacy_environment_keeps_internal_redis_and_runtime_secret(self):
+        del self.settings["dataSecret"]
+        for (kind, name), document in self.resources().items():
+            if kind == "ConfigMap" and name != "web-ui-config":
+                config = yaml.safe_load(document["data"]["config.yaml"])
+                for field in ("Redis", "CacheRedis"):
+                    if field in config:
+                        self.assertEqual("redis:6379", config[field]["Address"])
+            if kind == "Deployment":
+                for env in document["spec"]["template"]["spec"]["containers"][0].get("env", []):
+                    self.assertNotEqual("REDIS_ADDRESS", env["name"])
+                    if "valueFrom" in env:
+                        self.assertEqual("runtime", env["valueFrom"]["secretKeyRef"]["name"])
 
     def test_literal_credentials_in_overrides_are_rejected(self):
         for field in ["Password", "Secret", "APIKey", "PrivateKey", "DSN"]:
