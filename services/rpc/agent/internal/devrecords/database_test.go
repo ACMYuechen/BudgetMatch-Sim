@@ -26,6 +26,7 @@ type replayDriver struct {
 	begins, commits, rollbacks             int
 	options                                []driver.TxOptions
 	closes                                 int
+	queryError                             error
 }
 
 func (d *replayDriver) Connect(context.Context) (driver.Conn, error) { return &replayConn{d}, nil }
@@ -50,6 +51,9 @@ func (c *replayConn) ExecContext(_ context.Context, query string, _ []driver.Nam
 }
 func (c *replayConn) QueryContext(_ context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	c.d.queries = append(c.d.queries, query)
+	if c.d.queryError != nil {
+		return nil, c.d.queryError
+	}
 	if c.d.failQuery {
 		return nil, errors.New("synthetic private driver query error")
 	}
@@ -58,6 +62,8 @@ func (c *replayConn) QueryContext(_ context.Context, query string, args []driver
 	}
 	s := c.d.snapshot
 	switch {
+	case query == "SELECT current_database()":
+		return &replayRows{columns: []string{"current_database"}, values: [][]driver.Value{{"dev_records"}}}, nil
 	case strings.Contains(query, "FROM public.users"):
 		if strings.Contains(query, "SELECT EXISTS") {
 			return &replayRows{columns: []string{"exists"}, values: [][]driver.Value{{c.d.userPresent}}}, nil

@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -155,7 +155,7 @@ func TestRetainClosesWriterBeforeIndependentVerificationAndKeepsCommitOutcome(t 
 					require.Equal(t, 1, writes.commits)
 					require.Equal(t, 1, writes.closes)
 					if scenario == "reader unavailable" {
-						return nil, nil, errors.New("synthetic private driver connect error")
+						return nil, nil, databaseFailure("connect", syscall.ECONNREFUSED)
 					}
 					db = reader
 				}
@@ -183,6 +183,9 @@ func TestRetainClosesWriterBeforeIndependentVerificationAndKeepsCommitOutcome(t 
 				require.NotContains(t, err.Error(), "private driver")
 				require.Equal(t, "demo_committed_unverified", report.Status)
 				require.Nil(t, report.Verification)
+				if scenario == "reader unavailable" {
+					require.Equal(t, &Diagnostic{Stage: "post_commit_verify", Code: "connection_refused"}, diagnosticOf(err))
+				}
 			}
 		})
 	}
