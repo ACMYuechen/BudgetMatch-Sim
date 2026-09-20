@@ -29,6 +29,7 @@ type Report struct {
 	Tables            map[string]TableReport `json:"tables,omitempty"`
 	Demo              *DemoReport            `json:"demo,omitempty"`
 	Verification      *VerificationReport    `json:"verification,omitempty"`
+	Diagnostic        *Diagnostic            `json:"diagnostic,omitempty"`
 	Error             string                 `json:"error,omitempty"`
 }
 
@@ -37,21 +38,31 @@ func openDatabase(ctx context.Context, c connection, readOnly bool) (*gorm.DB, *
 		Logger: logger.Default.LogMode(logger.Silent), DisableAutomaticPing: true,
 	})
 	if err != nil {
-		return nil, nil, errors.New("cannot prepare database connection; details suppressed")
+		return nil, nil, failure("connect", "client_setup_failed", "cannot prepare database connection; details suppressed")
 	}
 	pool, err := db.DB()
 	if err != nil {
-		return nil, nil, errors.New("cannot obtain database connection pool")
+		return nil, nil, failure("connect", "client_setup_failed", "cannot obtain database connection pool")
 	}
 	pool.SetMaxOpenConns(1)
 	pool.SetMaxIdleConns(1)
 	pool.SetConnMaxLifetime(time.Minute)
-	var actual string
-	if db.WithContext(ctx).Raw("SELECT current_database()").Scan(&actual).Error != nil || actual != c.target.Database {
+	if err := checkDatabaseIdentity(ctx, db, c.target.Database); err != nil {
 		_ = pool.Close()
-		return nil, nil, errors.New("database unavailable or identity mismatch; no schema changes attempted")
+		return nil, nil, err
 	}
 	return db, pool, nil
+}
+
+func checkDatabaseIdentity(ctx context.Context, db *gorm.DB, expected string) error {
+	var actual string
+	if err := db.WithContext(ctx).Raw("SELECT current_database()").Scan(&actual).Error; err != nil {
+		return databaseFailure("connect", err)
+	}
+	if actual != expected {
+		return failure("connect", "database_identity_mismatch", "database identity does not match selected target; no schema changes attempted")
+	}
+	return nil
 }
 
 // Preflight uses a server-enforced read-only connection. Catalog/table queries
@@ -63,13 +74,13 @@ func preflight(ctx context.Context, db *gorm.DB, o Options, report *Report) erro
 		var exists bool
 		if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
 			WHERE n.nspname='public' AND c.relname=? AND c.relkind IN ('r','p'))`, table).Scan(&exists).Error; err != nil {
-			return errors.New("cannot inspect development schema")
+			return databaseFailure("preflight", err)
 		}
 		item := TableReport{Exists: exists}
 		if exists {
 			// table comes ONLY from the fixed list above, never from CLI/DSN input.
 			if err := db.Raw(`SELECT count(*) FROM (SELECT 1 FROM public."` + table + `" LIMIT 1001) AS bounded`).Scan(&item.RowsUpTo1001).Error; err != nil {
-				return errors.New("cannot inspect bounded development row counts")
+				return databaseFailure("preflight", err)
 			}
 			item.CountIsCapped = item.RowsUpTo1001 == 1001
 		}
@@ -81,7 +92,7 @@ func preflight(ctx context.Context, db *gorm.DB, o Options, report *Report) erro
 	if o.UserID != "" && report.Tables["users"].Exists {
 		if err := db.Raw(`SELECT EXISTS(SELECT 1 FROM public.users WHERE id=? AND status=1 AND deleted_at IS NULL)`, o.UserID).
 			Scan(&report.UserReady).Error; err != nil {
-			return errors.New("cannot check selected user; no account changes attempted")
+			return databaseFailure("preflight", err)
 		}
 	}
 	return nil
@@ -146,6 +157,7 @@ func Run(ctx context.Context, o Options, environ []string) (report Report, err e
 	defer func() {
 		if err != nil {
 			report.Error = err.Error() // errors above never include raw driver/config text
+			report.Diagnostic = diagnosticOf(err)
 		}
 	}()
 	c, err := loadConnection(o, environ)
@@ -219,7 +231,8 @@ func retainAndVerify(ctx context.Context, c connection, o Options, report *Repor
 		_ = pool.Close()
 	}
 	if err != nil {
-		return errors.New("demo commit succeeded but independent read-only verification failed; records were not removed; use -verify-demo with the same IDs")
+		diagnostic := diagnosticOf(databaseFailure("post_commit_verify", err))
+		return failure(diagnostic.Stage, diagnostic.Code, "demo commit succeeded but independent read-only verification failed; records were not removed; use -verify-demo with the same IDs")
 	}
 	report.Status = "demo_retained"
 	return nil

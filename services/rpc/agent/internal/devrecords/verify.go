@@ -49,29 +49,33 @@ func verifyDemo(ctx context.Context, db *gorm.DB, o Options, committed *demoSnap
 	}
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var enabled bool
-		if tx.Raw(`SELECT EXISTS(SELECT 1 FROM public.users WHERE id=? AND status=1 AND deleted_at IS NULL)`, o.UserID).
-			Scan(&enabled).Error != nil || !enabled {
-			return errors.New("cannot verify demo for a missing, disabled or unavailable selected account")
+		if err := tx.Raw(`SELECT EXISTS(SELECT 1 FROM public.users WHERE id=? AND status=1 AND deleted_at IS NULL)`, o.UserID).
+			Scan(&enabled).Error; err != nil {
+			return databaseFailure("verify", err)
+		}
+		if !enabled {
+			return failure("verify", "selected_user_unavailable", "selected account is missing or disabled")
 		}
 		actual, found, err := readSnapshot(ctx, memory.NewPostgres(tx, memory.Conf{}), o)
 		if err != nil {
-			return errors.New("cannot read retained demo snapshot; no repairs attempted")
+			return databaseFailure("verify", err)
 		}
 		if !found {
-			return errors.New("retained demo is missing; no records created")
+			return failure("verify", "demo_missing", "retained demo is missing; no records created")
 		}
 		if !sameSnapshot(actual, expected, true) {
-			return errors.New("retained demo contains different or partial data; no repairs attempted")
+			return failure("verify", "demo_mismatch", "retained demo contains different or partial data; no repairs attempted")
 		}
 		if committed != nil && !sameSnapshot(actual, *committed, false) {
-			return errors.New("retained demo differs from the confirmed transaction snapshot")
+			return failure("verify", "committed_snapshot_mismatch", "retained demo differs from the confirmed transaction snapshot")
 		}
 		return nil
 	}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		// Driver Begin/Commit errors can include connection details; keep them
 		// private just like query errors. Missing/mismatched data is not a pass.
-		return nil, errors.New("read-only demo verification failed; check availability, selected account and complete fixture; no records changed")
+		diagnostic := diagnosticOf(databaseFailure("verify", err))
+		return nil, failure(diagnostic.Stage, diagnostic.Code, "read-only demo verification failed; check availability, selected account and complete fixture; no records changed")
 	}
 	return &VerificationReport{UserID: o.UserID, ConversationID: demoInputs(o)[0].ConversationId,
 		Turns: len(expected.Turns), ComparedWith: comparedWith}, nil
