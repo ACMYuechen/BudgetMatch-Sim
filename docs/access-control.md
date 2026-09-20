@@ -1,6 +1,6 @@
 # 微服务权限控制现状
 
-核对日期：2026-09-16；Agent 相关增量更新至 2026-09-20 M6.3a2 本地工具（含流式 RPC/HTTP/前端身份、分段预算、日志、隔离真实存储与恢复验收，以及显式开发库联调和只读复查边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
+核对日期：2026-09-16；Agent 相关增量更新至 2026-09-20 M6.3a2 本机真实登录与浏览器验收（含流式 RPC/HTTP/前端身份、分段预算、日志、隔离真实存储与恢复，以及显式开发库联调和只读复查边界）。范围：`cmd/app`、`cmd/admin` 和当前 RPC 服务。
 
 本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
 
@@ -272,7 +272,9 @@ M6.2b 获用户授权后，通过[隔离运行器](../scripts/agent-storage-acce
 
 [本机保留库联调](agent.md#1110-m63a2-新建本机保留库与真实-rpc-联调)新建仅绑定 loopback、使用 SCRAM 的独立 PG，专用 DB 角色非 superuser、无建库/建角色权限；演示账号为普通用户，生产 Model 初始化三张新表后关闭自动迁移。保留两轮记录，真实 Agent TCP RPC 验证缺少 JWT 被拒绝、跨用户列表为空/详情 NotFound、同用户 unary/stream 重放不改历史。测试 JWT 本地签发，不能视为 Auth 登录或 HTTP/页面权限验收。自有临时 RPC 已停止，正常重启后的新数据库继续运行并保留数据；口令、配置和备份仅在仓库外私密目录，不代表现有数据库账号或部署权限发生变更。
 
-M6.3a1 新增独立 `dev-records` 工具，本机模式显式选择 `.env` 的单个 DSN 或配置文件的 `Database.DSN`，核对库名与 loopback 目标；预检连接由数据库强制只读，不泄露口令或自动迁移。写入另须指定已有启用账号及独立 run ID，事务内再次核对账号/会话锁，保留带演示标识的两轮历史；不改账号、密码或角色，不接入 LLM/Mall/Embedding。该工具使用操作者显式选择的数据库凭据，**不是 HTTP/RPC 用户鉴权入口，也不应作为远程管理接口暴露**。本机授权仍不能访问远程；最新已在上述新建本机库保留记录，但页面展示尚未验收，详见 [开发库预检入口](agent.md#116-m63a1-开发库只读预检与保留演示会话入口)。
+随后完成[真实登录与浏览器验收](agent.md#1111-m63a2-真实登录与保留库浏览器验收)：新增第二个普通启用账号，不改原账号或数据库角色；浏览器经生产 Auth 登录获取 JWT，经网关和 Agent RPC 读取/写入同一保留库。匿名及错误密码返回 401，两个真实账号互查历史返回 404/列表不包含，退出切换不残留旧历史；页面两轮 SSE、刷新与同 ID 重放通过。现保留 2 账号 / 2 会话 / 4 轮，原历史快照不变。独立入口默认不运行，要求显式写入授权、私密文件及 loopback origin；这些保护不能替代操作者核对上游库/模型配置。关闭认证 trace/HAR/video，但不宣称 Auth/网关日志已全面脱敏，原始输出只留私密目录。临时服务已停止，仅新库保持运行；范围不含管理权限、真实商城/模型、部署代理或现有服务变更。
+
+M6.3a1 新增独立 `dev-records` 工具，本机模式显式选择 `.env` 的单个 DSN 或配置文件的 `Database.DSN`，核对库名与 loopback 目标；预检连接由数据库强制只读，不泄露口令或自动迁移。写入另须指定已有启用账号及独立 run ID，事务内再次核对账号/会话锁，保留带演示标识的两轮历史；不改账号、密码或角色，不接入 LLM/Mall/Embedding。该工具使用操作者显式选择的数据库凭据，**不是 HTTP/RPC 用户鉴权入口，也不应作为远程管理接口暴露**。本机授权仍不能访问远程；新建本机库保留记录与上述页面验收是独立执行的步骤，详见 [开发库预检入口](agent.md#116-m63a1-开发库只读预检与保留演示会话入口)。
 
 M6.3a2 的本地增量新增互斥的 `-verify-demo`，仍需显式目标/账号/run ID；只在服务器强制只读、一致性快照中检查既有记录，不创建账号、执行该库上的 Service 写入或做缺失修复。写入成功后也关闭原连接再独立只读确认；复查失败不会回滚已确认的提交或自动重写。仅有 SELECT 权限的凭据可以复查完整记录，写入路径仍要求原有结构检查；该能力不授予/调整现有数据库权限，不代表 HTTP 鉴权或页面联调已验收。结果口径见 [只读复查](agent.md#117-m63a2-提交后确认与只读复查)。
 
@@ -389,6 +391,7 @@ RPC 在 dev/test 模式注册 gRPC reflection。Mall 和 Agent 已注册共享�
 | [Agent 流式内存 RPC](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_transport_test.go)、[流式故障注入](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_failure_test.go)、[流式 Token 透传](../infra/interceptor/stream_client_interceptor_test.go) | 无/过期/伪造 Token、错误角色、服务凭据、无界 deadline 被拒绝；同名会话用户隔离、取消/慢 Fake Send、原子保存后发送及提交后重放 | 已接入网页或真实模型增量、经过代理断连/真实多进程测试，或网络投递/工具副作用恰好一次 |
 | [Eino 流式集成](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_model_test.go)、[事件预算/背压](../services/rpc/agent/internal/logic/recommendservice/stream_progress_test.go)、[模型预算/工具事件](../services/rpc/agent/internal/agent/recommend/llm/stream_test.go) | Fake Model 实际 Pipe 增量早于生成完成；晚到工具调用、隐藏字段隔离、工具关联、协议/资源拒绝、发送失败与取消、增量后核验/保存失败无 final、不整轮兜底、已完成重放不重跑 | 真实模型兼容性/费用/时延、网页端到端、第三方依赖可被强杀，或临时自然语言已通过事实校验 |
 | [网关 HTTP/RPC](../cmd/app/internal/logic/agent/agent_stream_http_test.go)、[网关协议](../cmd/app/internal/logic/agent/agent_stream_protocol_test.go)、[浏览器协议](../web-ui/tests/recommendation-stream.spec.ts)、[页面交互用例](../web-ui/tests/recommendation.spec.ts) | 本地 HTTP + 内存 gRPC 走生产 Token 验签，验证先增量后终态、取消/写入失败、不自动重跑、身份/序号与兼容边界；协议与页面用例的实际运行结果见最新执行记录 | 真实部署/代理/供应商验收、全链路日志均已脱敏，或尚未运行的交互用例已经通过 |
+| [保留库真实浏览器](../web-ui/tests-local/agent-retained.spec.ts)、[显式配置保护](../web-ui/tests/agent-local-config.spec.ts) | 获准本机库的真实 Auth 登录、匿名拒绝、两个普通账号的双向历史隔离、页面 SSE 写入/刷新/重放；配置拒绝规则另用合成输入验证 | loopback 白名单自动保证上游配置安全、真实模型/商城/交易/管理权限或部署代理验收、日志已全面脱敏 |
 | [分段预算/记录器](../services/rpc/agent/internal/runtrace/recorder_test.go)、[Service 预算](../services/rpc/agent/internal/agent/recommend/service_budget_test.go)、[模型用量](../services/rpc/agent/internal/agent/recommend/llm/stream_usage_test.go)、[RPC 汇总](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_trace_test.go) | 短期限预留、持锁值保留、迟到结果拒绝、提交后取消、累计 Usage 去重与 unknown、并发隔离/冻结、汇总日志无敏感正文、重放不产生新用量 | 真实账单/供应商完成标记、页面首 Token 时延、第三方任务被强杀或真实 DB/代理故障已验收 |
 | [Redis 租约故障](../services/rpc/agent/internal/memory/redis_fault_test.go)、[共享存储 RPC 矩阵](../services/rpc/agent/internal/logic/recommendservice/recommend_fault_matrix_test.go)、[两级缓存故障](../services/rpc/agent/internal/memory/tiered_fault_test.go) | 两个独立 Service 的同轮重放、跨用户/会话隔离与删除顺序；过期/替换锁不得写入或误删后继锁，WATCH 连接丢失不裸重试；缓存失效失败不掩盖 durable 提交边界 | 真实多进程/数据库、Redis 切主/Cluster、真实滚动回滚、缓存替身代表 PostgreSQL 事务，或所有写实例已升级 |
 | [真实存储多进程矩阵](../services/rpc/agent/internal/storageacceptance/matrix_test.go)、[重启/恢复重放](../services/rpc/agent/internal/storageacceptance/recovery_test.go)、[运行器保护测试](../scripts/test_agent_storage_acceptance.py) | 用户授权的新建 PG/Redis 单节点上验证多进程存储边界、异常停止后重放和新 PG 数据目录恢复；只持有所建进程句柄，忽略原部署 DSN，实际版本/运行记录见 M6.2b | 已收紧现有数据库角色、完成生产权限/ACL 恢复、外部模型/部署流式联合验收、Cluster/切主/掉电或实际版本回滚 |
