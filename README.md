@@ -78,13 +78,15 @@ BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原�
 ### 2. 配置环境变量
 
 ```bash
-cp .env.example .env
+[ -f .env ] || cp .env.example .env
 ```
 
 编辑 `.env` 填入你的真实密钥。必要变量：
 
 | 变量 | 说明 |
 |------|------|
+| `DATABASE_DSN` | 宿主服务使用的本机 Docker PostgreSQL 连接，按实际端口/账号填写 |
+| `REDIS_ADDRESS` / `REDIS_PASSWORD` | 本机 Docker Redis 地址和密码；不复用生产配置 |
 | `JWT_SECRET` | JWT 签名密钥，建议 ≥ 32 位随机字符串 |
 | `EMAIL_FROM` | 发件邮箱（如 QQ 邮箱） |
 | `EMAIL_PASSWORD` | 邮箱 SMTP 授权码 |
@@ -95,6 +97,8 @@ cp .env.example .env
 | `LLM_API_KEY` | 模型 API 密钥 |
 
 > 完整密钥说明见 [密钥配置指南](SECRETS.md)。`.env` 已加入 `.gitignore`，不会提交到仓库。
+
+已有 Docker 数据时，先核对容器、卷和镜像，不要直接用示例覆盖 `.env`。本机已复用原有卷，实际 PostgreSQL 端口为 **5432**（模板默认仍为 15432），详细映射、独立测试库和向量扩展见 [本地 Docker 数据源](docs/local-data.md)。生产使用独立外部数据库，见 [VPS 部署](docs/deployment-vps.md)。下面的模型验收段落为历史记录，不代表当前数据源仍使用历史测试库。
 
 Flash 的非思考设置现由应用传给 SDK，不再依赖验收代理补字段。旧 `.env` 不会随模板自动更新，切换模型时须一起核对 `LLM_MODEL` 与 `LLM_THINKING`；配置缺失/不支持时在数据库等外部依赖初始化前拒绝启动。`LLM_PROVIDER` 留空仍关闭模型。示例、兼容与回退边界见 [Flash 配置迁移说明](docs/agent.md#1114-m63b-flash-正式配置接入与离线迁移检查)。用户授权后，本机 `.env` 已同步并完成一次真实 SDK 最小请求，测试 DSN 改用独立低权限测试库；不提交 `.env`，部署 Secret 未改，具体范围见 [实际配置验收](docs/agent.md#1115-m63b-env-同步与真实配置验收)。
 
