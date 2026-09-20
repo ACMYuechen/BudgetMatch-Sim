@@ -6,7 +6,6 @@ package llm
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -28,24 +27,24 @@ const (
 //   - Provider 为 openai 时返回 eino-ext 官方 OpenAI ChatModel；
 //   - 其他 Provider 暂不支持，返回错误。
 //
-// 该模型由 eino-ext 维护，原生支持真流式、重试和 Azure，业务侧无需再造 HTTP 客户端。
+// 沿用已锁定的 SDK；不在此添加 HTTP 重试、自动模型名映射或任意额外请求参数。
 func NewChatModel(ctx context.Context, c modelconfig.Config) (model.ToolCallingChatModel, error) {
-	switch c.ProviderName() {
-	case "noop":
-		return nil, nil
-	case "openai":
-		if strings.TrimSpace(c.APIKey) == "" {
-			return nil, fmt.Errorf("openai api key is required when model provider is openai")
-		}
-		return openai.NewChatModel(ctx, &openai.ChatModelConfig{
-			APIKey:  c.APIKey,
-			Model:   modelName(c.Model),
-			BaseURL: modelconfig.NormalizeBaseURL(c.BaseURL),
-			Timeout: requestTimeout,
-		})
-	default:
-		return nil, fmt.Errorf("unsupported model provider %q", c.Provider)
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
+	if !c.Enabled() {
+		return nil, nil
+	}
+	cfg := &openai.ChatModelConfig{
+		APIKey:  c.APIKey,
+		Model:   modelName(c.Model),
+		BaseURL: modelconfig.NormalizeBaseURL(c.BaseURL),
+		Timeout: requestTimeout,
+	}
+	if strings.TrimSpace(c.Thinking) == "disabled" {
+		cfg.ExtraFields = map[string]any{"thinking": map[string]any{"type": "disabled"}}
+	}
+	return openai.NewChatModel(ctx, cfg)
 }
 
 // modelName 返回有效的模型名，未配置时回落到默认模型。
@@ -55,4 +54,3 @@ func modelName(name string) string {
 	}
 	return defaultModel
 }
-

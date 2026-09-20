@@ -58,6 +58,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err := c.ValidateIndexAuth(); err != nil {
 		panic(err)
 	}
+	if err := c.Model.Validate(); err != nil {
+		panic(err)
+	}
 	var mallClient productservice.ProductService
 	if c.MallConfigured() {
 		mallClient = productservice.NewProductService(zrpc.MustNewClient(c.MallRpc,
