@@ -29,6 +29,7 @@ func run(args []string, out, stderr io.Writer, execute executor) int {
 	fs.StringVar(&o.ExpectedDB, "expect-db", "", "independently confirmed database name; must match source")
 	fs.BoolVar(&o.AllowLocal, "allow-local-dev-db", false, "confirm access to selected local development database")
 	fs.BoolVar(&o.WriteDemo, "write-demo", false, "retain two marked local-rule/mock-product turns (default: read-only preflight)")
+	fs.BoolVar(&o.VerifyDemo, "verify-demo", false, "read-only check of an existing demo; never creates, repairs or replays writes")
 	fs.StringVar(&o.UserID, "user-id", "", "existing enabled account that will own demo history; not a username")
 	fs.StringVar(&o.RunID, "run-id", "", "stable demo namespace; same ID replays, different IDs create new histories")
 	fs.StringVar(&reportPath, "report", "", "optional new private JSON report; refuses to overwrite existing files")

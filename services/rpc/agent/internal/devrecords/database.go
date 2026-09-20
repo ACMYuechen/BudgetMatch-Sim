@@ -28,6 +28,7 @@ type Report struct {
 	UserReady         bool                   `json:"user_ready"`
 	Tables            map[string]TableReport `json:"tables,omitempty"`
 	Demo              *DemoReport            `json:"demo,omitempty"`
+	Verification      *VerificationReport    `json:"verification,omitempty"`
 	Error             string                 `json:"error,omitempty"`
 }
 
@@ -102,8 +103,9 @@ func (s lockedTransactionStore) WithConversationLock(ctx context.Context, user, 
 	return fn(ctx)
 }
 
-func persistDemo(ctx context.Context, db *gorm.DB, o Options) (*DemoReport, error) {
+func persistDemo(ctx context.Context, db *gorm.DB, o Options) (*DemoReport, demoSnapshot, error) {
 	var demo *DemoReport
+	var snapshot demoSnapshot
 	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var user struct{ ID string }
 		// Keep the selected enabled account stable until commit. Never create an
@@ -120,14 +122,21 @@ func persistDemo(ctx context.Context, db *gorm.DB, o Options) (*DemoReport, erro
 		store := memory.NewPostgres(tx, memory.Conf{})
 		var err error
 		demo, err = exercise(ctx, lockedTransactionStore{store, o.UserID, demoInputs(o)[0].ConversationId}, o)
+		if err == nil {
+			var found bool
+			snapshot, found, err = readSnapshot(ctx, store, o)
+			if err == nil && !found {
+				err = errors.New("saved demo is missing before commit")
+			}
+		}
 		return err
 	})
 	if err != nil {
 		// A commit acknowledgement may be lost. Do not claim zero writes for all
 		// driver failures; stable IDs allow a checked replay after inspection.
-		return nil, errors.New("demo transaction did not confirm success; inspect availability and retry the same IDs (commit outcome may be unknown)")
+		return nil, demoSnapshot{}, errors.New("demo transaction did not confirm success; inspect availability and verify the same IDs (commit outcome may be unknown)")
 	}
-	return demo, nil
+	return demo, snapshot, nil
 }
 
 // Run defaults to preflight. Write mode opens a separate connection only after
@@ -154,22 +163,64 @@ func Run(ctx context.Context, o Options, environ []string) (report Report, err e
 	if err != nil {
 		return report, err
 	}
-	if !o.WriteDemo {
+	if !o.WriteDemo && !o.VerifyDemo {
 		report.Status = "preflight_only"
 		return report, nil
 	}
-	if !report.SchemaReady || !report.UserReady {
-		return report, errors.New("write refused: existing conversation schema and enabled selected user are required; no automatic migration or account creation")
-	}
-	db, pool, err = openDatabase(ctx, c, false)
-	if err != nil {
+	if err := demoPrerequisites(o, report); err != nil {
 		return report, err
 	}
-	defer pool.Close()
-	report.Demo, err = persistDemo(ctx, db, o)
-	if err != nil {
+	if o.VerifyDemo {
+		report.Verification, err = verifyConnection(ctx, c, o, nil)
+		if err == nil {
+			report.Status = "demo_verified"
+		}
 		return report, err
+	}
+	err = retainAndVerify(ctx, c, o, &report, openDatabase)
+	return report, err
+}
+
+func demoPrerequisites(o Options, report Report) error {
+	if !report.UserReady || !report.Tables["agent_conversations"].Exists || !report.Tables["agent_conversation_turns"].Exists {
+		return errors.New("demo mode refused: existing conversation tables and enabled selected user are required; no automatic migration or account creation")
+	}
+	// GORM's FK check uses information_schema.table_constraints, which can
+	// hide constraints from SELECT-only roles. Read verification validates the
+	// actual full snapshot; only writes require the production write schema.
+	if o.WriteDemo && !report.SchemaReady {
+		return errors.New("write refused: existing conversation schema must pass all production checks; no automatic migration")
+	}
+	return nil
+}
+
+type databaseOpener func(context.Context, connection, bool) (*gorm.DB, *sql.DB, error)
+
+// The opener is explicit to test that the writer is closed before verification
+// and that a failed independent read cannot be reported as retained success.
+func retainAndVerify(ctx context.Context, c connection, o Options, report *Report, open databaseOpener) error {
+	db, pool, err := open(ctx, c, false)
+	if err != nil {
+		return err
+	}
+	var committed demoSnapshot
+	report.Demo, committed, err = persistDemo(ctx, db, o)
+	_ = pool.Close()
+	if err != nil {
+		return err
+	}
+	// A successful COMMIT is distinct from checking the retained data. Close
+	// the writer before opening a new read-only pool; no cached/transaction-local
+	// result can satisfy this check. Never undo a confirmed commit on failure.
+	report.Status = "demo_committed_unverified"
+	db, pool, err = open(ctx, c, true)
+	if err == nil {
+		report.Verification, err = verifyDemo(ctx, db, o, &committed)
+		_ = pool.Close()
+	}
+	if err != nil {
+		return errors.New("demo commit succeeded but independent read-only verification failed; records were not removed; use -verify-demo with the same IDs")
 	}
 	report.Status = "demo_retained"
-	return report, nil
+	return nil
 }

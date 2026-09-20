@@ -21,7 +21,7 @@ import (
 // used; ExpectedDB is an independent confirmation, not a database override.
 type Options struct {
 	EnvFile, DSNKey, ConfigFile, ExpectedDB string
-	AllowLocal, WriteDemo                   bool
+	AllowLocal, WriteDemo, VerifyDemo       bool
 	UserID, RunID                           string
 }
 
@@ -48,11 +48,14 @@ func (o Options) Validate() error {
 	if o.UserID != "" && !identifier.MatchString(o.UserID) {
 		return errors.New("-user-id must contain 1..128 letters, digits, underscores or hyphens")
 	}
-	if o.WriteDemo && (o.UserID == "" || !runID.MatchString(o.RunID)) {
-		return errors.New("-write-demo requires an existing -user-id and a 1..48 character lowercase -run-id")
+	if o.WriteDemo && o.VerifyDemo {
+		return errors.New("select only one of -write-demo and -verify-demo")
 	}
-	if !o.WriteDemo && o.RunID != "" {
-		return errors.New("-run-id is only used with -write-demo")
+	if (o.WriteDemo || o.VerifyDemo) && (o.UserID == "" || !runID.MatchString(o.RunID)) {
+		return errors.New("demo mode requires an existing -user-id and a 1..48 character lowercase -run-id")
+	}
+	if !o.WriteDemo && !o.VerifyDemo && o.RunID != "" {
+		return errors.New("-run-id is only used with -write-demo or -verify-demo")
 	}
 	return nil
 }
