@@ -33,10 +33,11 @@ type Source interface {
 }
 
 type Executor struct {
-	source  Source
-	catalog *demand.Catalog
-	search  *beam.Selector
-	mall    bool
+	source        Source
+	catalog       *demand.Catalog
+	search        *beam.Selector
+	mall          bool
+	mallRetrieval bool
 }
 
 func New(source Source, catalog *demand.Catalog, config beam.Config) (*Executor, error) {
@@ -197,6 +198,9 @@ func (e *Executor) validateBatch(window []agent.ProductCandidate, batch Batch, s
 			}
 			// Classification may change. The final selection binds a NEW catalog.
 			c.Category, c.Source = c.Evidence.DemandCategory.Code, "mall"
+			if c.Evidence.Source == agent.RetrievalMallVector {
+				c.Source = "mall+rag"
+			}
 		} else {
 			c.Category, c.Source = string(e.catalog.Classify(c).Category), "synthetic_demo"
 		}
@@ -214,7 +218,7 @@ func (e *Executor) validateBatch(window []agent.ProductCandidate, batch Batch, s
 
 func (e *Executor) validEvidence(c agent.ProductCandidate) bool {
 	if e.mall {
-		return c.Evidence.Source == agent.RetrievalMallKeyword && c.Evidence.State == agent.VerificationChecked &&
+		return (c.Evidence.Source == agent.RetrievalMallKeyword || e.mallRetrieval && c.Evidence.Source == agent.RetrievalMallVector) && c.Evidence.State == agent.VerificationChecked &&
 			candidatecontract.ValidDemandCategoryFact(c.Evidence.DemandCategory.Code, c.Evidence.DemandCategory.TaxonomyVersion, c.Evidence.DemandCategory.Revision)
 	}
 	return c.Evidence.Source == agent.RetrievalDemo && c.Evidence.State == agent.VerificationDemo

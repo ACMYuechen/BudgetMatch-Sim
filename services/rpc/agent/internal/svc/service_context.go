@@ -75,7 +75,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	mem := newMemoryManager(c, conn)
 	productProvider := newProductProvider(mallClient)
-	productProvider, syncer := maybeEnableRAG(c, mallClient, productProvider, conn)
+	productProvider, vectorRetriever, syncer := maybeEnableRAG(c, mallClient, productProvider, conn)
 
 	bundleSelector := recommend.NewBundleSelector()
 
@@ -83,7 +83,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
 	service := recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient))
-	executor, err := newDemandExecutor(c.DemandExecution.Mode, mallClient)
+	executor, err := newConfiguredDemandExecutor(c, mallClient, vectorRetriever)
 	if err != nil {
 		panic(safety.Protect(err))
 	}
@@ -99,6 +99,30 @@ func NewServiceContext(c config.Config) *ServiceContext {
 }
 
 // Pure wiring, also exercised by the authenticated in-process RPC regression.
+func newConfiguredDemandExecutor(c config.Config, client productservice.ProductService, vector retriever.Retriever) (*demandexec.Executor, error) {
+	if err := c.ValidateDemandExecution(); err != nil {
+		return nil, err
+	}
+	if c.DemandExecution.Mode != "mall" || c.DemandExecution.Retrieval != "rag" {
+		return newDemandExecutor(c.DemandExecution.Mode, client)
+	}
+	if vector == nil || client == nil {
+		return nil, agentcore.ErrDemandNotExecutable
+	}
+	keyword := tools.NewMallProductProvider(client)
+	var provider tools.ProductProvider
+	var err error
+	if c.RAG.Retrieval.Normalize().Strategy == rag.StrategyHybridRRF {
+		provider, err = tools.NewHybridProductProvider(vector, keyword, c.RAG)
+	} else {
+		provider, err = tools.NewBoundedRAGProductProvider(vector, keyword, c.RAG)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return demandexec.NewMallRetrieval(provider, client)
+}
+
 func newDemandExecutor(mode string, client productservice.ProductService) (*demandexec.Executor, error) {
 	switch mode {
 	case "", "disabled":
@@ -149,14 +173,14 @@ func newProductProvider(mallClient productservice.ProductService) tools.ProductP
 // 并按显式策略装配 provider；默认仍是"向量优先、关键词回退"。
 // 依赖不齐时原样返回入参 provider，并说明缺了什么。
 func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
-	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, *rag.Syncer) {
+	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, retriever.Retriever, *rag.Syncer) {
 	if !c.RAGConfigured() {
 		logx.Infow("rag disabled",
 			logx.Field("database", conn != nil),
 			logx.Field("embedding", c.Embedding.Enabled()),
 			logx.Field("mall", mallClient != nil),
 		)
-		return fallback, nil
+		return fallback, nil, nil
 	}
 
 	if conn == nil {
@@ -186,7 +210,8 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 		panic(safety.Protect(err))
 	}
 
-	provider, err := newRAGProvider(c.RAG, rag.NewRetriever(store), fallback)
+	vectorRetriever := rag.NewRetriever(store)
+	provider, err := newRAGProvider(c.RAG, vectorRetriever, fallback)
 	if err != nil {
 		panic(safety.Protect(err))
 	}
@@ -195,7 +220,7 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	proc.AddShutdownListener(syncer.Stop)
 
 	logx.Info("rag enabled: semantic product retrieval over pgvector")
-	return provider, syncer
+	return provider, vectorRetriever, syncer
 }
 
 // newRAGProvider is a no-I/O strategy selector, also used by config regressions.

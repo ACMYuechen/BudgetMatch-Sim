@@ -24,9 +24,24 @@ func NewMall(provider tools.RankedProductProvider, client tools.CandidateCheckCl
 	return &Executor{source: &mallSource{provider: provider, verifier: tools.NewMallDemandVerifier(client)}, search: selector, mall: true}, nil
 }
 
+// NewMallRetrieval explicitly admits vector/RRF evidence from the configured
+// bounded provider. Every category, price and stock fact still comes from Mall.
+func NewMallRetrieval(provider tools.ProductProvider, client tools.CandidateCheckClient) (*Executor, error) {
+	if provider == nil || client == nil {
+		return nil, agent.ErrInvalidInput
+	}
+	selector, err := beam.New(beam.Config{MaxCandidates: candidatecontract.MaxCandidates})
+	if err != nil {
+		return nil, err
+	}
+	return &Executor{source: &mallSource{retrieval: provider, verifier: tools.NewMallDemandVerifier(client)},
+		search: selector, mall: true, mallRetrieval: true}, nil
+}
+
 type mallSource struct {
-	provider tools.RankedProductProvider
-	verifier *tools.MallCandidateVerifier
+	provider  tools.RankedProductProvider
+	retrieval tools.ProductProvider
+	verifier  *tools.MallCandidateVerifier
 }
 
 // Terms are retrieval hints, NEVER category proof. Required terms have priority;
@@ -48,8 +63,31 @@ func mallSearchRequest(intent agent.Intent) tools.SearchProductsReq {
 		BudgetCents: intent.BudgetCents, MaxItems: intent.MaxItems}
 }
 
+func mallRetrievalRequest(intent agent.Intent) tools.SearchProductsReq {
+	req := mallSearchRequest(intent)
+	seen := map[string]bool{}
+	terms := make([]string, 0, min(len(req.Keywords), agent.MaxKeywords))
+	for _, term := range req.Keywords {
+		term = strings.TrimSpace(term)
+		if term != "" && !seen[term] && len(terms) < agent.MaxKeywords {
+			terms = append(terms, term)
+			seen[term] = true
+		}
+	}
+	req.Keywords = terms
+	query := []rune(strings.Join(terms, " "))
+	req.Query = string(query[:min(len(query), agent.MaxQueryRunes)])
+	return req
+}
+
 func (s *mallSource) Search(ctx context.Context, intent agent.Intent) ([]agent.ProductCandidate, error) {
-	raw, err := s.provider.SearchRankedProducts(ctx, mallSearchRequest(intent), candidatecontract.MaxCandidates)
+	var raw []agent.ProductCandidate
+	var err error
+	if s.retrieval != nil {
+		raw, err = s.retrieval.SearchProducts(ctx, mallRetrievalRequest(intent))
+	} else {
+		raw, err = s.provider.SearchRankedProducts(ctx, mallSearchRequest(intent), candidatecontract.MaxCandidates)
+	}
 	if stopped := ctx.Err(); stopped != nil {
 		return nil, stopped
 	}
@@ -64,7 +102,8 @@ func (s *mallSource) Search(ctx context.Context, intent agent.Intent) ([]agent.P
 	positions := map[string]int{}
 	candidates := make([]agent.ProductCandidate, 0, len(raw))
 	for _, c := range raw {
-		if c.Evidence.Source != agent.RetrievalMallKeyword || c.Evidence.State == agent.VerificationDemo || !candidatecontract.ValidID(c.Evidence.ProductID) {
+		allowedSource := c.Evidence.Source == agent.RetrievalMallKeyword || s.retrieval != nil && c.Evidence.Source == agent.RetrievalMallVector
+		if !allowedSource || c.Evidence.State == agent.VerificationDemo || !candidatecontract.ValidID(c.Evidence.ProductID) {
 			return nil, agent.ErrUnsafeResult
 		}
 		c = cloneCandidates([]agent.ProductCandidate{c})[0]

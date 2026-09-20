@@ -42,7 +42,8 @@ type Config struct {
 }
 
 type DemandExecutionConfig struct {
-	Mode string `json:"mode,optional"` // empty/disabled, isolated demo, or explicit mall.
+	Mode      string `json:"mode,optional"`      // empty/disabled, isolated demo, or explicit mall.
+	Retrieval string `json:"retrieval,optional"` // empty/keyword preserves baseline; rag explicitly shares RAG strategy.
 }
 
 // RPCAuthConfig shares the ordinary user policy across unary and streaming
@@ -56,15 +57,21 @@ func (c Config) RPCAuthConfig() interceptor.AuthConfig {
 
 // ValidateDemandExecution must run before any external clients or database I/O.
 func (c Config) ValidateDemandExecution() error {
+	if c.DemandExecution.Retrieval != "" && c.DemandExecution.Retrieval != "keyword" && c.DemandExecution.Retrieval != "rag" {
+		return fmt.Errorf("unsupported demand retrieval mode")
+	}
 	switch c.DemandExecution.Mode {
 	case "", "disabled":
 		return nil
 	case "demo":
-		if !c.MallConfigured() {
+		if !c.MallConfigured() && c.DemandExecution.Retrieval != "rag" {
 			return nil
 		}
 	case "mall":
 		if c.MallConfigured() {
+			if c.DemandExecution.Retrieval == "rag" && (!c.RAGConfigured() || c.RAG.TopK < 0 || c.RAG.Normalize().TopK > rag.MaxHybridOutput) {
+				return fmt.Errorf("demand rag retrieval requires Mall, database, embedding and TopK within 1..32")
+			}
 			return nil
 		}
 	}
