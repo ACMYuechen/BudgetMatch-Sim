@@ -205,12 +205,17 @@ def render(root, settings, backend_image, web_image, sealed_secret=None):
             },
         })
         environment = []
-        for key in sorted(set(re.findall(r"\$\{([A-Z][A-Z0-9_]*)\}", config_text)) - set(PUBLIC_ENV)):
+        env_keys = set(re.findall(r"\$\{([A-Z][A-Z0-9_]*)\}", config_text)) - set(PUBLIC_ENV)
+        if name == "agent-rpc" and "Dimensions" not in options.get("config", {}).get("Embedding", {}):
+            # Bound by go-zero's env tag, not a YAML string placeholder: this
+            # preserves a numeric legacy default when old Secrets omit the key.
+            env_keys.add("EMBEDDING_DIMENSIONS")
+        for key in sorted(env_keys):
             secret_name = "alipay" if name == "payment-rpc" and sealed_checksum and key in ALIPAY_KEYS else runtime_secret
             reference = {"name": secret_name, "key": key}
-            if name == "agent-rpc" and key == "LLM_THINKING":
-                # Old non-Flash/noop configurations need no new Secret key.
-                # Flash still requires an explicit value in application validation.
+            if name == "agent-rpc" and key in {"LLM_THINKING", "EMBEDDING_DIMENSIONS"}:
+                # Preserve old Secrets: absent embedding dimensions use 1536.
+                # Flash/BGE-M3 still require their explicit settings in validation.
                 reference["optional"] = True
             environment.append({"name": key, "valueFrom": {"secretKeyRef": reference}})
         container["env"] = environment + [{"name": key, "value": value} for key, value in PUBLIC_ENV.items()]

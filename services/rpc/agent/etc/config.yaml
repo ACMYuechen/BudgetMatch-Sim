@@ -6,6 +6,7 @@ Timeout: 60000
 # mall 模式要求新版 Mall 分类核验契约及已审核的独立分类表；不自动迁移/回填。
 DemandExecution:
   Mode: disabled
+  Retrieval: keyword # 默认有界关键词；rag 显式复用 RAG.Retrieval.Strategy，要求完整 RAG 依赖且 TopK <= 32
 
 # 链路追踪；Name 非空即开启，trace_id / span_id 自动注入日志
 Telemetry:
@@ -35,7 +36,7 @@ Embedding:
   Model: "${EMBEDDING_MODEL}"        # 如 text-embedding-3-small
   BaseURL: "${EMBEDDING_BASE_URL}"
   APIKey: "${EMBEDDING_API_KEY}"
-  Dimensions: 1536                   # 维度/模型身份与索引不匹配时拒绝启动；不自动删表重建
+  Dimensions: 1536                   # EMBEDDING_DIMENSIONS 环境变量优先；BGE-M3 必须为 1024。索引不匹配时拒绝
 
 # Agent 会话与商品向量表所在库（复用主库）。
 # 配置 DSN 后，会话完整历史长期保存到 PostgreSQL；DSN 留空时才降级到 Redis/InMemory。
