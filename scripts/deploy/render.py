@@ -207,7 +207,12 @@ def render(root, settings, backend_image, web_image, sealed_secret=None):
         environment = []
         for key in sorted(set(re.findall(r"\$\{([A-Z][A-Z0-9_]*)\}", config_text)) - set(PUBLIC_ENV)):
             secret_name = "alipay" if name == "payment-rpc" and sealed_checksum and key in ALIPAY_KEYS else runtime_secret
-            environment.append({"name": key, "valueFrom": {"secretKeyRef": {"name": secret_name, "key": key}}})
+            reference = {"name": secret_name, "key": key}
+            if name == "agent-rpc" and key == "LLM_THINKING":
+                # Old non-Flash/noop configurations need no new Secret key.
+                # Flash still requires an explicit value in application validation.
+                reference["optional"] = True
+            environment.append({"name": key, "valueFrom": {"secretKeyRef": reference}})
         container["env"] = environment + [{"name": key, "value": value} for key, value in PUBLIC_ENV.items()]
         pod["securityContext"] = {"runAsUser": 1000, "runAsGroup": 1000, "runAsNonRoot": True, "fsGroup": 1000}
         if settings.get("imagePullSecrets"):

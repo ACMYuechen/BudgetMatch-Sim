@@ -195,6 +195,7 @@ services:
       # LLM 与 Embedding 密钥来自宿主 .env；留空时分别降级为规则推荐 / 关键词检索
       - LLM_PROVIDER=${LLM_PROVIDER:-}
       - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_THINKING=${LLM_THINKING:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}

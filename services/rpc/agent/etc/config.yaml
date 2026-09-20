@@ -23,7 +23,8 @@ JwtAuth:
 
 Model:
   Provider: "${LLM_PROVIDER}"      # 如 openai（OpenAI 兼容接口均可）
-  Model: "${LLM_MODEL}"            # 如 gpt-4.1-mini / deepseek-chat
+  Model: "${LLM_MODEL}"            # 如 gpt-4.1-mini / deepseek-flash；不自动转换旧模型名
+  Thinking: "${LLM_THINKING}"      # Flash 必须显式为 disabled；其他模型留空
   BaseURL: "${LLM_BASE_URL}"       # 如 https://api.openai.com/v1 或 https://api.deepseek.com/v1
   APIKey: "${LLM_API_KEY}"         # 模型服务 API 密钥
 
