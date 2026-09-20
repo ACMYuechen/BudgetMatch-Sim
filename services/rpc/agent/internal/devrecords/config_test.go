@@ -32,6 +32,7 @@ func TestOptionsRequireExplicitTargetAndWriteSelection(t *testing.T) {
 		"unsafe run id":       func(o *Options) { o.RunID = "../existing" },
 		"long run id":         func(o *Options) { o.RunID = strings.Repeat("a", 49) },
 		"ambiguous read mode": func(o *Options) { o.WriteDemo = false },
+		"two demo modes":      func(o *Options) { o.VerifyDemo = true },
 	} {
 		t.Run(name, func(t *testing.T) { o := validOptions(); mutate(&o); require.Error(t, o.Validate()) })
 	}
@@ -39,6 +40,17 @@ func TestOptionsRequireExplicitTargetAndWriteSelection(t *testing.T) {
 	require.NoError(t, o.Validate())
 	o.WriteDemo, o.RunID, o.UserID = false, "", ""
 	require.NoError(t, o.Validate())
+}
+
+func TestVerifyModeRequiresIdentityWithoutWritePermission(t *testing.T) {
+	o := validOptions()
+	o.WriteDemo, o.VerifyDemo = false, true
+	require.NoError(t, o.Validate())
+	o.UserID = ""
+	require.Error(t, o.Validate())
+	o = validOptions()
+	o.WriteDemo, o.VerifyDemo, o.RunID = false, true, ""
+	require.Error(t, o.Validate())
 }
 
 func TestDSNRejectsImplicitRemoteAndOverrideTargetsWithoutLeakingSecrets(t *testing.T) {

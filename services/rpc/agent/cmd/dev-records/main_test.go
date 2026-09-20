@@ -19,7 +19,9 @@ func baseArgs() []string {
 
 func TestCLIRefusesMissingGrantAmbiguousSourceAndMissingWriteIdentityBeforeExecution(t *testing.T) {
 	for _, args := range [][]string{nil, {"-env", "unused", "-expect-db", "dev_records"},
-		append(baseArgs(), "-config", "second"), append(baseArgs(), "-write-demo"), append(baseArgs(), "extra")} {
+		append(baseArgs(), "-config", "second"), append(baseArgs(), "-write-demo"), append(baseArgs(), "extra"),
+		append(baseArgs(), "-verify-demo"),
+		append(baseArgs(), "-verify-demo", "-write-demo", "-user-id", "demo-user", "-run-id", "demo-001")} {
 		var out, stderr bytes.Buffer
 		called := false
 		code := run(args, &out, &stderr, func(context.Context, devrecords.Options, []string) (devrecords.Report, error) {
@@ -39,6 +41,7 @@ func TestCLIReadOnlyDefaultAndPrivateReportCannotOverwrite(t *testing.T) {
 	exec := func(ctx context.Context, o devrecords.Options, _ []string) (devrecords.Report, error) {
 		calls++
 		require.False(t, o.WriteDemo)
+		require.False(t, o.VerifyDemo)
 		_, ok := ctx.Deadline()
 		require.True(t, ok)
 		return devrecords.Report{Status: "preflight_only"}, nil
@@ -64,4 +67,35 @@ func TestCLIExecutionFailureIsNotReportedAsSuccessfulPreflight(t *testing.T) {
 	})
 	require.Equal(t, 1, code)
 	require.Contains(t, out.String(), "blocked")
+}
+
+func TestCLIVerifyModeNeverSelectsWrites(t *testing.T) {
+	var out, stderr bytes.Buffer
+	args := append(baseArgs(), "-verify-demo", "-user-id", "demo-user", "-run-id", "demo-001")
+	called := false
+	code := run(args, &out, &stderr, func(_ context.Context, o devrecords.Options, _ []string) (devrecords.Report, error) {
+		called = true
+		require.True(t, o.VerifyDemo)
+		require.False(t, o.WriteDemo)
+		require.Equal(t, "demo-user", o.UserID)
+		require.Equal(t, "demo-001", o.RunID)
+		return devrecords.Report{Status: "demo_verified"}, nil
+	})
+	require.True(t, called)
+	require.Zero(t, code)
+	require.Contains(t, out.String(), "demo_verified")
+}
+
+func TestCLIConfirmedCommitWithFailedVerificationIsNotSuccess(t *testing.T) {
+	var out, stderr bytes.Buffer
+	path := filepath.Join(t.TempDir(), "committed-unverified.json")
+	args := append(baseArgs(), "-write-demo", "-user-id", "demo-user", "-run-id", "demo-001", "-report", path)
+	code := run(args, &out, &stderr, func(context.Context, devrecords.Options, []string) (devrecords.Report, error) {
+		return devrecords.Report{Status: "demo_committed_unverified", Demo: &devrecords.DemoReport{Created: true}}, errors.New("verification unavailable")
+	})
+	require.Equal(t, 1, code)
+	require.Contains(t, out.String(), "demo_committed_unverified")
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Equal(t, out.String(), string(data))
 }

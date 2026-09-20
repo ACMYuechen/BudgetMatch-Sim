@@ -21,8 +21,11 @@ import (
 type replayDriver struct {
 	snapshot                               demoSnapshot
 	userPresent, lockAvailable, failCommit bool
+	missing, failBegin, failQuery          bool
 	queries                                []string
 	begins, commits, rollbacks             int
+	options                                []driver.TxOptions
+	closes                                 int
 }
 
 func (d *replayDriver) Connect(context.Context) (driver.Conn, error) { return &replayConn{d}, nil }
@@ -31,22 +34,34 @@ func (d *replayDriver) Open(string) (driver.Conn, error)             { return &r
 
 type replayConn struct{ d *replayDriver }
 
-func (*replayConn) Prepare(string) (driver.Stmt, error)                            { return nil, errors.New("unexpected prepare") }
-func (*replayConn) Close() error                                                   { return nil }
-func (c *replayConn) Begin() (driver.Tx, error)                                    { c.d.begins++; return &replayTx{c.d}, nil }
-func (c *replayConn) BeginTx(context.Context, driver.TxOptions) (driver.Tx, error) { return c.Begin() }
+func (*replayConn) Prepare(string) (driver.Stmt, error) { return nil, errors.New("unexpected prepare") }
+func (c *replayConn) Close() error                      { c.d.closes++; return nil }
+func (c *replayConn) Begin() (driver.Tx, error)         { c.d.begins++; return &replayTx{c.d}, nil }
+func (c *replayConn) BeginTx(_ context.Context, options driver.TxOptions) (driver.Tx, error) {
+	c.d.options = append(c.d.options, options)
+	if c.d.failBegin {
+		return nil, errors.New("synthetic private driver begin error")
+	}
+	return c.Begin()
+}
 func (c *replayConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
 	c.d.queries = append(c.d.queries, query)
 	return nil, errors.New("mutations are forbidden during retained replay")
 }
 func (c *replayConn) QueryContext(_ context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	c.d.queries = append(c.d.queries, query)
+	if c.d.failQuery {
+		return nil, errors.New("synthetic private driver query error")
+	}
 	if !strings.HasPrefix(query, "SELECT ") {
 		return nil, errors.New("unexpected mutation")
 	}
 	s := c.d.snapshot
 	switch {
 	case strings.Contains(query, "FROM public.users"):
+		if strings.Contains(query, "SELECT EXISTS") {
+			return &replayRows{columns: []string{"exists"}, values: [][]driver.Value{{c.d.userPresent}}}, nil
+		}
 		r := &replayRows{columns: []string{"id"}}
 		if c.d.userPresent {
 			r.values = [][]driver.Value{{s.Conversation.UserId}}
@@ -57,8 +72,11 @@ func (c *replayConn) QueryContext(_ context.Context, query string, args []driver
 	case strings.Contains(query, `FROM "agent_conversations"`):
 		state, _ := json.Marshal(s.Conversation.State)
 		v := s.Conversation
-		return &replayRows{columns: []string{"user_id", "conversation_id", "title", "state", "version", "turn_count", "created_at", "updated_at"},
-			values: [][]driver.Value{{v.UserId, v.ConversationId, v.Title, state, v.Version, v.TurnCount, v.CreatedAt, v.UpdatedAt}}}, nil
+		r := &replayRows{columns: []string{"user_id", "conversation_id", "title", "state", "version", "turn_count", "created_at", "updated_at"}}
+		if !c.d.missing && args[0].Value == v.UserId && args[1].Value == v.ConversationId {
+			r.values = [][]driver.Value{{v.UserId, v.ConversationId, v.Title, state, v.Version, v.TurnCount, v.CreatedAt, v.UpdatedAt}}
+		}
+		return r, nil
 	case strings.Contains(query, `count(*) FROM "agent_conversation_turns"`):
 		return &replayRows{columns: []string{"count"}, values: [][]driver.Value{{int64(len(s.Turns))}}}, nil
 	case strings.Contains(query, `FROM "agent_conversation_turns"`):
@@ -119,11 +137,12 @@ func replayDatabase(t *testing.T) (*gorm.DB, *replayDriver) {
 
 func TestDatabaseReplayUsesOneTransactionAndNeverMutates(t *testing.T) {
 	db, d := replayDatabase(t)
-	report, err := persistDemo(t.Context(), db, validOptions())
+	report, snapshot, err := persistDemo(t.Context(), db, validOptions())
 	require.NoError(t, err)
 	require.False(t, report.Created)
 	require.Zero(t, report.ProviderCalls)
 	require.True(t, report.ReplayVerified)
+	require.True(t, sameSnapshot(d.snapshot, snapshot, false))
 	require.Equal(t, 1, d.begins)
 	require.Equal(t, 1, d.commits)
 	require.Zero(t, d.rollbacks)
@@ -148,7 +167,7 @@ func TestDatabaseGuardsRollbackWithoutRepairsAndCommitUncertaintyIsExplicit(t *t
 			case "commit lost":
 				d.failCommit = true
 			}
-			report, err := persistDemo(t.Context(), db, validOptions())
+			report, _, err := persistDemo(t.Context(), db, validOptions())
 			require.ErrorContains(t, err, "commit outcome may be unknown")
 			require.NotContains(t, err.Error(), "private driver")
 			require.Nil(t, report)
