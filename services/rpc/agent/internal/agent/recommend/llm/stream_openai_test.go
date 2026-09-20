@@ -20,8 +20,16 @@ import (
 // Exercise the pinned SDK, not a permissive ToolCallingChatModel stub. No .env,
 // provider credentials or external HTTP endpoints are used by this regression.
 func TestExplanationStreamUsesSDKPerCallEmptyTools(t *testing.T) {
-	for _, bound := range []bool{false, true} {
-		t.Run(fmt.Sprintf("bound=%v", bound), func(t *testing.T) {
+	for _, tc := range []struct {
+		model, thinking string
+		bound           bool
+	}{
+		{model: "local-fixture"},
+		{model: "local-fixture", bound: true},
+		{model: "deepseek-flash", thinking: "disabled"},
+		{model: "deepseek-flash", thinking: "disabled", bound: true},
+	} {
+		t.Run(fmt.Sprintf("model=%s/bound=%v", tc.model, tc.bound), func(t *testing.T) {
 			type wireRequest struct {
 				Messages []struct {
 					Role    string `json:"role"`
@@ -31,6 +39,7 @@ func TestExplanationStreamUsesSDKPerCallEmptyTools(t *testing.T) {
 				ToolChoice string            `json:"tool_choice"`
 				MaxTokens  int               `json:"max_tokens"`
 				Stream     bool              `json:"stream"`
+				Thinking   json.RawMessage   `json:"thinking"`
 			}
 			requests := make(chan wireRequest, 2)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,11 +60,12 @@ func TestExplanationStreamUsesSDKPerCallEmptyTools(t *testing.T) {
 			}))
 			defer server.Close()
 			base, err := NewChatModel(context.Background(), modelconfig.Config{
-				Provider: "openai", Model: "local-fixture", BaseURL: server.URL + "/v1", APIKey: "local-fixture-key",
+				Provider: "openai", Model: tc.model, Thinking: tc.thinking,
+				BaseURL: server.URL + "/v1", APIKey: "local-fixture-key",
 			})
 			require.NoError(t, err)
 			runner := newBoundedStreamModel(base, 1000)
-			if bound {
+			if tc.bound {
 				withTools, err := runner.WithTools([]*schema.ToolInfo{{Name: "private_tool", Desc: strings.Repeat("private description", 1000)}})
 				require.NoError(t, err)
 				runner = withTools.(*boundedStreamModel)
@@ -73,6 +83,11 @@ func TestExplanationStreamUsesSDKPerCallEmptyTools(t *testing.T) {
 			require.Len(t, requests, 1)
 			request := <-requests
 			require.True(t, request.Stream)
+			if tc.thinking != "" {
+				require.JSONEq(t, `{"type":"disabled"}`, string(request.Thinking))
+			} else {
+				require.Empty(t, request.Thinking)
+			}
 			require.Empty(t, request.Tools, "pre-bound schemas must not cross the numeric explanation boundary")
 			require.Equal(t, "none", request.ToolChoice)
 			require.Equal(t, 512, request.MaxTokens)

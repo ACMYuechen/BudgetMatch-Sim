@@ -149,6 +149,25 @@ test('guard forwards genuine bytes with private key replacement and settles only
   assert.equal(JSON.stringify(f.guard.snapshot()).includes('fake-provider-key'), false);
 });
 
+test('explicit non-thinking application config remains compatible with the guard', async (t) => {
+  const f = await fixture(t, (_, res) => { res.writeHead(200, { 'Content-Type': 'text/event-stream' }); res.end(complete); });
+  for (const thinking of [null, [], {}, 'disabled', { type: 'enabled' }, { type: 'disabled', budget_tokens: 10 }]) {
+    const response = await f.post({ ...input(), thinking });
+    assert.equal(response.status, 403);
+    await response.text();
+  }
+  assert.equal(f.ledger.snapshot().calls, 0);
+  assert.equal(f.seen.length, 0);
+  const response = await f.post({ ...input(), thinking: { type: 'disabled' } });
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), complete);
+  assert.equal(f.seen.length, 1);
+  assert.deepEqual(f.seen[0].body.thinking, { type: 'disabled' });
+  assert.equal(f.ledger.snapshot().calls, 1);
+  assert.equal(f.ledger.snapshot().unknown_calls, 0);
+  assert.equal(f.ledger.snapshot().held_micro_cny, 280);
+});
+
 test('unauthenticated and out-of-scope requests make no upstream calls', async (t) => {
   const f = await fixture(t, (_, res) => res.end());
   assert.equal((await f.post(input(), {})).status, 403);
