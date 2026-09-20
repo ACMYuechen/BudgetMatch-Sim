@@ -119,7 +119,7 @@ type proxyCloseoutHarness struct {
 	writeTimeout           chan struct{}
 }
 
-func newProxyCloseoutHarness(t *testing.T, mode string) *proxyCloseoutHarness {
+func newProxyCloseoutGatewayHarness(t *testing.T, mode string) *proxyCloseoutHarness {
 	t.Helper()
 	const secret = "synthetic-proxy-closeout-secret"
 	h := &proxyCloseoutHarness{
@@ -166,7 +166,16 @@ func newProxyCloseoutHarness(t *testing.T, mode string) *proxyCloseoutHarness {
 	}
 	gateway.Start()
 	t.Cleanup(func() { gateway.CloseClientConnections(); gateway.Close() })
-	target, err := url.Parse(gateway.URL)
+	h.client = &http.Client{Transport: &http.Transport{DisableKeepAlives: true, DisableCompression: true}}
+	t.Cleanup(h.client.CloseIdleConnections)
+	h.url = gateway.URL
+	return h
+}
+
+func newProxyCloseoutHarness(t *testing.T, mode string) *proxyCloseoutHarness {
+	t.Helper()
+	h := newProxyCloseoutGatewayHarness(t, mode)
+	target, err := url.Parse(h.url)
 	require.NoError(t, err)
 	transport := &http.Transport{DisableKeepAlives: true, DisableCompression: true,
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -204,8 +213,6 @@ func newProxyCloseoutHarness(t *testing.T, mode string) *proxyCloseoutHarness {
 		reverse.ServeHTTP(w, r)
 	}))
 	t.Cleanup(func() { proxy.CloseClientConnections(); proxy.Close() })
-	h.client = &http.Client{Transport: &http.Transport{DisableKeepAlives: true, DisableCompression: true}}
-	t.Cleanup(h.client.CloseIdleConnections)
 	h.url = proxy.URL
 	return h
 }
