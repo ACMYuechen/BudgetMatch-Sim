@@ -41,9 +41,12 @@ class AgentModelConfigTests(unittest.TestCase):
         self.assertEqual(refs["LLM_THINKING"], {
             "name": self.settings["runtimeSecret"], "key": "LLM_THINKING", "optional": True,
         })
+        self.assertEqual(refs["EMBEDDING_DIMENSIONS"], {
+            "name": self.settings["runtimeSecret"], "key": "EMBEDDING_DIMENSIONS", "optional": True,
+        })
         self.assertIn("LLM_API_KEY", refs)
         for name, ref in refs.items():
-            if name != "LLM_THINKING":
+            if name not in {"LLM_THINKING", "EMBEDDING_DIMENSIONS"}:
                 self.assertFalse(ref.get("optional", False), name)
 
     def test_other_services_do_not_receive_thinking(self):
@@ -75,6 +78,34 @@ class AgentModelConfigTests(unittest.TestCase):
         model_env = next(env for env in environments if "LLM_MODEL=${LLM_MODEL:-}" in env)
         self.assertIn("LLM_THINKING=${LLM_THINKING:-}", model_env)
         self.assertIn("LLM_API_KEY=${LLM_API_KEY:-}", model_env)
+        self.assertIn("EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1536}", model_env)
+
+    def test_embedding_dimension_override_and_model_identity(self):
+        config_map, before = self.agent_resources()
+        config = yaml.safe_load(config_map["data"]["config.yaml"])
+        self.assertEqual(config["Embedding"]["Dimensions"], 1536)
+        self.settings["services"]["agent-rpc"]["config"]["Embedding"] = {
+            "Model": "BAAI/bge-m3", "Dimensions": 1024,
+        }
+        config_map, after = self.agent_resources()
+        config = yaml.safe_load(config_map["data"]["config.yaml"])
+        self.assertEqual(config["Embedding"]["Dimensions"], 1024)
+        self.assertEqual(config["Embedding"]["APIKey"], "${EMBEDDING_API_KEY}")
+        env = after["spec"]["template"]["spec"]["containers"][0]["env"]
+        self.assertNotIn("EMBEDDING_DIMENSIONS", [e["name"] for e in env])
+        self.assertNotEqual(
+            before["spec"]["template"]["metadata"]["annotations"]["checksum/config"],
+            after["spec"]["template"]["metadata"]["annotations"]["checksum/config"],
+        )
+
+    def test_embedding_example_preserves_disabled_legacy_default(self):
+        example = dict(line.split("=", 1) for line in
+                       (render.ROOT / ".env.example").read_text().splitlines()
+                       if line.startswith("EMBEDDING_"))
+        self.assertEqual(example["EMBEDDING_PROVIDER"], "")
+        self.assertEqual(example["EMBEDDING_MODEL"], "text-embedding-3-small")
+        self.assertEqual(example["EMBEDDING_DIMENSIONS"], "1536")
+        self.assertEqual(example["EMBEDDING_API_KEY"], "")
 
     def test_example_uses_explicit_flash_profile_without_credentials(self):
         # Deliberately read the tracked example, never the private .env.

@@ -32,3 +32,18 @@ func TestExplicitDemoExecutionWiringAndDisabledDefault(t *testing.T) {
 	invalid.Database.DSN = "must-not-open"
 	require.PanicsWithError(t, "demand execution requires disabled, demo without Mall, or mall with Mall configured", func() { NewServiceContext(invalid) })
 }
+
+func TestDemandRAGInvalidWiringFailsBeforeExternalInitialization(t *testing.T) {
+	for _, retrieval := range []string{"rga", "rag"} {
+		c := config.Config{DemandExecution: config.DemandExecutionConfig{Mode: "mall", Retrieval: retrieval}}
+		c.Database.DSN = "must-not-open"
+		c.MallRpc.Endpoints = []string{"must-not-dial.invalid:10005"}
+		err := c.ValidateDemandExecution()
+		require.Error(t, err)
+		require.PanicsWithError(t, err.Error(), func() { NewServiceContext(c) })
+	}
+	c := config.Config{DemandExecution: config.DemandExecutionConfig{Mode: "disabled", Retrieval: "rag"}}
+	executor, err := newConfiguredDemandExecutor(c, nil, nil)
+	require.NoError(t, err)
+	require.Nil(t, executor)
+}

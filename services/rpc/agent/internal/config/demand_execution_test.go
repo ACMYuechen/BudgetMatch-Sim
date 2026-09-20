@@ -36,3 +36,27 @@ func TestDemandExecutionDefaultsAndMallIsolation(t *testing.T) {
 	c.MallRpc.Endpoints = []string{"unused"}
 	require.NoError(t, c.ValidateDemandExecution())
 }
+
+func TestDemandRAGRequiresExplicitDependenciesAndBoundedWindow(t *testing.T) {
+	c := Config{DemandExecution: DemandExecutionConfig{Mode: "mall", Retrieval: "rag"}}
+	c.MallRpc.Endpoints = []string{"unused"}
+	require.Error(t, c.ValidateDemandExecution())
+	c.Database.DSN = "unused"
+	require.Error(t, c.ValidateDemandExecution())
+	c.Embedding.Provider = "openai"
+	require.NoError(t, c.ValidateDemandExecution())
+	for _, topK := range []int{-1, 33, 1024} {
+		c.RAG.TopK = topK
+		require.Error(t, c.ValidateDemandExecution())
+	}
+	c.RAG.TopK = 32
+	require.NoError(t, c.ValidateDemandExecution())
+	c.DemandExecution.Retrieval = "rga"
+	require.Error(t, c.ValidateDemandExecution())
+	c.DemandExecution = DemandExecutionConfig{Mode: "disabled", Retrieval: "rag"}
+	c.Database.DSN, c.Embedding.Provider = "", ""
+	require.NoError(t, c.ValidateDemandExecution(), "disabling execution does not require retained RAG dependencies")
+	c.DemandExecution.Mode = "demo"
+	c.MallRpc.Endpoints = nil
+	require.Error(t, c.ValidateDemandExecution(), "demo cannot use real retrieval")
+}

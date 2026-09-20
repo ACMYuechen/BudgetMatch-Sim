@@ -13,9 +13,13 @@ import (
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/config"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/rag"
 	"budgetmatch-sim/services/rpc/mall/candidatecontract"
 	"budgetmatch-sim/services/rpc/mall/pb"
+	"github.com/cloudwego/eino/components/retriever"
+	"github.com/cloudwego/eino/schema"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -58,6 +62,20 @@ func (s *demandMallServer) CheckProductCandidates(_ context.Context, req *pb.Che
 }
 
 func TestMallDemandWiringForwardsUserJWTAndPersistsOnlyVerifiedResults(t *testing.T) {
+	for _, strategy := range []string{"keyword", rag.StrategyVectorFirst, rag.StrategyHybridRRF} {
+		t.Run(strategy, func(t *testing.T) { testMallDemandWiring(t, strategy) })
+	}
+}
+
+type classifiedVector struct{}
+
+func (classifiedVector) Retrieve(context.Context, string, ...retriever.Option) ([]*schema.Document, error) {
+	return []*schema.Document{rag.NewCandidateDocument("a", "synthetic keyboard", rag.CandidateMetadata{
+		ProductId: "p", Name: "stale vector", Category: "phone", PriceCents: 1, Stock: 1}).WithScore(.8)}, nil
+}
+
+func testMallDemandWiring(t *testing.T, strategy string) {
+	t.Helper()
 	const secret = "local-test-only-demand-jwt-secret"
 	listener := bufconn.Listen(1 << 20)
 	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(interceptor.AuthConfig{Secret: secret})))
@@ -73,6 +91,13 @@ func TestMallDemandWiringForwardsUserJWTAndPersistsOnlyVerifiedResults(t *testin
 	client := pb.NewProductServiceClient(conn)
 	executor, err := newDemandExecutor("mall", client)
 	require.NoError(t, err)
+	if strategy != "keyword" {
+		cfg := config.Config{DemandExecution: config.DemandExecutionConfig{Mode: "mall", Retrieval: "rag"}}
+		cfg.MallRpc.Endpoints, cfg.Database.DSN, cfg.Embedding.Provider = []string{"unused"}, "unused", "openai"
+		cfg.RAG.Retrieval.Strategy = strategy
+		executor, err = newConfiguredDemandExecutor(cfg, client, classifiedVector{})
+		require.NoError(t, err)
+	}
 	mem := memory.NewInMemory(memory.Conf{})
 	service := recommendagent.NewService(nil, nil, mem).WithDemandExecutor(executor)
 	_, err = service.PlanDemand(context.Background(), agent.Input{UserId: "u", ConversationId: "c", TurnId: "plan", Query: "键盘", BudgetCents: 1000, MaxItems: 1},
