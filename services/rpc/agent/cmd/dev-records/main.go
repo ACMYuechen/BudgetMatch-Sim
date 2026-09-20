@@ -1,4 +1,4 @@
-// dev-records inspects an explicitly selected local database and optionally
+// dev-records inspects an explicitly selected development database and optionally
 // retains two marked demo turns for an existing user. No external model calls.
 package main
 
@@ -28,6 +28,8 @@ func run(args []string, out, stderr io.Writer, execute executor) int {
 	fs.StringVar(&o.ConfigFile, "config", "", "alternative YAML source containing literal Database.DSN")
 	fs.StringVar(&o.ExpectedDB, "expect-db", "", "independently confirmed database name; must match source")
 	fs.BoolVar(&o.AllowLocal, "allow-local-dev-db", false, "confirm access to selected local development database")
+	fs.BoolVar(&o.AllowRemote, "allow-remote-dev-db", false, "confirm selected remote development database; private config and verified TLS required")
+	fs.StringVar(&o.ExpectedAddress, "expect-address", "", "independently confirmed remote IP:port; must match source without overrides")
 	fs.BoolVar(&o.WriteDemo, "write-demo", false, "retain two marked local-rule/mock-product turns (default: read-only preflight)")
 	fs.BoolVar(&o.VerifyDemo, "verify-demo", false, "read-only check of an existing demo; never creates, repairs or replays writes")
 	fs.StringVar(&o.UserID, "user-id", "", "existing enabled account that will own demo history; not a username")

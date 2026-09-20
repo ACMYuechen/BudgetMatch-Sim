@@ -2,6 +2,7 @@ package devrecords
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"syscall"
@@ -41,8 +42,11 @@ func databaseFailure(stage string, err error) error {
 	code := "database_error"
 	var sqlState interface{ SQLState() string }
 	var networkError net.Error
+	var certificateError *tls.CertificateVerificationError
 	if prior := diagnosticOf(err); prior != nil {
 		code = prior.Code
+	} else if errors.As(err, &certificateError) {
+		code = "tls_verification_failed"
 	} else if errors.As(err, &sqlState) {
 		// Use the driver's typed SQLState contract; never parse error text or
 		// export arbitrary SQLSTATE values. No new direct driver dependency.

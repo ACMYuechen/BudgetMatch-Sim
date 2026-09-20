@@ -1,15 +1,17 @@
-// Package devrecords provides an explicitly selected, non-destructive local
+// Package devrecords provides an explicitly selected, non-destructive
 // development database workflow. It is never loaded by production services.
 package devrecords
 
 import (
 	"bufio"
+	"crypto/x509"
 	"errors"
 	"io"
 	"net"
 	"net/netip"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +25,8 @@ type Options struct {
 	EnvFile, DSNKey, ConfigFile, ExpectedDB string
 	AllowLocal, WriteDemo, VerifyDemo       bool
 	UserID, RunID                           string
+	AllowRemote                             bool
+	ExpectedAddress                         string
 }
 
 var (
@@ -33,11 +37,21 @@ var (
 )
 
 func (o Options) Validate() error {
-	if !o.AllowLocal {
-		return errors.New("explicit -allow-local-dev-db is required")
+	if o.AllowLocal == o.AllowRemote {
+		return errors.New("select exactly one of -allow-local-dev-db and -allow-remote-dev-db")
 	}
 	if (o.EnvFile == "") == (o.ConfigFile == "") {
 		return errors.New("select exactly one of -env and -config; there is no implicit source")
+	}
+	if o.AllowRemote {
+		if o.ConfigFile == "" || o.EnvFile != "" {
+			return errors.New("remote access requires a separate private -config; dotenv test sources are not accepted")
+		}
+		if _, err := remoteAddress(o.ExpectedAddress); err != nil {
+			return err
+		}
+	} else if o.ExpectedAddress != "" {
+		return errors.New("-expect-address is only used with -allow-remote-dev-db")
 	}
 	if !dbName.MatchString(o.ExpectedDB) {
 		return errors.New("-expect-db must name the independently confirmed development database")
@@ -65,12 +79,15 @@ type Target struct {
 	Source   string `json:"source"`
 	Address  string `json:"address"`
 	Database string `json:"database"`
+	TLSMode  string `json:"tls_mode"` // requested policy, not evidence of a successful handshake
 }
 
 type connection struct {
 	target Target
 	user   string
 	secret string
+	remote bool
+	rootCA string
 }
 
 func loadConnection(o Options, environ []string) (connection, error) {
@@ -86,7 +103,7 @@ func loadConnection(o Options, environ []string) (connection, error) {
 	if path == "" {
 		path = o.ConfigFile
 	}
-	data, err := readSource(path)
+	data, err := readSource(path, o.AllowRemote)
 	if err != nil {
 		return connection{}, err
 	}
@@ -108,15 +125,26 @@ func loadConnection(o Options, environ []string) (connection, error) {
 	if err != nil {
 		return connection{}, err
 	}
-	c, err := parseConnection(dsn, o.ExpectedDB)
+	c, err := parseSelectedConnection(dsn, o)
 	c.target.Source = source
+	if err == nil && c.remote && c.rootCA != "system" {
+		// CA paths are explicit, absolute and bounded. Never discover a trust
+		// file from the user's home directory or an inherited PG* variable.
+		pem, readErr := readSource(c.rootCA, false)
+		if readErr != nil || !x509.NewCertPool().AppendCertsFromPEM(pem) {
+			return connection{}, errors.New("remote sslrootcert must be a readable bounded PEM CA file; details suppressed")
+		}
+	}
 	return c, err
 }
 
-func readSource(path string) ([]byte, error) {
+func readSource(path string, private bool) ([]byte, error) {
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() > 256*1024 {
 		return nil, errors.New("source must be a regular non-symlink file no larger than 256 KiB")
+	}
+	if private && info.Mode().Perm()&0077 != 0 {
+		return nil, errors.New("remote config must not grant group or other permissions (use 0600 or 0400)")
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -126,6 +154,9 @@ func readSource(path string) ([]byte, error) {
 	opened, err := f.Stat()
 	if err != nil || !os.SameFile(info, opened) {
 		return nil, errors.New("database source changed while opening")
+	}
+	if private && opened.Mode().Perm()&0077 != 0 {
+		return nil, errors.New("remote config permissions changed while opening")
 	}
 	data, err := io.ReadAll(io.LimitReader(f, 256*1024+1))
 	if err != nil || len(data) > 256*1024 {
@@ -170,7 +201,20 @@ func dotenvValue(data []byte, key string) (string, error) {
 // repository. No service files, sockets, DNS, multiple hosts, URL overrides,
 // runtime options, password files or variable/shell expansion are accepted.
 func parseConnection(dsn, expected string) (connection, error) {
-	bad := errors.New("invalid local DSN: require explicit loopback host/port/user/password/dbname and sslmode=disable; details suppressed")
+	return parseSelectedConnection(dsn, Options{AllowLocal: true, ExpectedDB: expected})
+}
+
+func remoteAddress(value string) (netip.AddrPort, error) {
+	a, err := netip.ParseAddrPort(value)
+	if err != nil || a.String() != value || a.Port() < 1024 || a.Addr().Zone() != "" ||
+		a.Addr().Is4In6() || a.Addr().IsLoopback() || !a.Addr().IsGlobalUnicast() {
+		return netip.AddrPort{}, errors.New("-expect-address must be one canonical non-loopback IP:port (1024..65535); DNS and fallback hosts are not accepted")
+	}
+	return a, nil
+}
+
+func parseSelectedConnection(dsn string, o Options) (connection, error) {
+	bad := errors.New("invalid database DSN or transport policy; require explicit host/port/user/password/dbname and selected TLS policy; details suppressed")
 	if len(dsn) > 16*1024 || strings.ContainsAny(dsn, "\r\n\x00") || strings.Contains(dsn, "${") || strings.Contains(dsn, "$(") || strings.Contains(dsn, "`") {
 		return connection{}, bad
 	}
@@ -183,6 +227,10 @@ func parseConnection(dsn, expected string) (connection, error) {
 		}
 		switch key {
 		case "host", "port", "user", "password", "dbname", "sslmode", "timezone":
+		case "sslrootcert":
+			if !o.AllowRemote {
+				return connection{}, bad
+			}
 		default:
 			return connection{}, bad
 		}
@@ -224,16 +272,29 @@ func parseConnection(dsn, expected string) (connection, error) {
 	}
 	ip, err := netip.ParseAddr(values["host"])
 	port, portErr := strconv.Atoi(values["port"])
-	if err != nil || !ip.IsLoopback() || ip.Zone() != "" || portErr != nil || port < 1024 || port > 65535 ||
-		strconv.Itoa(port) != values["port"] || values["sslmode"] != "disable" ||
+	if err != nil || ip.Zone() != "" || portErr != nil || port < 1024 || port > 65535 ||
+		strconv.Itoa(port) != values["port"] ||
 		values["user"] == "" || values["password"] == "" || !dbName.MatchString(values["dbname"]) {
 		return connection{}, bad
 	}
-	if values["dbname"] != expected {
+	address := net.JoinHostPort(ip.String(), values["port"])
+	if o.AllowRemote {
+		selected, err := remoteAddress(o.ExpectedAddress)
+		if o.AllowLocal || err != nil || address != selected.String() {
+			return connection{}, errors.New("remote source does not match -expect-address; no fallback or override allowed")
+		}
+		if values["sslmode"] != "verify-full" ||
+			(values["sslrootcert"] != "system" && !filepath.IsAbs(values["sslrootcert"])) {
+			return connection{}, errors.New("remote DSN requires sslmode=verify-full and explicit sslrootcert=system or absolute CA path; no plaintext fallback")
+		}
+	} else if !o.AllowLocal || !ip.IsLoopback() || values["sslmode"] != "disable" {
+		return connection{}, bad
+	}
+	if values["dbname"] != o.ExpectedDB {
 		return connection{}, errors.New("database source does not match -expect-db; no fallback or override allowed")
 	}
-	return connection{target: Target{Address: net.JoinHostPort(ip.String(), values["port"]), Database: expected},
-		user: values["user"], secret: values["password"]}, nil
+	return connection{target: Target{Address: address, Database: o.ExpectedDB, TLSMode: values["sslmode"]},
+		user: values["user"], secret: values["password"], remote: o.AllowRemote, rootCA: values["sslrootcert"]}, nil
 }
 
 func (c connection) dsn(readOnly bool) string {
@@ -245,7 +306,12 @@ func (c connection) dsn(readOnly bool) string {
 	}
 	// Construct fresh driver configuration, not the supplied DSN. Never inherit
 	// arbitrary runtime parameters. Timezone is explicitly UTC for both modes.
-	u.RawQuery = url.Values{"sslmode": {"disable"}, "connect_timeout": {"3"}, "search_path": {"public"},
+	sslMode := "disable"
+	if c.remote {
+		sslMode = "verify-full"
+	}
+	u.RawQuery = url.Values{"sslmode": {sslMode}, "sslrootcert": {c.rootCA}, "sslcert": {""}, "sslkey": {""}, "passfile": {""},
+		"connect_timeout": {"3"}, "search_path": {"public"},
 		"TimeZone": {"UTC"}, "application_name": {"agent-dev-records"}, "statement_timeout": {"5000"},
 		"lock_timeout": {"1000"}, "idle_in_transaction_session_timeout": {"10000"},
 		"default_transaction_read_only": {readMode}}.Encode()
