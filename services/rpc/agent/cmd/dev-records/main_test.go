@@ -99,3 +99,36 @@ func TestCLIConfirmedCommitWithFailedVerificationIsNotSuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, out.String(), string(data))
 }
+
+func TestCLIRemoteModePinsTargetAndDefaultsToReadOnly(t *testing.T) {
+	args := []string{"-config", "unused-private.yaml", "-expect-db", "dev_records", "-allow-remote-dev-db", "-expect-address", "192.0.2.10:5432"}
+	var out, stderr bytes.Buffer
+	called := false
+	code := run(args, &out, &stderr, func(_ context.Context, o devrecords.Options, _ []string) (devrecords.Report, error) {
+		called = true
+		require.True(t, o.AllowRemote)
+		require.False(t, o.AllowLocal)
+		require.False(t, o.WriteDemo)
+		require.False(t, o.VerifyDemo)
+		require.Equal(t, "192.0.2.10:5432", o.ExpectedAddress)
+		require.Equal(t, "unused-private.yaml", o.ConfigFile)
+		return devrecords.Report{Status: "preflight_only"}, nil
+	})
+	require.True(t, called)
+	require.Zero(t, code)
+	for _, invalid := range [][]string{
+		append(append([]string{}, args...), "-allow-local-dev-db"),
+		append(append([]string{}, args...), "-env", ".env"),
+		append(append([]string{}, args...), "-expect-address", "127.0.0.1:5432"),
+		append(append([]string{}, args...), "-expect-address", ""),
+		append(append([]string{}, args...), "-write-demo"),
+	} {
+		called = false
+		code = run(invalid, &out, &stderr, func(context.Context, devrecords.Options, []string) (devrecords.Report, error) {
+			called = true
+			return devrecords.Report{}, nil
+		})
+		require.False(t, called)
+		require.Equal(t, 2, code)
+	}
+}
