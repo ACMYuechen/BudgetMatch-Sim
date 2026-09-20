@@ -104,12 +104,11 @@ func streamExplanation(ctx context.Context, runner *boundedStreamModel, result *
 	if err != nil {
 		return streamProtocolError()
 	}
-	answerModel, err := runner.WithTools([]*schema.ToolInfo{})
-	if err != nil {
-		return err
-	}
-	source, err := answerModel.Stream(ctx, []*schema.Message{schema.SystemMessage(explanationPrompt), schema.UserMessage(string(payload))},
-		model.WithTools(nil), model.WithToolChoice(schema.ToolChoiceForbidden), model.WithMaxTokens(512))
+	// The SDK rejects binding an empty tool set. Override tools for this call
+	// instead: a non-nil empty slice clears even pre-bound schemas, whereas nil
+	// inherits them. Keep the same wrapper's call/token/usage accounting.
+	source, err := runner.Stream(ctx, []*schema.Message{schema.SystemMessage(explanationPrompt), schema.UserMessage(string(payload))},
+		model.WithTools([]*schema.ToolInfo{}), model.WithToolChoice(schema.ToolChoiceForbidden), model.WithMaxTokens(512))
 	if err != nil {
 		return err
 	}
