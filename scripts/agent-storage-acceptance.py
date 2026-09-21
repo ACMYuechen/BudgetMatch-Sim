@@ -2,7 +2,7 @@
 """Own fresh loopback-only stores, run Agent acceptance, stop them, retain evidence.
 
 No downloads, sudo, package installation, .env loading, existing-target options,
-database drops or recursive cleanup. See docs/agent.md for scope and prerequisites.
+database drops or recursive cleanup. See docs/AGENT.md for scope and prerequisites.
 """
 
 import argparse

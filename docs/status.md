@@ -1,6 +1,6 @@
 # 项目状态
 
-[文档导航](README.md) · [Agent 指南](agent.md) · [权限与安全](access-control.md)
+[文档导航](README.md) · [Agent 指南](AGENT.md) · [权限与安全](access-control.md)
 
 整理日期：2026-09-21。以下依据仓库实现和已保留的验收记录，不是本次对服务器、数据库或外部模型的实时探测。
 
@@ -36,7 +36,7 @@ Agent M1–M6 的设计、执行分段和失败记录见[开发归档](archive/a
 
 1. **先修 RPC 权限缺口，再扩大暴露范围。** Auth 用户管理 RPC、Mall 订单归属和订单状态 RPC 存在 P0 问题；账号禁用/撤销、敏感日志、秒杀用户绑定等也未全部闭环。详见[风险清单](access-control.md#待修复风险)。前端按钮和 Admin 网关不能替代 RPC 自身鉴权。
 2. **完成目标环境的版本发布与回滚验收。** 核对镜像、配置、数据库迁移、代理超时与完整请求链路，再验证新旧数据兼容和回滚。当前生产未完成最新 Flash / Embedding 切换，PostgreSQL 无 pgvector；现有本地回退记录不能替代 K3s 发布验收。
-3. **补齐生产安全与运行条件。** 当前业务入口使用 HTTP，外部数据库连接未启用 TLS；需处理证书、访问来源约束、最小权限与网络隔离。支付配置也尚未完成。见 [VPS 运维](deployment-vps.md)和[权限与安全](access-control.md)。
+3. **补齐生产安全与运行条件。** 当前业务入口使用 HTTP，外部数据库连接未启用 TLS；需处理证书、访问来源约束、最小权限与网络隔离。支付配置也尚未完成。见 [VPS 运维](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程)和[权限与安全](access-control.md)。
 4. **进行真实业务质量、负载与费用验收。** 现有 RAG 仅是小规模合成 SKU 闭环；实际供应商饱和背压、部署延迟、账单和真实商品效果仍需单独评估。历史调用授权不自动延续到下一轮。
 5. **独立人工复核与端到端体验验收。** 64 条规则评测的人工复核仍待完成；终态门禁与可满足任务成功率是两种指标，已有后者为 25/40。浏览器经真实模型、商城、支付和目标部署的完整链路也不能用模拟测试替代。
 
@@ -47,5 +47,5 @@ Agent M1–M6 的设计、执行分段和失败记录见[开发归档](archive/a
 - [Agent 历史设计与验收索引](archive/README.md#agent-记录)
 - [前端交付记录](archive/frontend-stages.md)
 - [本地 Docker 恢复与测试库删除记录](archive/local-data-2026-09.md)
-- [VPS 切库与分阶段验收记录](archive/deployment-vps-2026-09.md)
+- [VPS 切库与分阶段验收记录](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops/blob/main/docs/archive/deployment-vps-2026-09.md)
 - [离线评测原始报告](../services/rpc/agent/testdata/eval/)

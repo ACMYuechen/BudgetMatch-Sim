@@ -8,12 +8,11 @@
 
 | 归档 | 内容 | 当前指南 |
 | --- | --- | --- |
-| [Agent 开发记录](agent-development.md) | M1–M6 设计、不变量、协议、故障矩阵、实测与执行日志 | [Agent](../agent.md) |
+| [Agent 开发记录](agent-development.md) | M1–M6 设计、不变量、协议、故障矩阵、实测与执行日志 | [Agent](../AGENT.md) |
 | [权限核对快照](access-control-2026-09.md) | HTTP / RPC 逐接口矩阵、源码依据与历史测试范围 | [权限与安全](../access-control.md) |
-| [前端交付阶段](frontend-stages.md) | 四阶段任务拆分与当时的回归记录 | [前端](../frontend-roadmap.md) |
+| [前端交付阶段](frontend-stages.md) | 四阶段任务拆分与当时的回归记录 | [前端](../frontend.md) |
 | [本地数据维护](local-data-2026-09.md) | Docker 卷复用、pgvector 扩展、测试库/角色删除和私密备份索引 | [本地数据源](../local-data.md) |
-| [VPS 发布与切库](deployment-vps-2026-09.md) | 旧版本发布、新外部库切换及各自验收范围 | [VPS 运维](../deployment-vps.md) |
-| [CI 原始需求](../requirements/ci.md) | 最初设计基线，不是现行工作流说明 | [CI/CD 总览](../cicd.md) |
+| [VPS 发布与切库](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops/blob/main/docs/archive/deployment-vps-2026-09.md) | 旧版本发布、新外部库切换及各自验收范围 | [VPS 运维](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程) |
 
 ## Agent 记录
 

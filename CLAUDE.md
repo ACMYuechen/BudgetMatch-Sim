@@ -1,6 +1,6 @@
 # AI 协作约定
 
-本文件供编码助手快速定位规则，不重复维护服务拓扑、环境现状或阶段日志。人类开发者先看 [README](README.md) 和[文档导航](docs/README.md)，提交约定以 [Contributors.md](Contributors.md) 为准。
+本文件供编码助手快速定位规则，不重复维护服务拓扑、环境现状或阶段日志。人类开发者先看 [README](README.md) 和[文档导航](docs/README.md)，提交约定以 [开发规范](docs/CONTRIBUTION.md) 为准。
 
 ## 先定位，再修改
 
@@ -8,10 +8,10 @@
 | --- | --- |
 | 理解代码职责 | [架构与代码地图](docs/architecture.md) |
 | 判断完成范围 | [项目状态](docs/status.md)，不要以旧执行日志中的“下一步”为当前任务 |
-| 修改 Agent | [Agent 指南](docs/agent.md)、相关服务配置与测试 |
+| 修改 Agent | [Agent 指南](docs/AGENT.md)、相关服务配置与测试 |
 | 修改权限、用户或订单 | [权限与安全](docs/access-control.md)，确认已有缺口而非假定网关已保护 RPC |
-| 修改环境或部署 | [配置指南](SECRETS.md)、[本地数据源](docs/local-data.md)、[VPS 运维](docs/deployment-vps.md) |
-| 运行测试或排查门禁 | [CI 指南](docs/ci.md)、[前端指南](docs/frontend-roadmap.md) |
+| 修改环境或部署 | [配置指南](docs/SECRETS.md)、[本地数据源](docs/local-data.md)、[VPS 运维](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程) |
+| 运行测试或排查门禁 | [CI 指南](docs/CONTRIBUTION.md#go-检查与测试环境)、[前端指南](docs/frontend.md) |
 
 以当前代码、接口定义和配置模板为事实来源；历史快照仅提供设计与证据，不代表当前运行状态或新的操作授权。
 
@@ -56,5 +56,7 @@
 ## 交付与文档
 
 保留用户已有改动，只提交明确范围；遵守项目提交类型，不自动推送、发布或将不相关内容混入提交。
+
+生产镜像、GitOps、Argo CD 声明与运维记录位于独立的 [BudgetMatch-Sim-Gitops](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops)；本仓库维护业务代码、代码 CI 和本地开发，生产部署仅由 Argo CD 手动 Sync。
 
 更新使用方法时改对应指南；整体完成范围只更新 [status.md](docs/status.md)；长篇执行记录放[历史归档](docs/archive/README.md)。移动文档后校验相对链接与章节锚点，不再往 README 和本文件重复追加开发日志。

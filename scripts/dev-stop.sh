@@ -42,6 +42,13 @@ fi
 
 # 停止基础设施容器
 echo "停止基础设施..."
-docker compose down 2>/dev/null || true
+if ! docker compose down; then
+    echo "停止 Compose 容器失败" >&2
+    exit 1
+fi
+
+if [ ${#STILL_ALIVE[@]} -gt 0 ]; then
+    exit 1
+fi
 
 echo "✅ 清理完成"

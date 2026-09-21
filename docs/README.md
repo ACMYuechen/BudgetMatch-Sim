@@ -10,10 +10,10 @@
 | --- | --- |
 | [项目状态](status.md) | 哪些已完成，哪些仍待验证，生产与本地有什么差异 |
 | [架构与代码地图](architecture.md) | 服务职责、端口、代码入口与依赖关系 |
-| [配置指南](../SECRETS.md) | 环境变量、私密配置、模型与可选能力 |
+| [配置指南](SECRETS.md) | 环境变量、私密配置、模型与可选能力 |
 | [本地数据源](local-data.md) | 复用 Docker 数据、连接模式、测试隔离与安全操作 |
-| [Agent 指南](agent.md) | 推荐接口、模型/RAG、流式协议、工具边界与离线评测 |
-| [前端指南](frontend-roadmap.md) | 页面能力、开发命令、浏览器测试和接口限制 |
+| [Agent 指南](AGENT.md) | 推荐接口、模型/RAG、流式协议、工具边界与离线评测 |
+| [前端指南](frontend.md) | 页面能力、开发命令、浏览器测试和接口限制 |
 | [支付接入](PAYMENT.md) | 支付宝沙箱配置、通知验签与订单联调 |
 | [权限与安全](access-control.md) | HTTP/RPC 鉴权、数据归属和仍需修复的风险 |
 
@@ -21,17 +21,15 @@
 
 | 文档 | 解决的问题 |
 | --- | --- |
-| [开发规范](../Contributors.md) | 分层约定、工具链、生成代码和提交规范 |
+| [开发规范](CONTRIBUTION.md) | 分层约定、工具链、生成代码和提交规范 |
 | [AI 协作约定](../CLAUDE.md) | 编码助手需要遵守的边界；不另维护一份项目进度 |
 | [统一错误库](../infra/errors/README.md) | 错误码、文案和 HTTP 映射 |
-| [CI/CD 总览](cicd.md) | 检查、构建、GitOps 和发布入口的关系 |
-| [CI 检查](ci.md) | 本地复现、环境要求及各项检查范围 |
-| [GitOps 发布](gitops.md) | 镜像版本、Argo CD 手动同步和回滚操作 |
-| [VPS 运维](deployment-vps.md) | 已部署环境、外部数据源、Secret 和发布前核对 |
+| [CI 检查](CONTRIBUTION.md#go-检查与测试环境) | 本地复现、环境要求及各项检查范围 |
+| [私有运维仓库](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops) | 生产镜像、VPS、GitOps、Argo CD 和部署记录 |
 
 ## 历史资料怎么查
 
-[归档导航](archive/README.md)保留 Agent 阶段设计与验收、前端交付过程、权限核对快照、本地数据恢复和 VPS 切库记录。归档中的命令、账号范围和“下一步”只属于当时上下文，不能直接当作当前操作清单。
+[归档导航](archive/README.md)保留 Agent 阶段设计与验收、前端交付过程、权限核对快照和本地数据恢复；生产部署与切库记录已迁入运维仓库。归档中的命令、账号范围和“下一步”只属于当时上下文，不能直接当作当前操作清单。
 
 离线评测的原始报告保留在 [Agent 评测目录](../services/rpc/agent/testdata/eval/)，不为了整理文档改写历史结果。
 

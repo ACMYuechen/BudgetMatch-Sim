@@ -61,14 +61,14 @@ App 商品/活动查询仍会透传部分状态等筛选条件，不能描述为
 
 Agent 与 Mall 已有流式鉴权，推荐流和索引流在首次接收前要求不超过 30 秒的 deadline；JWT 在建流时检查，不逐帧重新校验。二者 dev/test reflection 流也走用户策略；不能由其他服务存在 unary 拦截器推断其 reflection 或其他流已受保护。
 
-文件工具与 MCP 默认关闭。文件按认证用户隔离，写入另需开关和本轮首行 `/save <相对路径>`，只创建不覆盖；MCP 要求可信已安装程序、精确工具白名单和只读声明，并限制子进程环境及生存期。MCP **没有 OS / 网络沙箱**，只读声明不等于安全证明。详见 [Agent 工具说明](agent.md#文件与-mcp-工具)。
+文件工具与 MCP 默认关闭。文件按认证用户隔离，写入另需开关和本轮首行 `/save <相对路径>`，只创建不覆盖；MCP 要求可信已安装程序、精确工具白名单和只读声明，并限制子进程环境及生存期。MCP **没有 OS / 网络沙箱**，只读声明不等于安全证明。详见 [Agent 工具说明](AGENT.md#文件与-mcp-工具)。
 
 依据：[服务 JWT](../infra/serviceauth/service_auth.go)、[索引身份](../services/rpc/agent/internal/rag/index_auth.go)、[流式拦截器](../infra/interceptor/stream_auth_interceptor.go)。
 
 ## 网络与错误返回
 
 - RPC 模板监听 `0.0.0.0:10003–10007`，Compose 发布对应宿主端口；是否公网可达还取决于网络和防火墙，不能假定只有网关能访问。
-- 当前 Compose 的数据依赖端口有回环绑定，不等于 RPC 已同样收敛。仓库尚未提供业务 NetworkPolicy 或统一 RPC TLS/mTLS；生产外部数据库也有未启用 TLS 的边界，见 [VPS 运维](deployment-vps.md)。
+- 当前 Compose 的数据依赖端口有回环绑定，不等于 RPC 已同样收敛。仓库尚未提供业务 NetworkPolicy 或统一 RPC TLS/mTLS；生产外部数据库也有未启用 TLS 的边界，见 [VPS 运维](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程)。
 - 数据库连接现由环境变量注入。模板使用本地开发账号与 `sslmode=disable`，不是按服务最小权限方案；不能据此断言生产账号权限。Redis DB 编号、etcd key、MQ 消费组都不是安全隔离边界。
 - HTTP 鉴权中间件对缺 Token、无效 Token、角色不足均返回 401 文本，尚未统一区分 401/403 JSON。业务错误另由[错误库](../infra/errors/README.md)适配。
 - 秒杀业务错误 `401003` 表示资格令牌失效，不代表登录 JWT 失效。Agent 会话、支付/秒杀订单的部分跨用户访问以 NotFound 或删除未命中处理，减少资源存在性泄露。
@@ -99,4 +99,4 @@ Agent 与 Mall 已有流式鉴权，推荐流和索引流在首次接收前要�
 
 现有测试入口包括 [通用拦截器](../infra/interceptor/auth_interceptor_test.go)、[Mall 方法矩阵](../services/rpc/mall/auth_test.go)、[秒杀订单归属](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic_test.go)、[支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)和 [Agent 流式鉴权](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_transport_test.go)。测试通过仅说明已覆盖的断言，不表示上述待办已修复。
 
-详细历史测试范围见[核对归档](archive/access-control-2026-09.md)，数据库测试隔离规则见 [CI 指南](ci.md)。不要为了验证权限对生产数据执行越权写入。
+详细历史测试范围见[核对归档](archive/access-control-2026-09.md)，数据库测试隔离规则见 [CI 指南](CONTRIBUTION.md#go-检查与测试环境)。不要为了验证权限对生产数据执行越权写入。

@@ -230,7 +230,7 @@ select_race_test_packages() {
           enable_full_race "Go dependency definition changed: ${path}"
           break
           ;;
-        scripts/ci/*|scripts/deploy/*|deploy/*|tests/cicd/*|.github/workflows/*)
+        scripts/ci/*|tests/cicd/*|.github/workflows/*)
           enable_full_race "CI execution definition changed: ${path}"
           break
           ;;

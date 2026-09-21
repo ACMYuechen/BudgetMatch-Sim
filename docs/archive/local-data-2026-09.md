@@ -3,7 +3,7 @@
 > 历史快照：保留镜像扩展、数据指纹、测试库删除及私有备份位置。不要把文中的运行状态当作实时状态。
 > 当前入口：[本地数据源](../local-data.md)；[归档导航](README.md)。
 
-本地配置以 Docker 实际容器、数据卷、账号及连通性为准，`.env` 是核对后的结果，不是判断已有数据源的依据。生产数据源独立，见 [VPS 部署](../deployment-vps.md)。
+本地配置以 Docker 实际容器、数据卷、账号及连通性为准，`.env` 是核对后的结果，不是判断已有数据源的依据。生产数据源独立，见 [VPS 部署](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程)。
 
 ## 2026-09-21 本机配置
 
@@ -32,8 +32,8 @@ RPC 配置现在读取 `${DATABASE_DSN}`、`${REDIS_ADDRESS}` 和 `${REDIS_PASSW
 构建入口：
 
 ```sh
-docker build -f deploy/images/postgres-local.Dockerfile \
-  -t budgetmatch-sim-postgres:16-alpine-vector deploy/images
+docker build -f docker/postgres-local.Dockerfile \
+  -t budgetmatch-sim-postgres:16-alpine-vector docker
 ```
 
 默认 Alpine 源下载慢时，可加 `--build-arg APK_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/alpine`；保留 APK 签名校验。当前 `.env` 的 `POSTGRES_IMAGE` 使用这个本地镜像，`POSTGRES_PORT=5432`。业务库与独立测试库分别启用 `vector`，不调用 Embedding / LLM，不导入测试商品或会话。

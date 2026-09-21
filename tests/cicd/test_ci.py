@@ -39,8 +39,7 @@ class ChangeDetectionTests(unittest.TestCase):
 
     def test_ci_cd_paths_still_select_all_checks(self):
         for path in [
-            ".github/workflows/ci.yml", "scripts/ci/gate.sh", "scripts/deploy/render.py",
-            "deploy/environments/vps.yaml", "deploy/images/backend.Dockerfile", "tests/cicd/test_publish.py",
+            ".github/workflows/ci.yml", "scripts/ci/gate.sh", "tests/cicd/test_ci.py",
         ]:
             with self.subTest(path=path):
                 output = self.detect([path])
@@ -49,7 +48,7 @@ class ChangeDetectionTests(unittest.TestCase):
                 self.assertEqual(ALL_IMAGES, json.loads(output["container_matrix"]))
 
     def test_documentation_does_not_select_expensive_checks(self):
-        output = self.detect(["README.md", "docs/cicd.md", "docs/ci.md", "docs/gitops.md"])
+        output = self.detect(["README.md", "docs/README.md", "docs/CONTRIBUTION.md", "docs/AGENT.md"])
         for check in CHECKS:
             self.assertEqual("false", output[f"{check.lower()}_check"])
         self.assertEqual([], json.loads(output["container_matrix"]))
@@ -159,7 +158,7 @@ class WorkflowLayoutTests(unittest.TestCase):
         return yaml.load((ROOT / f".github/workflows/{name}.yml").read_text(), Loader=yaml.BaseLoader)
 
     def test_workflow_script_paths_exist_and_have_a_checkout(self):
-        for name in ["ci", "deploy"]:
+        for name in ["ci"]:
             for job_name, job in self.workflow(name)["jobs"].items():
                 checked_out = False
                 for step in job["steps"]:

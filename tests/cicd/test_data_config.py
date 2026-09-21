@@ -79,15 +79,6 @@ class DataConfigTests(unittest.TestCase):
         self.assertIn("etcd_data:/etcd-data", services["etcd"]["volumes"])
         self.assertIn("ETCD_DATA_DIR=/etcd-data", services["etcd"]["environment"])
 
-    def test_production_remote_database_startup_settings(self):
-        settings = yaml.safe_load((ROOT / "deploy/environments/vps.yaml").read_text())
-        self.assertEqual("external-data", settings["dataSecret"])
-        self.assertFalse(settings["services"]["mall-rpc"]["config"]["Database"]["AutoMigrate"])
-        for service in ("app", "admin"):
-            config = settings["services"][service]["config"]
-            self.assertEqual(10000, config["AuthRpc"]["Timeout"])
-            self.assertEqual(15000, config["MallRpc"]["Timeout"])
-            self.assertEqual(10000, config["SeckillRpc"]["Timeout"])
 
 
 if __name__ == "__main__":

@@ -38,6 +38,10 @@ jobs:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: scripts/ci/detect-changes.sh
+      - name: Validate CI and local configuration contracts
+        run: |
+          python3 -m pip install PyYAML==6.0.1
+          python3 -m unittest discover -s tests/cicd -p 'test_*.py' -v
 
   go-check:
     name: Go Check
