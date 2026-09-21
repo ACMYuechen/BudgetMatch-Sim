@@ -1,7 +1,7 @@
 # Agent 开发文档（历史归档）
 
 > 归档于 2026-09-21。保留原设计、阶段状态、验收证据和失败记录；文中的“当前”“下一步”及命令均属于当时上下文，不作为新的操作授权或现行配置。
-> 日常入口：[Agent 指南](../agent.md)；最新范围：[项目状态](../status.md)；[归档导航](README.md)。
+> 日常入口：[Agent 指南](../AGENT.md)；最新范围：[项目状态](../status.md)；[归档导航](README.md)。
 
 ## 1. 文档状态与范围
 
@@ -1600,7 +1600,7 @@ LLM_BASE_URL=https://api.deepseek.com/v1
 # LLM_API_KEY 从私密配置提供，示例不含凭据
 ```
 
-`.env.example`、Agent YAML 和 Compose 透传同步更新；现有 `.env` 不会自动迁移，本轮也没有覆盖它。切换其它模型时要清空 `LLM_THINKING`。K8s [渲染器](../../scripts/deploy/render.py)只将新增 `LLM_THINKING` 的 Secret 引用设为可选，避免旧的非 Flash/规则环境仅因缺新键而不能创建容器；Flash 缺值仍由应用拒绝，API Key 等其它原有引用仍必需。渲染测试只验证清单输出，没有应用到集群。运行时 Secret 变化不会仅凭此字段保证服务完成滚动更新，仍须配套确认镜像、配置版本和发布窗口。
+`.env.example`、Agent YAML 和 Compose 透传同步更新；现有 `.env` 不会自动迁移，本轮也没有覆盖它。切换其它模型时要清空 `LLM_THINKING`。K8s [渲染器](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops/blob/main/scripts/deploy/render.py)只将新增 `LLM_THINKING` 的 Secret 引用设为可选，避免旧的非 Flash/规则环境仅因缺新键而不能创建容器；Flash 缺值仍由应用拒绝，API Key 等其它原有引用仍必需。渲染测试只验证清单输出，没有应用到集群。运行时 Secret 变化不会仅凭此字段保证服务完成滚动更新，仍须配套确认镜像、配置版本和发布窗口。
 
 [验收保护层](../../scripts/agent-model-acceptance.mjs)兼容应用显式发送的 `{"type":"disabled"}`，也保留旧测试客户端省略该字段时的固定覆盖；其它值、空对象、数组或附带额外字段仍拒绝，拒绝时不预留额度、不访问上游。原 10 次 / 5 元限额、完整上下文费用预留、未知 Usage 保留、TLS 目标、取消和禁止重试/重定向规则不变。之后再做真实实验须继承原累计 8 次记录，不能把本地测试重新建的合成账本当成额度重置。
 
@@ -1638,7 +1638,7 @@ Auth/App/Agent 重新编译自已提交代码，独立私密配置从当前 `.en
 
 私密证据位于 `/home/yue_chen/.local/share/budgetmatch-agent-local.PnMxrN/nginx-live.Dp1gQi`（`0700`）。首轮和第二轮因验收脚本错误地把纯文本 401 当 JSON 而停止，失败报告保留；修正私密脚本后 `attempt-3/acceptance.json` 完整通过，不通过删除失败记录重置验收。报告记录模板/包/二进制摘要、HTTP 状态、取消条件、数据摘要和退出情况；配置、认证响应及原始日志不进仓库，不宣称服务日志已全面脱敏。
 
-新增可复跑的 [真实 Nginx 回归入口](../../cmd/app/internal/logic/agent/agent_stream_nginx_test.go)，显式设置 `BUDGETMATCH_TEST_NGINX_BIN` 后才执行。它使用同一仓库模板、自有随机 loopback 端口、真实 HTTP/TCP gRPC 和合成 RPC 输出，覆盖及时转发、正常 EOF 终态屏障、迟到错误、缺失 done、done 后异常帧及客户端取消；没有 `.env`/Auth/数据库/供应商依赖，不能替代上述真实业务链路证据。未设置变量时明确 skip，设置错误路径时失败；不下载或安装 Nginx，不修改系统配置，退出只关闭自有子进程。运行方式见 [CI 文档](../ci.md#可选真实-nginx-代理回归)。
+新增可复跑的 [真实 Nginx 回归入口](../../cmd/app/internal/logic/agent/agent_stream_nginx_test.go)，显式设置 `BUDGETMATCH_TEST_NGINX_BIN` 后才执行。它使用同一仓库模板、自有随机 loopback 端口、真实 HTTP/TCP gRPC 和合成 RPC 输出，覆盖及时转发、正常 EOF 终态屏障、迟到错误、缺失 done、done 后异常帧及客户端取消；没有 `.env`/Auth/数据库/供应商依赖，不能替代上述真实业务链路证据。未设置变量时明确 skip，设置错误路径时失败；不下载或安装 Nginx，不修改系统配置，退出只关闭自有子进程。运行方式见 [CI 文档](../CONTRIBUTION.md#go-检查与测试环境)。
 
 部署代理、真实供应商饱和背压、实际账单、部署配置迁移与 M6.3c 版本回滚/最终归档仍未完成，M6.3b/M6 不整体勾选；后置人工复核和真实业务质量目标不变。
 
@@ -1744,7 +1744,7 @@ env -u RAG_TEST_PG_DSN \
 git diff --check
 ```
 
-真实数据库集成测试统一复用 CI 的 `RAG_TEST_PG_DSN`；会话存储仍可用 `AGENT_MEMORY_TEST_PG_DSN` 显式覆盖。业务 `.env` / `.env.example` 不再保存独立测试 DSN，未提供测试变量时跳过，不自动读取业务 `DATABASE_DSN`。测试可能建表、删表或写入键值，只能指向可丢弃环境。详细入口见 [CI 说明](../ci.md)，报告必须列出运行、失败和跳过项。
+真实数据库集成测试统一复用 CI 的 `RAG_TEST_PG_DSN`；会话存储仍可用 `AGENT_MEMORY_TEST_PG_DSN` 显式覆盖。业务 `.env` / `.env.example` 不再保存独立测试 DSN，未提供测试变量时跳过，不自动读取业务 `DATABASE_DSN`。测试可能建表、删表或写入键值，只能指向可丢弃环境。详细入口见 [CI 说明](../CONTRIBUTION.md#go-检查与测试环境)，报告必须列出运行、失败和跳过项。
 
 前端变化后，在 `web-ui` 中运行现有 `npm run lint`、`npm run build`、`npm run test:e2e`，并补真实流式联调。当前 Web CI 不自动运行浏览器测试，不能以构建通过替代交互验收。
 
@@ -1809,7 +1809,7 @@ git diff --check
     - [ ] M6.3c：部署版本兼容/实际回滚、最终演示与验收归档；部署范围另行确认。
       - [x] 本机两个实际 Agent 二进制的回退/重新升级、原保留记录的历史/SSE/unary 重放及报告归档（第 11.17 节）；第 11.18 节另补新 RAG 已完成记录的实际降级读取，不代表部署回滚、旧版新执行或无中断发布。
 
-每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../../Contributors.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
+每阶段记录：关联变更、测试命令与结果、未运行项、指标口径、残余风险。默认不自动提交或推送；用户要求提交时，按 [提交规范](../CONTRIBUTION.md) 将安全修复、功能、测试及文档拆分为易审查的本地提交。
 
 M6.1、M6.2a/b 已完成本地实现和限定范围的真实存储验收，下一步为 M6.3 供应商/代理/版本回滚与最终报告；本轮模型的单独限额授权与预检见第 11.12 节，部署范围仍需确认，原临时存储授权本身不延伸到外部模型或现有服务。M5.3a/b 已实现协议接入和分段预算/用量汇总，旧请求保留 unary，流式失败不自动重跑，M5 整体未结项。M4.3a 已提供独立合成报告；M4.3b 的真实业务分类表/权限/数据与服务联调继续后置，M4 整体未结项。新需求执行已通过显式 `DemandExecution.Retrieval: rag` 接入有界向量/RRF，默认仍为关键词且执行关闭；真实语义收益尚未验收。`intent_ready` 不是推荐成功，历史 `complete` 也不是实时库存承诺；旧 Recommend/SSE 和新 RPC 均继续拒绝规划会话的新推荐。M6.2b 补充了 M3/M4 的隔离真实数据库证据，但不等于部署服务联合验收、真实检索收益或 M2.3b 独立复核完成。代码开发不自动授权业务库迁移、回填、接管旧索引或部署；超出第 11.12 节范围的外部实验，其数据、环境、调用数和费用上限仍需另行授权。
 

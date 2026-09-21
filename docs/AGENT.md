@@ -32,7 +32,7 @@ Agent 支持规则 / Eino ReAct 推荐、多轮约束继承、持久会话、幂
 
 ### 模型与 Embedding
 
-常规环境变量见[配置指南](../SECRETS.md)。使用 `deepseek-flash` 时，必须同时设置 `LLM_THINKING=disabled`；换用其他模型时留空，不自动转换旧模型名。部署时须将支持该字段的新二进制与配置配套核对。
+常规环境变量见[配置指南](SECRETS.md)。使用 `deepseek-flash` 时，必须同时设置 `LLM_THINKING=disabled`；换用其他模型时留空，不自动转换旧模型名。部署时须将支持该字段的新二进制与配置配套核对。
 
 硅基流动 BGE-M3 的应用配置为：
 
@@ -138,6 +138,6 @@ go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001
 
 目标目录必须不存在；`-check <review.json>` 仅校验记录，不认证复核人身份或自动通过人工验收。不得改写旧报告、代填人工记录，或移动已知保留集来制造盲测结果。
 
-Go 集成环境及跳过规则见 [CI 指南](ci.md#go-检查与测试环境)。日常开发不需要常驻测试库；清理性测试不能指向业务库或保留验收库。
+Go 集成环境及跳过规则见 [CI 指南](CONTRIBUTION.md#go-检查与测试环境)。日常开发不需要常驻测试库；清理性测试不能指向业务库或保留验收库。
 
 保留真实记录应使用 [dev-records](../services/rpc/agent/cmd/dev-records/) 的显式入口：默认只读，使用 `-env` 时必须明确 `-dsn-key`；写入另需目标库校验、已有用户和写入参数。启动服务、同步索引、真实模型调用、数据库迁移和部署都需按各自范围核对，不能把离线评测授权扩大为这些操作。

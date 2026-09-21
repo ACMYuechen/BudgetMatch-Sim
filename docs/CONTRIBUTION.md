@@ -1,6 +1,6 @@
 # 开发者文档
 
-[文档导航](docs/README.md) · [架构与代码地图](docs/architecture.md)
+[文档导航](README.md) · [架构与代码地图](architecture.md)
 
 ## 一、提交格式
 
@@ -51,9 +51,9 @@ chore: 优化Dockerfile构建配置
 
 ### 工具链与依赖版本
 
-- Go 版本以 [`go.mod`](go.mod) 的 `go` 指令为准，当前为 **1.26.8**。
+- Go 版本以 [`go.mod`](../go.mod) 的 `go` 指令为准，当前为 **1.26.8**。
 - gRPC 版本由 `go.mod` / `go.sum` 锁定，当前 `google.golang.org/grpc` 为 **v1.83.2**。升级时需一并保留 `go mod tidy` 解析出的必要依赖变更。
-- 单服务 [`Dockerfile`](Dockerfile) 和服务器发布镜像 [`backend.Dockerfile`](deploy/images/backend.Dockerfile) 使用 `golang:1.26.8-alpine`，与项目工具链补丁版本一致；GitHub Actions 的 Go 检查和安全检查通过 `go-version-file: go.mod` 读取版本。
+- 单服务 [`Dockerfile`](../Dockerfile) 和服务器发布镜像 [`backend.Dockerfile`](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops/blob/main/deploy/images/backend.Dockerfile) 使用 `golang:1.26.8-alpine`，与项目工具链补丁版本一致；GitHub Actions 的 Go 检查和安全检查通过 `go-version-file: go.mod` 读取版本。
 - 前端使用 Node.js 20 和 npm，与当前工作流及 `web-ui/Dockerfile` 一致；用 `npm ci` 按锁文件安装。
 
 在仓库根目录确认实际工具链并下载、校验依赖：
@@ -67,11 +67,21 @@ go mod verify
 
 支持自动工具链切换且 `GOTOOLCHAIN=auto` 时，Go 可按 `go.mod` 下载并使用所需版本；若关闭自动切换或网络受限，需要自行安装匹配版本。这里更新的是项目工具链要求，不代表系统中所有 Go 安装都已替换。
 
-后续升级 Go 时，同步核对 `go.mod`、根目录 Dockerfile、`deploy/images/backend.Dockerfile`、README 与项目说明中的版本；更新依赖后执行 `go mod tidy`、漏洞扫描和回归测试。CI/CD 文件职责见 [目录总览](docs/cicd.md)，完整检查入口与环境要求见 [CI 说明](docs/ci.md)，服务及前端启动步骤见 [README](README.md#本地快速开始)。
+后续升级 Go 时，同步核对 `go.mod`、根目录 Dockerfile、运维仓库的后端镜像定义及 README 中的版本；更新依赖后执行 `go mod tidy`、漏洞扫描和回归测试。生产交付见[运维仓库](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops)，服务及前端启动见 [README](../README.md#本地快速开始)。
 
-### 测试环境
+### Go 检查与测试环境
 
-`make test` 仅执行 `go test -v ./...`，不会启动基础设施，也不会自动加载 `.env`。配置中心和分布式锁测试需要显式提供测试用 `ETCD_HOSTS`；PostgreSQL / pgvector 测试变量及跳过条件见 [CI 说明](docs/ci.md#go-检查与测试环境)。测试可能建表、删表或改写键值，必须使用可丢弃的独立测试环境。
+`make test` 仅执行 `go test -v ./...`，不会启动基础设施或加载 `.env`。测试可能建表、删表或改写键值，必须使用可丢弃的独立测试环境。
+
+| 变量 | 用途与缺省行为 |
+| --- | --- |
+| `ETCD_HOSTS` | 配置中心与分布式锁；未配置时相关测试失败 |
+| `RAG_TEST_PG_DSN` | PostgreSQL / pgvector；未配置时相关集成测试跳过 |
+| `AGENT_MEMORY_TEST_PG_DSN` | 会话存储；缺省复用 `RAG_TEST_PG_DSN`，两者为空则跳过 |
+
+`make ci` 执行 Go、前端、安全和容器检查，需要 Go、Node.js 20、Docker 及网络。细项可直接运行 [scripts/ci](../scripts/ci/) 下的 `go-check.sh`、`web-check.sh`、`security-check.sh`、`container-check.sh`。
+
+Go 检查脚本在连接变量为空时创建临时 etcd / pgvector 容器，退出时清理自建资源，并执行依赖校验、vet、race 测试和构建；已有变量会直接复用，执行前须确认连接目标。GitHub CI 另外运行 `tests/cicd` 中的代码检查与本地配置回归，生产渲染和发布测试由运维仓库负责。
 
 ### 目录结构
 

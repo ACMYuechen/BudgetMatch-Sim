@@ -8,6 +8,11 @@ import (
 	"agent/agent.api"
 )
 
+type HealthResp {
+	Status string `json:"status"`
+	Commit string `json:"commit"`
+}
+
 //////////////////////////////// 健康检查 /////////////////////////////////////////////////////
 @server (
 	prefix: /api
@@ -17,5 +22,5 @@ import (
 service app {
 	@doc "健康检查"
 	@handler Health
-	get /health
+	get /health returns (HealthResp)
 }

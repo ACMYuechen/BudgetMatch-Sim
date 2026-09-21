@@ -2,6 +2,11 @@
 
 package types
 
+type HealthResp struct {
+	Status string `json:"status"`
+	Commit string `json:"commit"`
+}
+
 type UserInfo struct {
 	Id       string `json:"id"`
 	Username string `json:"username"`

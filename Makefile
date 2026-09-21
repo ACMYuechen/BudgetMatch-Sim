@@ -1,155 +1,34 @@
-adminPWD = cmd/admin
-adminDesc = $(adminPWD)/desc
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := help
+.PHONY: help run stop web api
 
-appPWD = cmd/app
-appDesc = $(appPWD)/desc
+help: ## 查看本地开发命令
+	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  make %-12s %s\n", $$1, $$2}' Makefile
 
-authRpcPWD = services/rpc/auth
-authRpcDesc = $(authRpcPWD)/proto
-
-seckillRpcPWD = services/rpc/seckill
-seckillRpcDesc = $(seckillRpcPWD)/proto
-
-mallRpcPWD = services/rpc/mall
-mallRpcDesc = $(mallRpcPWD)/proto
-
-agentRpcPWD = services/rpc/agent
-agentRpcDesc = $(agentRpcPWD)/proto
-
-paymentRpcPWD = services/rpc/payment
-paymentRpcDesc = $(paymentRpcPWD)/proto
-
-# =============================================================================
-# 帮助
-# =============================================================================
-.PHONY: help
-help:
-	@echo "常用命令:"
-	@echo "  make dev            一键启动全部服务（本地 go run + Docker 基础设施）"
-	@echo "  make dev-stop       一键停止全部本地服务"
-	@echo "  make docker-up      docker-compose 启动全部服务"
-	@echo "  make docker-down    docker-compose 停止"
-	@echo "  make api-all        生成所有服务的代码"
-	@echo "  make web            启动前端开发服务器"
-	@echo "  make web-stop       停止前端开发服务器"
-
-# =============================================================================
-# API / RPC 代码生成
-# =============================================================================
-.PHONY: api-all
-api-all:
-	@goctl -v
-	@echo "生成 admin API..."
-	@goctl env -w GOCTL_EXPERIMENTAL=off
-	@goctl api format --dir $(adminDesc)
-	@goctl api go -home ./tpls -api $(adminPWD)/desc/admin.api -dir $(adminPWD) -style go_zero
-	@mkdir -p docs
-	@goctl api swagger -filename admin-api -api $(adminDesc)/admin.api -dir ./docs
-	@rm -f $(adminPWD)/admin.go $(adminPWD)/etc/admin.yaml
-	@echo "生成 app API..."
-	@goctl api format --dir $(appDesc)
-	@goctl api go -home ./tpls -api $(appPWD)/desc/app.api -dir $(appPWD) -style go_zero
-	@mkdir -p docs
-	@goctl api swagger -filename app-api -api $(appDesc)/app.api -dir ./docs
-	@rm -f $(appPWD)/app.go $(appPWD)/etc/app.yaml
-	@echo "生成 auth RPC..."
-	@goctl api format --dir $(authRpcDesc)
-	@goctl rpc protoc $(authRpcDesc)/auth.proto --go_out=$(authRpcPWD) --go-grpc_out=$(authRpcPWD) --zrpc_out=$(authRpcPWD) --style=go_zero -m -I . -I $(authRpcDesc)
-	@rm -f $(authRpcPWD)/auth.go $(authRpcPWD)/etc/auth.yaml
-	@echo "生成 seckill RPC..."
-	@goctl rpc protoc $(seckillRpcDesc)/seckill.proto --go_out=$(seckillRpcPWD) --go-grpc_out=$(seckillRpcPWD) --zrpc_out=$(seckillRpcPWD) --style=go_zero -m -I . -I $(seckillRpcDesc)
-	@rm -f $(seckillRpcPWD)/seckill.go $(seckillRpcPWD)/etc/seckill.yaml
-	@echo "生成 mall RPC..."
-	@goctl api format --dir $(mallRpcDesc)
-	@goctl rpc protoc $(mallRpcDesc)/mall.proto --go_out=$(mallRpcPWD) --go-grpc_out=$(mallRpcPWD) --zrpc_out=$(mallRpcPWD) --style=go_zero -m -I . -I $(mallRpcDesc)
-	@rm -f $(mallRpcPWD)/mall.go $(mallRpcPWD)/etc/mall.yaml
-	@echo "生成 agent RPC..."
-	@goctl rpc protoc $(agentRpcDesc)/agent.proto --go_out=$(agentRpcPWD) --go-grpc_out=$(agentRpcPWD) --zrpc_out=$(agentRpcPWD) --style=go_zero -m -I . -I $(agentRpcDesc)
-	@rm -f $(agentRpcPWD)/agent.go $(agentRpcPWD)/etc/agent.yaml
-	@echo "生成 payment RPC..."
-	@goctl rpc protoc $(paymentRpcDesc)/payment.proto --go_out=$(paymentRpcPWD) --go-grpc_out=$(paymentRpcPWD) --zrpc_out=$(paymentRpcPWD) --style=go_zero -m -I . -I $(paymentRpcDesc)
-	@rm -f $(paymentRpcPWD)/payment.go $(paymentRpcPWD)/etc/payment.yaml
-	@echo "所有代码生成完成"
-
-# =============================================================================
-# 本地开发
-# =============================================================================
-.PHONY: dev
-dev:
+run: ## 启动本地后端和 Docker 依赖
 	@bash scripts/dev.sh
 
-.PHONY: dev-stop
-dev-stop:
+stop: ## 停止本地后端和依赖，保留数据卷
 	@bash scripts/dev-stop.sh
 
-# =============================================================================
-# Docker
-# =============================================================================
-.PHONY: docker-up
-docker-up:
-	@docker compose up --build -d
+web: ## 前台启动前端，Ctrl+C 停止
+	@npm --prefix web-ui run dev
 
-.PHONY: docker-down
-docker-down:
-	@docker compose down
-
-.PHONY: docker-logs
-docker-logs:
-	@docker compose logs -f
-
-# =============================================================================
-# Web UI 前端
-# =============================================================================
-.PHONY: web
-web:
-	@mkdir -p .pids logs
-	@cd web-ui && nohup npm run dev > ../logs/web-ui.log 2>&1 &
-	@echo $! > .pids/web-ui.pid
-	@echo "🚀 Web UI 运行在 http://localhost:5173"
-
-.PHONY: web-stop
-web-stop:
-	@if [ -f .pids/web-ui.pid ]; then \
-		kill $$(cat .pids/web-ui.pid) 2>/dev/null || true; \
-		rm -f .pids/web-ui.pid; \
-		echo "🛑 Web UI 已停止"; \
-	else \
-		echo "Web UI 未运行"; \
-	fi
-
-# =============================================================================
-# 开发工具
-# =============================================================================
-.PHONY: test
-test:
-	@go test -v ./...
-
-.PHONY: smoke-test
-smoke-test:
-	@echo "🔥 冒烟测试..."
-	@echo ""
-	@echo "1. Admin 服务健康检查"
-	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10001/api/health || echo "   ❌ 连接失败"
-	@echo ""
-	@echo "2. App 服务健康检查"
-	@curl -s -o /dev/null -w "   HTTP %{http_code}\n" http://localhost:10002/api/health || echo "   ❌ 连接失败"
-	@echo ""
-	@echo "3. Auth RPC 端口检查"
-	@ss -ltnp 2>/dev/null | grep -q ":10003 " && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "4. Seckill RPC 端口检查"
-	@ss -ltnp 2>/dev/null | grep -q ":10004 " && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "5. Mall RPC 端口检查"
-	@ss -ltnp 2>/dev/null | grep -q ":10005 " && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "6. Agent RPC 端口检查"
-	@ss -ltnp 2>/dev/null | grep -q ":10006 " && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "7. PostgreSQL 连通性"
-	@docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "8. Redis 连通性"
-	@docker compose exec -T redis redis-cli -a 12345678 ping >/dev/null 2>&1 && echo "   ✅ 正常" || echo "   ❌ 异常"
-	@echo ""
-	@echo "✅ 冒烟测试完成"
+api: ## 生成 API、RPC 和 Swagger，执行后检查差异
+	@goctl -v
+	@goctl env -w GOCTL_EXPERIMENTAL=off
+	@mkdir -p docs
+	@for name in admin app; do \
+		dir="cmd/$$name"; \
+		goctl api format --dir "$$dir/desc"; \
+		goctl api go -home ./tpls -api "$$dir/desc/$$name.api" -dir "$$dir" -style go_zero; \
+		goctl api swagger -filename "$$name-api" -api "$$dir/desc/$$name.api" -dir ./docs; \
+		rm -f "$$dir/$$name.go" "$$dir/etc/$$name.yaml"; \
+	done
+	@for name in auth seckill mall agent payment; do \
+		dir="services/rpc/$$name"; \
+		goctl rpc protoc "$$dir/proto/$$name.proto" --go_out="$$dir" --go-grpc_out="$$dir" \
+			--zrpc_out="$$dir" --style=go_zero -m -I . -I "$$dir/proto"; \
+		rm -f "$$dir/$$name.go" "$$dir/etc/$$name.yaml"; \
+	done

@@ -21,6 +21,10 @@
 
 这些是服务监听端口，不代表都应对公网开放。实际暴露方式由 Compose / K3s 配置决定；当前 RPC 安全缺口见[权限文档](access-control.md#待修复风险)。
 
+App（10002）和 Admin（10001）的 `GET /api/health` 均返回 HTTP 200 与 `{"status":"OK","commit":"<完整源码提交 SHA>"}`，不需要登录或访问数据库。`commit` 表示构建时的业务仓库版本；本地未提交修改仍对应当前 HEAD。普通 Go 构建读取内嵌 VCS 信息，`make run` 已为两个网关启用 `-buildvcs=true`；手动 `go run` 也需加此参数。无版本信息时返回 `unknown`。
+
+容器构建通过 `COMMIT_SHA` 参数写入版本。手动 Compose 构建可运行 `COMMIT_SHA=$(git rev-parse HEAD) docker compose build`；代码 CI 和运维发布工作流自动传入业务源码 SHA，生产镜像的提交号与 `release.json` 的 `source_sha` 一致。
+
 ## 数据与基础设施
 
 | 依赖 | 用途 | 地址规则 |
@@ -30,9 +34,9 @@
 | etcd | 服务发现和动态配置 | 容器内 2379；`make dev` 默认映射 22379 |
 | RocketMQ | 秒杀与订单异步消息 | NameServer 容器内 9876，`make dev` 默认映射 19876；Broker 10911 / VIP 10909 |
 
-容器间使用 `postgres:5432`、`redis:6379`、`etcd:2379` 等服务名。宿主机进程使用映射端口；`127.0.0.1` 在容器或 Pod 内只指向它自身。模板、本机复用数据和生产外部数据库的区别见[本地数据源](local-data.md)与 [VPS 运维](deployment-vps.md)。
+容器间使用 `postgres:5432`、`redis:6379`、`etcd:2379` 等服务名。宿主机进程使用映射端口；`127.0.0.1` 在容器或 Pod 内只指向它自身。模板、本机复用数据和生产外部数据库的区别见[本地数据源](local-data.md)与 [VPS 运维](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops#部署流程)。
 
-Agent 的数据链路为：Mall 一致快照 → Embedding / 索引 → 有界检索与组合 → Mall 当前事实核验 → 保存和返回。索引同步、用户鉴权和最终事实核验是不同层次的保证，详见 [Agent 指南](agent.md)。
+Agent 的数据链路为：Mall 一致快照 → Embedding / 索引 → 有界检索与组合 → Mall 当前事实核验 → 保存和返回。索引同步、用户鉴权和最终事实核验是不同层次的保证，详见 [Agent 指南](AGENT.md)。
 
 ## 代码地图
 
@@ -46,11 +50,12 @@ Agent 的数据链路为：Mall 一致快照 → Embedding / 索引 → 有界�
 | `services/rpc/<service>/model/` | 数据访问与持久化 |
 | [infra](../infra/) | JWT、鉴权拦截器、错误库、数据库等公共设施 |
 | [web-ui](../web-ui/) | 前端与 Playwright 测试 |
-| [scripts](../scripts/) | 开发、CI、迁移和部署脚本 |
-| [deploy](../deploy/) | 环境声明、镜像与 GitOps 配置 |
-| [tests/cicd](../tests/cicd/) | CI/CD 工具回归测试 |
+| [scripts](../scripts/) | 本地开发、CI 与业务迁移脚本 |
+| [docker](../docker/) | 本地 PostgreSQL 镜像 |
+| [运维仓库](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops) | 生产环境声明、镜像与 GitOps 配置 |
+| [tests/cicd](../tests/cicd/) | CI 与本地配置回归测试 |
 | [tpls](../tpls/) | goctl 模板 |
 
 `pb/`、`client/`、网关 `handler/`、`types.go`、`routes.go` 等为生成代码，优先修改接口定义或模板后再生成，不直接手改。`make api-all` 同时更新生成代码和被 Git 忽略的 Swagger 文件，执行后须检查差异。
 
-工具链以 [go.mod](../go.mod)、[前端 package.json](../web-ui/package.json)和构建文件为准；版本同步、错误处理、分层及提交规则见[开发规范](../Contributors.md)。
+工具链以 [go.mod](../go.mod)、[前端 package.json](../web-ui/package.json)和构建文件为准；版本同步、错误处理、分层及提交规则见[开发规范](CONTRIBUTION.md)。

@@ -6,6 +6,11 @@ import (
 	"mall/mall.api"
 )
 
+type HealthResp {
+	Status string `json:"status"`
+	Commit string `json:"commit"`
+}
+
 //////////////////////////////// 健康检查 /////////////////////////////////////////////////////
 @server (
 	prefix: /api
@@ -15,5 +20,5 @@ import (
 service admin {
 	@doc "健康检查"
 	@handler Health
-	get /health
+	get /health returns (HealthResp)
 }

@@ -19,9 +19,10 @@ COPY . .
 # 构建参数：服务路径、入口包路径、端口
 ARG SERVICE_PATH
 ARG PORT
+ARG COMMIT_SHA
 
 # 编译静态二进制
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ${SERVICE_PATH}
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X budgetmatch-sim/infra/buildinfo.commit=${COMMIT_SHA}" -o server ${SERVICE_PATH}
 
 # 运行阶段
 FROM alpine:3.19

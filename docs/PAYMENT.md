@@ -1,6 +1,6 @@
 # 支付模块（payment-rpc）配置与联调指南
 
-[文档导航](README.md) · [配置指南](../SECRETS.md) · [权限与安全](access-control.md)
+[文档导航](README.md) · [配置指南](SECRETS.md) · [权限与安全](access-control.md)
 
 支付模块对接**支付宝沙箱当面付（扫码支付）**。`CreatePayment` 负责预下单并返回二维码码串，支付结果通过支付宝**异步通知**或 `QueryPayment` **主动查询**确认，两条路径统一复用幂等支付确认逻辑。
 
