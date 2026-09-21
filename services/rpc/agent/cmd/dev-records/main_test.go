@@ -14,11 +14,12 @@ import (
 )
 
 func baseArgs() []string {
-	return []string{"-env", "unused", "-expect-db", "dev_records", "-allow-local-dev-db"}
+	return []string{"-env", "unused", "-dsn-key", "DATABASE_DSN", "-expect-db", "dev_records", "-allow-local-dev-db"}
 }
 
 func TestCLIRefusesMissingGrantAmbiguousSourceAndMissingWriteIdentityBeforeExecution(t *testing.T) {
 	for _, args := range [][]string{nil, {"-env", "unused", "-expect-db", "dev_records"},
+		{"-env", "unused", "-expect-db", "dev_records", "-allow-local-dev-db"},
 		append(baseArgs(), "-config", "second"), append(baseArgs(), "-write-demo"), append(baseArgs(), "extra"),
 		append(baseArgs(), "-verify-demo"),
 		append(baseArgs(), "-verify-demo", "-write-demo", "-user-id", "demo-user", "-run-id", "demo-001")} {
@@ -40,6 +41,7 @@ func TestCLIReadOnlyDefaultAndPrivateReportCannotOverwrite(t *testing.T) {
 	calls := 0
 	exec := func(ctx context.Context, o devrecords.Options, _ []string) (devrecords.Report, error) {
 		calls++
+		require.Equal(t, "DATABASE_DSN", o.DSNKey)
 		require.False(t, o.WriteDemo)
 		require.False(t, o.VerifyDemo)
 		_, ok := ctx.Deadline()

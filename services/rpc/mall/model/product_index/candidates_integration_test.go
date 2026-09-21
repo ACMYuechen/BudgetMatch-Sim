@@ -17,9 +17,9 @@ import (
 
 // Opt-in only. Creates/removes just its random schema in a disposable DB.
 func TestPostgresCandidateChecksObserveCommittedChanges(t *testing.T) {
-	dsn := os.Getenv("BUDGETMATCH_TEST_POSTGRES_DSN")
+	dsn := os.Getenv("RAG_TEST_PG_DSN")
 	if dsn == "" {
-		t.Skip("set BUDGETMATCH_TEST_POSTGRES_DSN to a disposable database for candidate freshness tests")
+		t.Skip("set RAG_TEST_PG_DSN to a disposable database for candidate freshness tests")
 	}
 	root, err := gorm.Open(postgres.Open(dsn), &gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard})
 	require.NoError(t, err)

@@ -24,7 +24,7 @@ func TestRemoteOptionsRequireSeparateSourceAndPinnedAddress(t *testing.T) {
 		"no grant":    func(o *Options) { o.AllowRemote = false },
 		"both grants": func(o *Options) { o.AllowLocal = true },
 		"dotenv only": func(o *Options) {
-			o.ConfigFile, o.EnvFile, o.DSNKey = "", "private.env", "BUDGETMATCH_TEST_POSTGRES_DSN"
+			o.ConfigFile, o.EnvFile, o.DSNKey = "", "private.env", "DATABASE_DSN"
 		},
 		"both sources":   func(o *Options) { o.EnvFile = "private.env" },
 		"missing source": func(o *Options) { o.ConfigFile = "" },

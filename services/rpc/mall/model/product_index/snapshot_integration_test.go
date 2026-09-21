@@ -18,9 +18,9 @@ import (
 // Only run with an explicitly supplied disposable PostgreSQL test database.
 // The test creates and drops its own randomly named schema, never public tables.
 func TestPostgresCatalogSnapshotConsistency(t *testing.T) {
-	dsn := os.Getenv("BUDGETMATCH_TEST_POSTGRES_DSN")
+	dsn := os.Getenv("RAG_TEST_PG_DSN")
 	if dsn == "" {
-		t.Skip("set BUDGETMATCH_TEST_POSTGRES_DSN to a disposable database for snapshot MVCC tests")
+		t.Skip("set RAG_TEST_PG_DSN to a disposable database for snapshot MVCC tests")
 	}
 	adminDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{DisableAutomaticPing: true, Logger: logger.Discard})
 	require.NoError(t, err)

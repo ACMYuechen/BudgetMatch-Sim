@@ -71,6 +71,31 @@ class LauncherTests(unittest.TestCase):
         acceptance.Acceptance.stop(proc)
         self.assertEqual([signal.SIGINT], proc.signals)
 
+    def test_legacy_checks_supply_only_the_existing_test_connections(self):
+        with tempfile.TemporaryDirectory(prefix="agent-launcher-unit-") as root:
+            runner = object.__new__(acceptance.Acceptance)
+            runner.root, runner.pg_port = Path(root), 54321
+            runner.env, runner.report = {"PATH": "/unused"}, {"stages": []}
+            runner.config = {"postgres_password": "synthetic-test-password"}
+            runner.args = SimpleNamespace(go="unused")
+
+            def fake_execute(command, name, *, env, timeout):
+                self.assertEqual({"PATH", "AGENT_MEMORY_TEST_PG_DSN", "RAG_TEST_PG_DSN"}, set(env))
+                self.assertEqual(env["AGENT_MEMORY_TEST_PG_DSN"], env["RAG_TEST_PG_DSN"])
+                self.assertIn("@127.0.0.1:54321/agent_m62_", env["RAG_TEST_PG_DSN"])
+                pattern = command[command.index("-run") + 1]
+                tests = pattern.removeprefix("^(").removesuffix(")$").split("|")
+                self.assertIn("TestPostgresCatalogSnapshotConsistency", tests)
+                (runner.root / (name + ".log")).write_text("\n".join(
+                    json.dumps({"Action": "pass", "Test": test}) for test in tests))
+
+            with patch.object(runner, "sql") as sql, \
+                    patch.object(runner, "execute", side_effect=fake_execute), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                runner.legacy_integration_checks()
+            self.assertEqual(2, sql.call_count)
+            self.assertEqual(6, runner.report["tests"]["isolated-existing-integration-tests"])
+
 
 if __name__ == "__main__":
     unittest.main()

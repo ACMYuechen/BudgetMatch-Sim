@@ -41,14 +41,33 @@ class DataConfigTests(unittest.TestCase):
         self.assertIn("postgres_data:/var/lib/postgresql/data", postgres["volumes"])
         self.assertIn("redis_data:/data", compose["services"]["redis"]["volumes"])
 
-    def test_example_is_local_and_separates_business_and_test_databases(self):
+    def test_example_contains_only_the_local_application_database(self):
         env = dict(line.split("=", 1) for line in (ROOT / ".env.example").read_text().splitlines()
                    if line and not line.startswith("#") and "=" in line)
         self.assertEqual("127.0.0.1:6379", env["REDIS_ADDRESS"])
         self.assertIn("host=127.0.0.1 ", env["DATABASE_DSN"])
         self.assertIn("dbname=budgetmatch-sim ", env["DATABASE_DSN"])
-        self.assertIn("dbname=budgetmatch_sim_test ", env["BUDGETMATCH_TEST_POSTGRES_DSN"])
-        self.assertNotEqual(env["DATABASE_DSN"], env["BUDGETMATCH_TEST_POSTGRES_DSN"])
+        self.assertEqual({"DATABASE_DSN"}, {key for key in env if key.endswith("_DSN")})
+
+    def test_postgres_tests_share_the_existing_ci_connection(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertIn("RAG_TEST_PG_DSN", workflow["jobs"]["go-check"]["env"])
+        for source in (
+            "services/rpc/mall/internal/testdb/postgres.go",
+            "services/rpc/mall/model/product_index/snapshot_integration_test.go",
+            "services/rpc/mall/model/product_index/candidates_integration_test.go",
+        ):
+            with self.subTest(source=source):
+                text = (ROOT / source).read_text()
+                self.assertIn('os.Getenv("RAG_TEST_PG_DSN")', text)
+                self.assertNotIn('os.Getenv("DATABASE_DSN")', text)
+                self.assertIn("t.Skip(", text)
+
+    def test_retired_test_connection_is_not_used_by_code_or_scripts(self):
+        retired_key = "BUDGETMATCH_TEST_" + "POSTGRES_DSN"
+        for directory, pattern in (("services", "*.go"), ("scripts", "*.py"), ("scripts", "*.sh")):
+            for path in (ROOT / directory).rglob(pattern):
+                self.assertNotIn(retired_key, path.read_text(), str(path.relative_to(ROOT)))
 
     def test_host_dependencies_keep_loopback_and_broker_advertisement(self):
         services = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]

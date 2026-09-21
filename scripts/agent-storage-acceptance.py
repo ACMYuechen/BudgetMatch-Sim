@@ -181,7 +181,7 @@ class Acceptance:
         self.sql(f"CREATE DATABASE {database} OWNER agent_m62;", admin=True, database="postgres", name="legacy-create")
         self.sql("CREATE EXTENSION vector;", admin=True, database=database, name="legacy-vector")
         dsn = f"postgresql://agent_m62:{quote(self.config['postgres_password'], safe='')}@127.0.0.1:{self.pg_port}/{database}?sslmode=disable"
-        env = {**self.env, **{key: dsn for key in ("AGENT_MEMORY_TEST_PG_DSN", "RAG_TEST_PG_DSN", "BUDGETMATCH_TEST_POSTGRES_DSN")}}
+        env = {**self.env, **{key: dsn for key in ("AGENT_MEMORY_TEST_PG_DSN", "RAG_TEST_PG_DSN")}}
         tests = ["TestPostgresConversationTurnPersistence", "TestPgVectorSyncPublicationRollback", "TestPgVectorRoundTrip",
                  "TestPgVectorSessionExclusionAndLostOwner", "TestPostgresCatalogSnapshotConsistency",
                  "TestPostgresCandidateChecksObserveCommittedChanges"]
