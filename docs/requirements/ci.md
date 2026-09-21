@@ -10,9 +10,9 @@
 
 ## 1. 文档目的
 
-本文保留 BudgetMatch-Sim 初版 CI 的设计目标与验收要求。当前运行方式以 [CI 运行说明](../ci.md)、`.github/workflows/ci.yml` 和 `.ci/scripts/` 为准；本文中的要求或建议不等于对应功能已实现。
+本文保留 BudgetMatch-Sim 初版 CI 的设计目标与验收要求。当前运行方式以 [CI 运行说明](../ci.md)、`.github/workflows/ci.yml` 和 `scripts/ci/` 为准；本文中的要求或建议不等于对应功能已实现。
 
-实现已采用路径检测、受影响包竞态测试和容器构建矩阵。仍存在的差异包括：没有独立的 `main` push 触发器，Go 格式检查未启用，竞态测试未强制 `-count=1`，Playwright 尚未纳入 Web Check，Makefile 尚无下文建议的 `ci-*` 目标。这些差异在运行说明中明确列出，本次文档核对不修改门禁实现，也不将未完成目标标记为已验收。
+实现已采用路径检测、受影响包竞态测试、容器构建矩阵和 `main` push 触发器。仍存在的差异包括：Go 格式检查未启用，竞态测试未强制 `-count=1`，Playwright 尚未纳入 Web Check，Makefile 尚无下文建议的 `ci-*` 目标。这些差异在运行说明中明确列出，未完成目标不标记为已验收。
 
 当前阶段以“代码可检查、测试可执行、服务可构建、镜像可生成”为目标，不建设定时任务、复杂指标体系或高可用兜底机制。部署工具与部署流程另行调研和决策。
 
@@ -219,7 +219,7 @@ CI 保留确定性的基础安全扫描。至少包括：
 
 ## 8. 本地复现
 
-复杂命令 **SHOULD** 放入 Makefile 或 `.ci/scripts/`，GitHub Actions 只负责环境准备和调度。
+复杂命令 **SHOULD** 放入 Makefile 或 `scripts/ci/`，GitHub Actions 只负责环境准备和调度。
 
 建议提供以下入口：
 

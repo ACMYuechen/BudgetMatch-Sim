@@ -5,18 +5,16 @@ import (
 	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	stderrors "errors"
-	"os"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
+	"budgetmatch-sim/services/rpc/mall/internal/testdb"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
@@ -95,12 +93,7 @@ func TestConfirmPaymentRollsBackWhenOutboxInsertFails(t *testing.T) {
 
 func newIntegrationServiceContext(t *testing.T) (*gorm.DB, *svc.ServiceContext) {
 	t.Helper()
-	dsn := os.Getenv("BUDGETMATCH_TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("set BUDGETMATCH_TEST_POSTGRES_DSN to run PostgreSQL transaction integration tests")
-	}
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	require.NoError(t, err)
+	db := testdb.Open(t)
 	for _, table := range []interface{ CreateTable() error }{
 		products.NewProductsModel(db),
 		product_skus.NewProductSkusModel(db),

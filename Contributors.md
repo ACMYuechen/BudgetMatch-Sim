@@ -1,5 +1,7 @@
 # 开发者文档
 
+[文档导航](docs/README.md) · [架构与代码地图](docs/architecture.md)
+
 ## 一、提交格式
 
 ### 模板
@@ -51,7 +53,7 @@ chore: 优化Dockerfile构建配置
 
 - Go 版本以 [`go.mod`](go.mod) 的 `go` 指令为准，当前为 **1.26.8**。
 - gRPC 版本由 `go.mod` / `go.sum` 锁定，当前 `google.golang.org/grpc` 为 **v1.83.2**。升级时需一并保留 `go mod tidy` 解析出的必要依赖变更。
-- 后端 [`Dockerfile`](Dockerfile) 使用 `golang:1.26.8-alpine`，与项目工具链补丁版本一致；GitHub Actions 的 Go 检查和安全检查通过 `go-version-file: go.mod` 读取版本。
+- 单服务 [`Dockerfile`](Dockerfile) 和服务器发布镜像 [`backend.Dockerfile`](deploy/images/backend.Dockerfile) 使用 `golang:1.26.8-alpine`，与项目工具链补丁版本一致；GitHub Actions 的 Go 检查和安全检查通过 `go-version-file: go.mod` 读取版本。
 - 前端使用 Node.js 20 和 npm，与当前工作流及 `web-ui/Dockerfile` 一致；用 `npm ci` 按锁文件安装。
 
 在仓库根目录确认实际工具链并下载、校验依赖：
@@ -65,7 +67,7 @@ go mod verify
 
 支持自动工具链切换且 `GOTOOLCHAIN=auto` 时，Go 可按 `go.mod` 下载并使用所需版本；若关闭自动切换或网络受限，需要自行安装匹配版本。这里更新的是项目工具链要求，不代表系统中所有 Go 安装都已替换。
 
-后续升级 Go 时，同步核对 `go.mod`、根目录 Dockerfile、README 与项目说明中的版本；更新依赖后执行 `go mod tidy`、漏洞扫描和回归测试。完整检查入口与环境要求见 [CI 说明](docs/ci.md)，服务及前端启动步骤见 [README](README.md#快速开始)。
+后续升级 Go 时，同步核对 `go.mod`、根目录 Dockerfile、`deploy/images/backend.Dockerfile`、README 与项目说明中的版本；更新依赖后执行 `go mod tidy`、漏洞扫描和回归测试。CI/CD 文件职责见 [目录总览](docs/cicd.md)，完整检查入口与环境要求见 [CI 说明](docs/ci.md)，服务及前端启动步骤见 [README](README.md#本地快速开始)。
 
 ### 测试环境
 

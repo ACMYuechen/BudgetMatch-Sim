@@ -1,0 +1,37 @@
+namespace: budgetmatch-sim
+runtimeSecret: runtime
+# Database/Redis only; JWT, model and other credentials stay in runtime.
+dataSecret: external-data
+imagePullSecrets: []
+webPort: 8080
+services:
+  mall-rpc:
+    config:
+      Database:
+        # Schema is initialized separately; cross-region startup DDL can time out.
+        AutoMigrate: false
+  agent-rpc:
+    requestMemory: 64Mi
+    limitMemory: 384Mi
+    config:
+      FileTools:
+        Workspace: /app/workspace
+  app:
+    config:
+      # External DB queries can exceed go-zero's 2-second client default.
+      AuthRpc:
+        Timeout: 10000
+      MallRpc:
+        Timeout: 15000
+      SeckillRpc:
+        Timeout: 10000
+      AgentRpc:
+        Timeout: 60000
+  admin:
+    config:
+      AuthRpc:
+        Timeout: 10000
+      MallRpc:
+        Timeout: 15000
+      SeckillRpc:
+        Timeout: 10000

@@ -10,6 +10,7 @@ import (
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/schema"
@@ -56,9 +57,18 @@ func (a *Agent) Name() string {
 //  2. 候选搜索：调用 provider 根据意图关键词和预算搜索候选商品；
 //  3. 商品选择：通过 selector 从候选商品中按评分选出最优组合，确保总价不超出预算。
 func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	historyQueries := a.loadHistoryQueries(ctx, input)
-	intent := a.planner.ParseWithHistory(input, historyQueries)
-	candidates, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
+	intent, err := a.planner.Resolve(input, historyQueries)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	search, err := tools.SearchWithTrace(ctx, a.provider, tools.SearchProductsReq{
 		Query:       input.Query,
 		Keywords:    intent.Keywords,
 		BudgetCents: intent.BudgetCents,
@@ -67,19 +77,30 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	if err != nil {
 		return nil, err
 	}
+	candidates := search.Candidates
 
 	items, total := a.selector.Select(candidates, intent)
 	toolsUsed := []agentcore.ToolCall{
-		{Name: a.provider.Name(), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
+		{Name: safety.Label(a.provider.Name()), Success: true, Detail: fmt.Sprintf("loaded %d candidates", len(candidates))},
 	}
+	toolsUsed = append(toolsUsed, safety.ToolCalls(search.Calls)...)
 
-	return &agentcore.Result{
+	result := &agentcore.Result{
+		Candidates:      candidates,
 		Intent:          intent,
 		Items:           items,
 		TotalPriceCents: total,
-		Summary:         summary(len(items), total, intent.BudgetCents),
+		Summary:         agentcore.BundleSummary(len(items), total, intent.BudgetCents),
 		ToolsUsed:       toolsUsed,
-	}, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	constraints, _ := agentcore.NewConstraints(intent)
+	if err := constraints.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loadHistoryQueries 提取历史中的用户原始问题；读取失败时降级为单轮规则推荐。
@@ -90,8 +111,8 @@ func (a *Agent) loadHistoryQueries(ctx context.Context, input agentcore.Input) [
 	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.window)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history for fallback failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil
 	}
@@ -103,15 +124,4 @@ func (a *Agent) loadHistoryQueries(ctx context.Context, input agentcore.Input) [
 		}
 	}
 	return queries
-}
-
-// summary 根据选中的商品数量、总价和预算生成结果摘要文本。
-func summary(count int, total, budget int64) string {
-	if count == 0 {
-		return "No bundle was found within the current budget."
-	}
-	if budget <= 0 {
-		return fmt.Sprintf("Selected %d items with total price %.2f.", count, float64(total)/100)
-	}
-	return fmt.Sprintf("Selected %d items with total price %.2f, within budget %.2f.", count, float64(total)/100, float64(budget)/100)
 }

@@ -1,34 +1,20 @@
 package agent
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	agentlogic "budgetmatch-sim/cmd/app/internal/logic/agent"
+	"budgetmatch-sim/cmd/app/internal/svc"
+	"github.com/stretchr/testify/require"
 )
 
-func TestWriteSSE(t *testing.T) {
-	recorder := httptest.NewRecorder()
-
-	err := writeSSE(recorder, recorder, agentlogic.StreamEvent{
-		Event: "recommendation.final",
-		Data: map[string]any{
-			"summary": "ok",
-		},
-	})
-	if err != nil {
-		t.Fatalf("writeSSE() error = %v", err)
-	}
-
-	body := recorder.Body.String()
-	for _, want := range []string{
-		"event: recommendation.final\n",
-		`data: {"summary":"ok"}`,
-		"\n\n",
-	} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("expected body to contain %q, got %q", want, body)
-		}
-	}
+func TestGeneratedStreamHandlerDelegatesToAuthenticatedHTTPBoundary(t *testing.T) {
+	response := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/agent/recommend/stream", strings.NewReader(`{"query":"PRIVATE","stream_version":1}`))
+	AgentRecommendStreamHandler(&svc.ServiceContext{})(response, req)
+	require.Equal(t, http.StatusUnauthorized, response.Code)
+	require.Contains(t, response.Header().Get("Content-Type"), "application/json")
+	require.NotContains(t, response.Body.String(), "PRIVATE")
 }

@@ -336,7 +336,79 @@ message ReplayOrderOutboxResp {
   bool success = 1;
 }
 
+// ========== Agent 专用只读索引（不返回用户、订单或内部评价字段） ==========
+
+message ProductIndexEntry {
+  string sku_id          = 1;
+  string product_id      = 2;
+  string product_name    = 3;
+  string product_content = 4;
+  string provider        = 5;
+  string sku_name        = 6;
+  string specs           = 7;
+  int64 price            = 8;
+  int64 stock            = 9;
+  int64 sold             = 10;
+}
+
+message ListProductIndexReq {
+  // 首次为空；后续原样传回上一页 next_cursor（SKU ID）。
+  string cursor   = 1;
+  // 0 使用默认 100；有效范围为 1～200。
+  int32 page_size = 2;
+}
+
+message ListProductIndexResp {
+  repeated ProductIndexEntry list = 1;
+  string next_cursor = 2;
+  // 只有服务端明确确认读到末页才置 true；默认空响应不能代表扫描成功。
+  bool complete = 3;
+}
+
 // ========== Services ==========
+
+// Online check: normal user JWT, no Redis cache and no index-service credential.
+message CheckProductCandidatesReq {
+  repeated string sku_ids = 1; // 1..32 unique IDs, at most 64 bytes each
+  // Opt-in join against operator-managed classification; false preserves old reads.
+  bool include_demand_category = 2;
+}
+
+enum CandidateState {
+  CANDIDATE_STATE_UNSPECIFIED = 0;
+  CANDIDATE_STATE_ACTIVE = 1; // SPU and SKU active, neither soft-deleted
+  CANDIDATE_STATE_UNAVAILABLE = 2; // confirmed absent, off-shelf or deleted
+}
+
+message CandidateFacts {
+  string sku_id = 1;
+  string product_id = 2;
+  string product_name = 3;
+  string sku_name = 4;
+  int64 price = 5;
+  int64 stock = 6;
+  int64 sold = 7;
+  DemandCategoryFact demand_category = 8; // only when explicitly requested
+}
+
+message DemandCategoryFact {
+  string code = 1;
+  string taxonomy_version = 2;
+  int64 revision = 3; // 0 only for an unmapped/unknown product
+}
+
+message CandidateCheck {
+  string sku_id = 1;
+  CandidateState state = 2;
+  CandidateFacts facts = 3; // only present for ACTIVE; stock may be zero
+}
+
+message CheckProductCandidatesResp {
+  repeated CandidateCheck results = 1; // exactly one result per requested ID
+  int64 checked_at_unix_ms = 2; // server-observed query start, not a stock reservation
+  // Required handshake when include_demand_category=true; old servers cannot certify it.
+  string demand_category_contract = 3;
+}
 
 service ProductService {
   rpc CreateProduct(CreateProductReq) returns (CreateProductResp) {}
@@ -350,6 +422,7 @@ service ProductService {
   rpc DeleteSku(DeleteSkuReq) returns (DeleteSkuResp) {}
   rpc GetSku(GetSkuReq) returns (GetSkuResp) {}
   rpc ListSkusByProduct(ListSkusByProductReq) returns (ListSkusByProductResp) {}
+  rpc CheckProductCandidates(CheckProductCandidatesReq) returns (CheckProductCandidatesResp) {}
 }
 
 service OrderService {
@@ -363,4 +436,24 @@ service OrderService {
   rpc ListOrderOutbox(ListOrderOutboxReq) returns (ListOrderOutboxResp) {}
   rpc GetOrderOutbox(GetOrderOutboxReq) returns (GetOrderOutboxResp) {}
   rpc ReplayOrderOutbox(ReplayOrderOutboxReq) returns (ReplayOrderOutboxResp) {}
+}
+
+// 只接受 Agent 索引服务身份；用户商品接口的鉴权策略保持不变。
+service ProductIndexService {
+  rpc ListProductIndex(ListProductIndexReq) returns (ListProductIndexResp) {}
+  // One bounded, read-only database snapshot. No resume/fallback to live pages.
+  rpc ScanProductIndex(ScanProductIndexReq) returns (stream ScanProductIndexResp) {}
+}
+
+message ScanProductIndexReq {
+  int32 page_size = 1; // 0 = 100; otherwise 1..200
+}
+
+message ScanProductIndexResp {
+  repeated ProductIndexEntry list = 1;
+  string last_sku_id = 2; // data frame only; not a resumable cursor
+  bool complete = 3; // empty terminal frame, sent only after the read transaction commits
+  string snapshot_id = 4; // opaque per-stream identity, not a PostgreSQL exported snapshot
+  uint32 sequence = 5; // starts at 1; includes the terminal frame
+  uint64 total_items = 6; // terminal frame only; client must also require clean EOF
 }

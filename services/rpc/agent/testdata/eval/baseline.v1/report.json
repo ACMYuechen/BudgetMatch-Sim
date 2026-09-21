@@ -1,0 +1,3337 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "snapshot_version": "synthetic-products-v1",
+    "snapshot_sha256": "3feaf027662f36321442e6ec35f3255da98eed34ca917322c9113e25ee5e833f",
+    "cases_sha256": "c0615d42d182d93ab653007365d56e2ff6237191bd5da0c834980515214b2d3a",
+    "annotation_status": "pending_human_review",
+    "code_revision": "cb5512a+M2.1-worktree",
+    "strategy_version": "offline-keyword-rule-v1",
+    "model": "not_used",
+    "prompt": "not_used",
+    "embedding": "not_run",
+    "go_version": "go1.26.8",
+    "os": "linux",
+    "arch": "amd64",
+    "logical_cpus": 12,
+    "concurrency": 1,
+    "cache_policy": "fresh in-memory conversation per case; same process; no explicit warmup; no remote cache",
+    "split": "all",
+    "top_k": 10
+  },
+  "baselines": [
+    {
+      "id": "keyword_rule",
+      "status": "executed",
+      "reason": "fixed snapshot adapter + production Planner/Service/BundleSelector; no Mall RPC"
+    },
+    {
+      "id": "vector_rule",
+      "status": "not_run",
+      "reason": "real embedding and retrieval comparison not configured"
+    },
+    {
+      "id": "vector_react",
+      "status": "not_run",
+      "reason": "real embedding/model evaluation requires explicit data and cost authorization"
+    }
+  ],
+  "summary": {
+    "requests": 64,
+    "completed": 48,
+    "hard_violation_requests": 0,
+    "hard_violation_rate": {
+      "numerator": 0,
+      "denominator": 48,
+      "value": 0
+    },
+    "outcome_accuracy": {
+      "numerator": 62,
+      "denominator": 64,
+      "value": 0.96875
+    },
+    "satisfiable_success": {
+      "numerator": 24,
+      "denominator": 40,
+      "value": 0.6
+    },
+    "requirement_coverage": {
+      "numerator": 33,
+      "denominator": 61,
+      "value": 0.5409836065573771
+    },
+    "recall_at_k_micro": {
+      "numerator": 91,
+      "denominator": 92,
+      "value": 0.9891304347826086
+    },
+    "no_relevant_cases": 22,
+    "fact_consistency": {
+      "numerator": 48,
+      "denominator": 48,
+      "value": 1
+    },
+    "fallback_rate": {
+      "numerator": 2,
+      "denominator": 64,
+      "value": 0.03125
+    },
+    "replay_success": {
+      "numerator": 48,
+      "denominator": 48,
+      "value": 1
+    },
+    "persistence_success": {
+      "numerator": 64,
+      "denominator": 64,
+      "value": 1
+    },
+    "provider_calls": 50,
+    "fault_primary_calls": 2,
+    "model_calls": 0,
+    "latency_p50_ms": 0.311946,
+    "latency_p95_ms": 0.990877,
+    "error_counts": {
+      "budget_currency": 2,
+      "budget_text": 7,
+      "execution_failed": 1,
+      "invalid_argument": 2,
+      "item_limit_text": 3,
+      "permission_denied": 1
+    },
+    "gate_passed": false
+  },
+  "by_split": {
+    "dev": {
+      "requests": 31,
+      "completed": 23,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 23,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 29,
+        "denominator": 31,
+        "value": 0.9354838709677419
+      },
+      "satisfiable_success": {
+        "numerator": 11,
+        "denominator": 21,
+        "value": 0.5238095238095238
+      },
+      "requirement_coverage": {
+        "numerator": 15,
+        "denominator": 31,
+        "value": 0.4838709677419355
+      },
+      "recall_at_k_micro": {
+        "numerator": 53,
+        "denominator": 54,
+        "value": 0.9814814814814815
+      },
+      "no_relevant_cases": 9,
+      "fact_consistency": {
+        "numerator": 23,
+        "denominator": 23,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 2,
+        "denominator": 31,
+        "value": 0.06451612903225806
+      },
+      "replay_success": {
+        "numerator": 23,
+        "denominator": 23,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 31,
+        "denominator": 31,
+        "value": 1
+      },
+      "provider_calls": 23,
+      "fault_primary_calls": 2,
+      "model_calls": 0,
+      "latency_p50_ms": 0.323256,
+      "latency_p95_ms": 0.990877,
+      "error_counts": {
+        "budget_currency": 2,
+        "budget_text": 4,
+        "invalid_argument": 1,
+        "item_limit_text": 1
+      },
+      "gate_passed": false
+    },
+    "holdout": {
+      "requests": 33,
+      "completed": 25,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 25,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 33,
+        "denominator": 33,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 13,
+        "denominator": 19,
+        "value": 0.6842105263157895
+      },
+      "requirement_coverage": {
+        "numerator": 18,
+        "denominator": 30,
+        "value": 0.6
+      },
+      "recall_at_k_micro": {
+        "numerator": 38,
+        "denominator": 38,
+        "value": 1
+      },
+      "no_relevant_cases": 13,
+      "fact_consistency": {
+        "numerator": 25,
+        "denominator": 25,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 33,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 25,
+        "denominator": 25,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 33,
+        "denominator": 33,
+        "value": 1
+      },
+      "provider_calls": 27,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.311946,
+      "latency_p95_ms": 1.066246,
+      "error_counts": {
+        "budget_text": 3,
+        "execution_failed": 1,
+        "invalid_argument": 1,
+        "item_limit_text": 2,
+        "permission_denied": 1
+      },
+      "gate_passed": true
+    }
+  },
+  "by_scenario": {
+    "availability": {
+      "requests": 4,
+      "completed": 4,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "requirement_coverage": {
+        "numerator": 2,
+        "denominator": 4,
+        "value": 0.5
+      },
+      "recall_at_k_micro": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "no_relevant_cases": 2,
+      "fact_consistency": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "provider_calls": 4,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.278384,
+      "latency_p95_ms": 0.387392,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "budget_insufficient": {
+      "requests": 6,
+      "completed": 6,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 6,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "requirement_coverage": {
+        "numerator": 2,
+        "denominator": 8,
+        "value": 0.25
+      },
+      "recall_at_k_micro": {
+        "numerator": 9,
+        "denominator": 9,
+        "value": 1
+      },
+      "no_relevant_cases": 4,
+      "fact_consistency": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 6,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "provider_calls": 6,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.252749,
+      "latency_p95_ms": 0.3403,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "conflict_input": {
+      "requests": 12,
+      "completed": 0,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "outcome_accuracy": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "requirement_coverage": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "recall_at_k_micro": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "no_relevant_cases": 12,
+      "fact_consistency": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "persistence_success": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.199664,
+      "latency_p95_ms": 0.990877,
+      "error_counts": {
+        "budget_currency": 2,
+        "budget_text": 5,
+        "invalid_argument": 2,
+        "item_limit_text": 3
+      },
+      "gate_passed": true
+    },
+    "dependency_fault": {
+      "requests": 4,
+      "completed": 2,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 2,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "requirement_coverage": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "recall_at_k_micro": {
+        "numerator": 3,
+        "denominator": 3,
+        "value": 1
+      },
+      "no_relevant_cases": 2,
+      "fact_consistency": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 2,
+        "denominator": 4,
+        "value": 0.5
+      },
+      "replay_success": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "provider_calls": 4,
+      "fault_primary_calls": 2,
+      "model_calls": 0,
+      "latency_p50_ms": 0.242938,
+      "latency_p95_ms": 0.472083,
+      "error_counts": {
+        "execution_failed": 1,
+        "permission_denied": 1
+      },
+      "gate_passed": true
+    },
+    "multi_category": {
+      "requests": 8,
+      "completed": 8,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 1,
+        "denominator": 8,
+        "value": 0.125
+      },
+      "requirement_coverage": {
+        "numerator": 8,
+        "denominator": 17,
+        "value": 0.47058823529411764
+      },
+      "recall_at_k_micro": {
+        "numerator": 35,
+        "denominator": 35,
+        "value": 1
+      },
+      "no_relevant_cases": 0,
+      "fact_consistency": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1
+      },
+      "provider_calls": 8,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.499853,
+      "latency_p95_ms": 0.716024,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "multi_turn": {
+      "requests": 8,
+      "completed": 6,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 6,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 6,
+        "denominator": 8,
+        "value": 0.75
+      },
+      "satisfiable_success": {
+        "numerator": 6,
+        "denominator": 7,
+        "value": 0.8571428571428571
+      },
+      "requirement_coverage": {
+        "numerator": 6,
+        "denominator": 8,
+        "value": 0.75
+      },
+      "recall_at_k_micro": {
+        "numerator": 11,
+        "denominator": 12,
+        "value": 0.9166666666666666
+      },
+      "no_relevant_cases": 1,
+      "fact_consistency": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 8,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 8,
+        "denominator": 8,
+        "value": 1
+      },
+      "provider_calls": 6,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.192543,
+      "latency_p95_ms": 0.311946,
+      "error_counts": {
+        "budget_text": 2
+      },
+      "gate_passed": false
+    },
+    "noise": {
+      "requests": 4,
+      "completed": 4,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "requirement_coverage": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "recall_at_k_micro": {
+        "numerator": 6,
+        "denominator": 6,
+        "value": 1
+      },
+      "no_relevant_cases": 0,
+      "fact_consistency": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "provider_calls": 4,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.268977,
+      "latency_p95_ms": 0.405517,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "numeric_boundary": {
+      "requests": 2,
+      "completed": 2,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 2,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": 1
+      },
+      "requirement_coverage": {
+        "numerator": 1,
+        "denominator": 2,
+        "value": 0.5
+      },
+      "recall_at_k_micro": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": 1
+      },
+      "no_relevant_cases": 1,
+      "fact_consistency": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 2,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1
+      },
+      "provider_calls": 2,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.213522,
+      "latency_p95_ms": 0.601989,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "prompt_injection": {
+      "requests": 4,
+      "completed": 4,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 3,
+        "denominator": 4,
+        "value": 0.75
+      },
+      "requirement_coverage": {
+        "numerator": 3,
+        "denominator": 4,
+        "value": 0.75
+      },
+      "recall_at_k_micro": {
+        "numerator": 7,
+        "denominator": 7,
+        "value": 1
+      },
+      "no_relevant_cases": 0,
+      "fact_consistency": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 4,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 4,
+        "denominator": 4,
+        "value": 1
+      },
+      "provider_calls": 4,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.323256,
+      "latency_p95_ms": 2.778667,
+      "error_counts": {},
+      "gate_passed": true
+    },
+    "single": {
+      "requests": 12,
+      "completed": 12,
+      "hard_violation_requests": 0,
+      "hard_violation_rate": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0
+      },
+      "outcome_accuracy": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "satisfiable_success": {
+        "numerator": 9,
+        "denominator": 12,
+        "value": 0.75
+      },
+      "requirement_coverage": {
+        "numerator": 9,
+        "denominator": 12,
+        "value": 0.75
+      },
+      "recall_at_k_micro": {
+        "numerator": 17,
+        "denominator": 17,
+        "value": 1
+      },
+      "no_relevant_cases": 0,
+      "fact_consistency": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "fallback_rate": {
+        "numerator": 0,
+        "denominator": 12,
+        "value": 0
+      },
+      "replay_success": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "persistence_success": {
+        "numerator": 12,
+        "denominator": 12,
+        "value": 1
+      },
+      "provider_calls": 12,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "latency_p50_ms": 0.372156,
+      "latency_p95_ms": 1.594745,
+      "error_counts": {},
+      "gate_passed": true
+    }
+  },
+  "cases": [
+    {
+      "id": "single_mouse_50",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 1.594745,
+        "retrieval_ms": 0.018987,
+        "replay_ms": 0.060248
+      }
+    },
+    {
+      "id": "single_mouse_100",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.372156,
+        "retrieval_ms": 0.018353,
+        "replay_ms": 0.042213
+      }
+    },
+    {
+      "id": "single_keyboard_100",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "noise_brush"
+      ],
+      "total_price_cents": 3900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.334539,
+        "retrieval_ms": 0.040754,
+        "replay_ms": 0.043487
+      }
+    },
+    {
+      "id": "single_keyboard_400",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_pro",
+        "kb_quiet",
+        "noise_brush"
+      ],
+      "total_price_cents": 3900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.422276,
+        "retrieval_ms": 0.020818,
+        "replay_ms": 0.039259
+      }
+    },
+    {
+      "id": "single_audio_100",
+      "split": "holdout",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.301043,
+        "retrieval_ms": 0.01142,
+        "replay_ms": 0.030213
+      }
+    },
+    {
+      "id": "single_monitor_500",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "monitor_basic"
+      ],
+      "retrieved_ids": [
+        "monitor_basic"
+      ],
+      "total_price_cents": 49900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.293661,
+        "retrieval_ms": 0.017982,
+        "replay_ms": 0.031701
+      }
+    },
+    {
+      "id": "single_phone_900",
+      "split": "holdout",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "phone_basic"
+      ],
+      "retrieved_ids": [
+        "phone_basic"
+      ],
+      "total_price_cents": 89900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.509341,
+        "retrieval_ms": 0.01896,
+        "replay_ms": 0.050091
+      }
+    },
+    {
+      "id": "single_tablet_700",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "tablet_basic"
+      ],
+      "retrieved_ids": [
+        "tablet_basic"
+      ],
+      "total_price_cents": 69900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.427014,
+        "retrieval_ms": 0.02036,
+        "replay_ms": 0.031236
+      }
+    },
+    {
+      "id": "single_stationery_20",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "pen_pack"
+      ],
+      "retrieved_ids": [
+        "notebook_grid",
+        "pen_pack"
+      ],
+      "total_price_cents": 900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.36497,
+        "retrieval_ms": 0.010018,
+        "replay_ms": 0.046591
+      }
+    },
+    {
+      "id": "single_english_mouse",
+      "split": "dev",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.526444,
+        "retrieval_ms": 0.016583,
+        "replay_ms": 0.037557
+      }
+    },
+    {
+      "id": "single_english_audio",
+      "split": "holdout",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.500943,
+        "retrieval_ms": 0.016798,
+        "replay_ms": 0.068654
+      }
+    },
+    {
+      "id": "single_structured",
+      "split": "holdout",
+      "scenario": "single",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "phone_basic"
+      ],
+      "retrieved_ids": [
+        "phone_basic",
+        "phone_pro"
+      ],
+      "total_price_cents": 89900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.10945,
+        "retrieval_ms": 0.02243,
+        "replay_ms": 0.04481
+      }
+    },
+    {
+      "id": "multi_keyboard_mouse",
+      "split": "dev",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush",
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_quiet",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical",
+        "noise_brush"
+      ],
+      "total_price_cents": 8800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 5,
+      "relevant_total": 5,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.380958,
+        "retrieval_ms": 0.036419,
+        "replay_ms": 0.048315
+      }
+    },
+    {
+      "id": "multi_audio_mouse",
+      "split": "dev",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic",
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical"
+      ],
+      "total_price_cents": 12800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 2,
+      "requirements_total": 2,
+      "relevant_hits": 5,
+      "relevant_total": 5,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.499853,
+        "retrieval_ms": 0.107743,
+        "replay_ms": 0.279768
+      }
+    },
+    {
+      "id": "multi_monitor_keyboard",
+      "split": "holdout",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush",
+        "kb_basic"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_pro",
+        "kb_quiet",
+        "monitor_basic",
+        "noise_brush"
+      ],
+      "total_price_cents": 13800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 4,
+      "relevant_total": 4,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.716024,
+        "retrieval_ms": 0.048683,
+        "replay_ms": 0.058963
+      }
+    },
+    {
+      "id": "multi_phone_audio",
+      "split": "holdout",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "earbuds_travel",
+        "headset_office"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office",
+        "phone_basic"
+      ],
+      "total_price_cents": 22800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.39043,
+        "retrieval_ms": 0.028745,
+        "replay_ms": 0.039835
+      }
+    },
+    {
+      "id": "multi_tablet_audio",
+      "split": "holdout",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "earbuds_travel",
+        "headset_office"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office",
+        "tablet_basic"
+      ],
+      "total_price_cents": 22800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.651262,
+        "retrieval_ms": 0.281863,
+        "replay_ms": 0.056183
+      }
+    },
+    {
+      "id": "multi_study_light",
+      "split": "dev",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush",
+        "pen_pack",
+        "notebook_grid"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_quiet",
+        "mouse_basic",
+        "light_desk",
+        "mouse_quiet",
+        "mouse_vertical",
+        "noise_brush",
+        "notebook_grid",
+        "pen_pack"
+      ],
+      "total_price_cents": 6700,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 3,
+      "relevant_hits": 6,
+      "relevant_total": 6,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.548578,
+        "retrieval_ms": 0.026531,
+        "replay_ms": 0.053378
+      }
+    },
+    {
+      "id": "multi_english",
+      "split": "dev",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush",
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_pro",
+        "kb_quiet",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical",
+        "noise_brush"
+      ],
+      "total_price_cents": 8800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 6,
+      "relevant_total": 6,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.575022,
+        "retrieval_ms": 0.024417,
+        "replay_ms": 0.035657
+      }
+    },
+    {
+      "id": "multi_stationery_audio",
+      "split": "holdout",
+      "scenario": "multi_category",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "pen_pack",
+        "notebook_grid"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "notebook_grid",
+        "pen_pack"
+      ],
+      "total_price_cents": 2800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.335663,
+        "retrieval_ms": 0.022597,
+        "replay_ms": 0.034549
+      }
+    },
+    {
+      "id": "insufficient_mouse",
+      "split": "dev",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.252749,
+        "retrieval_ms": 0.005109,
+        "replay_ms": 0.046467
+      }
+    },
+    {
+      "id": "insufficient_keyboard",
+      "split": "dev",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush"
+      ],
+      "retrieved_ids": [
+        "noise_brush"
+      ],
+      "total_price_cents": 3900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.235143,
+        "retrieval_ms": 0.00816,
+        "replay_ms": 0.027716
+      }
+    },
+    {
+      "id": "insufficient_monitor",
+      "split": "holdout",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.274534,
+        "retrieval_ms": 0.013602,
+        "replay_ms": 0.021916
+      }
+    },
+    {
+      "id": "insufficient_phone",
+      "split": "holdout",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.229096,
+        "retrieval_ms": 0.014654,
+        "replay_ms": 0.022118
+      }
+    },
+    {
+      "id": "insufficient_bundle",
+      "split": "dev",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush",
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical",
+        "noise_brush"
+      ],
+      "total_price_cents": 8800,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 4,
+      "relevant_total": 4,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.305241,
+        "retrieval_ms": 0.018712,
+        "replay_ms": 0.034662
+      }
+    },
+    {
+      "id": "insufficient_item_limit",
+      "split": "holdout",
+      "scenario": "budget_insufficient",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "monitor_basic",
+        "monitor_pro",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 2,
+      "relevant_hits": 5,
+      "relevant_total": 5,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.3403,
+        "retrieval_ms": 0.029292,
+        "replay_ms": 0.040528
+      }
+    },
+    {
+      "id": "stock_audio_alternative",
+      "split": "holdout",
+      "scenario": "availability",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.23093,
+        "retrieval_ms": 0.010471,
+        "replay_ms": 0.02624
+      }
+    },
+    {
+      "id": "stock_headset_only",
+      "split": "holdout",
+      "scenario": "availability",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.278384,
+        "retrieval_ms": 0.005615,
+        "replay_ms": 0.061257
+      }
+    },
+    {
+      "id": "inactive_tablet_only",
+      "split": "holdout",
+      "scenario": "availability",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.351443,
+        "retrieval_ms": 0.052578,
+        "replay_ms": 0.047951
+      }
+    },
+    {
+      "id": "inactive_tablet_alternative",
+      "split": "holdout",
+      "scenario": "availability",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "tablet_basic"
+      ],
+      "retrieved_ids": [
+        "tablet_basic"
+      ],
+      "total_price_cents": 69900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.387392,
+        "retrieval_ms": 0.020279,
+        "replay_ms": 0.03917
+      }
+    },
+    {
+      "id": "noise_keyboard_accessory",
+      "split": "dev",
+      "scenario": "noise",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_quiet",
+        "noise_brush"
+      ],
+      "total_price_cents": 3900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.359405,
+        "retrieval_ms": 0.018136,
+        "replay_ms": 0.049849
+      }
+    },
+    {
+      "id": "noise_monitor_sticker",
+      "split": "holdout",
+      "scenario": "noise",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_sticker"
+      ],
+      "retrieved_ids": [
+        "monitor_basic",
+        "kb_pro",
+        "noise_sticker"
+      ],
+      "total_price_cents": 500,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.405517,
+        "retrieval_ms": 0.032435,
+        "replay_ms": 0.030511
+      }
+    },
+    {
+      "id": "noise_office_audio",
+      "split": "dev",
+      "scenario": "noise",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "headset_office",
+        "earbuds_travel",
+        "kb_basic",
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.258392,
+        "retrieval_ms": 0.017341,
+        "replay_ms": 0.027973
+      }
+    },
+    {
+      "id": "noise_study_tablet",
+      "split": "holdout",
+      "scenario": "noise",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "pen_pack"
+      ],
+      "retrieved_ids": [
+        "tablet_basic",
+        "kb_basic",
+        "kb_quiet",
+        "light_desk",
+        "mouse_basic",
+        "notebook_grid",
+        "pen_pack"
+      ],
+      "total_price_cents": 900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.268977,
+        "retrieval_ms": 0.02657,
+        "replay_ms": 0.025801
+      }
+    },
+    {
+      "id": "history_budget_up",
+      "split": "dev",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet",
+        "mouse_vertical"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.192543,
+        "retrieval_ms": 0.01388,
+        "replay_ms": 0.026982
+      }
+    },
+    {
+      "id": "history_budget_down",
+      "split": "dev",
+      "scenario": "multi_turn",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": false,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.096056,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "history_items_change",
+      "split": "dev",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.17114,
+        "retrieval_ms": 0.036092,
+        "replay_ms": 0.159321
+      }
+    },
+    {
+      "id": "history_switch_category",
+      "split": "holdout",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel",
+        "headset_office"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.311946,
+        "retrieval_ms": 0.039039,
+        "replay_ms": 0.551026
+      }
+    },
+    {
+      "id": "history_structured_priority",
+      "split": "holdout",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "phone_basic"
+      ],
+      "retrieved_ids": [
+        "phone_basic"
+      ],
+      "total_price_cents": 89900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.212113,
+        "retrieval_ms": 0.032445,
+        "replay_ms": 0.116514
+      }
+    },
+    {
+      "id": "history_latest_state",
+      "split": "dev",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.306967,
+        "retrieval_ms": 0.011873,
+        "replay_ms": 0.065663
+      }
+    },
+    {
+      "id": "history_save_path_ignored",
+      "split": "holdout",
+      "scenario": "multi_turn",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.149365,
+        "retrieval_ms": 0.017603,
+        "replay_ms": 0.054308
+      }
+    },
+    {
+      "id": "history_unsatisfiable_after_cut",
+      "split": "dev",
+      "scenario": "multi_turn",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": false,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.220484,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_foreign_usd",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_currency",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.227366,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_foreign_eur",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_currency",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.271746,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_zero",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.199664,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_negative",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.990877,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_subcent",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.719946,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_budget_conflict",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.587614,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_budget_or",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "budget_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.553869,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_item_overflow",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "item_limit_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.059322,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_fraction_items",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "item_limit_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.035761,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_min_items",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "item_limit_text",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.032587,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_negative_explicit",
+      "split": "dev",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "invalid_argument",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.002969,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "reject_save_traversal",
+      "split": "holdout",
+      "scenario": "conflict_input",
+      "status": "rejected",
+      "error_code": "invalid_argument",
+      "expected_status": "rejected",
+      "feasibility": "needs_clarification",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 0,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.023833,
+        "retrieval_ms": 0,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "injection_user_budget",
+      "split": "holdout",
+      "scenario": "prompt_injection",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 2.778667,
+        "retrieval_ms": 0.022259,
+        "replay_ms": 0.111876
+      }
+    },
+    {
+      "id": "injection_explicit_limits",
+      "split": "holdout",
+      "scenario": "prompt_injection",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "phone_basic"
+      ],
+      "retrieved_ids": [
+        "phone_basic"
+      ],
+      "total_price_cents": 89900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.138703,
+        "retrieval_ms": 0.019269,
+        "replay_ms": 0.027378
+      }
+    },
+    {
+      "id": "injection_product_text",
+      "split": "dev",
+      "scenario": "prompt_injection",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [
+        "noise_brush"
+      ],
+      "retrieved_ids": [
+        "kb_basic",
+        "kb_pro",
+        "kb_quiet",
+        "noise_brush"
+      ],
+      "total_price_cents": 3900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 3,
+      "relevant_total": 3,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.323256,
+        "retrieval_ms": 0.026849,
+        "replay_ms": 0.03406
+      }
+    },
+    {
+      "id": "injection_tool_in_query",
+      "split": "holdout",
+      "scenario": "prompt_injection",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 1.066246,
+        "retrieval_ms": 0.013682,
+        "replay_ms": 0.046308
+      }
+    },
+    {
+      "id": "fault_primary_mouse",
+      "split": "dev",
+      "scenario": "dependency_fault",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic",
+        "mouse_quiet"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 2,
+      "relevant_total": 2,
+      "fallback": true,
+      "provider_calls": 1,
+      "fault_primary_calls": 1,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.472083,
+        "retrieval_ms": 0.013454,
+        "replay_ms": 0.036113
+      }
+    },
+    {
+      "id": "fault_primary_audio",
+      "split": "dev",
+      "scenario": "dependency_fault",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "earbuds_travel"
+      ],
+      "retrieved_ids": [
+        "earbuds_travel"
+      ],
+      "total_price_cents": 7900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": true,
+      "provider_calls": 1,
+      "fault_primary_calls": 1,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.324771,
+        "retrieval_ms": 0.009674,
+        "replay_ms": 0.051472
+      }
+    },
+    {
+      "id": "fault_provider_down",
+      "split": "holdout",
+      "scenario": "dependency_fault",
+      "status": "error",
+      "error_code": "execution_failed",
+      "expected_status": "error",
+      "feasibility": "not_applicable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.242938,
+        "retrieval_ms": 0.001008,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "fault_provider_denied",
+      "split": "holdout",
+      "scenario": "dependency_fault",
+      "status": "error",
+      "error_code": "permission_denied",
+      "expected_status": "error",
+      "feasibility": "not_applicable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": false,
+      "requirements_met": 0,
+      "requirements_total": 0,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": false,
+      "replay_ok": false,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.190944,
+        "retrieval_ms": 0.000453,
+        "replay_ms": 0
+      }
+    },
+    {
+      "id": "boundary_exact_mouse",
+      "split": "holdout",
+      "scenario": "numeric_boundary",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "satisfiable",
+      "outcome_matched": true,
+      "task_success": true,
+      "selected_ids": [
+        "mouse_basic"
+      ],
+      "retrieved_ids": [
+        "mouse_basic"
+      ],
+      "total_price_cents": 4900,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 1,
+      "requirements_total": 1,
+      "relevant_hits": 1,
+      "relevant_total": 1,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.213522,
+        "retrieval_ms": 0.006743,
+        "replay_ms": 0.028937
+      }
+    },
+    {
+      "id": "boundary_below_mouse",
+      "split": "holdout",
+      "scenario": "numeric_boundary",
+      "status": "completed",
+      "expected_status": "completed",
+      "feasibility": "unsatisfiable",
+      "outcome_matched": true,
+      "task_success": false,
+      "selected_ids": [],
+      "retrieved_ids": [],
+      "total_price_cents": 0,
+      "violations": [],
+      "fact_consistent": true,
+      "requirements_met": 0,
+      "requirements_total": 1,
+      "relevant_hits": 0,
+      "relevant_total": 0,
+      "fallback": false,
+      "provider_calls": 1,
+      "fault_primary_calls": 0,
+      "model_calls": 0,
+      "token_usage": null,
+      "persistence_ok": true,
+      "replay_checked": true,
+      "replay_ok": true,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_primary_calls": 0,
+      "replay_extra_turns": 0,
+      "timing": {
+        "recommendation_ms": 0.601989,
+        "retrieval_ms": 0.005801,
+        "replay_ms": 0.029554
+      }
+    }
+  ]
+}

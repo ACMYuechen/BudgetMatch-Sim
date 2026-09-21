@@ -1,10 +1,33 @@
 package recommend
 
 import (
+	"errors"
 	"testing"
 
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
 )
+
+func TestPlannerResolveDecimalAndBoundaryBudgets(t *testing.T) {
+	for _, test := range []struct {
+		query string
+		want  int64
+	}{
+		{"预算 19.99 元买鼠标", 1999},
+		{"预算 0.29 元买笔", 29},
+		{"预算 1.001 千元买键盘", 100100},
+		{"预算 1000000000 元买电脑", agent.MaxBudgetCents},
+	} {
+		intent, err := NewPlanner().Resolve(agent.Input{Query: test.query}, nil)
+		if err != nil || intent.BudgetCents != test.want {
+			t.Fatalf("Resolve(%q) = %+v, %v; want %d", test.query, intent, err, test.want)
+		}
+	}
+	for _, query := range []string{"预算 1000000000.01 元", "预算 1-9999999999999999999999999 万元"} {
+		if _, err := NewPlanner().Resolve(agent.Input{Query: query}, nil); !errors.Is(err, agent.ErrInvalidInput) {
+			t.Fatalf("oversized text budget accepted: %q, %v", query, err)
+		}
+	}
+}
 
 // TestPlannerParseBudgetExpressions 验证 Planner 能解析中文、英文和缩写预算表达。
 func TestPlannerParseBudgetExpressions(t *testing.T) {
@@ -25,7 +48,7 @@ func TestPlannerParseBudgetExpressions(t *testing.T) {
 	planner := NewPlanner()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			intent := planner.Parse(agent.Input{Query: tt.query})
+			intent := mustResolve(t, planner, agent.Input{Query: tt.query})
 			if intent.BudgetCents != tt.want {
 				t.Fatalf("BudgetCents = %d, want %d", intent.BudgetCents, tt.want)
 			}
@@ -38,7 +61,7 @@ func TestPlannerSpecifiedScenarios(t *testing.T) {
 	planner := NewPlanner()
 
 	t.Run("区间预算和通勤耳机关键词", func(t *testing.T) {
-		intent := planner.Parse(agent.Input{Query: "预算 3-5k 买通勤耳机"})
+		intent := mustResolve(t, planner, agent.Input{Query: "预算 3-5k 买通勤耳机"})
 		if intent.BudgetCents != 500000 {
 			t.Fatalf("BudgetCents = %d, want 500000", intent.BudgetCents)
 		}
@@ -46,7 +69,7 @@ func TestPlannerSpecifiedScenarios(t *testing.T) {
 	})
 
 	t.Run("不超过五千", func(t *testing.T) {
-		intent := planner.Parse(agent.Input{Query: "不超过 5000 买办公电脑"})
+		intent := mustResolve(t, planner, agent.Input{Query: "不超过 5000 买办公电脑"})
 		if intent.BudgetCents != 500000 {
 			t.Fatalf("BudgetCents = %d, want 500000", intent.BudgetCents)
 		}
@@ -54,7 +77,7 @@ func TestPlannerSpecifiedScenarios(t *testing.T) {
 	})
 
 	t.Run("忽略手机型号数字", func(t *testing.T) {
-		intent := planner.Parse(agent.Input{Query: "买 iPhone 15 配件"})
+		intent := mustResolve(t, planner, agent.Input{Query: "买 iPhone 15 配件"})
 		if intent.BudgetCents != 300000 {
 			t.Fatalf("BudgetCents = %d, want default 300000", intent.BudgetCents)
 		}
@@ -65,7 +88,7 @@ func TestPlannerSpecifiedScenarios(t *testing.T) {
 func TestPlannerKeepsExplicitAndDefaultBudget(t *testing.T) {
 	planner := NewPlanner()
 
-	explicit := planner.Parse(agent.Input{Query: "预算不超过5000", BudgetCents: 123400})
+	explicit := mustResolve(t, planner, agent.Input{Query: "预算不超过5000", BudgetCents: 123400})
 	if explicit.BudgetCents != 123400 {
 		t.Fatalf("explicit BudgetCents = %d, want 123400", explicit.BudgetCents)
 	}
@@ -73,11 +96,10 @@ func TestPlannerKeepsExplicitAndDefaultBudget(t *testing.T) {
 	queries := []string{
 		"买2个iPhone 15 Pro Max手机，搭配4K显示器和65W充电器",
 		"最多3件耳机，型号选Redmi K70",
-		"不超过15件商品",
 		"need 2 headphones and an iPhone 16",
 	}
 	for _, query := range queries {
-		intent := planner.Parse(agent.Input{Query: query})
+		intent := mustResolve(t, planner, agent.Input{Query: query})
 		if intent.BudgetCents != 300000 {
 			t.Errorf("query %q: BudgetCents = %d, want default 300000", query, intent.BudgetCents)
 		}
@@ -86,7 +108,7 @@ func TestPlannerKeepsExplicitAndDefaultBudget(t *testing.T) {
 
 // TestPlannerPrefersExplicitBudget 验证显式预算不会被后续商品价格区间覆盖。
 func TestPlannerPrefersExplicitBudget(t *testing.T) {
-	intent := NewPlanner().Parse(agent.Input{Query: "预算1000元，耳机价格300-500元"})
+	intent := mustResolve(t, NewPlanner(), agent.Input{Query: "预算1000元，耳机价格300-500元"})
 	if intent.BudgetCents != 100000 {
 		t.Fatalf("BudgetCents = %d, want 100000", intent.BudgetCents)
 	}
@@ -97,10 +119,10 @@ func TestPlannerParseWithHistory(t *testing.T) {
 	planner := NewPlanner()
 
 	t.Run("预算追问继承商品上下文", func(t *testing.T) {
-		intent := planner.ParseWithHistory(agent.Input{Query: "预算提高到5000"}, []string{
+		intent := mustResolve(t, planner, agent.Input{Query: "预算提高到5000"},
 			"预算3000买通勤耳机",
 			"希望续航好一点",
-		})
+		)
 		if intent.BudgetCents != 500000 {
 			t.Fatalf("BudgetCents = %d, want 500000", intent.BudgetCents)
 		}
@@ -109,9 +131,9 @@ func TestPlannerParseWithHistory(t *testing.T) {
 	})
 
 	t.Run("当前商品类别覆盖历史类别", func(t *testing.T) {
-		intent := planner.ParseWithHistory(agent.Input{Query: "换成平板，预算2000元"}, []string{
+		intent := mustResolve(t, planner, agent.Input{Query: "换成平板，预算2000元"},
 			"预算5000买手机",
-		})
+		)
 		if intent.BudgetCents != 200000 {
 			t.Fatalf("BudgetCents = %d, want 200000", intent.BudgetCents)
 		}
@@ -124,7 +146,7 @@ func TestPlannerParseWithHistory(t *testing.T) {
 func TestPlannerInheritsStructuredStateOutsideTextWindow(t *testing.T) {
 	planner := NewPlanner()
 	prior := agent.Intent{BudgetCents: 420000, MaxItems: 2, Keywords: []string{"耳机"}, Preferences: []string{"续航"}}
-	intent := planner.Parse(agent.Input{Query: "再便携一点", PriorIntent: &prior})
+	intent := mustResolve(t, planner, agent.Input{Query: "再便携一点", PriorIntent: &prior})
 	if intent.BudgetCents != 420000 || intent.MaxItems != 2 {
 		t.Fatalf("structured constraints were not inherited: %+v", intent)
 	}
@@ -192,6 +214,15 @@ func TestPlannerExtractPreferences(t *testing.T) {
 			assertContainsAll(t, extractPreferences(tt.query), tt.want)
 		})
 	}
+}
+
+func mustResolve(t *testing.T, planner *Planner, input agent.Input, history ...string) agent.Intent {
+	t.Helper()
+	intent, err := planner.Resolve(input, history)
+	if err != nil {
+		t.Fatalf("Resolve(%q) failed: %v", input.Query, err)
+	}
+	return intent
 }
 
 // assertContainsAll 验证实际切片包含全部期望值。

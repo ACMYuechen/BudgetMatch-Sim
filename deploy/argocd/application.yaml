@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: budgetmatch-sim
+  namespace: argocd
+spec:
+  project: budgetmatch
+  source:
+    repoURL: https://github.com/ACMYuechen/BudgetMatch-Sim.git
+    targetRevision: gitops
+    path: .
+    directory:
+      include: apps.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: budgetmatch-sim
+  syncPolicy:
+    automated:
+      enabled: false
+      prune: false
+      selfHeal: false
+      allowEmpty: false
+    syncOptions:
+      - FailOnSharedResource=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

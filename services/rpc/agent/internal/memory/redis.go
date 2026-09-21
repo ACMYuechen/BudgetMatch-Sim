@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cloudwego/eino/schema"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -75,48 +74,13 @@ func conversationLockRedisKey(userId, conversationId string) string {
 	return "agent:user:" + userId + ":conv:" + conversationId + ":lock"
 }
 
-// WithConversationLock 使用带随机令牌的 Redis 分布式锁串行化多实例请求。
-// Lua 解锁脚本只允许锁持有者删除 key，锁 TTL 大于推荐 RPC 的最大执行时间。
-func (m *Redis) WithConversationLock(ctx context.Context, userId, conversationId string, fn func(context.Context) error) error {
-	if m == nil || m.client == nil {
-		return fmt.Errorf("memory: redis client is nil")
-	}
-	key, token := conversationLockRedisKey(userId, conversationId), uuid.NewString()
-	ticker := time.NewTicker(25 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		created, err := m.client.SetNX(ctx, key, token, 2*time.Minute).Result()
-		if err != nil {
-			return fmt.Errorf("memory: acquire redis conversation lock: %w", err)
-		}
-		if created {
-			var callbackErr, releaseErr error
-			func() {
-				defer func() {
-					const releaseScript = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`
-					releaseErr = m.client.Eval(context.Background(), releaseScript, []string{key}, token).Err()
-				}()
-				callbackErr = fn(ctx)
-			}()
-			if callbackErr != nil {
-				return callbackErr
-			}
-			if releaseErr != nil {
-				return fmt.Errorf("memory: release redis conversation lock: %w", releaseErr)
-			}
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
-
 // GetConversation 从独立元数据 key 读取会话，不依赖可能被裁剪的消息窗口。
 func (m *Redis) GetConversation(ctx context.Context, userId, conversationId string) (Conversation, bool, error) {
-	data, err := m.client.Get(ctx, conversationMetaKey(userId, conversationId)).Bytes()
+	return readRedisConversation(ctx, m.client, userId, conversationId)
+}
+
+func readRedisConversation(ctx context.Context, reader redis.Cmdable, userId, conversationId string) (Conversation, bool, error) {
+	data, err := reader.Get(ctx, conversationMetaKey(userId, conversationId)).Bytes()
 	if err == redis.Nil {
 		return Conversation{}, false, nil
 	}
@@ -132,7 +96,11 @@ func (m *Redis) GetConversation(ctx context.Context, userId, conversationId stri
 
 // FindTurn 通过 Hash 字段 O(1) 定位轮次，支持 turn_id 幂等重放。
 func (m *Redis) FindTurn(ctx context.Context, userId, conversationId, turnId string) (Turn, bool, error) {
-	item, err := m.client.HGet(ctx, conversationTurnDataKey(userId, conversationId), turnId).Bytes()
+	return readRedisTurn(ctx, m.client, userId, conversationId, turnId)
+}
+
+func readRedisTurn(ctx context.Context, reader redis.Cmdable, userId, conversationId, turnId string) (Turn, bool, error) {
+	item, err := reader.HGet(ctx, conversationTurnDataKey(userId, conversationId), turnId).Bytes()
 	if err == redis.Nil {
 		return Turn{}, false, nil
 	}
@@ -147,7 +115,7 @@ func (m *Redis) FindTurn(ctx context.Context, userId, conversationId, turnId str
 }
 
 // SaveTurn 同步刷新元数据、完整轮次、会话索引和滚动消息窗口的滑动 TTL。
-// 调用方必须持有会话锁，以保证读改写过程和轮次序号一致。
+// 服务调用复用会话锁，直接调用自动获取锁；提交同时校验租约，过期持有者不得写入。
 func (m *Redis) SaveTurn(ctx context.Context, req SaveTurnReq) (Conversation, Turn, error) {
 	if req.UserId == "" || req.ConversationId == "" || req.TurnId == "" {
 		return Conversation{}, Turn{}, fmt.Errorf("memory: user id, conversation id or turn id is empty")
@@ -155,16 +123,30 @@ func (m *Redis) SaveTurn(ctx context.Context, req SaveTurnReq) (Conversation, Tu
 	if !json.Valid(req.ResultJSON) {
 		return Conversation{}, Turn{}, fmt.Errorf("memory: result is not valid JSON")
 	}
-	if existing, found, err := m.FindTurn(ctx, req.UserId, req.ConversationId, req.TurnId); err != nil {
+	var conversation Conversation
+	var turn Turn
+	err := m.writeWithLease(ctx, req.UserId, req.ConversationId, func(locked context.Context, tx *redis.Tx) error {
+		var err error
+		conversation, turn, err = m.saveTurnLocked(locked, tx, req)
+		return err
+	})
+	if err != nil {
+		return Conversation{}, Turn{}, err
+	}
+	return conversation, turn, nil
+}
+
+func (m *Redis) saveTurnLocked(ctx context.Context, tx *redis.Tx, req SaveTurnReq) (Conversation, Turn, error) {
+	if existing, found, err := readRedisTurn(ctx, tx, req.UserId, req.ConversationId, req.TurnId); err != nil {
 		return Conversation{}, Turn{}, err
 	} else if found {
-		conversation, _, err := m.GetConversation(ctx, req.UserId, req.ConversationId)
+		conversation, _, err := readRedisConversation(ctx, tx, req.UserId, req.ConversationId)
 		return conversation, existing, err
 	}
 	if req.Now.IsZero() {
 		req.Now = time.Now()
 	}
-	conversation, exists, err := m.GetConversation(ctx, req.UserId, req.ConversationId)
+	conversation, exists, err := readRedisConversation(ctx, tx, req.UserId, req.ConversationId)
 	if err != nil {
 		return Conversation{}, Turn{}, err
 	}
@@ -200,19 +182,21 @@ func (m *Redis) SaveTurn(ctx context.Context, req SaveTurnReq) (Conversation, Tu
 	if err != nil {
 		return Conversation{}, Turn{}, err
 	}
-	pipe := m.client.TxPipeline()
-	pipe.Set(ctx, conversationMetaKey(req.UserId, req.ConversationId), conversationJSON, m.conf.TTL)
-	pipe.RPush(ctx, conversationTurnsKey(req.UserId, req.ConversationId), req.TurnId)
-	pipe.Expire(ctx, conversationTurnsKey(req.UserId, req.ConversationId), m.conf.TTL)
-	pipe.HSet(ctx, conversationTurnDataKey(req.UserId, req.ConversationId), req.TurnId, turnJSON)
-	pipe.Expire(ctx, conversationTurnDataKey(req.UserId, req.ConversationId), m.conf.TTL)
-	pipe.RPush(ctx, convKey(req.UserId, req.ConversationId), userMessage, assistantMessage)
-	pipe.LTrim(ctx, convKey(req.UserId, req.ConversationId), int64(-m.conf.MaxHistory), -1)
-	pipe.Expire(ctx, convKey(req.UserId, req.ConversationId), m.conf.TTL)
-	pipe.Set(ctx, titleKey(req.UserId, req.ConversationId), conversation.Title, m.conf.TTL)
-	pipe.ZAdd(ctx, conversationIndexKey(req.UserId), redis.Z{Score: float64(req.Now.UnixMilli()), Member: req.ConversationId})
-	pipe.Expire(ctx, conversationIndexKey(req.UserId), m.conf.TTL)
-	if _, err := pipe.Exec(ctx); err != nil {
+	_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.Set(ctx, conversationMetaKey(req.UserId, req.ConversationId), conversationJSON, m.conf.TTL)
+		pipe.RPush(ctx, conversationTurnsKey(req.UserId, req.ConversationId), req.TurnId)
+		pipe.Expire(ctx, conversationTurnsKey(req.UserId, req.ConversationId), m.conf.TTL)
+		pipe.HSet(ctx, conversationTurnDataKey(req.UserId, req.ConversationId), req.TurnId, turnJSON)
+		pipe.Expire(ctx, conversationTurnDataKey(req.UserId, req.ConversationId), m.conf.TTL)
+		pipe.RPush(ctx, convKey(req.UserId, req.ConversationId), userMessage, assistantMessage)
+		pipe.LTrim(ctx, convKey(req.UserId, req.ConversationId), int64(-m.conf.MaxHistory), -1)
+		pipe.Expire(ctx, convKey(req.UserId, req.ConversationId), m.conf.TTL)
+		pipe.Set(ctx, titleKey(req.UserId, req.ConversationId), conversation.Title, m.conf.TTL)
+		pipe.ZAdd(ctx, conversationIndexKey(req.UserId), redis.Z{Score: float64(req.Now.UnixMilli()), Member: req.ConversationId})
+		pipe.Expire(ctx, conversationIndexKey(req.UserId), m.conf.TTL)
+		return nil
+	})
+	if err != nil {
 		return Conversation{}, Turn{}, fmt.Errorf("memory: save redis turn: %w", err)
 	}
 	return conversation, turn, nil
@@ -291,19 +275,23 @@ func (m *Redis) ListTurns(ctx context.Context, userId, conversationId string, pa
 
 // DeleteConversation 清理一个会话的所有 Redis key 及用户级索引成员。
 func (m *Redis) DeleteConversation(ctx context.Context, userId, conversationId string) (bool, error) {
-	exists, err := m.client.Exists(ctx, conversationMetaKey(userId, conversationId)).Result()
-	if err != nil {
-		return false, fmt.Errorf("memory: check redis conversation: %w", err)
-	}
-	pipe := m.client.TxPipeline()
-	pipe.Del(ctx, convKey(userId, conversationId), titleKey(userId, conversationId), snapshotKey(userId, conversationId),
-		conversationMetaKey(userId, conversationId), conversationTurnsKey(userId, conversationId),
-		conversationTurnDataKey(userId, conversationId))
-	pipe.ZRem(ctx, conversationIndexKey(userId), conversationId)
-	if _, err := pipe.Exec(ctx); err != nil {
-		return false, fmt.Errorf("memory: delete redis conversation: %w", err)
-	}
-	return exists > 0, nil
+	var exists int64
+	err := m.writeWithLease(ctx, userId, conversationId, func(locked context.Context, tx *redis.Tx) error {
+		var err error
+		exists, err = tx.Exists(locked, conversationMetaKey(userId, conversationId)).Result()
+		if err != nil {
+			return fmt.Errorf("memory: check redis conversation: %w", err)
+		}
+		_, err = tx.TxPipelined(locked, func(pipe redis.Pipeliner) error {
+			pipe.Del(locked, convKey(userId, conversationId), titleKey(userId, conversationId), snapshotKey(userId, conversationId),
+				conversationMetaKey(userId, conversationId), conversationTurnsKey(userId, conversationId),
+				conversationTurnDataKey(userId, conversationId))
+			pipe.ZRem(locked, conversationIndexKey(userId), conversationId)
+			return nil
+		})
+		return err
+	})
+	return exists > 0 && err == nil, err
 }
 
 // Append 追加消息、按窗口截断并刷新 TTL，会话不存在时自动创建。
@@ -325,16 +313,17 @@ func (m *Redis) Append(ctx context.Context, userId, conversationId string, msgs 
 		values = append(values, data)
 	}
 
-	key := convKey(userId, conversationId)
-	pipe := m.client.Pipeline()
-	pipe.RPush(ctx, key, values...)
-	pipe.LTrim(ctx, key, int64(-m.conf.MaxHistory), -1)
-	pipe.Expire(ctx, key, m.conf.TTL)
-	pipe.Expire(ctx, titleKey(userId, conversationId), m.conf.TTL)
-	if _, err := pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("memory: append to redis: %w", err)
-	}
-	return nil
+	return m.writeWithLease(ctx, userId, conversationId, func(locked context.Context, tx *redis.Tx) error {
+		key := convKey(userId, conversationId)
+		_, err := tx.TxPipelined(locked, func(pipe redis.Pipeliner) error {
+			pipe.RPush(locked, key, values...)
+			pipe.LTrim(locked, key, int64(-m.conf.MaxHistory), -1)
+			pipe.Expire(locked, key, m.conf.TTL)
+			pipe.Expire(locked, titleKey(userId, conversationId), m.conf.TTL)
+			return nil
+		})
+		return err
+	})
 }
 
 // History 返回最近 limit 条消息（时间正序）；limit 非正时使用窗口大小。
@@ -366,44 +355,43 @@ func (m *Redis) GetOrCreateTitle(ctx context.Context, userId, conversationId, ca
 		return "", fmt.Errorf("memory: user id or conversation id is empty")
 	}
 
-	key := titleKey(userId, conversationId)
-	created, err := m.client.SetNX(ctx, key, candidate, m.conf.TTL).Result()
-	if err != nil {
-		return "", fmt.Errorf("memory: create conversation title: %w", err)
-	}
-	if created {
-		now := time.Now()
-		conversation := Conversation{UserId: userId, ConversationId: conversationId, Title: candidate,
-			CreatedAt: now, UpdatedAt: now}
-		data, _ := json.Marshal(conversation)
-		pipe := m.client.Pipeline()
-		pipe.SetNX(ctx, conversationMetaKey(userId, conversationId), data, m.conf.TTL)
-		pipe.ZAdd(ctx, conversationIndexKey(userId), redis.Z{Score: float64(now.UnixMilli()), Member: conversationId})
-		pipe.Expire(ctx, conversationIndexKey(userId), m.conf.TTL)
-		if _, pipelineErr := pipe.Exec(ctx); pipelineErr != nil {
-			return "", fmt.Errorf("memory: create redis conversation metadata: %w", pipelineErr)
+	var title string
+	err := m.writeWithLease(ctx, userId, conversationId, func(locked context.Context, tx *redis.Tx) error {
+		var err error
+		title, err = tx.Get(locked, titleKey(userId, conversationId)).Result()
+		createTitle := err == redis.Nil
+		if err != nil && !createTitle {
+			return fmt.Errorf("memory: read conversation title: %w", err)
 		}
-		return candidate, nil
-	}
-
-	title, err := m.client.Get(ctx, key).Result()
-	if err != nil {
-		return "", fmt.Errorf("memory: read conversation title: %w", err)
-	}
-	if _, exists, metaErr := m.GetConversation(ctx, userId, conversationId); metaErr != nil {
-		return "", metaErr
-	} else if !exists {
+		if createTitle {
+			title = candidate
+		}
+		_, exists, err := readRedisConversation(locked, tx, userId, conversationId)
+		if err != nil || exists && !createTitle {
+			return err
+		}
 		now := time.Now()
 		conversation := Conversation{UserId: userId, ConversationId: conversationId, Title: title,
 			CreatedAt: now, UpdatedAt: now}
-		data, _ := json.Marshal(conversation)
-		pipe := m.client.Pipeline()
-		pipe.SetNX(ctx, conversationMetaKey(userId, conversationId), data, m.conf.TTL)
-		pipe.ZAdd(ctx, conversationIndexKey(userId), redis.Z{Score: float64(now.UnixMilli()), Member: conversationId})
-		pipe.Expire(ctx, conversationIndexKey(userId), m.conf.TTL)
-		if _, pipelineErr := pipe.Exec(ctx); pipelineErr != nil {
-			return "", fmt.Errorf("memory: repair redis conversation metadata: %w", pipelineErr)
+		data, err := json.Marshal(conversation)
+		if err != nil {
+			return err
 		}
+		_, err = tx.TxPipelined(locked, func(pipe redis.Pipeliner) error {
+			if createTitle {
+				pipe.Set(locked, titleKey(userId, conversationId), title, m.conf.TTL)
+			}
+			if !exists {
+				pipe.Set(locked, conversationMetaKey(userId, conversationId), data, m.conf.TTL)
+				pipe.ZAdd(locked, conversationIndexKey(userId), redis.Z{Score: float64(now.UnixMilli()), Member: conversationId})
+				pipe.Expire(locked, conversationIndexKey(userId), m.conf.TTL)
+			}
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return "", err
 	}
 	return title, nil
 }

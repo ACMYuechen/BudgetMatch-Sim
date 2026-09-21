@@ -2,32 +2,23 @@ package mall_order_outbox
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"budgetmatch-sim/infra/uuid"
+	"budgetmatch-sim/services/rpc/mall/internal/testdb"
 )
 
 func TestReplayDeadAndQueryStats(t *testing.T) {
-	dsn := os.Getenv("BUDGETMATCH_TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("set BUDGETMATCH_TEST_POSTGRES_DSN to run outbox model integration tests")
-	}
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	require.NoError(t, err)
+	db := testdb.Open(t)
 	require.NoError(t, NewMallOrderOutboxModel(db).CreateTable())
 	tx := db.Begin()
 	require.NoError(t, tx.Error)
 	t.Cleanup(func() { _ = tx.Rollback().Error })
 	store := NewMallOrderOutboxModel(tx)
-	require.NoError(t, tx.Exec("DELETE FROM mall_order_outbox").Error)
 
 	now := time.Now()
 	pending := &MallOrderOutbox{

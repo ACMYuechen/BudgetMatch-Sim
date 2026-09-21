@@ -41,6 +41,7 @@ echo "🐳 启动基础设施 (postgres + redis + rocketmq + etcd)..."
 export ETCD_CLIENT_PORT=$DEV_ETCD_CLIENT_PORT
 export ETCD_ADVERTISE_CLIENT_URLS=http://$DEV_ETCD_ENDPOINT
 export ROCKETMQ_NAMESRV_PORT=$DEV_ROCKETMQ_NAMESRV_PORT
+export ROCKETMQ_BROKER_IP1=${DEV_ROCKETMQ_BROKER_IP1:-127.0.0.1}
 docker compose up postgres redis rocketmq-namesrv rocketmq-broker etcd -d
 
 echo "⏳ 等待基础设施就绪..."

@@ -11,7 +11,10 @@ package einolog
 
 import (
 	"context"
+	"math"
 	"time"
+
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/components/document"
@@ -23,9 +26,6 @@ import (
 	utilcallbacks "github.com/cloudwego/eino/utils/callbacks"
 	"github.com/zeromicro/go-zero/core/logx"
 )
-
-// detailLimit 限制日志中工具入参/出参的长度，避免大段 JSON 刷屏。
-const detailLimit = 512
 
 // NewHandler 构建覆盖全组件的日志回调 handler。
 func NewHandler() callbacks.Handler {
@@ -54,21 +54,21 @@ func NewHandler() callbacks.Handler {
 		}).
 		Tool(&utilcallbacks.ToolCallbackHandler{
 			OnStart: func(ctx context.Context, info *callbacks.RunInfo, input *tool.CallbackInput) context.Context {
-				args := ""
+				argsBytes := 0
 				if input != nil {
-					args = clip(input.ArgumentsInJSON)
+					argsBytes = len(input.ArgumentsInJSON)
 				}
-				logx.WithContext(ctx).Infow("eino tool start", fields(info, logx.Field("arguments", args))...)
+				logx.WithContext(ctx).Infow("eino tool start", fields(info, logx.Field("argument_bytes", argsBytes))...)
 				return markStart(ctx)
 			},
 			OnEnd: func(ctx context.Context, info *callbacks.RunInfo, output *tool.CallbackOutput) context.Context {
-				resp := ""
+				responseBytes := 0
 				if output != nil {
-					resp = clip(output.Response)
+					responseBytes = len(output.Response)
 				}
 				logx.WithContext(ctx).Infow("eino tool end", fields(info,
 					logx.Field("duration_ms", durationMS(ctx)),
-					logx.Field("response", resp),
+					logx.Field("response_bytes", responseBytes),
 				)...)
 				return ctx
 			},
@@ -78,7 +78,7 @@ func NewHandler() callbacks.Handler {
 			OnStart: func(ctx context.Context, info *callbacks.RunInfo, input *retriever.CallbackInput) context.Context {
 				extra := []logx.LogField{}
 				if input != nil {
-					extra = append(extra, logx.Field("query", clip(input.Query)), logx.Field("top_k", input.TopK))
+					extra = append(extra, logx.Field("query_bytes", len(input.Query)), logx.Field("top_k", input.TopK))
 				}
 				logx.WithContext(ctx).Infow("eino retriever start", fields(info, extra...)...)
 				return markStart(ctx)
@@ -132,11 +132,11 @@ func NewHandler() callbacks.Handler {
 		}).
 		Loader(&utilcallbacks.LoaderCallbackHandler{
 			OnStart: func(ctx context.Context, info *callbacks.RunInfo, input *document.LoaderCallbackInput) context.Context {
-				uri := ""
+				sourceBytes := 0
 				if input != nil {
-					uri = input.Source.URI
+					sourceBytes = len(input.Source.URI)
 				}
-				logx.WithContext(ctx).Infow("eino loader start", fields(info, logx.Field("source", uri))...)
+				logx.WithContext(ctx).Infow("eino loader start", fields(info, logx.Field("source_bytes", sourceBytes))...)
 				return markStart(ctx)
 			},
 			OnEnd: func(ctx context.Context, info *callbacks.RunInfo, output *document.LoaderCallbackOutput) context.Context {
@@ -174,9 +174,9 @@ func fields(info *callbacks.RunInfo, extra ...logx.LogField) []logx.LogField {
 	out := make([]logx.LogField, 0, len(extra)+3)
 	if info != nil {
 		out = append(out,
-			logx.Field("eino_component", string(info.Component)),
-			logx.Field("eino_type", info.Type),
-			logx.Field("eino_name", info.Name),
+			logx.Field("eino_component", safety.Label(string(info.Component))),
+			logx.Field("eino_type", safety.Label(info.Type)),
+			logx.Field("eino_name", safety.Label(info.Name)),
 		)
 	}
 	return append(out, extra...)
@@ -185,13 +185,9 @@ func fields(info *callbacks.RunInfo, extra ...logx.LogField) []logx.LogField {
 // onError 构建统一的错误回调。
 func onError(msg string) func(ctx context.Context, info *callbacks.RunInfo, err error) context.Context {
 	return func(ctx context.Context, info *callbacks.RunInfo, err error) context.Context {
-		detail := ""
-		if err != nil {
-			detail = err.Error()
-		}
 		logx.WithContext(ctx).Errorw(msg, fields(info,
 			logx.Field("duration_ms", durationMS(ctx)),
-			logx.Field("error", detail),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)...)
 		return ctx
 	}
@@ -199,10 +195,17 @@ func onError(msg string) func(ctx context.Context, info *callbacks.RunInfo, err 
 
 // scoreRange 返回检索结果的分数区间。
 func scoreRange(output *retriever.CallbackOutput) (lo, hi float64, ok bool) {
-	for i, doc := range output.Docs {
+	for _, doc := range output.Docs {
+		if doc == nil {
+			continue
+		}
 		score := doc.Score()
-		if i == 0 {
+		if math.IsNaN(score) || math.IsInf(score, 0) {
+			continue
+		}
+		if !ok {
 			lo, hi = score, score
+			ok = true
 			continue
 		}
 		if score < lo {
@@ -212,13 +215,5 @@ func scoreRange(output *retriever.CallbackOutput) (lo, hi float64, ok bool) {
 			hi = score
 		}
 	}
-	return lo, hi, len(output.Docs) > 0
-}
-
-// clip 截断过长文本，保持日志行可读。
-func clip(s string) string {
-	if len(s) > detailLimit {
-		return s[:detailLimit] + "...(truncated)"
-	}
-	return s
+	return lo, hi, ok
 }

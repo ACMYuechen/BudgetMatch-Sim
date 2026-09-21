@@ -59,7 +59,7 @@ func TestServiceFallsBackWhenPrimaryFails(t *testing.T) {
 	if len(result.ToolsUsed) != 1 || result.ToolsUsed[0].Success {
 		t.Fatalf("expected failed primary record, got %+v", result.ToolsUsed)
 	}
-	if result.ToolsUsed[0].Name != "primary.llm" || result.ToolsUsed[0].Detail != "model down" {
+	if result.ToolsUsed[0].Name != "primary.llm" || result.ToolsUsed[0].Detail != "primary execution failed; used validated fallback" {
 		t.Fatalf("unexpected fallback tool record: %+v", result.ToolsUsed[0])
 	}
 }

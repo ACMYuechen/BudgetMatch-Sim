@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_outbox"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
+	"budgetmatch-sim/services/rpc/mall/model/product_index"
 	"budgetmatch-sim/services/rpc/mall/model/product_skus"
 	"budgetmatch-sim/services/rpc/mall/model/products"
 
@@ -17,15 +18,18 @@ import (
 )
 
 type ServiceContext struct {
-	Config           config.Config
-	DB               *gorm.DB
-	Redis            redis.UniversalClient
-	ProductStore     products.ProductsModel
-	SkuStore         product_skus.ProductSkusModel
-	OrderStore       mall_orders.MallOrdersModel
-	OrderItemStore   mall_order_items.MallOrderItemsModel
-	OrderOutboxStore mall_order_outbox.MallOrderOutboxModel
-	OrderInboxStore  mall_order_event_inbox.MallOrderEventInboxModel
+	Config                config.Config
+	DB                    *gorm.DB
+	Redis                 redis.UniversalClient
+	ProductStore          products.ProductsModel
+	SkuStore              product_skus.ProductSkusModel
+	ProductIndexStore     product_index.Reader
+	ProductIndexSnapshots product_index.SnapshotReader
+	CandidateStore        product_index.CandidateReader
+	OrderStore            mall_orders.MallOrdersModel
+	OrderItemStore        mall_order_items.MallOrderItemsModel
+	OrderOutboxStore      mall_order_outbox.MallOrderOutboxModel
+	OrderInboxStore       mall_order_event_inbox.MallOrderEventInboxModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -41,6 +45,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	productStore := products.NewProductsModel(db.DB())
 	skuStore := product_skus.NewProductSkusModel(db.DB())
+	indexStore := product_index.NewModel(db.DB())
 	orderStore := mall_orders.NewMallOrdersModel(db.DB())
 	orderItemStore := mall_order_items.NewMallOrderItemsModel(db.DB())
 	orderOutboxStore := mall_order_outbox.NewMallOrderOutboxModel(db.DB())
@@ -67,11 +72,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		DB:     db.DB(),
 		Redis:  redisClient.Client(),
 
-		ProductStore:     productStore,
-		SkuStore:         skuStore,
-		OrderStore:       orderStore,
-		OrderItemStore:   orderItemStore,
-		OrderOutboxStore: orderOutboxStore,
-		OrderInboxStore:  orderInboxStore,
+		ProductStore:          productStore,
+		SkuStore:              skuStore,
+		ProductIndexStore:     indexStore,
+		ProductIndexSnapshots: indexStore,
+		CandidateStore:        indexStore,
+		OrderStore:            orderStore,
+		OrderItemStore:        orderItemStore,
+		OrderOutboxStore:      orderOutboxStore,
+		OrderInboxStore:       orderInboxStore,
 	}
 }

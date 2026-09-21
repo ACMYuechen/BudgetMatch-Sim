@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
@@ -13,6 +14,8 @@ import (
 	mcpconfig "budgetmatch-sim/services/rpc/agent/internal/mcp"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/runtrace"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/model"
@@ -21,10 +24,13 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // logCallbacks 是全局复用的 Eino 组件日志回调：
-// 挂在每次 Generate 上，模型/工具以及工具内部触发的检索、嵌入组件都会被同一 handler 记录。
+// 挂在 ReAct Generate/Stream 上；流式 Usage 另由 boundedStreamModel 按请求汇总，
+// 不依赖可能缺失的同步 OnEnd，也不把 Token 数当成费用。
 var logCallbacks = einolog.NewHandler()
 
 // AgentName 是 LLM 推荐 Agent 的名称标识。
@@ -44,7 +50,7 @@ type Agent struct {
 	provider         tools.ProductProvider
 	selector         *selector.BundleSelector
 	mcpCfg           mcpconfig.Config
-	fileTools        *filetools.Workspace
+	fileCfg          filetools.Config
 	maxStep          int
 	memory           memory.Manager // memory 会话记忆，只读取历史；写入统一由 Service 层完成
 	maxHistory       int            // maxHistory 单次读取的最大历史条数
@@ -53,21 +59,20 @@ type Agent struct {
 
 // 确保 Agent 实现 agentcore.Agent。
 var _ agentcore.Agent = (*Agent)(nil)
+var _ agentcore.StreamingAgent = (*Agent)(nil)
 
 // NewAgent 创建基于 Eino ReAct 的推荐 Agent。
 func NewAgent(m model.ToolCallingChatModel, provider tools.ProductProvider, sel *selector.BundleSelector,
 	mcpCfg mcpconfig.Config, fileCfg filetools.Config) *Agent {
-	workspace, err := filetools.NewWorkspace(fileCfg)
-	if err != nil {
-		panic(err)
-	}
+	mcpCfg.Args = append([]string(nil), mcpCfg.Args...)
+	mcpCfg.AllowedTools = append([]string(nil), mcpCfg.AllowedTools...)
 	return &Agent{
 		model:            m,
 		planner:          recommendagent.NewPlanner(),
 		provider:         provider,
 		selector:         sel,
 		mcpCfg:           mcpCfg,
-		fileTools:        workspace,
+		fileCfg:          fileCfg.Normalize(),
 		maxStep:          defaultMaxStep,
 		maxContextTokens: memory.Conf{}.ContextTokens(),
 	}
@@ -102,18 +107,70 @@ func (a *Agent) Name() string {
 }
 
 // Run 执行一次完整的 ReAct 推荐流程。
-func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+func (a *Agent) Run(ctx context.Context, input agentcore.Input) (result *agentcore.Result, err error) {
+	return a.run(ctx, input, nil)
+}
+
+// RunStream keeps orchestration private and streams a separate, tool-free
+// explanation from a numeric public projection. No history/tool bodies enter
+// that explanation call; all text is provisional and never replaces facts.
+func (a *Agent) RunStream(ctx context.Context, input agentcore.Input, progress agentcore.ProgressSink) (*agentcore.Result, error) {
+	if progress == nil {
+		return nil, agentcore.ErrInvalidInput
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	result, err := a.run(ctx, input, progress)
+	if err != nil {
+		return nil, safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, err))
+	}
+	return result, nil
+}
+
+func (a *Agent) run(ctx context.Context, input agentcore.Input, progress agentcore.ProgressSink) (result *agentcore.Result, err error) {
+	defer func() { err = safety.Protect(err) }()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if a == nil || a.model == nil {
 		return nil, errors.New("llm chat model is not configured")
 	}
 	if a.provider == nil || a.selector == nil {
 		return nil, errors.New("product provider and bundle selector are required")
 	}
+	runtrace.From(ctx).Provider(a.provider.Name())
 
-	intent := a.planner.Parse(input)
+	intent, err := a.planner.Resolve(input, nil)
+	if err != nil {
+		return nil, err
+	}
+	// 在任何文件/MCP 副作用前校验上下文大小。
+	history := a.loadHistory(ctx, input)
+	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
+	if err != nil {
+		return nil, err
+	}
+	_, writePath, err := filetools.ParseSaveRequest(input.Query)
+	if err != nil {
+		return nil, agentcore.ErrInvalidInput
+	}
+	if writePath != "" && !a.fileCfg.Enabled {
+		return nil, status.Error(codes.PermissionDenied, "file tools are disabled")
+	}
+	workspace, err := filetools.NewWorkspace(a.fileCfg, input.UserId, writePath)
+	if err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			return nil, status.Error(codes.PermissionDenied, "file tool access denied")
+		}
+		return nil, err
+	}
+	if workspace != nil {
+		defer workspace.Close()
+	}
 	s := newSession(a.provider, a.selector, intent)
+	s.progress = progress
 
-	reactTools, err := businessTools(s, a.fileTools)
+	reactTools, err := businessTools(s, workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -124,41 +181,60 @@ func (a *Agent) Run(ctx context.Context, input agentcore.Input) (*agentcore.Resu
 	defer cleanup()
 	reactTools = append(reactTools, mcpToolList...)
 
-	reactAgent, err := react.NewAgent(ctx, &react.AgentConfig{
+	reactConfig := &react.AgentConfig{
 		ToolCallingModel: a.model,
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: reactTools},
 		MaxStep:          a.maxStep,
-	})
+	}
+	var streamingModel *boundedStreamModel
+	if progress != nil {
+		streamingModel = newBoundedStreamModel(a.model, a.maxContextTokens)
+		reactConfig.ToolCallingModel = streamingModel
+		reactConfig.MaxStep = min(a.maxStep, defaultMaxStep)
+		reactConfig.ToolsConfig.ExecuteSequentially = true
+		// Full bounded inspection handles text-before-tool models. These
+		// orchestration chunks are NEVER the public answer stream.
+		reactConfig.StreamToolCallChecker = inspectToolStream
+	}
+	reactAgent, err := react.NewAgent(ctx, reactConfig)
 	if err != nil {
 		return nil, fmt.Errorf("build react agent: %w", err)
 	}
 
-	history := a.loadHistory(ctx, input)
-	messages, err := buildMessages(input, intent, history, a.maxContextTokens)
-	if err != nil {
-		return nil, err
-	}
 	keptHistory := max(len(messages)-2, 0)
 	if keptHistory < len(history) {
 		logx.WithContext(ctx).Infow("conversation history trimmed by context token budget",
-			logx.Field("conversation_id", input.ConversationId),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
 			logx.Field("loaded_messages", len(history)),
 			logx.Field("kept_messages", keptHistory),
 			logx.Field("max_context_tokens", a.maxContextTokens),
 		)
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
-	final, err := reactAgent.Generate(ctx, messages,
-		einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
+	if progress == nil {
+		_, err = reactAgent.Generate(ctx, messages,
+			einoagent.WithComposeOptions(compose.WithCallbacks(logCallbacks)))
+	} else {
+		err = drainOrchestration(ctx, reactAgent, messages)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	var finalText string
-	if final != nil {
-		finalText = final.Content
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	return a.assemble(ctx, input, intent, s, finalText), nil
+	result, err = a.assemble(ctx, input, intent, s)
+	if err != nil || progress == nil {
+		return result, err
+	}
+	if err := streamExplanation(ctx, streamingModel, result, progress); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // loadHistory 读取会话历史。记忆未启用或读取失败时返回空——
@@ -170,8 +246,8 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 	history, err := a.memory.History(ctx, input.UserId, input.ConversationId, a.maxHistory)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("load conversation history failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil
 	}
@@ -179,25 +255,21 @@ func (a *Agent) loadHistory(ctx context.Context, input agentcore.Input) []*schem
 }
 
 // assemble 把 session 中累积的类型化结果组装为业务响应。
-func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session, finalText string) *agentcore.Result {
+func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) (*agentcore.Result, error) {
 	items, total, calls := s.snapshot()
-	if len(items) == 0 {
+	if !s.hasSelection() {
 		var items2Err error
 		items, total, items2Err = a.fallbackSelect(ctx, input, intent, s)
 		detail := "model produced no bundle; used deterministic selection"
 		if items2Err != nil {
-			detail = "deterministic fallback failed: " + items2Err.Error()
+			return nil, items2Err
 		}
+		_, _, calls = s.snapshot() // include fallback retrieval diagnostics
 		calls = append(calls, agentcore.ToolCall{
 			Name:    "selector.fallback",
 			Success: len(items) > 0,
 			Detail:  detail,
 		})
-	}
-
-	summaryText := strings.TrimSpace(finalText)
-	if summaryText == "" {
-		summaryText = deterministicSummary(len(items), total, intent.BudgetCents)
 	}
 
 	toolsUsed := make([]agentcore.ToolCall, 0, len(calls)+1)
@@ -208,29 +280,45 @@ func (a *Agent) assemble(ctx context.Context, input agentcore.Input, intent agen
 	})
 	toolsUsed = append(toolsUsed, calls...)
 
-	return &agentcore.Result{
+	result := &agentcore.Result{
+		Candidates:      s.filterCandidates(nil),
+		Selection:       s.selectionScope(),
 		Intent:          intent,
 		Items:           items,
 		TotalPriceCents: total,
-		Summary:         summaryText,
+		Summary:         agentcore.BundleSummary(len(items), total, intent.BudgetCents),
 		ToolsUsed:       toolsUsed,
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	limits, _ := agentcore.NewConstraints(intent)
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // fallbackSelect 在模型未给出套装时做确定性兜底：必要时先检索候选，再用选择器挑选。
-// 检索失败时返回错误详情，由调用方记入工具记录，便于排查"为什么没选出商品"。
+// 检索失败原样返回错误，不能把失败包装成一次成功的空推荐。
 func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, intent agentcore.Intent, s *session) ([]agentcore.BundleItem, int64, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
 	if !s.hasCandidates() {
-		products, err := a.provider.SearchProducts(ctx, tools.SearchProductsReq{
+		search, err := tools.SearchWithTrace(ctx, a.provider, tools.SearchProductsReq{
 			Query:       input.Query,
 			Keywords:    intent.Keywords,
 			BudgetCents: intent.BudgetCents,
 			MaxItems:    intent.MaxItems,
 		})
+		for _, call := range safety.ToolCalls(search.Calls) {
+			s.recordCall(call)
+		}
 		if err != nil {
 			return nil, 0, err
 		}
-		s.storeCandidates(products)
+		s.storeCandidates(search.Candidates)
 	}
 	items, total := a.selector.Select(s.filterCandidates(nil), intent)
 	return items, total, nil
@@ -240,19 +328,8 @@ func (a *Agent) fallbackSelect(ctx context.Context, input agentcore.Input, inten
 func (a *Agent) modelLabel() string {
 	if typed, ok := a.model.(interface{ GetType() string }); ok {
 		if name := strings.TrimSpace(typed.GetType()); name != "" {
-			return strings.ToLower(name)
+			return safety.Label(strings.ToLower(name))
 		}
 	}
 	return "model"
-}
-
-// deterministicSummary 生成无模型文本时的兜底摘要。
-func deterministicSummary(count int, total, budget int64) string {
-	if count == 0 {
-		return "No bundle was found within the current budget."
-	}
-	if budget <= 0 {
-		return fmt.Sprintf("Selected %d items with total price %.2f.", count, float64(total)/100)
-	}
-	return fmt.Sprintf("Selected %d items with total price %.2f, within budget %.2f.", count, float64(total)/100, float64(budget)/100)
 }

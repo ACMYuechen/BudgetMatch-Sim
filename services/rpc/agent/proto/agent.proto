@@ -18,6 +18,65 @@ message Intent {
   int32           max_items    = 2;
   repeated string keywords     = 3;
   repeated string preferences  = 4;
+  DemandState demand           = 5; // absent for legacy recommendation turns
+}
+
+message DemandState {
+  int32 schema_version = 1;
+  repeated string required = 2;
+  repeated string optional = 3;
+  repeated string excluded = 4;
+}
+
+message DemandConflict {
+  string code = 1;
+  string category = 2;
+}
+
+// Planning only: explicit, strict JSON patch; no model or product execution.
+message PlanDemandReq {
+  string query = 1;
+  int64 budget_cents = 2;
+  int32 max_items = 3;
+  string conversation_id = 4;
+  string turn_id = 5;
+  string demand_patch = 6; // max 8192 bytes; empty inherits/initializes
+}
+
+message PlanDemandResp {
+  Intent intent = 1;
+  string status = 2; // intent_ready / needs_clarification, never recommendation success
+  repeated DemandConflict conflicts = 3;
+  string conversation_id = 4;
+  string conversation_title = 5;
+  string turn_id = 6;
+}
+
+// Execute an exact ready planning revision; cannot mutate demand on execution.
+message ExecuteDemandReq {
+  string conversation_id = 1;
+  string plan_turn_id = 2;
+  string turn_id = 3;
+}
+
+message DemandExecution {
+  string plan_turn_id = 1;
+  string strategy = 2;
+  string scope = 3; // synthetic_demo_snapshot_only or mall_checked_snapshot_only; NOT a reservation
+  string mapping_version = 4;
+  string mapping_sha256 = 5;
+  int64 snapshot_checked_at_ms = 6;
+  repeated string covered_required = 7;
+  repeated string missing_required = 8;
+  repeated string covered_optional = 9;
+  repeated string unscored_preferences = 10;
+  repeated string missing_required_in_window = 11;
+  bool search_limited = 12;
+  int32 candidate_window = 13;
+  int32 initial_expansions = 14;
+  int32 final_expansions = 15;
+  string initial_stop_reason = 16;
+  string final_stop_reason = 17;
 }
 
 message BundleItem {
@@ -46,6 +105,54 @@ message RecommendResp {
   string              conversation_id    = 6; // 本次对话的会话 ID，客户端携带它发起下一轮
   string              conversation_title = 7; // 会话稳定展示标题
   string              turn_id             = 8; // 本轮幂等 ID
+  string status = 9; // planning or explicit structured execution; absent for legacy
+  repeated DemandConflict demand_conflicts = 10;
+  DemandExecution execution = 11;
+}
+
+// Additive v1 stream. Unknown event kinds/fields
+// must be ignored. Only final contains authoritative, already persisted items.
+message RecommendStreamEvent {
+  uint32 schema_version = 1;
+  string execution_id = 2; // unique per RPC attempt, including completed replay
+  string conversation_id = 3;
+  string turn_id = 4;
+  uint64 sequence = 5; // starts at 1 within this execution_id
+  string event = 6; // lifecycle plus answer.delta / tool.started / tool.completed
+  oneof payload {
+    StreamAccepted accepted = 10;
+    RecommendResp final = 11;
+    StreamError error = 12;
+    StreamDone done = 13;
+    StreamAnswerDelta answer_delta = 14;
+    StreamToolEvent tool = 15;
+  }
+}
+
+message StreamAccepted {} // validated identity/input and admitted new execution; not success
+message StreamError {
+  int64 code = 1; // public application code, never raw upstream status text/details
+  string message = 2;
+  bool retryable = 3; // if true, retry the SAME conversation_id/turn_id/input
+}
+message StreamDone {
+  bool ok = 1;
+  bool replayed = 2; // completed snapshot replay; not a new stock verification
+}
+
+// Provisional explanation only; final replaces it, error/disconnect discards it.
+// Not persisted, not an item card, not an order/stock authorization.
+message StreamAnswerDelta {
+  string text = 1;
+  bool provisional = 2;
+}
+
+message StreamToolEvent {
+  string call_id = 1; // server-generated correlation, not model-supplied raw IDs
+  string name = 2; // built-in allowlisted label or stable digest
+  string status = 3; // running / succeeded / failed
+  int64 duration_ms = 4;
+  string error_code = 5; // sanitized category, never error text/arguments/result
 }
 
 message ConversationSummary {
@@ -105,6 +212,11 @@ message DeleteConversationResp {
 
 service RecommendService {
   rpc Recommend(RecommendReq) returns (RecommendResp) {}
+  // Requires a user JWT and transport deadline <= 30s. Replay emits final+done
+  // only. Clients require final+done(ok=true)+OK EOF; EOF alone is not success.
+  rpc RecommendStream(RecommendReq) returns (stream RecommendStreamEvent) {}
+  rpc PlanDemand(PlanDemandReq) returns (PlanDemandResp) {}
+  rpc ExecuteDemand(ExecuteDemandReq) returns (RecommendResp) {}
   rpc ListConversations(ListConversationsReq) returns (ListConversationsResp) {}
   rpc ListConversationTurns(ListConversationTurnsReq) returns (ListConversationTurnsResp) {}
   rpc DeleteConversation(DeleteConversationReq) returns (DeleteConversationResp) {}

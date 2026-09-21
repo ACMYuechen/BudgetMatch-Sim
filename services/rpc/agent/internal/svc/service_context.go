@@ -3,6 +3,8 @@ package svc
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"budgetmatch-sim/infra/database"
 	"budgetmatch-sim/infra/interceptor"
@@ -11,13 +13,17 @@ import (
 	recommendagent "budgetmatch-sim/services/rpc/agent/internal/agent/recommend"
 	"budgetmatch-sim/services/rpc/agent/internal/agent/recommend/llm"
 	"budgetmatch-sim/services/rpc/agent/internal/config"
+	"budgetmatch-sim/services/rpc/agent/internal/demandexec"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
 	"budgetmatch-sim/services/rpc/agent/internal/recommend"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 	"budgetmatch-sim/services/rpc/agent/model/product_vectors"
+	"budgetmatch-sim/services/rpc/mall/client/productindexservice"
 	"budgetmatch-sim/services/rpc/mall/client/productservice"
 
+	"github.com/cloudwego/eino/components/retriever"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -33,7 +39,7 @@ type ServiceContext struct {
 
 // NewServiceContext 根据配置初始化服务上下文。
 //
-// 依赖降级矩阵（任意缺失都能启动）：
+// 依赖降级矩阵（未声明可选依赖时可以降级；已声明 RAG 必须有独立索引凭据）：
 //   - 无 MallRpc：商品数据用内存 mock（配置了 mall 则绝不混用 mock）；
 //   - 无 Embedding 或无 Database：RAG 关闭，provider 走关键词模式；
 //   - Database + CacheRedis：PostgreSQL 长期保存，Redis 缓存最近窗口；
@@ -42,6 +48,24 @@ type ServiceContext struct {
 //   - Database/CacheRedis 都没有：会话记忆退回进程内实现；
 //   - 无 Model：LLM Agent 不启用，推荐走确定性规则。
 func NewServiceContext(c config.Config) *ServiceContext {
+	// Validate before opening databases, creating tables or initializing external models.
+	if err := c.ValidateDemandExecution(); err != nil {
+		panic(err)
+	}
+	if err := c.ValidateRetrieval(); err != nil {
+		panic(err)
+	}
+	if err := c.ValidateIndexAuth(); err != nil {
+		panic(err)
+	}
+	if err := c.Model.Validate(); err != nil {
+		panic(err)
+	}
+	if c.RAGConfigured() {
+		if err := c.Embedding.Validate(); err != nil {
+			panic(err)
+		}
+	}
 	var mallClient productservice.ProductService
 	if c.MallConfigured() {
 		mallClient = productservice.NewProductService(zrpc.MustNewClient(c.MallRpc,
@@ -56,19 +80,76 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	mem := newMemoryManager(c, conn)
 	productProvider := newProductProvider(mallClient)
-	productProvider, syncer := maybeEnableRAG(c, mallClient, productProvider, conn)
+	productProvider, vectorRetriever, syncer := maybeEnableRAG(c, mallClient, productProvider, conn)
 
 	bundleSelector := recommend.NewBundleSelector()
 
 	fallbackAgent := recommendagent.NewAgent(productProvider, bundleSelector).
 		WithMemory(mem, c.Memory.Window())
 	primaryAgent := newLLMAgent(c, productProvider, bundleSelector, mem)
+	service := recommendagent.NewService(fallbackAgent, primaryAgent, mem).WithFinalizer(newResultFinalizer(mallClient))
+	executor, err := newConfiguredDemandExecutor(c, mallClient, vectorRetriever)
+	if err != nil {
+		panic(safety.Protect(err))
+	}
+	if executor != nil {
+		service.WithDemandExecutor(executor)
+	}
 
 	return &ServiceContext{
 		Config:           c,
-		RecommendService: recommendagent.NewService(fallbackAgent, primaryAgent, mem),
+		RecommendService: service,
 		Syncer:           syncer,
 	}
+}
+
+// Pure wiring, also exercised by the authenticated in-process RPC regression.
+func newConfiguredDemandExecutor(c config.Config, client productservice.ProductService, vector retriever.Retriever) (*demandexec.Executor, error) {
+	if err := c.ValidateDemandExecution(); err != nil {
+		return nil, err
+	}
+	if c.DemandExecution.Mode != "mall" || c.DemandExecution.Retrieval != "rag" {
+		return newDemandExecutor(c.DemandExecution.Mode, client)
+	}
+	if vector == nil || client == nil {
+		return nil, agentcore.ErrDemandNotExecutable
+	}
+	keyword := tools.NewMallProductProvider(client)
+	var provider tools.ProductProvider
+	var err error
+	if c.RAG.Retrieval.Normalize().Strategy == rag.StrategyHybridRRF {
+		provider, err = tools.NewHybridProductProvider(vector, keyword, c.RAG)
+	} else {
+		provider, err = tools.NewBoundedRAGProductProvider(vector, keyword, c.RAG)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return demandexec.NewMallRetrieval(provider, client)
+}
+
+func newDemandExecutor(mode string, client productservice.ProductService) (*demandexec.Executor, error) {
+	switch mode {
+	case "", "disabled":
+		return nil, nil
+	case "demo":
+		if client == nil {
+			return demandexec.NewBuiltinDemo()
+		}
+	case "mall":
+		if client != nil {
+			// Dedicated bounded keyword path; never share index credentials.
+			return demandexec.NewMall(tools.NewMallProductProvider(client), client)
+		}
+	}
+	return nil, agentcore.ErrDemandNotExecutable
+}
+
+func newResultFinalizer(mallClient tools.CandidateCheckClient) recommendagent.ResultFinalizer {
+	if mallClient == nil {
+		return recommendagent.DemoFinalizer{}
+	}
+	return recommendagent.NewCandidateFinalizer(tools.NewMallCandidateVerifier(mallClient))
 }
 
 // maybeOpenDatabase 在配置了 DSN 时只创建一个数据库连接池，供会话持久化与 RAG 共同复用。
@@ -78,7 +159,7 @@ func maybeOpenDatabase(c config.Config) *database.Database {
 	}
 	db, err := database.NewDatabase(c.Database)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 	return db
 }
@@ -94,17 +175,17 @@ func newProductProvider(mallClient productservice.ProductService) tools.ProductP
 }
 
 // maybeEnableRAG 在依赖齐备时开启语义检索：建向量存储、启动后台同步，
-// 并把关键词 provider 包装为"向量优先、关键词回退"的 RAG provider。
+// 并按显式策略装配 provider；默认仍是"向量优先、关键词回退"。
 // 依赖不齐时原样返回入参 provider，并说明缺了什么。
 func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
-	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, *rag.Syncer) {
+	fallback tools.ProductProvider, conn *gorm.DB) (tools.ProductProvider, retriever.Retriever, *rag.Syncer) {
 	if !c.RAGConfigured() {
 		logx.Infow("rag disabled",
 			logx.Field("database", conn != nil),
 			logx.Field("embedding", c.Embedding.Enabled()),
 			logx.Field("mall", mallClient != nil),
 		)
-		return fallback, nil
+		return fallback, nil, nil
 	}
 
 	if conn == nil {
@@ -113,30 +194,53 @@ func maybeEnableRAG(c config.Config, mallClient productservice.ProductService,
 	// 配置即意图：声明了 RAG 依赖却初始化失败，直接 panic 阻止带病启动。
 	embedder, err := rag.NewEmbedder(context.Background(), c.Embedding)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 
-	store, err := rag.NewStore(product_vectors.NewProductVectorsModel(conn), embedder, c.RAG, c.Embedding.Dim())
+	vectorModel := product_vectors.NewProductVectorsModel(conn, rag.EmbeddingProfile(c.Embedding))
+	initCtx, cancelInit := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelInit()
+	store, err := rag.NewStore(initCtx, vectorModel, embedder, c.RAG)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
-	loader := rag.NewMallProductLoader(mallClient, c.RAG.Normalize().SyncPageSize)
+	// Background indexing and online user search must never share auth interceptors.
+	indexClient := productindexservice.NewProductIndexService(zrpc.MustNewClient(c.MallRpc,
+		zrpc.WithUnaryClientInterceptor(rag.IndexAuthInterceptor(c.IndexAuth.Secret)),
+		zrpc.WithStreamClientInterceptor(rag.IndexStreamAuthInterceptor(c.IndexAuth.Secret))))
+	loader := rag.NewMallProductLoader(indexClient, c.RAG.Normalize().SyncPageSize)
 	pipeline, err := rag.NewPipeline(loader, nil, rag.NewIndexer(store),
-		product_vectors.NewProductVectorsModel(conn), store.Fingerprint(c.Embedding.Model))
+		vectorModel, store.Fingerprint())
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 
-	syncer := rag.NewSyncer(pipeline, c.RAG.Normalize().SyncIntervalSeconds)
+	vectorRetriever := rag.NewRetriever(store)
+	provider, err := newRAGProvider(c.RAG, vectorRetriever, fallback)
+	if err != nil {
+		panic(safety.Protect(err))
+	}
+	syncer := rag.NewSyncer(pipeline, c.RAG)
 	syncer.Start()
 	proc.AddShutdownListener(syncer.Stop)
 
-	var verify tools.SkuGetter
-	if c.RAG.VerifySku {
-		verify = mallClient
-	}
 	logx.Info("rag enabled: semantic product retrieval over pgvector")
-	return tools.NewRAGProductProvider(rag.NewRetriever(store), fallback, verify, c.RAG.Normalize().TopK), syncer
+	return provider, vectorRetriever, syncer
+}
+
+// newRAGProvider is a no-I/O strategy selector, also used by config regressions.
+func newRAGProvider(cfg rag.Config, vector retriever.Retriever, keyword tools.ProductProvider) (tools.ProductProvider, error) {
+	if err := cfg.Retrieval.Validate(cfg.TopK); err != nil {
+		return nil, err
+	}
+	if cfg.Retrieval.Normalize().Strategy == rag.StrategyVectorFirst {
+		return tools.NewRAGProductProvider(vector, keyword, cfg.Normalize().TopK), nil
+	}
+	bounded, ok := keyword.(tools.RankedProductProvider)
+	if !ok {
+		return nil, fmt.Errorf("hybrid retrieval requires a bounded keyword provider")
+	}
+	return tools.NewHybridProductProvider(vector, bounded, cfg)
 }
 
 // newMemoryManager 根据可用依赖组装会话记忆：PostgreSQL 是持久层，Redis 是一级缓存；
@@ -148,10 +252,10 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 		durable = memory.NewPostgres(conn, c.Memory)
 		if c.Database.AutoMigrate {
 			if err := durable.CreateTable(); err != nil {
-				panic(err)
+				panic(safety.Protect(err))
 			}
 		} else if err := durable.CheckSchema(); err != nil {
-			panic(err)
+			panic(safety.Protect(err))
 		}
 	}
 
@@ -160,10 +264,10 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 		rdb, err := iredis.NewRedisDB(c.CacheRedis)
 		if err != nil {
 			if durable == nil {
-				panic(err)
+				panic(safety.Protect(err))
 			}
 			logx.Errorw("redis conversation cache unavailable, using PostgreSQL only",
-				logx.Field("error", err.Error()))
+				logx.Field("error_code", safety.ErrorCode(err)))
 		} else {
 			cache = memory.NewRedis(rdb.Client(), c.Memory)
 		}
@@ -190,7 +294,7 @@ func newMemoryManager(c config.Config, conn *gorm.DB) memory.Manager {
 func newLLMAgent(c config.Config, productProvider tools.ProductProvider, bundleSelector *recommend.BundleSelector, mem memory.Manager) agentcore.Agent {
 	model, err := llm.NewChatModel(context.Background(), c.Model)
 	if err != nil {
-		panic(err)
+		panic(safety.Protect(err))
 	}
 	if model == nil {
 		return nil

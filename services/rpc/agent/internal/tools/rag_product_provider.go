@@ -2,46 +2,43 @@ package tools
 
 import (
 	"context"
+	"math"
 	"strings"
+	"time"
 
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/rag"
-	"budgetmatch-sim/services/rpc/mall/client/productservice"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/components/retriever"
 	"github.com/zeromicro/go-zero/core/logx"
-	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // ragMinTopK 是向量检索的最小召回数，保证选择器有足够候选。
 const ragMinTopK = 8
 
-// SkuGetter 是实时校验所需的 mall 能力子集。
-type SkuGetter interface {
-	GetSku(ctx context.Context, in *productservice.GetSkuReq, opts ...grpc.CallOption) (*productservice.GetSkuResp, error)
-}
-
 // RAGProductProvider 是 ProductProvider 的语义检索实现：
 // 优先走 pgvector 余弦检索，从向量表的业务快照还原候选；
-// 检索出错或结果为空时回退到关键词 provider（mall/mock），绝不向上抛错中断工具调用。
+// 技术错误或空结果回退关键词；取消/鉴权失败终止。最终实时校验由 Service 统一执行。
 type RAGProductProvider struct {
 	retriever retriever.Retriever
 	fallback  ProductProvider
-	verify    SkuGetter // verify 非 nil 时对检索结果做 GetSku 实时校验（价格/库存/上架状态）
 	topK      int
 }
 
 // 确保 RAGProductProvider 实现 ProductProvider。
 var _ ProductProvider = (*RAGProductProvider)(nil)
 
-// NewRAGProductProvider 创建语义检索 provider。fallback 必填；verify 可为 nil。
-func NewRAGProductProvider(r retriever.Retriever, fallback ProductProvider, verify SkuGetter, topK int) *RAGProductProvider {
+// NewRAGProductProvider 创建语义检索 provider。fallback 必填。
+func NewRAGProductProvider(r retriever.Retriever, fallback ProductProvider, topK int) *RAGProductProvider {
 	if topK < ragMinTopK {
 		topK = ragMinTopK
 	}
 	return &RAGProductProvider{
 		retriever: r,
 		fallback:  fallback,
-		verify:    verify,
 		topK:      topK,
 	}
 }
@@ -53,21 +50,36 @@ func (p *RAGProductProvider) Name() string {
 
 // SearchProducts 语义检索候选商品，失败或为空时回退关键词链路。
 func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProductsReq) ([]ProductCandidate, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if p.retriever == nil || p.fallback == nil {
+		return nil, status.Error(codes.Unavailable, "retrieval provider unavailable")
+	}
 	query := buildSemanticQuery(req)
 	docs, err := p.retriever.Retrieve(ctx, query, retriever.WithTopK(p.retrieveTopK(req.MaxItems)))
+	if stopped := ctx.Err(); stopped != nil {
+		return nil, stopped
+	}
 	if err != nil {
+		if agentcore.IsExecutionStopped(err) {
+			return nil, err
+		}
 		logx.WithContext(ctx).Errorw("rag retrieval failed, falling back to keyword provider",
-			logx.Field("provider", p.fallback.Name()), logx.Field("error", err.Error()))
+			logx.Field("provider", safety.Label(p.fallback.Name())), logx.Field("error_code", safety.ErrorCode(err)))
 		return p.fallback.SearchProducts(ctx, req)
 	}
 
-	var out []ProductCandidate
+	var snapshots []ProductCandidate
 	for _, doc := range docs {
 		meta, ok := rag.CandidateFromDocument(doc)
 		if !ok {
 			continue
 		}
 		candidate := ProductCandidate{
+			Evidence: agentcore.CandidateEvidence{Source: agentcore.RetrievalMallVector,
+				ProductID: meta.ProductId, SnapshotAtUnixMs: meta.SnapshotAtUnixMs,
+				RetrievedAtUnixMs: time.Now().UnixMilli(), Relevance: doc.Score(), HasRelevance: true},
 			Id:         doc.ID,
 			Name:       meta.Name,
 			Category:   meta.Category,
@@ -77,10 +89,14 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 			Sold:       meta.Sold,
 			Tags:       meta.Tags,
 		}
-		if !p.refresh(ctx, &candidate) {
-			continue // 实时校验发现已下架
-		}
-		if candidate.Stock <= 0 {
+		snapshots = append(snapshots, candidate)
+	}
+	// Match the downstream eligibility contract before deciding whether to fall
+	// back. Merge duplicate snapshots first: a later invalid snapshot must not
+	// revive an earlier usable one or suppress keyword fallback.
+	var out []ProductCandidate
+	for _, candidate := range agentcore.NormalizeCandidates(snapshots) {
+		if math.IsNaN(candidate.Evidence.Relevance) || math.IsInf(candidate.Evidence.Relevance, 0) {
 			continue
 		}
 		if req.BudgetCents > 0 && candidate.PriceCents > req.BudgetCents {
@@ -90,9 +106,9 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 	}
 
 	if len(out) == 0 {
-		// 首轮同步未完成、阈值过滤过严或校验后无货，都回退关键词链路。
+		// 首轮同步未完成、阈值过严或快照无效/无货，回退关键词链路。
 		logx.WithContext(ctx).Infow("rag retrieval returned no usable candidates, falling back",
-			logx.Field("provider", p.fallback.Name()), logx.Field("retrieved", len(docs)))
+			logx.Field("provider", safety.Label(p.fallback.Name())), logx.Field("retrieved", len(docs)))
 		return p.fallback.SearchProducts(ctx, req)
 	}
 	return out, nil
@@ -101,26 +117,6 @@ func (p *RAGProductProvider) SearchProducts(ctx context.Context, req SearchProdu
 // retrieveTopK 依据期望条目数放大召回：候选须经预算/库存过滤，召回按 4 倍冗余。
 func (p *RAGProductProvider) retrieveTopK(maxItems int32) int {
 	return min(max(int(maxItems)*4, ragMinTopK), p.topK)
-}
-
-// refresh 用 mall 实时数据刷新候选的价格与库存；返回 false 表示 SKU 已下架应剔除。
-// 未配置 verify 或查询失败时保留向量表快照（快照最长滞后一个同步周期）。
-func (p *RAGProductProvider) refresh(ctx context.Context, candidate *ProductCandidate) bool {
-	if p.verify == nil {
-		return true
-	}
-	resp, err := p.verify.GetSku(ctx, &productservice.GetSkuReq{Id: candidate.Id})
-	if err != nil || resp.GetSku() == nil {
-		return true
-	}
-	sku := resp.GetSku()
-	if sku.Status != mallStatusOnShelf {
-		return false
-	}
-	candidate.PriceCents = sku.Price
-	candidate.Stock = sku.Stock
-	candidate.Sold = sku.Sold
-	return true
 }
 
 // buildSemanticQuery 组装检索文本：原始查询 + 解析关键词。

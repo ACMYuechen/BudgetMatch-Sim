@@ -52,5 +52,8 @@ payment_amount_mismatch = "支付金额与订单金额不一致"
 payment_confirmation_conflict = "订单已由另一笔支付确认"
 
 [agent]
+budget_currency = "预算仅支持人民币，请换算后使用人民币金额或 budget_cents 重新提交"
+budget_text = "预算无效或存在歧义，请提供唯一的正数人民币上限，使用阿拉伯数字且精确到分，最高十亿元"
+item_limit_text = "商品件数无效或存在歧义，请提供唯一的 1 到 10 件上限，不支持数量区间或最低件数"
 context_too_large = "当前问题过长，请精简后重试"
 turn_conflict = "本轮请求标识已被其他内容使用，请重新发送"

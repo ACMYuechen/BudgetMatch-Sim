@@ -3,34 +3,41 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"time"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
+	"budgetmatch-sim/services/rpc/agent/streamcontract"
 
 	"github.com/cloudwego/eino/components/tool"
-	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// detailLimit 限制工具调用详情记录的长度，避免把整段 JSON 灌进响应。
-const detailLimit = 512
+const maxToolPayloadBytes = 256 << 10
 
 // decorate 为工具统一套上「调用记录」与「错误转 JSON」两层装饰。
 //
 //   - 记录层：把每次工具调用（成功/失败）写入 session.calls，业务工具与 MCP 工具一视同仁；
-//   - 错误层：utils.WrapToolWithErrorHandler 把工具错误转成 JSON 反馈给模型，
-//     让 ReAct 能据此重试或降级，而不是让单个工具失败中断整个推理链。
+//   - 错误层：可恢复错误转为 JSON，允许模型修正工具参数；
+//     取消、超时和认证错误保留类别并隐藏原始文本，不能被吞掉后继续推理。
 //
 // name 留空时（如 MCP 工具）由工具自身 Info() 解析。
 func decorate(s *session, name string, base tool.BaseTool) tool.BaseTool {
 	inv, ok := base.(tool.InvokableTool)
 	if !ok {
-		return base
+		return &recordingTool{base: base, name: name, session: s}
 	}
-	return utils.WrapToolWithErrorHandler(&recordingTool{inner: inv, name: name, session: s}, toolErrorJSON)
+	return &recordingTool{base: base, inner: inv, name: name, session: s}
 }
 
 // recordingTool 是一层透明装饰器，在调用底层工具前后把结果记录到 session。
 type recordingTool struct {
+	base    tool.BaseTool
 	inner   tool.InvokableTool
 	name    string
 	session *session
@@ -38,18 +45,68 @@ type recordingTool struct {
 
 // Info 透传底层工具的元信息。
 func (t *recordingTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
-	return t.inner.Info(ctx)
+	return t.base.Info(ctx)
 }
 
 // InvokableRun 执行底层工具并记录一条工具调用。
 func (t *recordingTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
-	out, err := t.inner.InvokableRun(ctx, argumentsInJSON, opts...)
-	name := "tool." + t.resolveName(ctx)
-	if err != nil {
-		t.session.recordCall(agentcore.ToolCall{Name: name, Success: false, Detail: err.Error()})
-		return out, err
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
-	t.session.recordCall(agentcore.ToolCall{Name: name, Success: true, Detail: truncate(out)})
+	started := time.Now()
+	name := "tool." + safety.Label(t.resolveName(ctx))
+	var callID string
+	if t.session.progress != nil {
+		call := t.session.progressCalls.Add(1)
+		if call > streamcontract.MaxToolCalls {
+			return "", streamLimitError()
+		}
+		callID = fmt.Sprintf("tool-%d", call)
+		if err := t.session.progress.Emit(ctx, agentcore.Progress{Kind: streamcontract.ToolStarted,
+			CallID: callID, ToolName: name, Status: "running"}); err != nil {
+			return "", safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, err))
+		}
+	}
+	var out string
+	var err error
+	switch {
+	case t.inner == nil:
+		err = status.Error(codes.PermissionDenied, "unsupported tool interface")
+	case len(argumentsInJSON) > maxToolPayloadBytes:
+		err = agentcore.ErrInvalidInput
+	case !json.Valid([]byte(argumentsInJSON)):
+		// 不依赖框架所选 JSON 解码器的私有错误类型，给模型稳定的可修正分类。
+		err = agentcore.ErrInvalidInput
+	default:
+		out, err = t.inner.InvokableRun(ctx, argumentsInJSON, opts...)
+	}
+	if stopped := ctx.Err(); stopped != nil {
+		err = stopped
+	}
+	if err == nil && len(out) > maxToolPayloadBytes {
+		err = safety.ErrOutputLimit
+	}
+	if errors.Is(err, os.ErrPermission) {
+		err = status.Error(codes.PermissionDenied, "tool access denied")
+	}
+	if t.session.progress != nil {
+		event := agentcore.Progress{Kind: streamcontract.ToolCompleted, CallID: callID,
+			ToolName: name, Status: "succeeded", DurationMS: time.Since(started).Milliseconds()}
+		if err != nil {
+			event.Status, event.ErrorCode = "failed", safety.ErrorCode(err)
+		}
+		if emitErr := t.session.progress.Emit(ctx, event); emitErr != nil {
+			return "", safety.Protect(errors.Join(agentcore.ErrStreamInterrupted, emitErr))
+		}
+	}
+	if err != nil {
+		t.session.recordCall(agentcore.ToolCall{Name: name, Success: false, Detail: fmt.Sprintf("error_code=%s duration_ms=%d", safety.ErrorCode(err), time.Since(started).Milliseconds())})
+		if agentcore.IsExecutionStopped(err) {
+			return "", safety.Protect(err)
+		}
+		return toolErrorJSON(ctx, err), nil
+	}
+	t.session.recordCall(agentcore.ToolCall{Name: name, Success: true, Detail: fmt.Sprintf("status=ok output_bytes=%d duration_ms=%d", len(out), time.Since(started).Milliseconds())})
 	return out, nil
 }
 
@@ -58,7 +115,7 @@ func (t *recordingTool) resolveName(ctx context.Context) string {
 	if t.name != "" {
 		return t.name
 	}
-	if info, err := t.inner.Info(ctx); err == nil && info != nil {
+	if info, err := t.base.Info(ctx); err == nil && info != nil {
 		return info.Name
 	}
 	return "unknown"
@@ -68,21 +125,10 @@ func (t *recordingTool) resolveName(ctx context.Context) string {
 func toolErrorJSON(_ context.Context, err error) string {
 	data, marshalErr := json.Marshal(map[string]any{
 		"success": false,
-		"error":   err.Error(),
+		"error":   safety.ErrorCode(err),
 	})
 	if marshalErr != nil {
 		return `{"success":false,"error":"tool execution failed"}`
 	}
 	return string(data)
-}
-
-// truncate 截断过长的工具输出，避免详情记录膨胀。
-func truncate(out string) string {
-	if out == "" {
-		return "completed"
-	}
-	if len(out) > detailLimit {
-		return out[:detailLimit] + "...(truncated)"
-	}
-	return out
 }

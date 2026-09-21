@@ -1,355 +1,102 @@
-# 微服务权限控制现状
+# 权限与安全边界
 
-核对日期：2026-09-16。范围：`cmd/app`、`cmd/admin` 和当前 5 个 RPC 服务。
+[文档导航](README.md) · [项目状态](status.md) · [完整接口核对与测试快照](archive/access-control-2026-09.md)
 
-本文依据已注册路由、RPC 拦截器、业务逻辑、配置模板和已有测试描述现状，不是目标架构设计，也不表示已通过完整安全审计。代码注释与实现不一致时，以实际执行路径为准。本文不包含真实密钥，不依赖本机 `.env` 的内容。
+本文按仓库实现描述权限，不是完整安全审计结论。Kubernetes / Headlamp 的 RBAC 与业务权限互相独立；管理界面的安装不会补齐下面的 RPC 越权问题。
 
-应用权限与 Kubernetes / Headlamp 的 RBAC 是两套独立体系；安装集群管理界面不会补齐下面的业务权限，也不代表这些微服务已经部署到 Kubernetes。
+## 先看结论
 
-## 1. 结论与阅读约定
+项目采用 HTTP 网关鉴权、RPC 方法鉴权与部分资源归属校验。已有用户/管理员区分，但未实现细粒度权限点、租户或商户隔离。**Auth 用户管理与 Mall 订单 RPC 仍有 P0 缺口**，不能只凭前端或 Admin 网关限制认定可安全对外开放。
 
-当前采用“HTTP 网关鉴权 + RPC 方法级鉴权 + 部分业务资源归属校验”。已有用户/管理员角色区分，但没有菜单权限、权限点、租户、商户角色、角色授权表等完整细粒度 RBAC。
+## 身份与通用规则
 
-| 服务 | 网关/方法级控制 | 数据范围控制现状 | 主要待补项 |
-| --- | --- | --- | --- |
-| `app`（10002） | 公开登录/注册/回调，其余业务接口要求全局用户 | 订单、秒杀请求由网关注入当前用户 ID | 网关检查不能代替 RPC 自身的归属校验 |
-| `admin`（10001） | 管理业务接口要求全局管理员 | 管理员可管理全局业务数据 | 没有按运营、财务、商户等划分权限 |
-| `auth-rpc`（10003） | 认证接口白名单；用户接口要求数据库角色在 1–199 | `GetUserInfo` 固定为本人 | 4 个用户管理 RPC 缺少管理员判断；禁用状态未参与认证 |
-| `seckill-rpc`（10004） | 活动/SKU 配置写入及 `GetSku` 要求管理员，其余要求用户 | 查订单绑定 JWT 用户 | 领令牌、下单仍信任请求 `UserId`；一次性令牌未绑定用户 |
-| `mall-rpc`（10005） | 商品写入、Outbox 管理要求管理员；支付确认要求服务身份 | 普通订单接口依赖请求中的 `UserId` | 订单归属未绑定认证上下文；`UpdateOrderStatus` 未列入管理员方法 |
-| `payment-rpc`（10007） | 创建/查询支付要求用户；回调不要求用户 JWT | 支付流水绑定 JWT 用户；回写订单使用独立服务 JWT | 沿用通用用户 JWT 的角色时效与撤销限制 |
-| `agent-rpc`（10006） | 全部推荐/会话 RPC 要求用户 | 会话按认证用户隔离，无管理员跨用户特权 | 后台 RAG 同步没有服务凭据；文件工作区不按用户隔离 |
+| 身份 | 实际判定 |
+| --- | --- |
+| 公开 | 不需要用户 JWT；仍可能需要密码、验证码或支付签名 |
+| 用户 | `role` 在 1–199，包含管理员；注册默认 100 |
+| 管理员 | `role` 在 1–99；枚举 1 为超级管理员、2 为管理员，目前没有额外超级管理员操作隔离 |
+| 服务专用 | 精确方法策略要求独立服务 JWT，不接受普通用户/管理员 JWT 替代 |
 
-后文的权限标签：
+用户 JWT 默认有效期 24 小时，签发使用 HS256。通用验证接受 HMAC 签名，但未统一限制为仅 HS256，也未统一要求 `iss` / `aud` / `jti`。目前没有服务端登出撤销、Token 黑名单、Token 版本或刷新令牌接口。
 
-- **公开**：不要求业务用户 JWT，但仍可能要求密码、验证码或支付签名。
-- **用户**：`role` 在 1–199，包含管理员。
-- **管理员**：`role` 在 1–99，不只包括枚举中定义的 1、2。
-- **服务专用**：只接受符合指定调用方/接收方的服务 JWT。
-- **缺口**：当前代码未实现该项校验；建议不代表已经生效。
+账号 `StatusNormal=1`、`StatusDisabled=2`，但登录、`ValidateToken` 和 auth-rpc 拦截器尚未据此拒绝禁用账号。因此仅修改状态不能保证阻断访问。
 
-## 2. 身份、凭据与通用鉴权链路
+### HTTP 与 RPC 的角色可能不同步
 
-### 2.1 角色及账号状态
+HTTP 网关调用 `auth-rpc.ValidateToken`，读取数据库中的当前用户和角色，再透传原 JWT。auth-rpc 自身也查数据库；其他 RPC 通常使用 JWT 内的角色。角色降级或删除用户后，旧 JWT 若能直达这些 RPC，仍可能在过期前被接受。
 
-角色定义见 [infra/role/role.go](../infra/role/role.go)：
+通用 RPC 策略优先级为：服务专用方法 → 公开方法 → 用户 JWT → 管理员方法或默认用户范围。**未加入管理员集合的新方法默认只要求用户，不是默认拒绝。**
 
-| 值/范围 | 当前含义 | 实际判定 |
+依据：[角色定义](../infra/role/role.go)、[用户 JWT](../infra/auth/auth.go)、[通用 RPC 拦截器](../infra/interceptor/auth_interceptor.go)、[auth-rpc 拦截器](../services/rpc/auth/internal/interceptor/auth_interceptor.go)。
+
+## 网关与服务权限速查
+
+| 服务 | 入口控制 | 数据范围与注意事项 |
 | --- | --- | --- |
-| `1` | 超级管理员 | 与其他全局管理员使用相同的范围判断，无额外专属权限 |
-| `2` | 管理员 | 同上 |
-| `1–99` | 全局管理员范围 | `IsGlobalAdminRole` 返回 true |
-| `100` | 普通用户，注册默认值 | 同时属于全局用户范围 |
-| `1–199` | 全局用户范围 | `IsGlobalUserRole` 返回 true；101–199 并非自动拒绝 |
-| `0`、负数、`200+` | 不属于上述全局角色范围 | 被相应角色检查拒绝，不能当作当前已实现的业务角色 |
+| App HTTP | 健康检查、注册/登录/验证码、支付宝通知公开；其余已注册业务接口要求用户 | 网关为订单/秒杀注入当前用户 ID；商品不是游客接口 |
+| Admin HTTP | 健康检查公开，其余已注册业务接口要求数据库角色 1–99 | 全局管理，无运营/财务/商户分权，也未限制只有超级管理员能授予管理员 |
+| auth-rpc | 认证方法白名单，其余要求数据库角色 1–199 | `GetUserInfo` 固定本人；其他 4 个用户管理方法缺少管理员/本人校验 |
+| seckill-rpc | 活动/SKU 写入及 `GetSku` 要求管理员；活动与 SKU 列表要求用户 | `GetOrder` 绑定 JWT 用户；领令牌/下单仍信任请求用户 |
+| mall-rpc | 商品写入和 Outbox 管理要求管理员；支付确认/后台索引要求不同服务身份 | 普通订单归属和状态修改仍有缺口，详见下表 |
+| payment-rpc | 创建/查询要求用户；通知免用户 JWT | 支付流水绑定 JWT 用户，核对订单归属与真实金额；通知仍须验签与业务检查 |
+| agent-rpc | 7 个推荐/需求/会话 RPC 均要求用户 | 会话按认证用户隔离，无管理员跨用户特权；后台索引使用独立身份 |
 
-账号另有 `StatusNormal=1`、`StatusDisabled=2`，但当前用户名/邮箱/验证码登录、`ValidateToken`、auth-rpc 拦截器均没有检查 `Status`。只修改用户状态为“禁用”不会自动阻止登录或后续调用。角色不合法与账号禁用是不同概念。
+App 商品/活动查询仍会透传部分状态等筛选条件，不能描述为“服务端始终只向用户返回上架资源”。前端隐藏菜单、刷新管理员角色和表单限制都只是交互控制，不是后端授权。
 
-依据：[状态常量](../services/rpc/auth/model/user/vars.go)、[登录逻辑目录](../services/rpc/auth/internal/logic/authservice/)、[用户模型](../services/rpc/auth/model/user/users_model.go)、[认证拦截器](../services/rpc/auth/internal/interceptor/auth_interceptor.go)。
+秒杀资格令牌是另一种凭据：当前 TTL 60 秒，绑定 SKU 并一次性消费，但尚未绑定用户。`GetOrder` 已对跨用户请求返回 NotFound，不能据此推断提交订单也有相同校验。
 
-### 2.2 普通用户 JWT
+权威接口入口：[App API](../cmd/app/desc/app.api)、[Admin API](../cmd/admin/desc/admin.api)、[Mall 方法策略](../services/rpc/mall/internal/config/auth.go)、[秒杀方法策略](../services/rpc/seckill/auth.go)。逐接口矩阵保留在[历史核对记录](archive/access-control-2026-09.md)。
 
-- 由 auth-rpc 登录接口签发，签发算法为 HS256，业务 claims 为 `user_id`、`role`、`exp`。
-- 各 RPC 配置模板使用同一个 `JWT_SECRET`；auth-rpc 默认 `Expire: 86400`，即 24 小时。实际部署可覆盖配置，本文不推定真实密钥值。
-- 通用验证函数检查 HMAC 签名与 JWT 有效性，但没有将允许算法进一步限定为只接受 HS256，也没有统一强制要求用户 JWT 带 `iss`、`aud` 或 `jti`。
-- 没有已实现的服务端退出登录、Token 黑名单、Token 版本失效或刷新令牌接口。前端退出仅清理本地登录信息，不撤销已经签发的 JWT。
-- 推荐统一使用 `Authorization: Bearer <用户JWT>`。HTTP 中间件对 `Bearer ` 前缀的处理区分大小写；RPC 提取函数会去除空白且不区分该前缀大小写，不应依赖这些宽松/不一致的输入形式。
+## 服务身份与工具边界
 
-依据：[JWT 工具](../infra/auth/auth.go)、[auth 配置模板](../services/rpc/auth/etc/config.yaml)、[前端登录状态](../web-ui/src/stores/authStore.ts)。
-
-### 2.3 HTTP 与 RPC 不是同一套角色数据源
-
-```text
-浏览器携带用户 JWT
-  → app/admin AuthMiddleware
-  → auth-rpc.ValidateToken：验签、查用户表，返回当前数据库用户
-  → app 检查数据库 role 为 1–199；admin 检查为 1–99
-  → 网关注入 user_id、user、原始 token
-  → 客户端拦截器将原始 JWT 放入下游 gRPC metadata
-  → RPC 再鉴权
-      auth-rpc：重新查用户表，检查数据库 role
-      其他 4 个 RPC：通常直接检查 JWT 内的 role
-  → 业务 logic 执行各自的数据归属/状态校验
-```
-
-通用 RPC 拦截器的优先级为：`ServiceMethods` → `NoAuthMethods` → 普通 JWT → `AdminMethods` 或默认用户范围。新方法如果没有加入管理员集合，默认只是“用户可调用”，不是默认管理员或默认拒绝。
-
-`ContextKeyUserId`、`ContextKeyRole`、`ContextKeyToken` 用于 RPC 内部；HTTP 网关注入的是字符串键 `user_id`、`user`、`token`。客户端拦截器兼容两种 Token 来源，只透传已有用户身份，不会凭空赋予服务权限。
-
-因此，角色降级后，HTTP 管理入口会按数据库最新角色拒绝，但已签发的管理员 JWT 若能直达通用 RPC，仍可能在过期前被按旧角色接受；晋升后也可能出现网关通过、下游按旧 JWT 角色拒绝的情况。删除用户同样不会让其他 RPC 主动查库撤销旧 JWT。
-
-依据：[App 中间件](../cmd/app/internal/middleware/auth_middleware.go)、[Admin 中间件](../cmd/admin/internal/middleware/auth_middleware.go)、[ValidateToken](../services/rpc/auth/internal/logic/authservice/validate_token_logic.go)、[通用服务端拦截器](../infra/interceptor/auth_interceptor.go)、[客户端透传拦截器](../infra/interceptor/client_interceptor.go)。
-
-## 3. 两个 HTTP 网关
-
-以下路径均为后端实际路径，不是前端页面路由。App 与 Admin 分别监听 10002、10001；两边的 `GET /api/health` 都公开，不能把健康检查算成管理员接口。
-
-### 3.1 App API
-
-| HTTP 路径 | 方法 | 当前权限与数据范围 |
+| 链路 | 使用的身份 | 关键限制 |
 | --- | --- | --- |
-| `/api/health` | GET | 公开 |
-| `/api/auth/register` | POST | 公开；邮箱验证码注册，角色固定为 100 |
-| `/api/auth/login/username` | POST | 公开；用户名 + 密码 |
-| `/api/auth/login/email` | POST | 公开；邮箱 + 密码 |
-| `/api/auth/login/code` | POST | 公开；邮箱 + 验证码 |
-| `/api/auth/code/send` | POST | 公开；邮箱格式检查、发送频率限制 |
-| `/api/user/info` | GET | 用户；返回当前认证用户 |
-| `/api/mall/products`、`/api/mall/products/:id` | GET | 用户；不是游客接口，也没有按商户归属隔离 |
-| `/api/mall/skus`、`/api/mall/skus/:id` | GET | 用户；商品/SKU 查询 |
-| `/api/mall/orders` | POST、GET | 用户；网关将当前用户 ID 传给创建/列表 RPC |
-| `/api/mall/orders/:id` | GET | 用户；网关传当前用户 ID 作为归属条件 |
-| `/api/mall/orders/:id/cancel` | POST | 用户；网关传当前用户 ID，只取消本人待支付订单 |
-| `/api/mall/orders/:id/pay` | POST | 用户；读取并验证本人订单，从订单获取金额 |
-| `/api/mall/orders/:id/pay/query` | GET | 用户；检查本人订单和返回支付流水的一致性 |
-| `/api/seckill/activities`、`/api/seckill/activities/:id`、`/api/seckill/skus` | GET | 用户；活动和 SKU 查询 |
-| `/api/seckill/token` | POST | 用户；网关注入当前用户 ID，获取一次性秒杀令牌 |
-| `/api/seckill/orders` | POST | 用户；网关注入当前用户 ID，并传秒杀令牌 |
-| `/api/seckill/orders/:order_id` | GET | 用户；RPC 从认证上下文判断订单归属 |
-| `/api/agent/recommend` | POST | 用户；只使用当前用户的会话空间 |
-| `/api/agent/recommend/stream` | POST | 同上；HTTP SSE 包装，同样要求 Authorization，不是独立免鉴权流接口 |
-| `/api/agent/conversations` | GET | 用户；只列出本人会话 |
-| `/api/agent/conversations/:conversation_id/turns` | GET | 用户；只查看本人会话轮次 |
-| `/api/agent/conversations/:conversation_id` | DELETE | 用户；只删除本人会话 |
-| `/api/pay/notify/alipay` | POST | 无用户 JWT；原始表单转 payment-rpc 验签及业务校验 |
+| 网关 → 业务 RPC | 原始用户 JWT | 不是网关自身服务身份；下游仍须校验数据归属 |
+| Agent 在线检索 / 候选核验 → Mall | 当前用户 JWT | 核验失败不能改用后台索引密钥绕过；候选最多 32 个 |
+| Agent 后台索引 → Mall | `AGENT_MALL_INDEX_SECRET` 签发的用途 JWT | 只允许精确索引方法，`purpose=product-index:read`；当前 TTL 1 分钟、允许有效期至多 5 分钟 |
+| Payment → Mall `ConfirmPayment` | `PAYMENT_MALL_SERVICE_SECRET` 签发的服务 JWT | 固定 HS256、调用方 payment-rpc、受众 mall-rpc；当前 TTL 1 分钟，logic 再检查服务身份 |
+| 业务服务 → RocketMQ | 现有 Topic / Tag / 消息载荷约定 | 不是 JWT 链路；仓库客户端未接入 MQ 凭据或消息签名授权 |
 
-补充边界：
+索引密钥至少 32 字节，Agent / Mall 一致且独立于用户/支付密钥；命名密钥缺失不会回退支付密钥。支付密钥也应与用户 JWT 分离，但代码未统一检查两者不相等。短期 JWT 的 `jti` 尚无一次性消费记录，不能称为不可重放凭据；订单幂等是另一层机制。这些共享密钥机制不等于 mTLS。
 
-- 商品列表把请求中的 `status`、`user_id` 作为筛选项传给 mall-rpc；秒杀活动列表也透传 `status`。目前不能把用户端查询描述为“服务端强制只返回上架/上线资源”。下单时的商品/活动状态校验是另一层规则。
-- 秒杀网关中间件对路径包含 `/token` 或 `/orders` 的请求按“当前用户 + 完整路径”限流，配置为 60 秒 10 次；实现没有只限定 POST，因此查询订单也会经过该判断。
-- 前端请求工具会附加 Bearer Token；管理布局会重新获取用户信息并检查 1–99。页面隐藏或前端路由拦截只是交互限制，不替代后端授权。
+Agent 与 Mall 已有流式鉴权，推荐流和索引流在首次接收前要求不超过 30 秒的 deadline；JWT 在建流时检查，不逐帧重新校验。二者 dev/test reflection 流也走用户策略；不能由其他服务存在 unary 拦截器推断其 reflection 或其他流已受保护。
 
-依据：[App API 定义](../cmd/app/desc/app.api)、[已注册路由](../cmd/app/internal/handler/routes.go)、[商城网关逻辑](../cmd/app/internal/logic/mall/)、[秒杀限流中间件](../cmd/app/internal/middleware/seckillratelimit_middleware.go)、[依赖组装及限流配置](../cmd/app/internal/svc/service_context.go)、[前端 AdminLayout](../web-ui/src/components/admin/AdminLayout.tsx)。
+文件工具与 MCP 默认关闭。文件按认证用户隔离，写入另需开关和本轮首行 `/save <相对路径>`，只创建不覆盖；MCP 要求可信已安装程序、精确工具白名单和只读声明，并限制子进程环境及生存期。MCP **没有 OS / 网络沙箱**，只读声明不等于安全证明。详见 [Agent 工具说明](agent.md#文件与-mcp-工具)。
 
-### 3.2 Admin API
+依据：[服务 JWT](../infra/serviceauth/service_auth.go)、[索引身份](../services/rpc/agent/internal/rag/index_auth.go)、[流式拦截器](../infra/interceptor/stream_auth_interceptor.go)。
 
-除 `/api/health` 外，当前所有已注册业务接口均使用 Admin `AuthMiddleware`，要求数据库中的角色为 1–99。
+## 网络与错误返回
 
-| 路径前缀 | 路径与方法 | 管理范围 |
+- RPC 模板监听 `0.0.0.0:10003–10007`，Compose 发布对应宿主端口；是否公网可达还取决于网络和防火墙，不能假定只有网关能访问。
+- 当前 Compose 的数据依赖端口有回环绑定，不等于 RPC 已同样收敛。仓库尚未提供业务 NetworkPolicy 或统一 RPC TLS/mTLS；生产外部数据库也有未启用 TLS 的边界，见 [VPS 运维](deployment-vps.md)。
+- 数据库连接现由环境变量注入。模板使用本地开发账号与 `sslmode=disable`，不是按服务最小权限方案；不能据此断言生产账号权限。Redis DB 编号、etcd key、MQ 消费组都不是安全隔离边界。
+- HTTP 鉴权中间件对缺 Token、无效 Token、角色不足均返回 401 文本，尚未统一区分 401/403 JSON。业务错误另由[错误库](../infra/errors/README.md)适配。
+- 秒杀业务错误 `401003` 表示资格令牌失效，不代表登录 JWT 失效。Agent 会话、支付/秒杀订单的部分跨用户访问以 NotFound 或删除未命中处理，减少资源存在性泄露。
+- Agent 受控日志脱敏不等于全项目日志安全：`ValidateToken` 部分错误日志仍含原始 Token，认证验证码日志也需治理；已有 RPC 日志不是不可篡改审计记录。
+
+## 待修复风险
+
+以下是未完成工作，不是已实现的保护。P0 优先闭合越权边界；P1 为重要身份和部署控制；P2 为治理能力。
+
+| 编号 / 优先级 | 当前缺口 | 后续修复方向 |
 | --- | --- | --- |
-| `/api/admin` | GET `/users`；GET / PUT / DELETE `/users/:user_id` | 全局用户列表、详情、信息及角色/状态修改、删除 |
-| `/api/admin/seckill` | GET / POST `/activities`；GET / PUT / DELETE `/activities/:id` | 全局秒杀活动 |
-| `/api/admin/seckill` | POST `/activities/:id/preheat`、`/activities/:id/online`、`/activities/:id/offline` | 活动预热、上线、下线 |
-| `/api/admin/seckill` | GET / POST `/skus`；GET / PUT / DELETE `/skus/:id` | 全局秒杀 SKU |
-| `/api/admin/mall` | GET / POST `/products`；GET / PUT / DELETE `/products/:id` | 全局商城商品 |
-| `/api/admin/mall` | GET / POST `/skus`；GET / PUT / DELETE `/skus/:id` | 全局商城 SKU |
-| `/api/admin/mall` | GET `/orders`、`/orders/:id`；PUT `/orders/:id/status` | 跨用户查订单、执行允许的状态流转 |
-| `/api/admin/mall` | GET `/outbox/stats`、`/outbox/events`、`/outbox/events/:id`；POST `/outbox/events/:id/replay` | 全局订单事件统计、详情、重放 |
+| AUTH-01 / P0 | `GetUserById`、`ListUsers`、`UpdateUserInfo`、`DeleteUser` 只要求用户；更新可改角色 | RPC 管理员校验、本人范围与角色赋予策略 |
+| MALL-01 / P0 | 创建、查询、列表、取消订单信任请求 `UserId`；部分查询空 ID 放宽范围 | 从认证上下文取用户，显式区分管理员跨用户访问 |
+| MALL-02 / P0 | `UpdateOrderStatus` 未要求 RPC 管理员，且可流转为已支付 | 方法级鉴权，拆开运营状态变更与支付确认；专用 `ConfirmPayment` 不能堵住此旁路 |
+| MALL-03 / P1 | 幂等缓存键未按用户隔离，命中后不查归属 | 用户维度键、归属及请求一致性检查 |
+| SECKILL-01 / P1 | 领令牌/下单信任请求用户，令牌只绑定 SKU | 使用 JWT 用户，并原子核验用户、活动、SKU |
+| AUTH-02 / P1 | 禁用状态未参与认证，旧 JWT 无统一撤销 | 状态校验与禁用/角色变更/退出后的失效机制 |
+| AUTH-03 / P1 | HTTP 数据库角色与 RPC JWT 角色不一致 | 统一权威来源与缓存/失效时效 |
+| AUTH-04 / P1 | 部分认证日志含原始 Token / 验证码 | 脱敏与日志回归，禁止把凭据作为诊断文本 |
+| SERVICE-01 / P1 | 服务身份尚未覆盖所有后台链路，部署联调和轮换待补 | 独立最小权限身份、部署验证、失效和轮换流程 |
+| NETWORK-01 / P1 | RPC 暴露、网络隔离及传输安全不足 | 收敛监听/发布范围、网络策略、TLS / 私网连接 |
+| AGENT-01 / P1 | MCP 无 OS/网络隔离、角色级授权和进程并发配额；文件无累计配额 | 资源限制、授权策略与部署隔离 |
+| GOVERNANCE-01 / P2 | 无统一权限点、角色变更审计及 MQ 身份控制 | 按业务需求建立权限矩阵与可验证审计 |
 
-管理端不区分超级管理员与普通管理员的操作范围，也没有“只能修改自己创建的商品/活动”或“只能由超级管理员授予管理员”的校验。该表说明 HTTP 边界；并不意味着每个下游 RPC 都有同等强度的管理员校验。
+## 修改与回归要求
 
-依据：[Admin 路由](../cmd/admin/internal/handler/routes.go)、[用户管理 API](../cmd/admin/desc/user/user.api)、[管理网关业务逻辑](../cmd/admin/internal/logic/)。
+修改 `.api`、`.proto`、方法集合、角色/状态、资源归属或服务凭据时，同步更新本页和对应测试；不能只改页面或接口注释。
 
-## 4. 各 RPC 服务的实际权限
+现有测试入口包括 [通用拦截器](../infra/interceptor/auth_interceptor_test.go)、[Mall 方法矩阵](../services/rpc/mall/auth_test.go)、[秒杀订单归属](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic_test.go)、[支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)和 [Agent 流式鉴权](../services/rpc/agent/internal/logic/recommendservice/recommend_stream_transport_test.go)。测试通过仅说明已覆盖的断言，不表示上述待办已修复。
 
-表中使用 `Service.Method` 简写；完整方法名为 `/<proto package>.<Service>/<Method>`，例如 `/mall.OrderService/ConfirmPayment`。
-
-### 4.1 auth-rpc：认证与用户管理
-
-使用自己的 [AuthInterceptor](../services/rpc/auth/internal/interceptor/auth_interceptor.go)，不是其他服务的通用管理员方法集合。
-
-| RPC（package `auth`） | 当前入口权限 | logic 内部限制 |
-| --- | --- | --- |
-| `AuthService.EmailRegister` | 公开 | 验证邮箱/验证码，bcrypt 存储密码，新用户固定 role=100 |
-| `AuthService.UsernameLogin`、`AuthService.EmailLogin` | 公开 | 校验密码后签发用户 JWT；未检查账号 Status |
-| `AuthService.LoginByCode` | 公开 | 校验 Redis 验证码并尝试删除后签发 JWT；未检查账号 Status |
-| `AuthService.SendCode` | 公开 | 验证码 TTL 300 秒；同邮箱发送窗口 60 秒 |
-| `AuthService.ValidateToken` | metadata 免鉴权 | 请求体 `Token` 仍须通过验签和用户存在检查；返回数据库用户信息，不在此判断管理员或禁用状态 |
-| `UserService.GetUserInfo` | 用户，按数据库 role 判断 | 只使用拦截器注入的用户，忽略请求 `UserId` |
-| `UserService.GetUserById`、`UserService.ListUsers` | **当前仅要求用户** | 可按请求查询其他用户；没有额外管理员检查 |
-| `UserService.UpdateUserInfo`、`UserService.DeleteUser` | **当前仅要求用户** | 按请求 `UserId` 更新/删除；没有本人或管理员判断 |
-
-关键缺口：后四个方法虽注释为“管理后台接口”，RPC 本身并未要求管理员。`UpdateUserInfo` 还允许设置非零 `Role`、`Status`，没有超级管理员保护或角色取值白名单。若普通用户能够直达 auth-rpc，该缺口存在越权读取、修改、删除用户及提权风险；Admin HTTP 的校验不能保护绕过网关的调用。
-
-依据：[用户逻辑目录](../services/rpc/auth/internal/logic/userservice/)、[更新用户](../services/rpc/auth/internal/logic/userservice/update_user_info_logic.go)、[本人信息](../services/rpc/auth/internal/logic/userservice/get_user_info_logic.go)、[注册](../services/rpc/auth/internal/logic/authservice/email_register_logic.go)、[验证码配置](../services/rpc/auth/internal/logic/authservice/common.go)。
-
-### 4.2 seckill-rpc：秒杀活动、SKU 与订单
-
-| RPC（package `seckill`） | 当前权限 | 备注 |
-| --- | --- | --- |
-| `ActivityService.CreateActivity`、`ActivityService.UpdateActivity`、`ActivityService.DeleteActivity` | 管理员 | 不按活动创建者隔离 |
-| `ActivityService.PreheatActivity`、`ActivityService.OnlineActivity`、`ActivityService.OfflineActivity` | 管理员 | 活动状态操作 |
-| `ActivityService.GetActivity`、`ActivityService.ListActivities` | 用户 | App 与 Admin 共用，RPC 不要求管理员 |
-| `SkuService.CreateSku`、`SkuService.UpdateSku`、`SkuService.DeleteSku` | 管理员 | 配置写入 |
-| `SkuService.GetSku` | 管理员 | 与列表权限不同；当前仅供管理端使用 |
-| `SkuService.ListSkusByActivity` | 用户 | App 与 Admin 共用 |
-| `SeckillService.AcquireToken` | 用户 | 仍用请求 `UserId` 作为用户限流标识 |
-| `SeckillService.SubmitOrder` | 用户 | 仍用请求 `UserId` 作为限流、重复购买判断、订单消息归属 |
-| `SeckillService.GetOrder` | 用户 | 从 `ContextKeyUserId` 取身份；非本人订单返回 `SeckillOrderNotFound` |
-
-秒杀令牌不是登录 JWT：当前为 Redis 保存的随机 UUID，有效期 60 秒，值绑定 SKU，提交时使用 `GETDEL` 原子消费。它没有绑定领取用户；领取/提交 RPC 也没有将请求 `UserId` 与 JWT 用户比较。App 网关会填入当前用户，但直达 RPC 仍存在伪造请求用户的边界缺口。
-
-活动/用户限流、活动时间、SKU 状态、库存及重复购买校验已经存在，但它们不能替代身份绑定。管理员查秒杀订单也受“本人”限制，没有通过该 RPC 跨用户查看的特殊权限。
-
-依据：[方法权限表](../services/rpc/seckill/auth.go)、[领令牌](../services/rpc/seckill/internal/logic/seckillservice/acquire_token_logic.go)、[提交订单](../services/rpc/seckill/internal/logic/seckillservice/submit_order_logic.go)、[查订单](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic.go)、[库存/令牌实现](../services/rpc/seckill/internal/stock/stock_manager.go)。
-
-### 4.3 mall-rpc：商品、订单与 Outbox
-
-| RPC（package `mall`） | 当前入口权限 | logic 内部的数据范围 |
-| --- | --- | --- |
-| `ProductService.CreateProduct`、`ProductService.UpdateProduct`、`ProductService.DeleteProduct` | 管理员 | 全局商品管理，不校验当前管理员是否为商品创建者 |
-| `ProductService.CreateSku`、`ProductService.UpdateSku`、`ProductService.DeleteSku` | 管理员 | 全局 SKU 管理 |
-| `ProductService.GetProduct`、`ProductService.ListProducts`、`ProductService.GetSku`、`ProductService.ListSkusByProduct` | 用户 | 请求筛选条件不是调用者身份；没有商户/租户隔离 |
-| `OrderService.CreateOrder` | 用户 | 使用请求 `UserId`，未绑定 `ContextKeyUserId` |
-| `OrderService.GetOrder` | 用户 | 请求 `UserId` 非空才比较归属；为空不加该限制 |
-| `OrderService.ListOrders` | 用户 | 将请求 `UserId` 交给存储层筛选；为空可查询全局范围 |
-| `OrderService.CancelOrder` | 用户 | 校验订单归属于请求 `UserId` 且待支付，但未将该 ID 绑定认证用户 |
-| `OrderService.UpdateOrderStatus` | **当前仅要求用户** | 不在 `AdminMethods`；请求 `UserId` 非空才查归属，另有状态机限制 |
-| `OrderService.ConfirmPayment` | 服务专用 | 只接受 payment-rpc → mall-rpc 服务 JWT，再核对订单归属、金额、交易号和状态 |
-| `OrderService.GetOrderOutboxStats`、`OrderService.ListOrderOutbox`、`OrderService.GetOrderOutbox`、`OrderService.ReplayOrderOutbox` | 管理员 | 全局事件管理；重放另有业务校验 |
-
-必须区分的三点：
-
-1. App 订单接口确实从认证上下文填入本人 `UserId`；但 mall-rpc 的这些普通订单方法没有统一强制使用认证上下文。不能据此宣称“直达 RPC 也只能操作本人订单”。
-2. `UpdateOrderStatus` 虽然只挂在 Admin HTTP 路由，却没有 RPC 管理员限制。状态机允许的流转包括待支付 → 已支付，因此 `ConfirmPayment` 的独立服务鉴权不代表所有“将订单改为已支付”的路径都只能由 payment-rpc 使用。
-3. 创建订单的 Redis 幂等键为 `mall:idempotency:<请求key>`，未包含用户 ID；缓存命中直接返回订单 ID，未再次核对归属。这是另一项跨用户隔离缺口，即使通过 App 网关也不能仅靠网关注入 `UserId` 消除。
-
-依据：[服务注册及方法权限](../services/rpc/mall/main.go)、[订单逻辑目录](../services/rpc/mall/internal/logic/orderservice/)、[查订单](../services/rpc/mall/internal/logic/orderservice/get_order_logic.go)、[改状态](../services/rpc/mall/internal/logic/orderservice/update_order_status_logic.go)、[创建订单](../services/rpc/mall/internal/logic/orderservice/create_order_logic.go)、[幂等键](../services/rpc/mall/internal/logic/orderservice/common.go)。
-
-### 4.4 payment-rpc：支付及可信回调
-
-| RPC（package `payment`） | 当前入口权限 | 额外控制 |
-| --- | --- | --- |
-| `PaymentService.CreatePayment` | 用户 | 请求 `UserId` 必须等于 JWT 用户；以该身份向 mall 取订单，再核对订单 ID、归属、金额、状态及已有流水 |
-| `PaymentService.QueryPayment` | 用户 | 按订单号/交易号定位流水后，要求流水 `UserId` 等于 JWT 用户；不赋予管理员跨用户查询特权 |
-| `PaymentService.HandleNotify` | 无用户 JWT | payment-rpc 内部使用支付宝公钥验签，核对应用、收款方、交易、金额和状态 |
-
-回调路径为：
-
-```text
-支付宝表单
-  → POST /api/pay/notify/alipay（公开 HTTP）
-  → PaymentService.HandleNotify（用户 JWT 白名单）
-  → DecodeNotify 验签 + app_id/seller_id/out_trade_no/金额校验
-  → 成功通知还检查 trade_no、成功状态及已确认交易一致性
-  → 更新支付流水
-  → 独立服务 JWT 调用 mall.OrderService.ConfirmPayment
-  → 订单归属/金额/交易号/状态校验 + 幂等确认 + Outbox
-```
-
-主动查询确认支付同样走服务 JWT 回写，不把普通用户 JWT 当成支付确认凭据。公开回调不等于任意调用者可以确认支付；同时，它也没有基于网关服务身份的来源限制，主要可信依据是签名及业务字段。
-
-当前 payment-rpc 实际依赖 mall-rpc，创建支付会重新读取订单，不能沿用“payment-rpc 不依赖 mall、只信任网关金额”的旧描述。
-
-依据：[支付服务入口](../services/rpc/payment/main.go)、[创建支付](../services/rpc/payment/internal/logic/paymentservice/create_payment_logic.go)、[查询支付](../services/rpc/payment/internal/logic/paymentservice/query_payment_logic.go)、[回调](../services/rpc/payment/internal/logic/paymentservice/handle_notify_logic.go)、[支付宝封装](../infra/alipay/alipay.go)、[支付专题文档](PAYMENT.md)。
-
-### 4.5 agent-rpc：推荐、会话及工具权限
-
-| RPC（package `agent`） | 当前权限 | 数据范围 |
-| --- | --- | --- |
-| `RecommendService.Recommend` | 用户 | 用户 ID 仅从认证上下文取得，按用户 + 会话执行推荐和记忆读写 |
-| `RecommendService.ListConversations` | 用户 | 只列出本人会话 |
-| `RecommendService.ListConversationTurns` | 用户 | 在本人命名空间查会话；不存在或他人会话返回 `NotFound` |
-| `RecommendService.DeleteConversation` | 用户 | 只删除本人会话；未命中时返回 `deleted=false`，不是越权删除 |
-
-RPC 请求不接收可覆盖身份的 `user_id`。PostgreSQL 会话采用 `(user_id, conversation_id)` 复合身份，Redis/内存实现也按用户分区。同一 `conversation_id` 可以在不同用户空间出现，并不意味着共享会话。管理员使用这些接口仍只能访问自己的会话。
-
-在线推荐调用 mall 商品 RPC 时透传当前用户 JWT。后台 RAG 同步则从 `context.Background()` 启动，没有用户 Token，也没有单独配置的服务 Token；由当前客户端拦截器与 mall 鉴权代码可推断：真实受保护 mall-rpc 会拒绝该后台读取。该项是代码推断，本次没有启动完整 RAG 链路进行端到端复现。
-
-LLM 工具权限需与会话权限分开理解：
-
-- `read_file`、`write_file` 使用统一的配置工作区，默认 `workspace/agent`；检查相对路径、目录穿越和符号链接逃逸，限制单次读取大小，写入后缀默认只允许 `.json`、`.md`、`.txt`。
-- 文件工作区没有按 `user_id` / `conversation_id` 分目录授权，也没有管理员专属工具判断。“会话隔离”不能推出“文件工具按用户隔离”。
-- MCP 配置默认关闭；开启后按照配置启动 stdio 子进程，并将服务端返回的工具加入模型工具集。当前适配层没有逐用户/逐角色的工具权限清单或调用审批。
-- 以上目录检查不是独立操作系统沙箱，MCP 工具也不会自动继承本地 `Workspace` 的文件限制。
-
-依据：[认证身份提取](../services/rpc/agent/internal/logic/recommendservice/common.go)、[会话 RPC 逻辑](../services/rpc/agent/internal/logic/recommendservice/)、[会话模型](../services/rpc/agent/model/conversation_memory/conversation_memory_model.go)、[依赖组装](../services/rpc/agent/internal/svc/service_context.go)、[后台同步](../services/rpc/agent/internal/rag/syncer.go)、[文件工作区](../services/rpc/agent/internal/filetools/workspace.go)、[MCP 适配](../services/rpc/agent/internal/agent/recommend/llm/mcp.go)。
-
-## 5. 服务之间如何传递权限
-
-| 调用链 | 当前身份机制 | 是否具有独立服务身份 |
-| --- | --- | --- |
-| App/Admin → auth-rpc.ValidateToken | 用户 JWT 放请求体；该方法 metadata 免鉴权 | 否，不验证调用网关是谁 |
-| App/Admin → 受保护 RPC | 透传原始用户 JWT | 否，目标服务看到的是用户 |
-| agent-rpc 在线推荐 → mall 商品 RPC | 透传当前用户 JWT | 否 |
-| agent-rpc 后台 RAG → mall 商品 RPC | 当前没有可透传的用户 Token | 否，待补齐 |
-| payment-rpc → mall.GetOrder | 显式透传当前用户 JWT | 否，用于以本人身份核对订单 |
-| payment-rpc → mall.ConfirmPayment | 每次签发短期服务 JWT | 是，当前唯一配置的 `ServiceMethods` 场景 |
-| 秒杀/商城 → RocketMQ → 消费者 | 消息载荷、Topic/Tag 等业务约定 | 不经过用户 JWT/RPC 拦截器；仓库客户端配置未接入 MQ 凭据/消息签名授权 |
-
-支付服务 JWT 的具体规则：
-
-- 使用 `PAYMENT_MALL_SERVICE_SECRET`，由 payment-rpc、mall-rpc 配置为 `ServiceAuth.Secret`；配置要求与 `JWT_SECRET` 分离，但代码没有统一检查两者必不相等。
-- 当前调用 TTL 为 1 分钟，签发 `service`、`iss`、`sub`、`aud`、`exp`、`iat`、`nbf`、`jti`。
-- 验证固定 HS256，要求 `service/iss/sub` 均为 `payment-rpc`，受众包含 `mall-rpc`，检查时间有效性并要求 `exp`、`iat` 存在。
-- 验证成功仅注入 `ContextKeyServiceName`；`ConfirmPayment` logic 再检查调用方，并执行订单校验。
-- `jti` 是随机 ID，当前没有用它建立一次性消费记录；不能把短期 JWT 写成“不可重放凭据”。订单幂等是独立机制。
-- 这是共享密钥认证，不是 mTLS，也不是覆盖所有微服务的统一服务身份平台。普通用户或管理员 JWT 都不能直接通过 `ConfirmPayment` 的服务认证分支。
-
-依据：[服务 JWT 实现](../infra/serviceauth/service_auth.go)、[支付上下文构建](../services/rpc/payment/internal/logic/paymentservice/common.go)、[商城二次调用方校验](../services/rpc/mall/internal/logic/orderservice/confirm_payment_logic.go)、[MQ 配置结构](../infra/rocketmq/config.go)、[MQ 客户端](../infra/rocketmq/rocketmq.go)。
-
-## 6. 网络、运行时及错误返回边界
-
-### 6.1 不能假定 RPC 天然不可达
-
-当前 RPC YAML 模板监听 `0.0.0.0:10003–10007`，Compose 直接发布这些端口；HTTP 网关同样监听所有接口。实际是否能被外部连接取决于宿主机、容器网络和防火墙，但仓库配置本身并没有保证“只能从网关访问”。
-
-仓库未提供这些业务服务的 Kubernetes NetworkPolicy / ServiceAccount RBAC 部署清单，也未在当前业务 RPC 装配中配置统一的 TLS/mTLS。DB、Redis、etcd 和 MQ 的网络/账号访问控制不能从应用 JWT 机制推导出来；Redis DB 编号、服务发现 key、消息消费者组均不是身份权限边界。
-
-5 个 RPC 的数据库配置模板使用同一个数据库和 `root` 账号，连接参数包含 `sslmode=disable`，没有体现按服务分配的数据库最小权限。因此，代码层“由某个服务负责某张表”不等于数据库层已禁止其他服务访问该表。本文不据此推断实际部署环境的账号权限或防火墙规则。
-
-RPC 在 dev/test 模式注册 gRPC reflection；当前业务鉴权注册的是 unary 拦截器，不应把它描述成覆盖所有流式/调试/健康服务的统一授权。本项目推荐 SSE 的底层仍是 unary RPC。
-
-依据：[Compose](../docker-compose.yml)、各服务 `etc/config.yaml` 和 `main.go`、[etcd 配置中心](../infra/configcenter/configcenter.go)。
-
-### 6.2 返回码与前端处理
-
-- HTTP 认证中间件对缺失 Token、无效 Token、角色不足都直接返回 HTTP 401 文本，没有区分 401/403 的统一 JSON 权限响应。
-- RPC 业务错误通过 [错误适配器](../infra/errors/http.go) 转为 HTTP 状态及 JSON；例如 `InvalidToken` 为 `401002`，`Unauthorized` 为 `401000`。不要把错误变量名理解成当前一定返回 403。
-- 支付/秒杀订单的跨用户访问、Agent 会话未命中等场景使用 NotFound 类错误或明确的删除未命中结果，减少暴露他人资源是否存在。
-- 秒杀一次性令牌失效 `401003` 不等于登录 JWT 失效，前端请求工具对该下单业务错误做了单独处理。
-- RPC 调用日志已有方法、耗时、用户 ID、错误信息，但不是不可篡改的权限变更审计日志；`ValidateToken` 部分错误日志仍直接格式化原始 Token，尚未实现统一凭据脱敏。
-
-依据：[错误定义](../infra/errors/errors.go)、[前端请求工具](../web-ui/src/api/request.ts)、[RPC 日志拦截器](../infra/interceptor/logging_interceptor.go)、[Token 校验日志](../services/rpc/auth/internal/logic/authservice/validate_token_logic.go)。
-
-## 7. 待补齐事项（建议，不是现有能力）
-
-优先级用于后续排期：P0 为上线前应优先闭合的越权边界，P1 为重要权限一致性/身份控制，P2 为治理能力。以下均没有在本次文档变更中修复。
-
-| 编号 | 优先级 | 当前问题 | 建议补齐方式 |
-| --- | --- | --- | --- |
-| AUTH-01 | P0 | 用户管理 4 个 RPC 没有管理员检查，更新接口可修改角色 | RPC 方法级管理员鉴权；约束角色赋予范围，明确超级管理员保护策略 |
-| MALL-01 | P0 | 普通订单方法信任请求 `UserId`，空 ID 可放宽查询范围 | 从认证上下文取用户；明确实现管理员跨用户分支，不以空 ID 代替授权 |
-| MALL-02 | P0 | `UpdateOrderStatus` 没有 RPC 管理员检查，且可流转为已支付 | 增加方法级限制，并划分运营状态修改与支付确认权限 |
-| MALL-03 | P1 | 幂等缓存键未按用户隔离，命中后不查归属 | 用户维度幂等键；缓存/数据库幂等命中都核对归属和请求一致性 |
-| SECKILL-01 | P1 | 领令牌/下单使用请求用户；秒杀令牌只绑定 SKU | 使用认证用户；令牌绑定用户、活动、SKU，并原子核验消费 |
-| AUTH-02 | P1 | 禁用状态未参与认证；旧 JWT 无统一撤销 | 统一账号状态校验，设计角色变更/禁用/退出后的失效机制 |
-| AUTH-03 | P1 | JWT claim 中角色与数据库角色可能不一致 | 明确角色权威来源与缓存时效，避免 HTTP/RPC 判断不一致 |
-| AUTH-04 | P1 | 部分认证日志包含原始 Token/验证码 | 敏感字段脱敏，补充日志回归测试；不要将凭据作为诊断文本 |
-| SERVICE-01 | P1 | 后台 RAG 没有服务身份，其他链路主要靠用户透传 | 为后台任务提供仅商品读取权限的服务身份，不使用伪造管理员用户 Token |
-| NETWORK-01 | P1 | RPC 对宿主机发布，缺少仓库级网络隔离配置 | 限制开发端口绑定；部署时收敛 RPC 暴露范围、配置网络策略与传输安全 |
-| AGENT-01 | P1 | 文件/MCP 工具没有用户级授权 | 按用户/会话隔离文件空间，限制工具清单、子进程权限及出网范围 |
-| GOVERNANCE-01 | P2 | 缺少统一权限点、服务矩阵、角色变更审计及 MQ 身份控制 | 在具体业务需求确定后设计细粒度权限，并补充自动化权限回归矩阵 |
-
-在这些缺口闭合前，建议只将当前配置用于受控开发环境；不能仅凭网关或前端的管理员判断认定已满足生产权限要求。
-
-## 8. 已有测试与本次验证范围
-
-| 现有测试位置 | 能证明的范围 | 不能据此推出的结论 |
-| --- | --- | --- |
-| [JWT 单测](../infra/auth/auth_test.go) | 签发、验签、过期及密码哈希等基础行为 | 账号禁用、撤销、管理员授权全部正确 |
-| [通用鉴权测试](../infra/interceptor/auth_interceptor_test.go)、[服务 JWT 测试](../infra/serviceauth/service_auth_test.go) | 服务身份/受众/签名/过期及普通用户 Token 隔离 | 每个 RPC 都已配置正确的方法权限 |
-| [秒杀方法权限](../services/rpc/seckill/auth_test.go)、[秒杀订单归属](../services/rpc/seckill/internal/logic/seckillservice/get_order_logic_test.go) | 已列方法的角色边界、查订单绑定身份 | 领令牌与提交订单已绑定身份 |
-| [支付校验](../services/rpc/payment/internal/logic/paymentservice/common_test.go)、[商城支付入口](../cmd/app/internal/logic/mall/payment_logic_test.go) | 部分跨用户/金额/通知检查 | 已真实调用支付宝、或完整支付链路无缺口 |
-| [支付确认身份](../services/rpc/mall/internal/logic/orderservice/confirm_payment_auth_test.go) | logic 拒绝缺失/错误服务身份，正确身份进入参数校验 | 完成了真实数据库支付确认事务测试 |
-| [Agent 身份提取](../services/rpc/agent/internal/logic/recommendservice/common_test.go)、[文件工作区](../services/rpc/agent/internal/filetools/workspace_test.go) | 私有 context 身份来源、路径/后缀/读取大小检查 | MCP 已沙箱化或文件已按用户隔离 |
-
-本次执行并通过以下现有测试，未修改业务代码，也未运行真实跨服务越权请求或生产数据操作：
-
-```bash
-go test ./infra/auth ./infra/interceptor ./infra/serviceauth \
-  ./services/rpc/seckill \
-  ./services/rpc/seckill/internal/logic/seckillservice \
-  ./services/rpc/payment/internal/logic/paymentservice \
-  ./services/rpc/agent/internal/logic/recommendservice \
-  ./services/rpc/agent/internal/filetools \
-  ./cmd/app/internal/logic/mall
-
-go test ./services/rpc/mall/internal/logic/orderservice \
-  -run '^TestConfirmPayment(RejectsMissingServiceIdentity|RejectsWrongServiceIdentity|AcceptsPaymentIdentity)$' \
-  -count=1
-```
-
-同时核对了全部 54 个 RPC 方法、64 条 HTTP 路由（App 29 条、Admin 35 条）和本文 74 个本地源码/文档链接。HTTP 路径以 `.api` 与已生成的 `routes.go` 双向核对；该清单检查不等价于逐接口端到端权限测试。
-
-后续修改 `.api`、`.proto`、方法权限集合、用户状态/角色逻辑、资源归属校验或服务调用凭据时，应同步更新本文及对应回归测试。不要只更新前端菜单或 API 注释。
+详细历史测试范围见[核对归档](archive/access-control-2026-09.md)，数据库测试隔离规则见 [CI 指南](ci.md)。不要为了验证权限对生产数据执行越权写入。

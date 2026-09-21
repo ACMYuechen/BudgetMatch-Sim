@@ -16,7 +16,41 @@ import (
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func TestLLMAgentRejectsStructuredDemandBeforeModelOrTools(t *testing.T) {
+	var received [][]*schema.Message
+	model := &scriptedModel{received: &received}
+	runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+	prior := agentcore.Intent{BudgetCents: 1000, MaxItems: 2, Demand: &agentcore.DemandState{SchemaVersion: 1, Required: []string{"keyboard"}}}
+	_, err := runner.Run(context.Background(), agentcore.Input{Query: "desk", PriorIntent: &prior})
+	if status.Code(err) != codes.FailedPrecondition || len(received) != 0 || len(model.boundTools) != 0 {
+		t.Fatalf("structured demand reached ReAct: %v", err)
+	}
+}
+
+func TestLLMAgentRejectsInvalidTextBeforeModelOrTools(t *testing.T) {
+	for _, query := range []string{"预算$500", "预算-500元", "预算0.001元", "预算3000或5000", "最多十一件"} {
+		var received [][]*schema.Message
+		model := &scriptedModel{received: &received}
+		runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+		_, err := runner.Run(context.Background(), agentcore.Input{Query: query})
+		if !errors.Is(err, agentcore.ErrInvalidInput) || len(received) != 0 || len(model.boundTools) != 0 {
+			t.Fatalf("invalid text reached ReAct: %q err=%v", query, err)
+		}
+	}
+}
+
+func TestLLMAgentUsesTextLimitsInFinalResult(t *testing.T) {
+	model := &scriptedModel{responses: []*schema.Message{schema.AssistantMessage("ok", nil)}}
+	runner := NewAgent(model, tools.NewMockProductProvider(), selector.NewBundleSelector(), mcpconfig.Config{}, filetools.Config{})
+	result, err := runner.Run(context.Background(), agentcore.Input{Query: "预算3000元，最多一件学习用品"})
+	if err != nil || result.Intent.MaxItems != 1 || len(result.Items) != 1 || result.TotalPriceCents > 300000 {
+		t.Fatalf("text limit not enforced: %+v %v", result, err)
+	}
+}
 
 // TestAgentDrivesReactToolCalls 验证 Agent 让 ReAct 真正编排 search_products + select_bundle，
 // 并从工具结果回填出 grounded 的商品套装与工具记录。
@@ -36,7 +70,7 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if result.Summary != "最终推荐结果" {
+	if result.Summary != agentcore.BundleSummary(len(result.Items), result.TotalPriceCents, result.Intent.BudgetCents) {
 		t.Fatalf("unexpected summary %q", result.Summary)
 	}
 	if len(result.Items) == 0 {
@@ -58,8 +92,8 @@ func TestAgentDrivesReactToolCalls(t *testing.T) {
 	if result.ToolsUsed[2].Name != "tool."+toolSelectBundle || !result.ToolsUsed[2].Success {
 		t.Fatalf("unexpected select record: %+v", result.ToolsUsed[2])
 	}
-	if len(model.boundTools) != 4 {
-		t.Fatalf("expected model to receive 4 tools, got %d", len(model.boundTools))
+	if len(model.boundTools) != 2 {
+		t.Fatalf("expected model to receive 2 default tools, got %d", len(model.boundTools))
 	}
 }
 
@@ -147,7 +181,7 @@ func TestAgentToleratesHistoryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
-	if result.Summary != "ok" {
+	if len(result.Items) == 0 || result.Summary != agentcore.BundleSummary(len(result.Items), result.TotalPriceCents, result.Intent.BudgetCents) {
 		t.Fatalf("expected run to succeed without history, got %+v", result)
 	}
 }

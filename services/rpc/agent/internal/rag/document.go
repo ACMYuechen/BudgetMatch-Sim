@@ -20,15 +20,16 @@ const (
 // CandidateMetadata 是向量表 metadata 列的结构，承载检索后还原候选商品所需的业务快照。
 // 价格/库存/销量只存在这里，不进 embedding 文本——价格波动不应触发重嵌入。
 type CandidateMetadata struct {
-	ProductId  string   `json:"product_id"`
-	Name       string   `json:"name"`
-	Category   string   `json:"category"`
-	Brand      string   `json:"brand,omitempty"`
-	PriceCents int64    `json:"price_cents"`
-	Stock      int64    `json:"stock"`
-	Sold       int64    `json:"sold"`
-	Source     string   `json:"source"`
-	Tags       []string `json:"tags,omitempty"`
+	SnapshotAtUnixMs int64    `json:"snapshot_at_unix_ms,omitempty"`
+	ProductId        string   `json:"product_id"`
+	Name             string   `json:"name"`
+	Category         string   `json:"category"`
+	Brand            string   `json:"brand,omitempty"`
+	PriceCents       int64    `json:"price_cents"`
+	Stock            int64    `json:"stock"`
+	Sold             int64    `json:"sold"`
+	Source           string   `json:"source"`
+	Tags             []string `json:"tags,omitempty"`
 }
 
 // NewCandidateDocument 构造携带业务快照的商品文档，Loader 与 Retriever 统一走这里，

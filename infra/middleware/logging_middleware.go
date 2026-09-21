@@ -43,7 +43,11 @@ func (m *LoggingMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		logx.WithContext(ctx).Infow("request start", logFields...)
 
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		next(rw, r)
+		var writer http.ResponseWriter = rw
+		if flusher, ok := w.(http.Flusher); ok {
+			writer = &flushingResponseWriter{responseWriter: rw, flusher: flusher}
+		}
+		next(writer, r)
 
 		duration := time.Since(start).Milliseconds()
 		endFields := []logx.LogField{
@@ -95,6 +99,26 @@ type responseWriter struct {
 	statusCode  int
 	wroteHeader bool
 }
+
+type flushingResponseWriter struct {
+	*responseWriter
+	flusher http.Flusher
+}
+
+func (writer *flushingResponseWriter) Flush() {
+	_ = writer.FlushError()
+}
+
+// FlushError preserves transport errors for synchronous streaming backpressure.
+func (writer *flushingResponseWriter) FlushError() error {
+	if !writer.wroteHeader {
+		writer.WriteHeader(http.StatusOK)
+	}
+	return http.NewResponseController(writer.ResponseWriter).Flush()
+}
+
+// Unwrap lets ResponseController reach the connection's write deadline.
+func (w *responseWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
 // WriteHeader 记录首次写入的状态码，然后透传给原始 ResponseWriter。
 func (w *responseWriter) WriteHeader(code int) {

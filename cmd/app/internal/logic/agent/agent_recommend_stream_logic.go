@@ -12,9 +12,10 @@ import (
 	"budgetmatch-sim/services/rpc/agent/client/recommendservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/status"
 )
 
-// AgentRecommendStreamLogic 负责以 SSE 事件包装推荐 RPC 的执行阶段和最终结果。
+// AgentRecommendStreamLogic serves negotiated v1 RPC events or legacy unary SSE.
 type AgentRecommendStreamLogic struct {
 	logx.Logger
 	ctx    context.Context
@@ -23,6 +24,7 @@ type AgentRecommendStreamLogic struct {
 
 // StreamEvent 是逻辑层向 SSE handler 输出的事件名称与负载。
 type StreamEvent struct {
+	ID    string
 	Event string
 	Data  any
 }
@@ -36,22 +38,17 @@ func NewAgentRecommendStreamLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-// AgentRecommendStream 依次发送受理、RPC 启动、最终结果和完成事件。
-func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecommendReq, emit func(StreamEvent) error) error {
+// legacyRecommendStream is selected before execution, never as a failed v1 retry.
+func (l *AgentRecommendStreamLogic) legacyRecommendStream(req *types.AgentRecommendReq, emit func(StreamEvent) error) error {
 	// 流式请求与普通推荐使用相同的可信用户身份来源。
 	_, err := request.MustUserId(l.ctx)
 	if err != nil {
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 	if err := emit(StreamEvent{Event: "request.accepted", Data: map[string]any{
-		"query":           req.Query,
-		"budget_cents":    req.BudgetCents,
-		"max_items":       req.MaxItems,
 		"conversation_id": req.ConversationId,
 		"turn_id":         req.TurnId,
 	}}); err != nil {
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
@@ -59,7 +56,6 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 		"service": "agent.rpc",
 		"method":  "Recommend",
 	}}); err != nil {
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
@@ -72,20 +68,17 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 	})
 	if err != nil {
 		_ = emit(StreamEvent{Event: "error", Data: publicStreamError(err)})
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
 	resp := mapRecommendResp(rpcResp)
 	if err := emit(StreamEvent{Event: "recommendation.final", Data: resp}); err != nil {
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
 	if err := emit(StreamEvent{Event: "done", Data: map[string]any{
 		"ok": true,
 	}}); err != nil {
-		l.Logger.Errorf("return error: %v", err)
 		return err
 	}
 
@@ -94,6 +87,11 @@ func (l *AgentRecommendStreamLogic) AgentRecommendStream(req *types.AgentRecomme
 
 // publicStreamError 复用普通 HTTP 接口的错误转换，避免把 gRPC 内部错误文本暴露给前端。
 func publicStreamError(err error) any {
+	if _, known := apperrors.AsAppError(err); !known {
+		if _, grpcError := status.FromError(err); !grpcError {
+			err = apperrors.Internal
+		}
+	}
 	_, response := apperrors.HTTPErrorHandler(err)
 	return response
 }

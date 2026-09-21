@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
+	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/mall/pb"
 
 	"google.golang.org/grpc"
@@ -63,7 +65,7 @@ func (p *MallProductProvider) SearchProducts(ctx context.Context, req SearchProd
 			return nil, err
 		}
 		for _, sku := range skus {
-			if sku.Stock <= 0 {
+			if sku == nil || sku.Stock <= 0 {
 				continue
 			}
 			if req.BudgetCents > 0 && sku.Price > req.BudgetCents {
@@ -161,7 +163,10 @@ func (p *MallProductProvider) collectSkus(ctx context.Context, productId string)
 
 // candidateFromSku 把商品与 SKU 映射为候选：名称拼接 SPU+SKU，标签取供应商与规格值。
 func candidateFromSku(product *pb.Product, sku *pb.Sku) ProductCandidate {
+	now := time.Now().UnixMilli()
 	return ProductCandidate{
+		Evidence: agentcore.CandidateEvidence{Source: agentcore.RetrievalMallKeyword,
+			ProductID: product.Id, RetrievedAtUnixMs: now},
 		Id:         sku.Id,
 		Name:       joinName(product.Name, sku.Name),
 		Source:     "mall",

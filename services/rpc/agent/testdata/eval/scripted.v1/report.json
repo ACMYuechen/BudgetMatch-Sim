@@ -1,0 +1,685 @@
+{
+  "schema_version": 1,
+  "suite_version": "scripted-react-v1",
+  "suite_sha256": "7d99a34214437da85507574a725b9ef3b55191eb98b5eaabff59965f77b7320e",
+  "snapshot_sha256": "2339af22c7d6b6f975b978d74a1cda3d159fd3c423009a15bfd993a4bb58bc70",
+  "code_revision": "ad91f2b+M2.2-worktree",
+  "go_version": "go1.26.8",
+  "os": "linux",
+  "arch": "amd64",
+  "model": "scripted_fake",
+  "external_model_status": "not_run",
+  "token_usage": null,
+  "requests": 16,
+  "passed": 16,
+  "model_calls": 33,
+  "gate_passed": true,
+  "cases": [
+    {
+      "id": "normal_tool_flow",
+      "expected": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "no_selection",
+      "expected": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": true
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": true
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "malformed_json_repaired",
+      "expected": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "negative_limit_repaired",
+      "expected": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "unknown_sku_repaired",
+      "expected": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "inflated_limits_clamped",
+      "expected": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "model_unavailable",
+      "expected": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 1,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 1,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "model_error_after_selection",
+      "expected": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 2,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 3,
+        "tool_calls": 2,
+        "provider_calls": 2,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "tool_transient_repaired",
+      "expected": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 2,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 4,
+        "tool_calls": 3,
+        "provider_calls": 2,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "unknown_tool",
+      "expected": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 1,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 1,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "max_steps",
+      "expected": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 2,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "completed",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 2,
+        "fallback_calls": 1,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "replay": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [
+        "mouse"
+      ],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": true,
+      "passed": true
+    },
+    {
+      "id": "model_permission",
+      "expected": {
+        "status": "error",
+        "error_code": "permission_denied",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "error",
+        "error_code": "permission_denied",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": false,
+      "passed": true
+    },
+    {
+      "id": "tool_permission",
+      "expected": {
+        "status": "error",
+        "error_code": "permission_denied",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "error",
+        "error_code": "permission_denied",
+        "model_calls": 1,
+        "tool_calls": 1,
+        "provider_calls": 1,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": false,
+      "passed": true
+    },
+    {
+      "id": "model_deadline",
+      "expected": {
+        "status": "error",
+        "error_code": "deadline_exceeded",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "error",
+        "error_code": "deadline_exceeded",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": false,
+      "passed": true
+    },
+    {
+      "id": "cancel_during_model",
+      "expected": {
+        "status": "error",
+        "error_code": "canceled",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "error",
+        "error_code": "canceled",
+        "model_calls": 1,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [],
+      "prompt_sha256": "73a2c25ed92ad93785c25d7bef44abf3f3cc7070bae356b847bbb2f13698714e",
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": false,
+      "passed": true
+    },
+    {
+      "id": "invalid_text_before_model",
+      "expected": {
+        "status": "rejected",
+        "error_code": "budget_text",
+        "model_calls": 0,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "observed": {
+        "status": "rejected",
+        "error_code": "budget_text",
+        "model_calls": 0,
+        "tool_calls": 0,
+        "provider_calls": 0,
+        "fallback_calls": 0,
+        "selector_fallback": false
+      },
+      "checks": {
+        "expected_execution": true,
+        "grounded_result": true,
+        "hard_constraints": true,
+        "only_business_tools": true,
+        "outcome": true,
+        "persistence": true,
+        "provider_limits": true,
+        "public_payload_safe": true,
+        "tool_feedback": true
+      },
+      "violations": [],
+      "selected_ids": [],
+      "replay_extra_model_calls": 0,
+      "replay_extra_provider_calls": 0,
+      "replay_extra_fallback_calls": 0,
+      "replay_extra_turns": 0,
+      "replay_checked": false,
+      "passed": true
+    }
+  ]
+}

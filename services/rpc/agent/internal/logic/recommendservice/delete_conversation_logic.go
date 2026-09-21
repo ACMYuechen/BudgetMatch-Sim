@@ -3,6 +3,7 @@ package recommendservicelogic
 import (
 	"context"
 
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/svc"
 	"budgetmatch-sim/services/rpc/agent/pb"
 
@@ -29,13 +30,13 @@ func NewDeleteConversationLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 func (l *DeleteConversationLogic) DeleteConversation(in *pb.DeleteConversationReq) (*pb.DeleteConversationResp, error) {
 	userId, err := authenticatedUserId(l.ctx)
 	if err != nil {
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 	deleted, err := l.svcCtx.RecommendService.DeleteConversation(l.ctx, userId, in.ConversationId)
 	if err != nil {
 		err = mapRecommendError(err)
-		l.Logger.Errorf("return error: %v", err)
+		l.Logger.Errorf("return error_code: %s", safety.ErrorCode(err))
 		return nil, err
 	}
 	return &pb.DeleteConversationResp{Deleted: deleted}, nil

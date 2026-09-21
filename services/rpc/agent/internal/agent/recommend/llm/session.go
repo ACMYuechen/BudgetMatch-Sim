@@ -1,7 +1,9 @@
 package llm
 
 import (
+	"strings"
 	"sync"
+	"sync/atomic"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	selector "budgetmatch-sim/services/rpc/agent/internal/recommend"
@@ -17,15 +19,19 @@ import (
 //
 // 这样最终结果直接从 session 读取类型化数据，无需再从 Eino 消息流里反解 JSON。
 type session struct {
-	provider tools.ProductProvider
-	selector *selector.BundleSelector
-	intent   agentcore.Intent
+	provider      tools.ProductProvider
+	selector      *selector.BundleSelector
+	intent        agentcore.Intent
+	progress      agentcore.ProgressSink
+	progressCalls atomic.Uint32
 
 	mu         sync.Mutex
 	candidates []tools.ProductCandidate
 	byId       map[string]tools.ProductCandidate
 	bundle     []agentcore.BundleItem
 	total      int64
+	selected   bool
+	selection  *agentcore.SelectionScope
 	calls      []agentcore.ToolCall
 }
 
@@ -46,6 +52,10 @@ func (s *session) storeCandidates(products []tools.ProductCandidate) {
 	defer s.mu.Unlock()
 
 	for _, product := range products {
+		if product.Id == "" || strings.TrimSpace(product.Id) != product.Id {
+			continue
+		}
+		product.Tags = append([]string(nil), product.Tags...)
 		if _, ok := s.byId[product.Id]; ok {
 			for i := range s.candidates {
 				if s.candidates[i].Id == product.Id {
@@ -69,7 +79,12 @@ func (s *session) filterCandidates(ids []string) []tools.ProductCandidate {
 		return append([]tools.ProductCandidate(nil), s.candidates...)
 	}
 	out := make([]tools.ProductCandidate, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
 	for _, id := range ids {
+		if _, duplicate := seen[id]; duplicate {
+			continue
+		}
+		seen[id] = struct{}{}
 		if candidate, ok := s.byId[id]; ok {
 			out = append(out, candidate)
 		}
@@ -85,11 +100,32 @@ func (s *session) hasCandidates() bool {
 }
 
 // setBundle 写回最终选定的商品套装与总价。
-func (s *session) setBundle(items []agentcore.BundleItem, total int64) {
+func (s *session) setBundle(items []agentcore.BundleItem, total int64, candidates []tools.ProductCandidate, limits agentcore.Constraints) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.bundle = append([]agentcore.BundleItem(nil), items...)
 	s.total = total
+	s.selected = true
+	s.selection = &agentcore.SelectionScope{Limits: limits}
+	for _, candidate := range candidates {
+		s.selection.CandidateIDs = append(s.selection.CandidateIDs, candidate.Id)
+	}
+}
+
+func (s *session) selectionScope() *agentcore.SelectionScope {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.selection == nil {
+		return nil
+	}
+	return &agentcore.SelectionScope{Limits: s.selection.Limits,
+		CandidateIDs: append([]string(nil), s.selection.CandidateIDs...)}
+}
+
+func (s *session) hasSelection() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.selected
 }
 
 // recordCall 追加一条工具调用记录。

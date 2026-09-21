@@ -1,287 +1,60 @@
-# BudgetMatch-Sim
-
-## 项目概述
-
-BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原型。项目以 go-zero 微服务架构承载认证、商城、秒杀、支付与推荐 Agent 等核心能力，结合商品价格、库存、预算和用户偏好等多维约束，通过规则引擎、向量检索与 LLM Agent 生成可解释、可落地的购物组合方案。它既是一个高并发电商业务底座，也是一套用于验证 AI Agent 参与真实交易链路决策的工程化实验平台。
-
-## 服务拓扑
-
-下图使用 `make dev` 的默认宿主机访问端口；容器内地址和全容器模式见 [README](README.md#服务架构)。
-
-```
-            ┌─────────────┐      ┌─────────────┐
-            │  Admin API  │      │   App API   │   REST Gateway (cmd/)
-            │   :10001    │      │   :10002    │
-            └──────┬──────┘      └──────┬──────┘
-                   │                    │
-                   └──────────┬─────────┘
-                              │ gRPC
-       ┌──────────┬───────────┼─────────────┬──────────────┐
-       │          │           │             │              │
-┌──────┴─────┐ ┌──┴────┐ ┌────┴────┐ ┌──────┴─────┐ ┌──────┴──────┐
-│   auth-rpc │ │seckill│ │ mall-rpc│ │  agent-rpc │ │ payment-rpc │       RPC Services (services/rpc/)
-│  :10003    │ │:10004 │ │ :10005  │ │  :10006    │ │   :10007    │
-└────────────┘ └───────┘ └─────────┘ └────────────┘ └─────────────┘
-       │          │           │             │              │
-       └──────────┴───────────┴─────────────┴──────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-     ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
-     │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
-     │    :15432       │  │ :22379 │ │ :19876 / :10911  │
-     │  Redis :6379    │  │        │ │                  │
-     └─────────────────┘  └────────┘ └──────────────────┘
-```
-
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| `cmd/admin` | 10001 | 管理后台 REST API |
-| `cmd/app` | 10002 | 客户端 REST API |
-| `services/rpc/auth` | 10003 (gRPC) | 认证与用户 RPC |
-| `services/rpc/seckill` | 10004 (gRPC) | 秒杀活动 RPC |
-| `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
-| `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
-| `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
-| `web-ui` | 5173 / 8080 | Vite 开发入口 / Compose 前端入口 |
-| `postgres` | 15432 | 主数据库，容器内为 5432 |
-| `redis` | 6379 | 缓存与限流 |
-| `etcd` | 22379 / 12379 | `make dev` / Compose 默认宿主机端口，容器内为 2379 |
-| `rocketmq` | 19876 / 9876；10911 | NameServer 的 `make dev` / Compose 默认宿主机端口；Broker 端口 |
-
-## 技术栈
-
-- **语言**: Go 1.26.8（以 `go.mod` 为准，工具链维护见 [开发文档](Contributors.md#工具链与依赖版本)）
-- **Web 框架**: [go-zero](https://github.com/zeromicro/go-zero)
-- **RPC**: gRPC + Protocol Buffers
-- **前端**: React + Vite + Ant Design；Node.js 20 与 npm（与当前 CI 保持一致）
-- **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
-- **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)，通过 `mark3labs/mcp-go` 接入
-- **数据库**: PostgreSQL 16（pgvector 镜像，含向量扩展）
-- **向量检索**: pgvector + HNSW 余弦索引（agent-rpc 商品语义检索）
-- **缓存**: Redis 7（含 agent-rpc 会话记忆，DB 6）
-- **部署**: Docker & Docker Compose
-- **代码生成**: goctl
-
-## 关键代码路径
-
-### 通用 RPC 服务
-
-| 路径 | 说明 |
-|------|------|
-| `services/rpc/<service>/proto/<service>.proto` | protobuf 服务定义 |
-| `services/rpc/<service>/internal/logic/<service>/` | 业务逻辑（手写） |
-| `services/rpc/<service>/internal/server/<service>/` | gRPC server 实现（goctl 生成） |
-| `services/rpc/<service>/internal/svc/service_context.go` | 依赖组装 / DI 容器 |
-| `services/rpc/<service>/internal/config/config.go` | 配置结构体 |
-| `services/rpc/<service>/pb/` | 生成的 protobuf Go 代码（不要编辑） |
-| `services/rpc/<service>/client/` | 生成的 RPC 客户端包装（不要编辑） |
-
-### 推荐 Agent（agent-rpc）
-
-| 路径 | 说明 |
-|------|------|
-| `services/rpc/agent/internal/agent/recommend/service.go` | 双 Agent 编排：`primary`（LLM）/ `fallback`（规则），失败自动降级 |
-| `services/rpc/agent/internal/agent/recommend/agent.go` | 确定性规则推荐 Agent（兜底） |
-| `services/rpc/agent/internal/agent/recommend/llm/agent.go` | Eino ReAct LLM Agent，LLM 链路唯一编排入口 |
-| `services/rpc/agent/internal/agent/recommend/llm/chatmodel.go` | 模型工厂，封装 eino-ext 官方 OpenAI `ToolCallingChatModel` |
-| `services/rpc/agent/internal/agent/recommend/llm/tools.go` | Eino 工具定义：`search_products`、`select_bundle`、`read_file`、`write_file` |
-| `services/rpc/agent/internal/agent/recommend/llm/mcp.go` | MCP 工具适配，把 MCP server 工具转成一等 Eino 工具 |
-| `services/rpc/agent/internal/agent/recommend/llm/prompt.go` | System prompt 与用户上下文 prompt |
-| `services/rpc/agent/internal/agent/recommend/llm/session.go` | 单次请求状态管理 |
-| `services/rpc/agent/internal/agent/recommend/planner.go` | 意图解析器 |
-| `services/rpc/agent/internal/recommend/bundle_selector.go` | 商品套装选择器 |
-| `services/rpc/agent/internal/memory/` | 会话记忆（ConversationStore + InMemory/Redis/PostgreSQL/两级缓存实现） |
-| `services/rpc/agent/internal/einolog/` | Eino 组件统一日志回调（模型/工具/检索/嵌入观测） |
-| `services/rpc/agent/internal/rag/` | RAG：Loader/Indexer/Retriever（Eino 官方组件接口）+ 同步流水线 |
-| `services/rpc/agent/model/product_vectors/` | 商品向量表（pgvector，派生数据可安全重建） |
-| `services/rpc/agent/internal/tools/product_provider.go` | 商品数据提供者接口 |
-| `services/rpc/agent/internal/tools/mall_product_provider.go` | mall-rpc 关键词检索 provider |
-| `services/rpc/agent/internal/tools/rag_product_provider.go` | 语义检索 provider（向量优先，关键词回退） |
-| `services/rpc/agent/internal/model/config.go` | LLM 模型配置 |
-| `services/rpc/agent/internal/model/embedding.go` | Embedding 模型配置 |
-| `services/rpc/agent/internal/mcp/config.go` | MCP 客户端配置 |
-| `services/rpc/agent/etc/config.yaml` | agent-rpc 服务配置 |
+# AI 协作约定
 
-### HTTP Gateway（cmd/app）
+本文件供编码助手快速定位规则，不重复维护服务拓扑、环境现状或阶段日志。人类开发者先看 [README](README.md) 和[文档导航](docs/README.md)，提交约定以 [Contributors.md](Contributors.md) 为准。
 
-| 路径 | 说明 |
-|------|------|
-| `cmd/app/desc/agent/agent.api` | Agent 相关 HTTP API 定义 |
-| `cmd/app/internal/handler/agent/` | HTTP handler（goctl 生成） |
-| `cmd/app/internal/logic/agent/` | HTTP 业务逻辑 |
+## 先定位，再修改
 
-## 错误处理与日志规范
+| 任务 | 先读 |
+| --- | --- |
+| 理解代码职责 | [架构与代码地图](docs/architecture.md) |
+| 判断完成范围 | [项目状态](docs/status.md)，不要以旧执行日志中的“下一步”为当前任务 |
+| 修改 Agent | [Agent 指南](docs/agent.md)、相关服务配置与测试 |
+| 修改权限、用户或订单 | [权限与安全](docs/access-control.md)，确认已有缺口而非假定网关已保护 RPC |
+| 修改环境或部署 | [配置指南](SECRETS.md)、[本地数据源](docs/local-data.md)、[VPS 运维](docs/deployment-vps.md) |
+| 运行测试或排查门禁 | [CI 指南](docs/ci.md)、[前端指南](docs/frontend-roadmap.md) |
 
-- 统一业务错误定义在 `infra/errors`，`AppError.Error()` 输出 `code:msgId`，HTTP 状态码由错误码前三位决定。
-- RPC logic 返回业务错误时直接返回 `infra/errors` 中的错误值，例如 `errors.UserNotFound`、`errors.MallStockNotEnough`、`errors.InvalidToken`。
-- API logic 调用 RPC 失败时，先用 `l.Logger.Errorf(...)` 记录上下文，再原样 `return err` / `return nil, err`；不要把 RPC 返回的业务错误包装成 `errors.Internal`、`errors.Database` 等本地错误，否则客户端会丢失真实业务错误码。
-- API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
-- logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
+以当前代码、接口定义和配置模板为事实来源；历史快照仅提供设计与证据，不代表当前运行状态或新的操作授权。
 
-## 开发工作流
+## 编码与生成规则
 
-### 1. 初始化环境
+- 网关不直接访问业务数据库，数据操作通过对应 RPC；资源归属与方法权限必须在 RPC 内独立落实。
+- HTTP 契约从 `cmd/<app>/desc/**/*.api` 修改，RPC 契约从 `services/rpc/<service>/proto/` 修改。业务实现主要位于 `internal/logic/`，依赖组装位于 `internal/svc/`。
+- 不手改生成的 `pb/`、`client/`、RPC server、网关 handler、`types.go`、`routes.go`。需要时修改定义或 `tpls/` 后生成，并检查差异。
+- `make api-all` 会同时重新生成代码和被 Git 忽略的 Swagger JSON；不是无副作用的文档预览命令。
+- 新增 Eino 工具在 [tools.go](services/rpc/agent/internal/agent/recommend/llm/tools.go) 定义入参、handler 和注册逻辑，使用 `jsonschema` tag 与 `utils.InferTool`，并补权限、参数及失败路径测试。
+- 金额保持整数分；并发、幂等与权限改动必须覆盖拒绝路径，不能只验证成功请求。
 
-```bash
-cp .env.example .env
-# 编辑 .env 填入真实密钥
-```
+## 错误与日志
 
-### 2. 一键启动本地开发环境
+统一错误来自 [infra/errors](infra/errors/README.md)，`AppError.Error()` 保留 `code:msgId` 协议。
 
-```bash
-make dev
-```
+- RPC logic 返回明确的业务错误；API logic 收到 RPC 错误后保留原错误，不重新包装成 `Internal` / `Database` 丢失业务码。
+- API 本地校验分支直接返回相应本地错误；不要把空 RPC 响应等异常当作成功。
+- error 返回路径记录必要的 `logx` 操作上下文，但原始错误、Token、验证码、密码、完整 DSN、提示词和工具正文可能敏感，须先脱敏或使用安全摘要。
+- 不因 Agent 局部日志测试通过就声称其他服务日志已全面脱敏。
 
-启动顺序：基础设施（postgres / redis / rocketmq / etcd）→ auth-rpc → seckill-rpc → mall-rpc → agent-rpc → payment-rpc → app → admin。
+## Agent 不变量
 
-该命令不启动前端；另开终端在 `web-ui` 下运行 `npm ci`、`npm run dev`。用户端入口为 `http://localhost:5173`，管理端为 `/admin`。开发代理区分 `/api/admin` → `10001` 与其余 `/api` → `10002`。前端实现进度、接口边界与模拟测试见 [前端路线图](docs/frontend-roadmap.md)。
+- 已配置 Mall 不混用 Mock；已配置数据库失败不静默降级成丢历史的临时存储。未配置可选依赖与配置错误是不同情况。
+- `conversation_id` 标识会话，`turn_id` 用于同轮重放；跨用户隔离、请求冲突和原子保存必须保留。
+- `stream_version: 1` 使用真实 RPC/SSE；成功要求 final、成功 done 和正常 EOF。流中失败不能自动重跑 unary 或整轮模型。
+- 后台索引使用 Mall 完整一致快照，完成帧与正常 EOF 后才允许发布/清理；先升级 Mall，不回退旧实时分页协议。
+- 索引模型/端点/维度不匹配不得自动删表、重建或伪造绑定。同步使用专用 PostgreSQL 会话连接，不支持 transaction pooling；断连后不能换连接续写旧轮次，升级前停旧同步器。
+- 配置 Mall 后，最终返回与保存前必须核验当前候选事实；索引同步成功不是库存锁定或历史结果新鲜度证明。
+- 文件工具和 MCP 默认关闭；保留当前用户隔离、显式保存授权、精确工具白名单及进程回收，不把只读声明当作 OS / 网络沙箱。
+- `deepseek-flash` 需 `LLM_THINKING=disabled`，其他模型留空。不得只换模型名而忽略二进制、配置、回退和调用费用边界。
 
-### 3. 生成代码
+## 环境、测试与授权
 
-```bash
-make api-all
-```
+- 不覆盖已有 `.env`，不把真实密钥写入仓库、输出或报告。本地优先复用已核对的 Docker 数据源，不从模板推断现有密码/端口。
+- `make dev` 会加载 `.env`、启动基础设施和后端并清理开发端口；启动 Agent 还可能进行索引同步。诊断或文档任务不默认授权这些运行操作。
+- `make test` 不加载 `.env`，也不准备依赖。数据库集成测试只用显式可丢弃环境，不能连接业务库、生产库或保留演示库；部分测试未配置时会跳过，必须如实报告。
+- 真实模型 / Embedding 调用、数据迁移、写演示记录、发版、重启与清理分别核对授权范围。旧日志中的调用次数/费用授权不自动续期。
+- 离线评测不改写原始报告或答案，不移动已知保留集掩盖失败，不代填人工复核身份；终态门禁不等于业务质量 100%。
+- 区分本机替身、真实单机依赖、浏览器和生产证据；本地测试成功不代表目标 K3s 或供应商已验收。
 
-会重新生成所有 API / RPC 的 goctl 代码。生成后检查 `pb/`、`client/`、`types.go`、`routes.go` 等文件是否符合预期。
+## 交付与文档
 
-### 4. 测试
+保留用户已有改动，只提交明确范围；遵守项目提交类型，不自动推送、发布或将不相关内容混入提交。
 
-```bash
-# Go 测试（需配置独立测试环境，见 docs/ci.md）
-make test
-
-# 冒烟测试（验证端口与健康检查）
-make smoke-test
-```
-
-### 5. 停止服务
-
-```bash
-make dev-stop
-```
-
-## 配置说明
-
-### 环境变量
-
-必要变量见 `.env.example`。本地开发时，`scripts/dev.sh` 会自动加载 `.env`。
-
-### agent-rpc 模型配置
-
-`services/rpc/agent/etc/config.yaml`：
-
-```yaml
-Model:
-  Provider: "${LLM_PROVIDER}"      # 如 openai（OpenAI 兼容接口均可）
-  Model: "${LLM_MODEL}"            # 如 gpt-4.1-mini / deepseek-chat
-  BaseURL: "${LLM_BASE_URL}"       # 如 https://api.openai.com/v1 或 https://api.deepseek.com/v1
-  APIKey: "${LLM_API_KEY}"         # 模型服务 API 密钥
-```
-
-- `Provider` 为空（或未设置）时，agent-rpc 走确定性规则推荐，不请求外部模型。
-- Provider 为 `openai` 时使用 eino-ext 官方 OpenAI ChatModel，兼容 DeepSeek、Azure 等 OpenAI 兼容接口。
-- `BaseURL` 支持以 `/v1` 结尾的基地址，也支持 `/v1/chat/completions` 等完整路径（会自动识别 `/v1` 前缀，避免重复拼接）。
-
-### agent-rpc 依赖降级矩阵
-
-agent-rpc 的全部外部依赖均可选，任意缺失都能启动：
-
-| 配置缺失 | 行为 |
-|------|------|
-| `Model`（LLM） | 推荐走确定性规则，不请求外部模型 |
-| `Embedding` | RAG 关闭，商品检索走关键词模式 |
-| `MallRpc` | 商品数据用内存 mock（配置了 mall 则绝不混用 mock） |
-| `Database` | RAG 关闭；会话记忆使用 Redis，Redis 也未配置时退回进程内实现 |
-| `CacheRedis` | PostgreSQL 可用时只关闭一级缓存；PostgreSQL 未配置时退回进程内实现 |
-
-- **Embedding 与 LLM 是两套独立配置**（`EMBEDDING_*` 环境变量）：DeepSeek 无 embeddings 接口，RAG 需要 OpenAI / DashScope 等兼容服务。
-- **商品向量表是派生数据**：`product_vectors` 表可随时删除，同步器会自动回填；换 embedding 模型或维度会触发删表重建 + 全量重嵌入（有 token 成本）。
-- **多轮对话**：`conversation_id` 标识会话，`turn_id` 保证请求幂等；PostgreSQL 可长期保存 Conversation/Turn 和结构化状态，Redis 仅作两级缓存或短期降级，窗口/TTL 见 `Memory` 配置。
-
-### MCP 配置
-
-```yaml
-MCP:
-  Enabled: false
-  Command: npx
-  Args:
-    - -y
-    - @modelcontextprotocol/server-everything
-    - stdio
-  Timeout: 5000
-```
-
-启用后，MCP server 暴露的工具会作为一等 Eino 工具注入 ReAct 工具集。
-
-## 常见任务
-
-### 如何调试 agent-rpc
-
-```bash
-# 从仓库根目录运行，并提前配置服务所需环境变量
-go run -C services/rpc/agent . -f etc/config.yaml
-# 或查看日志
-tail -f logs/agent-rpc.log
-```
-
-### 如何添加新的 Eino 工具
-
-1. 在 `services/rpc/agent/internal/agent/recommend/llm/tools.go` 中定义入参结构体（使用 `jsonschema` tag）。
-2. 实现 handler 函数。
-3. 使用 `utils.InferTool` 从结构体推导 schema 并注册到工具列表。
-4. 无需手写 JSON Schema。
-
-### 如何切换 LLM 模型
-
-修改 `.env` 中的 `LLM_PROVIDER`、`LLM_MODEL`、`LLM_BASE_URL`、`LLM_API_KEY`，然后重启 `agent-rpc`。
-
-### 如何测试推荐接口
-
-```bash
-# 同步推荐（响应中的 conversation_id 用于发起下一轮）
-curl -X POST http://localhost:10002/api/agent/recommend \
-	-H "Authorization: Bearer <登录返回的token>" \
-  -H "Content-Type: application/json" \
-	-d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3,"turn_id":"<本轮UUID>"}'
-
-# 多轮对话：携带上一轮返回的 conversation_id
-curl -X POST http://localhost:10002/api/agent/recommend \
-	-H "Authorization: Bearer <登录返回的token>" \
-  -H "Content-Type: application/json" \
-	-d '{"query":"预算加到8000，换个屏幕好点的","conversation_id":"<上一轮返回的ID>","turn_id":"<新的本轮UUID>"}'
-
-# SSE 阶段事件流
-curl -X POST http://localhost:10002/api/agent/recommend/stream \
-	-H "Authorization: Bearer <登录返回的token>" \
-  -H "Content-Type: application/json" \
-	-d '{"query":"预算5000买手机","turn_id":"<本轮UUID>"}'
-```
-
-## 注意事项
-
-- **Gateway 层不直连数据库**：`cmd/admin` 和 `cmd/app` 的数据操作必须通过对应 RPC 服务完成。
-- **auth-rpc 先启动**：本地 `make dev` 中 auth-rpc 最先启动，负责自动建表（agent-rpc 的向量表由自己建）。
-- **agent-rpc 商品数据来自 mall-rpc**：语义检索（RAG）优先，关键词回退；未配置 `MallRpc` 时才使用 `mock_product_provider.go`（详见"依赖降级矩阵"）。RAG 演示前需先给 mall 造商品数据。
-- **agent-rpc 无模型时自动降级**：未配置 LLM 时，走确定性规则推荐；配置 LLM 后，失败也会降级到规则推荐。
-- **RAG 首轮同步有延迟**：服务启动后商品向量在后台异步索引，完成前检索回退关键词模式，日志出现 `rag sync completed` 即就绪。
-- **SSE 是阶段事件流**：`POST /api/agent/recommend/stream` 目前是网关侧包装的阶段事件流，底层 agent-rpc 仍是 unary RPC，不是 token 级或工具调用级真实流式。
-- **不要编辑生成代码**：`pb/`、`client/`、`types.go`、`routes.go` 等由 goctl 生成，修改会被 `make api-all` 覆盖。
-- **MCP client 尚未复用**：当前每次请求启动新的 stdio MCP 子进程，高并发场景需引入连接池。
-
-## 分层规范
-
-相关开发规范见：
-
-- [开发与 Git 提交规范](Contributors.md)
-- [CI 说明](docs/ci.md)
-- [前端进度与验证](docs/frontend-roadmap.md)
-- [错误库规范](infra/errors/README.md)
-
-## 接口文档
-
-- Admin API 定义：[cmd/admin/desc/admin.api](cmd/admin/desc/admin.api)
-- App API 定义：[cmd/app/desc/app.api](cmd/app/desc/app.api)
-
-`make api-all` 会生成 `docs/admin-api.json`、`docs/app-api.json`，这些 JSON 被 Git 忽略，干净检出中不保证存在。命令同时重新生成 API/RPC 代码，执行后需检查差异。
+更新使用方法时改对应指南；整体完成范围只更新 [status.md](docs/status.md)；长篇执行记录放[历史归档](docs/archive/README.md)。移动文档后校验相对链接与章节锚点，不再往 README 和本文件重复追加开发日志。

@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"context"
 
 	"github.com/cloudwego/eino/schema"
@@ -204,8 +205,8 @@ func (m *Tiered) invalidateSnapshot(ctx context.Context, userId, conversationId 
 // logCacheError 记录缓存降级原因，但不把 Redis 故障升级为长期记忆失败。
 func (m *Tiered) logCacheError(ctx context.Context, message, userId, conversationId string, err error) {
 	logx.WithContext(ctx).Errorw(message,
-		logx.Field("user_id", userId),
-		logx.Field("conversation_id", conversationId),
-		logx.Field("error", err.Error()),
+		logx.Field("user_id", safety.Label(userId)),
+		logx.Field("conversation_id", safety.Label(conversationId)),
+		logx.Field("error_code", safety.ErrorCode(err)),
 	)
 }

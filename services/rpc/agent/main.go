@@ -40,10 +40,9 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-			Secret: c.JwtAuth.Secret,
-		}),
+		interceptor.UnaryServerInterceptor(c.RPCAuthConfig()),
 	)
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(c.RPCAuthConfig()))
 	defer s.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)

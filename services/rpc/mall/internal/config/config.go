@@ -17,4 +17,5 @@ type Config struct {
 	JwtAuth     auth.Config        `json:"jwtAuth"`
 	RocketMQ    rocketmq.Config    `json:"rocketmq"`
 	ServiceAuth serviceauth.Config `json:"serviceAuth"`
+	IndexAuth   serviceauth.Config `json:"indexAuth,optional"`
 }

@@ -6,22 +6,29 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
+	"budgetmatch-sim/services/rpc/agent/internal/demand"
+	"budgetmatch-sim/services/rpc/agent/internal/demandexec"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/runtrace"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
-	maxQueryRunes   = 2000
+	maxQueryRunes   = agentcore.MaxQueryRunes
 	maxIDRunes      = 128
-	maxRequestItems = 10
+	maxRequestItems = agentcore.MaxItems
 	// maxBudgetCents 为显式预算提供宽松但有限的传输边界，避免异常大整数进入检索与提示词。
-	maxBudgetCents int64 = 100_000_000_000
+	maxBudgetCents int64 = agentcore.MaxBudgetCents
 )
 
 // Service 编排推荐流程。
@@ -37,13 +44,31 @@ const (
 // 成功返回前都原子保存原始请求、结构化状态与完整结果。Agent 实现只读不写；
 // 本地锁与存储层锁共同串行化同一用户同一会话，turn_id 用于安全重试。
 type Service struct {
-	primary  agentcore.Agent
-	fallback agentcore.Agent
-	memory   memory.Manager
-	locks    *conversationLocker
+	primary        agentcore.Agent
+	fallback       agentcore.Agent
+	memory         memory.Manager
+	locks          *conversationLocker
+	finalizer      ResultFinalizer
+	demandExecutor *demandexec.Executor
 }
 
-// NewService 创建推荐编排服务。fallback 必填，primary 与 mem 可为 nil（nil 记忆表示无多轮能力）。
+// WithFinalizer configures the return/persistence policy during construction.
+// Production always installs strict Mall or explicit demo policy. Offline engine
+// benchmarks can omit it to retain their fixed-snapshot evaluation protocol.
+func (s *Service) WithFinalizer(finalizer ResultFinalizer) *Service {
+	s.finalizer = finalizer
+	return s
+}
+
+// WithDemandExecutor enables ONLY the separate structured execution method.
+// It does not remove legacy Recommend's fail-closed planning-mode guard.
+func (s *Service) WithDemandExecutor(executor *demandexec.Executor) *Service {
+	s.demandExecutor = executor
+	return s
+}
+
+// NewService 创建编排服务。Recommend 要求 fallback；PlanDemand 要求完整会话存储。
+// primary 与 mem 可为 nil（nil 记忆表示无多轮能力）。
 func NewService(fallback, primary agentcore.Agent, mem memory.Manager) *Service {
 	return &Service{
 		primary:  primary,
@@ -55,11 +80,57 @@ func NewService(fallback, primary agentcore.Agent, mem memory.Manager) *Service 
 
 // Recommend 执行推荐流程。
 func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
-	if s == nil || s.fallback == nil {
+	return s.execute(ctx, input, nil, "", nil)
+}
+
+// RecommendStream shares unary execution, locks, constraints, finalization and
+// persistence. accepted is synchronous, called ONLY for a new turn after the
+// replay/planning checks, before running any Agent. A send failure aborts work.
+// The caller must bound transport sends and propagate ctx cancellation. No
+// model deltas are synthesized. The result is authoritative only after SaveTurn.
+func (s *Service) RecommendStream(ctx context.Context, input agentcore.Input, accepted func(context.Context, string, string) error, progress ...agentcore.ProgressSink) (*agentcore.Result, error) {
+	if s == nil {
 		return nil, agentcore.ErrAgentNotFound
+	}
+	if _, ok := s.memory.(memory.ConversationStore); !ok {
+		return nil, status.Error(codes.FailedPrecondition, "recommendation stream requires a conversation store")
+	}
+	if accepted == nil || len(progress) > 1 {
+		return nil, agentcore.ErrInvalidInput
+	}
+	if len(progress) == 1 && progress[0] != nil {
+		ctx = context.WithValue(ctx, progressKey{}, progress[0])
+	}
+	ctx, cancel := runtrace.StreamContext(ctx)
+	defer cancel()
+	return s.execute(ctx, input, nil, "", accepted)
+}
+
+type progressKey struct{}
+
+// PlanDemand persists a planning-only turn. A separate RPC prevents old servers
+// from silently ignoring a new hard constraint on the legacy Recommend method.
+func (s *Service) PlanDemand(ctx context.Context, input agentcore.Input, rawPatch string) (*agentcore.Result, error) {
+	patch, fingerprint, err := decodeDemandRequest(rawPatch)
+	if err != nil {
+		return nil, err
+	}
+	return s.execute(ctx, input, &patch, fingerprint, nil)
+}
+
+func (s *Service) execute(ctx context.Context, input agentcore.Input, patch *demand.Patch, fingerprint string, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
+	if s == nil || patch == nil && s.fallback == nil {
+		return nil, agentcore.ErrAgentNotFound
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	if err := validateInput(input); err != nil {
 		return nil, err
+	}
+	store, hasStore := s.memory.(memory.ConversationStore)
+	if patch != nil && !hasStore {
+		return nil, status.Error(codes.FailedPrecondition, "demand planning requires a conversation store")
 	}
 	if input.ConversationId == "" {
 		input.ConversationId = uuid.NewString()
@@ -67,39 +138,51 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	if input.TurnId == "" {
 		input.TurnId = uuid.NewString()
 	}
+	trace := runtrace.From(ctx)
+	endLocalWait := trace.Stage("lock")
 	release, err := s.locks.acquire(ctx, conversationLockKey{
 		userId:         input.UserId,
 		conversationId: input.ConversationId,
 	})
+	endLocalWait()
 	if err != nil {
 		logx.WithContext(ctx).Errorw("wait for conversation execution failed",
-			logx.Field("user_id", input.UserId),
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("user_id", safety.Label(input.UserId)),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 		return nil, err
 	}
 	defer release()
 
-	store, hasStore := s.memory.(memory.ConversationStore)
 	if hasStore {
+		operation := "recommendation"
+		if patch != nil {
+			operation = "demand planning"
+		}
 		var result *agentcore.Result
+		endStoreWait := sync.OnceFunc(trace.Stage("lock"))
 		err = store.WithConversationLock(ctx, input.UserId, input.ConversationId, func(lockedCtx context.Context) error {
+			endStoreWait()
 			var executeErr error
-			result, executeErr = s.recommendWithStore(lockedCtx, store, input)
+			result, executeErr = s.recommendWithStore(lockedCtx, store, input, patch, fingerprint, accepted)
 			return executeErr
 		})
+		endStoreWait()
+		if stopped := ctx.Err(); stopped != nil {
+			return nil, stopped
+		}
 		if err != nil {
-			logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw(operation+" failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 			return nil, err
 		}
-		logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId))
+		logx.WithContext(ctx).Infow(operation+" completed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)))
 		return result, nil
 	}
 
 	result, err := s.run(ctx, input)
 	if err != nil {
-		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+		logx.WithContext(ctx).Errorw("recommendation failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		return nil, err
 	}
 
@@ -107,7 +190,7 @@ func (s *Service) Recommend(ctx context.Context, input agentcore.Input) (*agentc
 	result.ConversationTitle = s.conversationTitle(ctx, input)
 	result.TurnId = input.TurnId
 	s.remember(ctx, input, result)
-	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId))
+	logx.WithContext(ctx).Infow("recommendation completed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)))
 	return result, nil
 }
 
@@ -160,30 +243,57 @@ func validateRequiredID(field, value string) error {
 
 // recommendWithStore 在会话锁内完成幂等检查、状态恢复、Agent 执行和原子保存。
 // 这四步不能拆开，否则并发请求可能生成重复轮次或读取过期约束。
-func (s *Service) recommendWithStore(ctx context.Context, store memory.ConversationStore, input agentcore.Input) (*agentcore.Result, error) {
+func (s *Service) recommendWithStore(ctx context.Context, store memory.ConversationStore, input agentcore.Input, patch *demand.Patch, fingerprint string, accepted func(context.Context, string, string) error) (*agentcore.Result, error) {
 	if saved, found, err := store.FindTurn(ctx, input.UserId, input.ConversationId, input.TurnId); err != nil {
 		return nil, err
 	} else if found {
-		if !sameTurnRequest(saved, input) {
+		if !sameTurnRequest(saved, input, fingerprint) {
 			return nil, agentcore.ErrTurnConflict
 		}
-		return decodeSavedResult(saved)
+		result, err := decodeSavedResult(saved)
+		if err == nil {
+			runtrace.From(ctx).Replay()
+		}
+		return result, err
 	}
 	if conversation, exists, err := store.GetConversation(ctx, input.UserId, input.ConversationId); err != nil {
 		return nil, err
 	} else if exists {
+		if patch == nil && conversation.State.PlanningOnly {
+			return nil, agentcore.ErrDemandNotExecutable
+		}
 		prior := intentFromState(conversation.State)
 		input.PriorIntent = &prior
 	}
-	result, err := s.run(ctx, input)
+	if accepted != nil {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if err := accepted(ctx, input.ConversationId, input.TurnId); err != nil {
+			return nil, err
+		}
+	}
+	var result *agentcore.Result
+	var err error
+	if patch != nil {
+		result, err = s.planDemand(ctx, input, *patch)
+	} else {
+		result, err = s.run(ctx, input)
+	}
 	if err != nil {
 		return nil, err
 	}
 	result.ConversationId = input.ConversationId
 	result.ConversationTitle = s.conversationTitle(ctx, input)
 	result.TurnId = input.TurnId
-	storedConversation, _, err := s.saveTurn(ctx, store, input, result)
+	endSave := runtrace.From(ctx).Stage("save")
+	storedConversation, _, err := s.saveTurn(ctx, store, input, result, fingerprint)
+	endSave()
 	if err != nil {
+		return nil, err
+	}
+	runtrace.From(ctx).Commit()
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	result.ConversationTitle = storedConversation.Title
@@ -192,40 +302,194 @@ func (s *Service) recommendWithStore(ctx context.Context, store memory.Conversat
 
 // sameTurnRequest 确保幂等重放只复用首次请求的原始输入。
 // 允许结构化字段保持零值，因为零值本身表示“交给文本解析或继承上一轮”。
-func sameTurnRequest(saved memory.Turn, input agentcore.Input) bool {
+func sameTurnRequest(saved memory.Turn, input agentcore.Input, fingerprint string) bool {
+	var metadata struct {
+		Fingerprint string `json:"_demand_request_sha256"`
+	}
+	if json.Unmarshal(saved.ResultJSON, &metadata) != nil {
+		return false
+	}
 	return saved.Query == input.Query &&
 		saved.BudgetCents == input.BudgetCents &&
-		saved.MaxItems == input.MaxItems
+		saved.MaxItems == input.MaxItems && metadata.Fingerprint == fingerprint
 }
 
-// run 按 primary 优先、失败降级的顺序执行推荐。
+func (s *Service) planDemand(ctx context.Context, input agentcore.Input, patch demand.Patch) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var queries []string
+	prior := input.PriorIntent
+	// Early records can contain only a title or partial numeric state. Preserve
+	// their textual history until structured state has actually been established.
+	if prior == nil || prior.Demand == nil && (prior.BudgetCents == 0 || prior.MaxItems == 0) {
+		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
+		if err != nil {
+			return nil, err // Planning cannot silently discard inherited conditions.
+		}
+		for _, msg := range history {
+			if msg != nil && msg.Role == schema.User {
+				queries = append(queries, msg.Content)
+			}
+		}
+	}
+	result, err := NewPlanner().ResolveDemand(input, queries, patch)
+	if stopped := ctx.Err(); stopped != nil {
+		return nil, stopped
+	}
+	return result, err
+}
+
+// run 在编排结束后只校验一次；校验失败不能触发 fallback 绕过严格策略。
 func (s *Service) run(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	generation, cancel := runtrace.GenerationContext(ctx)
+	endGeneration := runtrace.From(ctx).Stage("generation")
+	result, err := s.runCandidate(generation, input)
+	if stopped := generation.Err(); stopped != nil {
+		err = stopped
+	}
+	cancel()
+	endGeneration()
+	if err != nil {
+		return nil, err
+	}
+	endFinalization := runtrace.From(ctx).Stage("finalization")
+	defer endFinalization()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if s.finalizer != nil {
+		if err := s.finalizer.Finalize(ctx, result); err != nil {
+			return nil, safety.Protect(err)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	limits, err := agentcore.NewConstraints(result.Intent)
+	if err != nil {
+		return nil, err
+	}
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
+	return result, nil
+}
+
+// runCandidate 按 primary 优先、失败降级的顺序生成待核验组合。
+func (s *Service) runCandidate(ctx context.Context, input agentcore.Input) (*agentcore.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var queries []string
+	// 旧的纯文本记忆可补充状态；已有结构化状态时不重复拉取整个窗口。
+	if input.PriorIntent == nil && s.memory != nil {
+		history, err := s.memory.History(ctx, input.UserId, input.ConversationId, 0)
+		if err != nil {
+			logx.WithContext(ctx).Errorw("load intent history failed", logx.Field("error_code", safety.ErrorCode(err)))
+		} else {
+			for _, msg := range history {
+				if msg != nil && msg.Role == schema.User {
+					queries = append(queries, msg.Content)
+				}
+			}
+		}
+	}
+	intent, err := NewPlanner().Resolve(input, queries)
+	if err != nil {
+		return nil, err
+	}
+	// 只覆盖传给 Agent 的执行副本；Recommend/saveTurn 仍保存原始输入以判定幂等。
+	input.BudgetCents, input.MaxItems = intent.BudgetCents, intent.MaxItems
 	if s.primary == nil {
-		return s.fallback.Run(ctx, input)
+		runtrace.From(ctx).Route("fallback_only", nil)
+		return s.runChecked(ctx, s.fallback, input, intent)
 	}
 
-	result, err := s.primary.Run(ctx, input)
+	runtrace.From(ctx).Route("primary", nil)
+	result, err := s.runChecked(ctx, s.primary, input, intent)
 	if err == nil {
 		return result, nil
 	}
-	if errors.Is(err, agentcore.ErrContextTooLarge) {
+	if agentcore.IsExecutionStopped(err) || errors.Is(err, agentcore.ErrContextTooLarge) || errors.Is(err, agentcore.ErrInvalidInput) {
 		return nil, err
 	}
-	return s.fallbackAfterFailure(ctx, input, err)
+	return s.fallbackAfterFailure(ctx, input, intent, err)
+}
+
+// runChecked 在共享编排边界校验两条路径；异常结果不会进入 SaveTurn。
+func (s *Service) runChecked(ctx context.Context, runner agentcore.Agent, input agentcore.Input, intent agentcore.Intent) (result *agentcore.Result, err error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	// 每次执行隔离可变切片，primary 不能污染 fallback 的有效约束。
+	prior := cloneIntent(intent)
+	input.PriorIntent = &prior
+	progress, _ := ctx.Value(progressKey{}).(agentcore.ProgressSink)
+	if streaming, ok := runner.(agentcore.StreamingAgent); ok && progress != nil {
+		defer func() {
+			if err != nil {
+				err = errors.Join(agentcore.ErrStreamInterrupted, err)
+			}
+		}()
+		result, err = streaming.RunStream(ctx, input, progress)
+		if progressErr := progress.Err(); progressErr != nil {
+			err = progressErr
+		}
+	} else {
+		result, err = runner.Run(ctx, input)
+	}
+	if stopped := ctx.Err(); stopped != nil {
+		return nil, stopped
+	}
+	if err != nil {
+		return nil, err
+	}
+	limits, err := agentcore.NewConstraints(intent)
+	if err != nil {
+		return nil, err
+	}
+	if err := limits.ValidateResult(result); err != nil {
+		return nil, err
+	}
+	result.Intent = cloneIntent(intent)
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
+	return result, nil
 }
 
 // saveTurn 将领域结果序列化后，与当前结构化意图一并原子持久化。
-func (s *Service) saveTurn(ctx context.Context, store memory.ConversationStore, input agentcore.Input, result *agentcore.Result) (memory.Conversation, memory.Turn, error) {
-	resultJSON, err := json.Marshal(result)
+func (s *Service) saveTurn(ctx context.Context, store memory.ConversationStore, input agentcore.Input, result *agentcore.Result, fingerprint string) (memory.Conversation, memory.Turn, error) {
+	if err := ctx.Err(); err != nil {
+		return memory.Conversation{}, memory.Turn{}, err
+	}
+	// Private idempotency metadata is created here, never supplied by a runner or
+	// returned by public result/history mappers. Omission preserves legacy JSON.
+	resultJSON, err := marshalTurnResult(result, fingerprint)
 	if err != nil {
 		return memory.Conversation{}, memory.Turn{}, fmt.Errorf("encode recommendation result: %w", err)
+	}
+	state := stateFromIntent(result.Intent)
+	// Even a first-turn conflict locks this conversation into planning mode.
+	// Otherwise a subsequent legacy call could bypass pending clarification.
+	state.PlanningOnly = fingerprint != ""
+	if state.PlanningOnly {
+		state.DemandPlanTurnID = input.TurnId
+		state.DemandPlanReady = result.Status == "intent_ready"
 	}
 	return store.SaveTurn(ctx, memory.SaveTurnReq{
 		UserId: input.UserId, ConversationId: input.ConversationId, TurnId: input.TurnId,
 		Title: result.ConversationTitle, Query: input.Query, BudgetCents: input.BudgetCents,
-		MaxItems: input.MaxItems, Intent: stateFromIntent(result.Intent),
+		MaxItems: input.MaxItems, Intent: state,
 		ResultJSON: resultJSON, Summary: result.Summary,
 	})
+}
+
+func marshalTurnResult(result *agentcore.Result, fingerprint string) ([]byte, error) {
+	return json.Marshal(struct {
+		*agentcore.Result
+		Fingerprint string `json:"_demand_request_sha256,omitempty"`
+	}{result, fingerprint})
 }
 
 // decodeSavedResult 恢复幂等轮次结果，并以存储主键覆盖可能过时的 JSON 标识。
@@ -236,19 +500,20 @@ func decodeSavedResult(turn memory.Turn) (*agentcore.Result, error) {
 	}
 	result.ConversationId = turn.ConversationId
 	result.TurnId = turn.TurnId
+	result.ToolsUsed = safety.ToolCalls(result.ToolsUsed)
 	return &result, nil
 }
 
 // stateFromIntent 提取需要跨轮长期保留的推荐约束。
 func stateFromIntent(intent agentcore.Intent) memory.IntentState {
 	return memory.IntentState{BudgetCents: intent.BudgetCents, MaxItems: intent.MaxItems,
-		Keywords: append([]string(nil), intent.Keywords...), Preferences: append([]string(nil), intent.Preferences...)}
+		Keywords: append([]string(nil), intent.Keywords...), Preferences: append([]string(nil), intent.Preferences...), Demand: agentcore.CloneDemand(intent.Demand)}
 }
 
 // intentFromState 把持久化状态恢复为 Planner 可继承的上一轮意图。
 func intentFromState(state memory.IntentState) agentcore.Intent {
 	return agentcore.Intent{BudgetCents: state.BudgetCents, MaxItems: state.MaxItems,
-		Keywords: append([]string(nil), state.Keywords...), Preferences: append([]string(nil), state.Preferences...)}
+		Keywords: append([]string(nil), state.Keywords...), Preferences: append([]string(nil), state.Preferences...), Demand: agentcore.CloneDemand(state.Demand)}
 }
 
 // ListConversations 返回当前认证用户的会话列表。
@@ -312,8 +577,8 @@ func (s *Service) remember(ctx context.Context, input agentcore.Input, result *a
 	)
 	if err != nil {
 		logx.WithContext(ctx).Errorw("append conversation memory failed",
-			logx.Field("conversation_id", input.ConversationId),
-			logx.Field("error", err.Error()),
+			logx.Field("conversation_id", safety.Label(input.ConversationId)),
+			logx.Field("error_code", safety.ErrorCode(err)),
 		)
 	}
 }
@@ -324,7 +589,7 @@ func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) 
 	if store, ok := s.memory.(memory.ConversationStore); ok {
 		conversation, exists, err := store.GetConversation(ctx, input.UserId, input.ConversationId)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load conversation title failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		} else if exists && strings.TrimSpace(conversation.Title) != "" {
 			return conversation.Title
 		}
@@ -333,7 +598,7 @@ func (s *Service) conversationTitle(ctx context.Context, input agentcore.Input) 
 	if s.memory != nil {
 		title, err := s.memory.GetOrCreateTitle(ctx, input.UserId, input.ConversationId, candidate)
 		if err != nil {
-			logx.WithContext(ctx).Errorw("load or create conversation title failed", logx.Field("user_id", input.UserId), logx.Field("conversation_id", input.ConversationId), logx.Field("error", err.Error()))
+			logx.WithContext(ctx).Errorw("load or create conversation title failed", logx.Field("user_id", safety.Label(input.UserId)), logx.Field("conversation_id", safety.Label(input.ConversationId)), logx.Field("error_code", safety.ErrorCode(err)))
 		} else if strings.TrimSpace(title) != "" {
 			return title
 		}
@@ -351,15 +616,20 @@ func shortTitle(text string) string {
 }
 
 // fallbackAfterFailure 在 primary 失败时降级到 fallback，并附加一条失败工具记录。
-func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Input, cause error) (*agentcore.Result, error) {
-	result, err := s.fallback.Run(ctx, input)
+func (s *Service) fallbackAfterFailure(ctx context.Context, input agentcore.Input, intent agentcore.Intent, cause error) (*agentcore.Result, error) {
+	runtrace.From(ctx).Route("fallback", cause)
+	result, err := s.runChecked(ctx, s.fallback, input, intent)
 	if err != nil {
 		return nil, err
 	}
+	detail := "primary execution failed; used validated fallback"
+	if errors.Is(cause, agentcore.ErrUnsafeResult) {
+		detail = "primary result rejected by constraints; used validated fallback"
+	}
 	result.ToolsUsed = append(result.ToolsUsed, agentcore.ToolCall{
-		Name:    "primary." + s.primary.Name(),
+		Name:    "primary." + safety.Label(s.primary.Name()),
 		Success: false,
-		Detail:  cause.Error(),
+		Detail:  detail,
 	})
 	return result, nil
 }

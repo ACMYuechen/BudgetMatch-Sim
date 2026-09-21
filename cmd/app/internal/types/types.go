@@ -184,7 +184,7 @@ type MallSkuItem struct {
 type MallProductListReq struct {
 	Page     int    `form:"page,default=1"`
 	PageSize int    `form:"page_size,default=10"`
-	Keyword  string `form:"keyword"`
+	Keyword  string `form:"keyword,optional"`
 	Status   int32  `form:"status,default=1"`
 	UserId   string `form:"user_id,optional"`
 }
@@ -335,11 +335,115 @@ type AgentRecommendReq struct {
 	TurnId         string `json:"turn_id,optional" validate:"max=128"`
 }
 
+type AgentRecommendStreamReq struct {
+	AgentRecommendReq
+	StreamVersion int `json:"stream_version,optional" validate:"oneof=0 1"`
+}
+
+type AgentStreamEvent struct {
+	SchemaVersion  uint32                  `json:"schema_version"`
+	ExecutionId    string                  `json:"execution_id"`
+	ConversationId string                  `json:"conversation_id"`
+	TurnId         string                  `json:"turn_id"`
+	Sequence       uint64                  `json:"sequence"`
+	Event          string                  `json:"event"`
+	Accepted       *AgentStreamAccepted    `json:"accepted,omitempty"`
+	AnswerDelta    *AgentStreamAnswerDelta `json:"answer_delta,omitempty"`
+	Tool           *AgentStreamTool        `json:"tool,omitempty"`
+	Final          *AgentRecommendResp     `json:"final,omitempty"`
+	Error          *AgentStreamError       `json:"error,omitempty"`
+	Done           *AgentStreamDone        `json:"done,omitempty"`
+}
+
+type AgentStreamAccepted struct {
+}
+
+type AgentStreamAnswerDelta struct {
+	Text        string `json:"text"`
+	Provisional bool   `json:"provisional"`
+}
+
+type AgentStreamTool struct {
+	CallId     string `json:"call_id"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	DurationMs int64  `json:"duration_ms"`
+	ErrorCode  string `json:"error_code,omitempty"`
+}
+
+type AgentStreamError struct {
+	Code      int64  `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+type AgentStreamDone struct {
+	Ok       bool `json:"ok"`
+	Replayed bool `json:"replayed"`
+}
+
 type AgentIntent struct {
-	BudgetCents int64    `json:"budget_cents"`
-	MaxItems    int32    `json:"max_items"`
-	Keywords    []string `json:"keywords"`
-	Preferences []string `json:"preferences"`
+	BudgetCents int64             `json:"budget_cents"`
+	MaxItems    int32             `json:"max_items"`
+	Keywords    []string          `json:"keywords"`
+	Preferences []string          `json:"preferences"`
+	Demand      *AgentDemandState `json:"demand,omitempty"`
+}
+
+type AgentDemandState struct {
+	SchemaVersion int32    `json:"schema_version"`
+	Required      []string `json:"required"`
+	Optional      []string `json:"optional"`
+	Excluded      []string `json:"excluded"`
+}
+
+type AgentDemandConflict struct {
+	Code     string `json:"code"`
+	Category string `json:"category,omitempty"`
+}
+
+type AgentDemandPlanReq struct {
+	Query          string `json:"query" validate:"required,max=2000"`
+	BudgetCents    int64  `json:"budget_cents,optional" validate:"min=0,max=100000000000"`
+	MaxItems       int    `json:"max_items,optional" validate:"min=0,max=10"`
+	ConversationId string `json:"conversation_id,optional" validate:"max=128"`
+	TurnId         string `json:"turn_id,optional" validate:"max=128"`
+	DemandPatch    string `json:"demand_patch,optional" validate:"max=8192"`
+}
+
+type AgentDemandPlanResp struct {
+	Intent            AgentIntent           `json:"intent"`
+	Status            string                `json:"status"`
+	Conflicts         []AgentDemandConflict `json:"conflicts"`
+	ConversationId    string                `json:"conversation_id"`
+	ConversationTitle string                `json:"conversation_title"`
+	TurnId            string                `json:"turn_id"`
+}
+
+type AgentDemandExecuteReq struct {
+	ConversationId string `json:"conversation_id" validate:"required,max=128"`
+	PlanTurnId     string `json:"plan_turn_id" validate:"required,max=128"`
+	TurnId         string `json:"turn_id,optional" validate:"max=128"`
+}
+
+type AgentDemandExecution struct {
+	PlanTurnId              string   `json:"plan_turn_id"`
+	Strategy                string   `json:"strategy"`
+	Scope                   string   `json:"scope"`
+	MappingVersion          string   `json:"mapping_version"`
+	MappingSha256           string   `json:"mapping_sha256"`
+	SnapshotCheckedAtMs     int64    `json:"snapshot_checked_at_ms"`
+	CoveredRequired         []string `json:"covered_required"`
+	MissingRequired         []string `json:"missing_required"`
+	CoveredOptional         []string `json:"covered_optional"`
+	UnscoredPreferences     []string `json:"unscored_preferences"`
+	MissingRequiredInWindow []string `json:"missing_required_in_window"`
+	SearchLimited           bool     `json:"search_limited"`
+	CandidateWindow         int32    `json:"candidate_window"`
+	InitialExpansions       int32    `json:"initial_expansions"`
+	FinalExpansions         int32    `json:"final_expansions"`
+	InitialStopReason       string   `json:"initial_stop_reason"`
+	FinalStopReason         string   `json:"final_stop_reason"`
 }
 
 type AgentBundleItem struct {
@@ -360,14 +464,17 @@ type AgentToolCall struct {
 }
 
 type AgentRecommendResp struct {
-	Intent            AgentIntent       `json:"intent"`
-	Items             []AgentBundleItem `json:"items"`
-	TotalPriceCents   int64             `json:"total_price_cents"`
-	Summary           string            `json:"summary"`
-	ToolsUsed         []AgentToolCall   `json:"tools_used"`
-	ConversationId    string            `json:"conversation_id"`
-	ConversationTitle string            `json:"conversation_title"`
-	TurnId            string            `json:"turn_id"`
+	Status            string                `json:"status,omitempty"`
+	DemandConflicts   []AgentDemandConflict `json:"demand_conflicts,omitempty"`
+	Execution         *AgentDemandExecution `json:"execution,omitempty"`
+	Intent            AgentIntent           `json:"intent"`
+	Items             []AgentBundleItem     `json:"items"`
+	TotalPriceCents   int64                 `json:"total_price_cents"`
+	Summary           string                `json:"summary"`
+	ToolsUsed         []AgentToolCall       `json:"tools_used"`
+	ConversationId    string                `json:"conversation_id"`
+	ConversationTitle string                `json:"conversation_title"`
+	TurnId            string                `json:"turn_id"`
 }
 
 type AgentConversationSummary struct {

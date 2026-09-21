@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"budgetmatch-sim/services/rpc/agent/internal/agent"
-	"budgetmatch-sim/services/rpc/agent/internal/tools"
 )
 
 // BundleSelector 根据用户意图从候选商品中选择最优商品组合。
@@ -18,18 +17,13 @@ func NewBundleSelector() *BundleSelector {
 }
 
 // Select 按评分排序并选择不超过预算与数量的商品组合，返回商品列表与总价。
-func (s *BundleSelector) Select(candidates []tools.ProductCandidate, intent agent.Intent) ([]agent.BundleItem, int64) {
-	// 若未指定最大商品数，则使用默认值 3。
-	maxItems := intent.MaxItems
-	if maxItems <= 0 {
-		maxItems = 3
+func (s *BundleSelector) Select(candidates []agent.ProductCandidate, intent agent.Intent) ([]agent.BundleItem, int64) {
+	constraints, err := agent.NewConstraints(intent)
+	if err != nil {
+		return nil, 0
 	}
-
-	budget := intent.BudgetCents
-	// 按综合评分降序排序，优先选择得分高的商品。
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return score(candidates[i], budget) > score(candidates[j], budget)
-	})
+	maxItems, budget := constraints.MaxItems, constraints.BudgetCents
+	candidates = s.Rank(candidates, budget)
 
 	var total int64
 	items := make([]agent.BundleItem, 0, maxItems)
@@ -37,7 +31,7 @@ func (s *BundleSelector) Select(candidates []tools.ProductCandidate, intent agen
 		if candidate.Stock <= 0 {
 			continue
 		}
-		if budget > 0 && total+candidate.PriceCents > budget {
+		if candidate.PriceCents > budget-total {
 			continue
 		}
 		itemScore := score(candidate, budget)
@@ -60,8 +54,18 @@ func (s *BundleSelector) Select(candidates []tools.ProductCandidate, intent agen
 	return items, total
 }
 
+// Rank shares the baseline selector's ordering with the bounded check shortlist.
+// It returns independent snapshots and does not add a new relevance strategy.
+func (s *BundleSelector) Rank(candidates []agent.ProductCandidate, budget int64) []agent.ProductCandidate {
+	candidates = agent.NormalizeCandidates(candidates)
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return score(candidates[i], budget) > score(candidates[j], budget)
+	})
+	return candidates
+}
+
 // score 根据性价比、销量、库存与预算匹配度计算候选商品得分。
-func score(candidate tools.ProductCandidate, budget int64) float64 {
+func score(candidate agent.ProductCandidate, budget int64) float64 {
 	valueScore := 100000.0 / float64(candidate.PriceCents+1)
 	soldScore := float64(candidate.Sold) / 100.0
 	stockScore := float64(candidate.Stock) / 20.0
@@ -76,6 +80,6 @@ func score(candidate tools.ProductCandidate, budget int64) float64 {
 }
 
 // reason 生成选中商品的推荐理由说明。
-func reason(candidate tools.ProductCandidate, score float64) string {
+func reason(candidate agent.ProductCandidate, score float64) string {
 	return fmt.Sprintf("%s candidate with stock %d, sold %d, score %.2f", candidate.Source, candidate.Stock, candidate.Sold, score)
 }

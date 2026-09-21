@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: budgetmatch
+  namespace: argocd
+spec:
+  description: BudgetMatch application services only; existing infrastructure stays unmanaged
+  sourceRepos:
+    - https://github.com/ACMYuechen/BudgetMatch-Sim.git
+  destinations:
+    - namespace: budgetmatch-sim
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: ConfigMap
+    - group: bitnami.com
+      kind: SealedSecret

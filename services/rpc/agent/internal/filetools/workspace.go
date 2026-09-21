@@ -2,243 +2,252 @@ package filetools
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
+	"unicode"
+	"unicode/utf8"
 )
 
-// Workspace 提供限制在指定工作目录内的文件读写能力。
+// Workspace 是请求级目录能力；根目录句柄始终锚定当前认证用户，不接受模型传入身份。
+// 调用方必须 Close。读写采用 os.Root，避免检查路径后再次按绝对路径打开的竞态。
 type Workspace struct {
-	root               string
-	maxReadBytes       int64
-	writableExtensions map[string]struct{}
+	root                        *os.Root
+	maxReadBytes, maxWriteBytes int64
+	extensions                  map[string]struct{}
+	writePath                   string
+	writeAttempted              atomic.Bool
 }
 
-// NewWorkspace 根据配置创建受限文件工作区。
-func NewWorkspace(cfg Config) (*Workspace, error) {
-	cfg = cfg.Normalize()
-	// 将相对工作目录转为绝对路径，确保后续路径比较可靠。
-	root, err := filepath.Abs(cfg.Workspace)
-	if err != nil {
-		return nil, fmt.Errorf("resolve file tools workspace: %w", err)
+// NewWorkspace 默认不启用。userID 必须来自认证上下文，writePath 只能来自本轮用户 /save 指令。
+func NewWorkspace(cfg Config, userID, writePath string) (*Workspace, error) {
+	if !cfg.Enabled {
+		return nil, nil
 	}
-
-	// 将后缀白名单转为 map，WriteFile 时 O(1) 查找。
+	if !secureFileIOSupported {
+		return nil, errors.New("file tools require the supported Linux filesystem backend")
+	}
+	if strings.TrimSpace(userID) == "" || len(userID) > 256 || !utf8.ValidString(userID) {
+		return nil, fmt.Errorf("file tools require authenticated identity: %w", os.ErrPermission)
+	}
+	cfg = cfg.Normalize()
+	if cfg.MaxReadBytes > maxFileBytes || cfg.MaxWriteBytes > maxFileBytes {
+		return nil, errors.New("file size configuration exceeds hard limit")
+	}
 	extensions := make(map[string]struct{}, len(cfg.WritableExtensions))
 	for _, ext := range cfg.WritableExtensions {
-		if ext != "" {
+		switch ext {
+		case ".json", ".md", ".txt":
 			extensions[ext] = struct{}{}
+		default:
+			return nil, errors.New("unsupported file extension configuration")
 		}
 	}
-	if len(extensions) == 0 {
-		return nil, errors.New("file tools writable extensions cannot be empty")
+	if writePath != "" {
+		if !cfg.AllowWrite {
+			return nil, fmt.Errorf("file writes are disabled: %w", os.ErrPermission)
+		}
+		var err error
+		writePath, err = cleanRelativePath(writePath)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := extensions[strings.ToLower(filepath.Ext(writePath))]; !ok {
+			return nil, fmt.Errorf("file type is not permitted: %w", os.ErrPermission)
+		}
 	}
-
-	return &Workspace{
-		root:               filepath.Clean(root), // 规范化掉尾部斜杠和冗余分隔符
-		maxReadBytes:       cfg.MaxReadBytes,
-		writableExtensions: extensions,
-	}, nil
+	if err := os.MkdirAll(cfg.Workspace, 0o700); err != nil {
+		return nil, err
+	}
+	base, err := os.OpenRoot(cfg.Workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer base.Close()
+	users, err := openPrivateDirectory(base, "users")
+	if err != nil {
+		return nil, err
+	}
+	defer users.Close()
+	// 哈希只用于稳定命名，不是认证手段；用户原始 ID 不能影响路径层级。
+	namespace := fmt.Sprintf("%x", sha256.Sum256([]byte(userID)))
+	root, err := openPrivateDirectory(users, namespace)
+	if err != nil {
+		return nil, err
+	}
+	return &Workspace{root: root, maxReadBytes: cfg.MaxReadBytes, maxWriteBytes: cfg.MaxWriteBytes, extensions: extensions, writePath: writePath}, nil
 }
 
-// name 必须是相对于工作目录的相对路径，不能包含 .. 或绝对路径。
-// 超过 MaxReadBytes 的文件会被拒绝，防止 LLM 读取过大的文件超出上下文窗口。
+// openPrivateDirectory 拒绝预置的目录别名，并核对打开句柄与检查时的 inode 一致。
+// 后续所有操作只使用打开的根句柄，目录被重命名也不会改用攻击者替换后的路径。
+func openPrivateDirectory(parent *os.Root, name string) (*os.Root, error) {
+	if err := parent.Mkdir(name, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		return nil, err
+	}
+	before, err := parent.Lstat(name)
+	if err != nil {
+		return nil, err
+	}
+	if !before.IsDir() || before.Mode().Perm()&0o077 != 0 {
+		return nil, fmt.Errorf("workspace directory is not private: %w", os.ErrPermission)
+	}
+	root, err := parent.OpenRoot(name)
+	if err != nil {
+		return nil, err
+	}
+	after, err := root.Stat(".")
+	if err != nil || !os.SameFile(before, after) {
+		root.Close()
+		return nil, fmt.Errorf("workspace directory changed during open: %w", os.ErrPermission)
+	}
+	return root, nil
+}
+
+func (w *Workspace) Close() error   { return w.root.Close() }
+func (w *Workspace) CanWrite() bool { return w != nil && w.writePath != "" }
+
+func (w *Workspace) checkedPath(name string) (string, error) {
+	name, err := cleanRelativePath(name)
+	if err != nil {
+		return "", err
+	}
+	if _, ok := w.extensions[strings.ToLower(filepath.Ext(name))]; !ok {
+		return "", fmt.Errorf("file type is not permitted: %w", os.ErrPermission)
+	}
+	return name, nil
+}
+
 func (w *Workspace) ReadFile(ctx context.Context, name string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	// 校验路径合法性：禁止空路径、绝对路径、.. 穿越。
-	relative, err := cleanRelativePath(name)
+	relative, err := w.checkedPath(name)
 	if err != nil {
 		return "", err
 	}
-
-	// 解析工作目录的符号链接，得到真实的根路径。
-	root, err := filepath.EvalSymlinks(w.root)
+	file, err := openRegularFile(w.root, relative)
 	if err != nil {
-		return "", fmt.Errorf("resolve file tools workspace: %w", err)
-	}
-	// 拼接后再次解析符号链接，防止通过符号链接逃逸。
-	target, err := filepath.EvalSymlinks(filepath.Join(root, relative))
-	if err != nil {
-		return "", fmt.Errorf("resolve file %q: %w", name, err)
-	}
-	if !isWithin(root, target) {
-		return "", fmt.Errorf("file path %q escapes the agent workspace", name)
-	}
-
-	file, err := os.Open(target)
-	if err != nil {
-		return "", fmt.Errorf("open file %q: %w", name, err)
+		return "", err
 	}
 	defer file.Close()
-
 	info, err := file.Stat()
 	if err != nil {
-		return "", fmt.Errorf("stat file %q: %w", name, err)
+		return "", err
 	}
-	// 拒绝目录、设备文件等非普通文件。
-	if !info.Mode().IsRegular() {
-		return "", fmt.Errorf("file path %q is not a regular file", name)
-	}
-	// 第一道大小检查：用 stat 快速拒绝明显超限的文件。
 	if info.Size() > w.maxReadBytes {
-		return "", fmt.Errorf("file %q exceeds maximum read size of %d bytes", name, w.maxReadBytes)
+		return "", errors.New("file exceeds maximum read size")
 	}
-
-	// 第二道大小检查：以 maxReadBytes+1 读取，若实际读到超限字节则拒绝，
-	// 防止 stat 大小与实际内容不一致（如 /proc 下的伪文件）。
 	data, err := io.ReadAll(io.LimitReader(file, w.maxReadBytes+1))
 	if err != nil {
-		return "", fmt.Errorf("read file %q: %w", name, err)
+		return "", err
 	}
 	if int64(len(data)) > w.maxReadBytes {
-		return "", fmt.Errorf("file %q exceeds maximum read size of %d bytes", name, w.maxReadBytes)
+		return "", errors.New("file exceeds maximum read size")
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if !utf8.Valid(data) {
+		return "", errors.New("file content is not UTF-8 text")
 	}
 	return string(data), nil
 }
 
-// WriteFile 在工作目录内写入文件，返回实际写入的字节数。
-// name 必须是相对于工作目录的相对路径，后缀必须在 WritableExtensions 白名单中。
-// 写入前会检查符号链接是否逃逸工作目录，防止 LLM 通过符号链接篡改系统文件。
+// WriteFile 仅允许本轮授权路径的一次创建；不覆盖已有文件，不向读取方暴露半写入内容。
+// 文件发布与会话事务不是同一事务；发布后取消/保存失败可能留下文件，重试不会覆盖它。
 func (w *Workspace) WriteFile(ctx context.Context, name, content string) (int, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-	relative, err := cleanRelativePath(name)
+	relative, err := w.checkedPath(name)
 	if err != nil {
 		return 0, err
 	}
-	// 后缀白名单检查，仅允许写入指定类型的文件。
-	extension := strings.ToLower(filepath.Ext(relative))
-	if _, ok := w.writableExtensions[extension]; !ok {
-		return 0, fmt.Errorf("file extension %q is not writable", extension)
+	if w.writePath == "" || relative != w.writePath {
+		return 0, fmt.Errorf("file write not authorized for this request: %w", os.ErrPermission)
 	}
-
-	// 确保工作目录根存在，后续解析符号链接和创建父目录都依赖它。
-	if err := os.MkdirAll(w.root, 0o755); err != nil {
-		return 0, fmt.Errorf("create file tools workspace: %w", err)
+	if int64(len(content)) > w.maxWriteBytes || !utf8.ValidString(content) {
+		return 0, errors.New("file write exceeds size limit or is not UTF-8")
 	}
-	root, err := filepath.EvalSymlinks(w.root)
+	if !w.writeAttempted.CompareAndSwap(false, true) {
+		return 0, fmt.Errorf("file write already attempted: %w", os.ErrPermission)
+	}
+	parent := filepath.Dir(relative)
+	if err := w.root.MkdirAll(parent, 0o700); err != nil {
+		return 0, err
+	}
+	temporary := filepath.Join(parent, ".agent-"+rand.Text()+".tmp")
+	file, err := w.root.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return 0, fmt.Errorf("resolve file tools workspace: %w", err)
+		return 0, err
 	}
-	// 逐级创建父目录，同时检查目录符号链接不逃逸。
-	parent, err := ensureDirectory(root, filepath.Dir(relative))
-	if err != nil {
-		return 0, fmt.Errorf("resolve parent directory for %q: %w", name, err)
+	defer w.root.Remove(temporary)
+	_, writeErr := io.WriteString(file, content)
+	if writeErr == nil {
+		writeErr = file.Sync()
 	}
-
-	target := filepath.Join(parent, filepath.Base(relative))
-	// 如果目标文件已存在，检查是否为符号链接并解析，确保写入仍在工作目录内。
-	if info, statErr := os.Lstat(target); statErr == nil {
-		if info.Mode()&os.ModeSymlink != 0 {
-			target, err = filepath.EvalSymlinks(target)
-			if err != nil {
-				return 0, fmt.Errorf("resolve file %q: %w", name, err)
-			}
-		}
-		if !isWithin(root, target) {
-			return 0, fmt.Errorf("file path %q escapes the agent workspace", name)
-		}
-	} else if !errors.Is(statErr, os.ErrNotExist) {
-		return 0, fmt.Errorf("inspect file %q: %w", name, statErr)
+	closeErr := file.Close()
+	if writeErr != nil {
+		return 0, writeErr
 	}
-
-	data := []byte(content)
-	if err := os.WriteFile(target, data, 0o644); err != nil {
-		return 0, fmt.Errorf("write file %q: %w", name, err)
+	if closeErr != nil {
+		return 0, closeErr
 	}
-	return len(data), nil
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	// Link 原子发布且目标存在时失败；不同请求也不能覆盖同一路径。
+	if err := w.root.Link(temporary, relative); err != nil {
+		return 0, err
+	}
+	return len(content), nil
 }
 
-// cleanRelativePath 校验并标准化相对路径，拒绝空路径、绝对路径、含 .. 的路径和空字节。
 func cleanRelativePath(name string) (string, error) {
-	name = strings.TrimSpace(name)
-	// 拒绝空路径和含空字节的路径（空字节常用于路径截断攻击）。
-	if name == "" || strings.ContainsRune(name, '\x00') {
-		return "", errors.New("file path must be a non-empty relative path")
+	deny := func() (string, error) { return "", fmt.Errorf("invalid relative file path: %w", os.ErrPermission) }
+	if name == "" || name != strings.TrimSpace(name) || len(name) > 512 || !utf8.ValidString(name) {
+		return deny()
 	}
-
-	// 统一分隔符为 /，再检测是否为绝对路径（Unix /、Windows 盘符、平台原生）。
+	for _, r := range name {
+		if unicode.IsControl(r) {
+			return deny()
+		}
+	}
 	slashPath := strings.ReplaceAll(name, `\`, "/")
-	if strings.HasPrefix(slashPath, "/") || filepath.IsAbs(name) || hasWindowsVolume(slashPath) {
-		return "", fmt.Errorf("absolute file path %q is not allowed", name)
+	if strings.HasPrefix(slashPath, "/") || filepath.IsAbs(name) || strings.Contains(slashPath, ":") {
+		return deny()
 	}
-	// 逐段检查，拒绝 .. 目录穿越。
-	for _, part := range strings.Split(slashPath, "/") {
-		if part == ".." {
-			return "", fmt.Errorf("file path %q cannot contain ..", name)
+	parts := strings.Split(slashPath, "/")
+	if len(parts) > 8 {
+		return deny()
+	}
+	for _, part := range parts {
+		if part == "" || strings.HasPrefix(part, ".") {
+			return deny()
 		}
 	}
-
-	// 转为平台原生分隔符并清理冗余 . 和多余分隔符。
-	cleaned := filepath.Clean(filepath.FromSlash(slashPath))
-	if cleaned == "." {
-		return "", errors.New("file path must identify a file")
-	}
-	return cleaned, nil
+	return filepath.FromSlash(slashPath), nil
 }
 
-// hasWindowsVolume 判断路径是否以 Windows 盘符开头（如 C:），用于跨平台拒绝绝对路径。
-func hasWindowsVolume(name string) bool {
-	return len(name) >= 2 && name[1] == ':' &&
-		((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z'))
-}
-
-// ensureDirectory 在工作目录 root 下逐级创建 relative 指定的目录链，返回最终目录的绝对路径。
-// 过程中会跟踪符号链接，防止通过目录符号链接逃逸出工作目录。
-func ensureDirectory(root, relative string) (string, error) {
-	current := root
-	if relative == "." {
-		return current, nil
+// ParseSaveRequest 只识别当前用户原始消息第一行的 /save 指令，不从历史或工具输出推导授权。
+// 第二行开始保留购物请求；路径控制信息不参与预算和关键词解析。
+func ParseSaveRequest(query string) (shoppingQuery, writePath string, err error) {
+	if !strings.HasPrefix(query, "/save ") {
+		return query, "", nil
 	}
-	// 逐级遍历路径分量，处理四种情况。
-	for _, part := range strings.Split(filepath.ToSlash(relative), "/") {
-		next := filepath.Join(current, part)
-		info, err := os.Lstat(next)
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			// 目录不存在，创建之。
-			if err := os.Mkdir(next, 0o755); err != nil {
-				return "", err
-			}
-		case err != nil:
-			return "", err
-		case info.Mode()&os.ModeSymlink != 0:
-			// 是符号链接：解析后检查不逃逸，并确认指向目录。
-			next, err = filepath.EvalSymlinks(next)
-			if err != nil {
-				return "", err
-			}
-			if !isWithin(root, next) {
-				return "", errors.New("directory symlink escapes the agent workspace")
-			}
-			info, err = os.Stat(next)
-			if err != nil {
-				return "", err
-			}
-			if !info.IsDir() {
-				return "", errors.New("path component is not a directory")
-			}
-		case !info.IsDir():
-			// 已存在但不是目录（如普通文件），拒绝。
-			return "", errors.New("path component is not a directory")
-		}
-		current = next
+	first, rest, ok := strings.Cut(query, "\n")
+	if !ok || strings.TrimSpace(rest) == "" {
+		return "", "", errors.New("save directive requires a shopping request on the next line")
 	}
-	return current, nil
-}
-
-// isWithin 判断 target 路径是否在 root 目录内（不是 root 自身且不以 .. 开头）。
-func isWithin(root, target string) bool {
-	relative, err := filepath.Rel(root, target)
+	name, err := cleanRelativePath(strings.TrimSuffix(strings.TrimPrefix(first, "/save "), "\r"))
 	if err != nil {
-		return false
+		return "", "", err
 	}
-	// Rel 对 root 自身返回 "."，对上级返回 ".." 或 "../..."，必须同时排除。
-	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
+	return rest, name, nil
 }

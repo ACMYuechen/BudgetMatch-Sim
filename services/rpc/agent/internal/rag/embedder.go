@@ -24,23 +24,29 @@ const (
 //   - Provider 为 openai 时返回 eino-ext 官方 OpenAI Embedder（兼容 DashScope 等 OpenAI 兼容接口）；
 //   - 其他 Provider 暂不支持，返回错误。
 func NewEmbedder(ctx context.Context, c modelconfig.EmbeddingConfig) (embedding.Embedder, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
 	switch c.ProviderName() {
 	case "noop":
 		return nil, nil
 	case "openai":
-		if strings.TrimSpace(c.APIKey) == "" {
-			return nil, fmt.Errorf("embedding api key is required when provider is openai")
-		}
 		dims := c.Dim()
+		requestDimensions := &dims
+		if embeddingModelName(c.Model) == "BAAI/bge-m3" {
+			// SiliconFlow rejects dimensions for this fixed-width model. Keep
+			// 1024 for local index validation, but omit the optional API field.
+			requestDimensions = nil
+		}
 		return openaiembed.NewEmbedder(ctx, &openaiembed.EmbeddingConfig{
 			APIKey:     c.APIKey,
 			Model:      embeddingModelName(c.Model),
 			BaseURL:    modelconfig.NormalizeBaseURL(c.BaseURL),
-			Dimensions: &dims,
+			Dimensions: requestDimensions,
 			Timeout:    embedTimeout,
 		})
 	default:
-		return nil, fmt.Errorf("unsupported embedding provider %q", c.Provider)
+		return nil, fmt.Errorf("unsupported embedding provider")
 	}
 }
 

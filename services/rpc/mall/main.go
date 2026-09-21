@@ -1,7 +1,6 @@
 package main
 
 import (
-	"budgetmatch-sim/infra/serviceauth"
 	"flag"
 	"fmt"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	orderservice "budgetmatch-sim/services/rpc/mall/internal/server/orderservice"
+	productindexservice "budgetmatch-sim/services/rpc/mall/internal/server/productindexservice"
 	productservice "budgetmatch-sim/services/rpc/mall/internal/server/productservice"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/pb"
@@ -29,6 +29,9 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	if err := c.ValidateIndexAuth(); err != nil {
+		panic(err)
+	}
 	ctx := svc.NewServiceContext(c)
 
 	sg := service.NewServiceGroup()
@@ -37,6 +40,7 @@ func main() {
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		pb.RegisterProductServiceServer(grpcServer, productservice.NewProductServiceServer(ctx))
 		pb.RegisterOrderServiceServer(grpcServer, orderservice.NewOrderServiceServer(ctx))
+		pb.RegisterProductIndexServiceServer(grpcServer, productindexservice.NewProductIndexServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)
@@ -47,28 +51,8 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-			Secret:        c.JwtAuth.Secret,
-			ServiceSecret: c.ServiceAuth.Secret,
-			ServiceMethods: map[string]interceptor.ServiceMethodPolicy{
-				"/mall.OrderService/ConfirmPayment": {
-					Caller:   serviceauth.ServicePayment,
-					Audience: serviceauth.ServiceMall,
-				},
-			},
-			AdminMethods: map[string]struct{}{
-				"/mall.ProductService/CreateProduct":     {},
-				"/mall.ProductService/UpdateProduct":     {},
-				"/mall.ProductService/DeleteProduct":     {},
-				"/mall.ProductService/CreateSku":         {},
-				"/mall.ProductService/UpdateSku":         {},
-				"/mall.ProductService/DeleteSku":         {},
-				"/mall.OrderService/GetOrderOutboxStats": {},
-				"/mall.OrderService/ListOrderOutbox":     {},
-				"/mall.OrderService/GetOrderOutbox":      {},
-				"/mall.OrderService/ReplayOrderOutbox":   {},
-			},
-		}))
+		interceptor.UnaryServerInterceptor(c.RPCAuthConfig()))
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(c.RPCAuthConfig()))
 
 	sg.Add(s)
 	sg.Add(outbox.NewMetricsCollector(ctx.OrderOutboxStore, 15*time.Second))

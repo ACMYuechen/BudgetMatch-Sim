@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"budgetmatch-sim/infra/request"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/client/authservice"
 	"budgetmatch-sim/services/rpc/auth/pb"
@@ -57,6 +58,7 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// 将 user_id、token 和完整用户信息注入 context
+		ctx = request.WithUserId(ctx, resp.User.Id)
 		ctx = context.WithValue(ctx, "user_id", resp.User.Id)
 		ctx = context.WithValue(ctx, "token", tokenString)
 		ctx = context.WithValue(ctx, "user", resp.User)

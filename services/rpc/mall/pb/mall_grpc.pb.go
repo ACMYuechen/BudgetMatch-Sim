@@ -27,6 +27,7 @@ type ProductServiceClient interface {
 	DeleteSku(ctx context.Context, in *DeleteSkuReq, opts ...grpc.CallOption) (*DeleteSkuResp, error)
 	GetSku(ctx context.Context, in *GetSkuReq, opts ...grpc.CallOption) (*GetSkuResp, error)
 	ListSkusByProduct(ctx context.Context, in *ListSkusByProductReq, opts ...grpc.CallOption) (*ListSkusByProductResp, error)
+	CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error)
 }
 
 type productServiceClient struct {
@@ -127,6 +128,15 @@ func (c *productServiceClient) ListSkusByProduct(ctx context.Context, in *ListSk
 	return out, nil
 }
 
+func (c *productServiceClient) CheckProductCandidates(ctx context.Context, in *CheckProductCandidatesReq, opts ...grpc.CallOption) (*CheckProductCandidatesResp, error) {
+	out := new(CheckProductCandidatesResp)
+	err := c.cc.Invoke(ctx, "/mall.ProductService/CheckProductCandidates", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility
@@ -141,6 +151,7 @@ type ProductServiceServer interface {
 	DeleteSku(context.Context, *DeleteSkuReq) (*DeleteSkuResp, error)
 	GetSku(context.Context, *GetSkuReq) (*GetSkuResp, error)
 	ListSkusByProduct(context.Context, *ListSkusByProductReq) (*ListSkusByProductResp, error)
+	CheckProductCandidates(context.Context, *CheckProductCandidatesReq) (*CheckProductCandidatesResp, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -177,6 +188,9 @@ func (UnimplementedProductServiceServer) GetSku(context.Context, *GetSkuReq) (*G
 }
 func (UnimplementedProductServiceServer) ListSkusByProduct(context.Context, *ListSkusByProductReq) (*ListSkusByProductResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSkusByProduct not implemented")
+}
+func (UnimplementedProductServiceServer) CheckProductCandidates(context.Context, *CheckProductCandidatesReq) (*CheckProductCandidatesResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckProductCandidates not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 
@@ -371,6 +385,24 @@ func _ProductService_ListSkusByProduct_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_CheckProductCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckProductCandidatesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).CheckProductCandidates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mall.ProductService/CheckProductCandidates",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).CheckProductCandidates(ctx, req.(*CheckProductCandidatesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _ProductService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "mall.ProductService",
 	HandlerType: (*ProductServiceServer)(nil),
@@ -414,6 +446,10 @@ var _ProductService_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListSkusByProduct",
 			Handler:    _ProductService_ListSkusByProduct_Handler,
+		},
+		{
+			MethodName: "CheckProductCandidates",
+			Handler:    _ProductService_CheckProductCandidates_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -824,5 +860,154 @@ var _OrderService_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/rpc/mall/proto/mall.proto",
+}
+
+// ProductIndexServiceClient is the client API for ProductIndexService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProductIndexServiceClient interface {
+	ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error)
+	// One bounded, read-only database snapshot. No resume/fallback to live pages.
+	ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (ProductIndexService_ScanProductIndexClient, error)
+}
+
+type productIndexServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProductIndexServiceClient(cc grpc.ClientConnInterface) ProductIndexServiceClient {
+	return &productIndexServiceClient{cc}
+}
+
+func (c *productIndexServiceClient) ListProductIndex(ctx context.Context, in *ListProductIndexReq, opts ...grpc.CallOption) (*ListProductIndexResp, error) {
+	out := new(ListProductIndexResp)
+	err := c.cc.Invoke(ctx, "/mall.ProductIndexService/ListProductIndex", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *productIndexServiceClient) ScanProductIndex(ctx context.Context, in *ScanProductIndexReq, opts ...grpc.CallOption) (ProductIndexService_ScanProductIndexClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ProductIndexService_serviceDesc.Streams[0], "/mall.ProductIndexService/ScanProductIndex", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &productIndexServiceScanProductIndexClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ProductIndexService_ScanProductIndexClient interface {
+	Recv() (*ScanProductIndexResp, error)
+	grpc.ClientStream
+}
+
+type productIndexServiceScanProductIndexClient struct {
+	grpc.ClientStream
+}
+
+func (x *productIndexServiceScanProductIndexClient) Recv() (*ScanProductIndexResp, error) {
+	m := new(ScanProductIndexResp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ProductIndexServiceServer is the server API for ProductIndexService service.
+// All implementations must embed UnimplementedProductIndexServiceServer
+// for forward compatibility
+type ProductIndexServiceServer interface {
+	ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error)
+	// One bounded, read-only database snapshot. No resume/fallback to live pages.
+	ScanProductIndex(*ScanProductIndexReq, ProductIndexService_ScanProductIndexServer) error
+	mustEmbedUnimplementedProductIndexServiceServer()
+}
+
+// UnimplementedProductIndexServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedProductIndexServiceServer struct {
+}
+
+func (UnimplementedProductIndexServiceServer) ListProductIndex(context.Context, *ListProductIndexReq) (*ListProductIndexResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListProductIndex not implemented")
+}
+func (UnimplementedProductIndexServiceServer) ScanProductIndex(*ScanProductIndexReq, ProductIndexService_ScanProductIndexServer) error {
+	return status.Errorf(codes.Unimplemented, "method ScanProductIndex not implemented")
+}
+func (UnimplementedProductIndexServiceServer) mustEmbedUnimplementedProductIndexServiceServer() {}
+
+// UnsafeProductIndexServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProductIndexServiceServer will
+// result in compilation errors.
+type UnsafeProductIndexServiceServer interface {
+	mustEmbedUnimplementedProductIndexServiceServer()
+}
+
+func RegisterProductIndexServiceServer(s *grpc.Server, srv ProductIndexServiceServer) {
+	s.RegisterService(&_ProductIndexService_serviceDesc, srv)
+}
+
+func _ProductIndexService_ListProductIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProductIndexReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductIndexServiceServer).ListProductIndex(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/mall.ProductIndexService/ListProductIndex",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductIndexServiceServer).ListProductIndex(ctx, req.(*ListProductIndexReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProductIndexService_ScanProductIndex_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScanProductIndexReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ProductIndexServiceServer).ScanProductIndex(m, &productIndexServiceScanProductIndexServer{stream})
+}
+
+type ProductIndexService_ScanProductIndexServer interface {
+	Send(*ScanProductIndexResp) error
+	grpc.ServerStream
+}
+
+type productIndexServiceScanProductIndexServer struct {
+	grpc.ServerStream
+}
+
+func (x *productIndexServiceScanProductIndexServer) Send(m *ScanProductIndexResp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _ProductIndexService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "mall.ProductIndexService",
+	HandlerType: (*ProductIndexServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListProductIndex",
+			Handler:    _ProductIndexService_ListProductIndex_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ScanProductIndex",
+			Handler:       _ProductIndexService_ScanProductIndex_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "services/rpc/mall/proto/mall.proto",
 }

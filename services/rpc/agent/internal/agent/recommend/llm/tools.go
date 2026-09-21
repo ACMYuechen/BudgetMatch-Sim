@@ -3,9 +3,12 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/filetools"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/internal/tools"
 
 	"github.com/cloudwego/eino/components/tool"
@@ -95,12 +98,8 @@ func writeFile(workspace *filetools.Workspace) func(context.Context, writeFileAr
 
 // businessTools 把领域能力包装成 Eino 工具。
 // 每个工具用 InferTool 从入参结构体推导 schema，handler 闭包持有 session 写入类型化结果，
-// 再统一套上记录装饰器和错误处理器：工具出错时返回 JSON 让模型自行恢复，而不是中断整个 ReAct。
+// 可修正错误转为脱敏 JSON；权限拒绝、取消与超时终止 ReAct。文件能力只按本轮授权注册。
 func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool, error) {
-	if workspace == nil {
-		return nil, fmt.Errorf("file tools workspace is required")
-	}
-
 	search, err := utils.InferTool(
 		toolSearchProducts,
 		"Search product candidates by query, keywords, budget, and item limit. Use this before selecting a bundle.",
@@ -118,6 +117,10 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolSelectBundle, err)
 	}
+	out := []tool.BaseTool{decorate(s, toolSearchProducts, search), decorate(s, toolSelectBundle, selectBundle)}
+	if workspace == nil {
+		return out, nil
+	}
 
 	readF, err := utils.InferTool(
 		toolReadFile,
@@ -126,6 +129,10 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build %s tool: %w", toolReadFile, err)
+	}
+	out = append(out, decorate(s, toolReadFile, readF))
+	if !workspace.CanWrite() {
+		return out, nil
 	}
 
 	writeF, err := utils.InferTool(
@@ -137,55 +144,104 @@ func businessTools(s *session, workspace *filetools.Workspace) ([]tool.BaseTool,
 		return nil, fmt.Errorf("build %s tool: %w", toolWriteFile, err)
 	}
 
-	return []tool.BaseTool{
-		decorate(s, toolSearchProducts, search),
-		decorate(s, toolSelectBundle, selectBundle),
-		decorate(s, toolReadFile, readF),
-		decorate(s, toolWriteFile, writeF),
-	}, nil
+	return append(out, decorate(s, toolWriteFile, writeF)), nil
 }
 
 // searchProducts 是 search_products 的执行逻辑：检索候选商品并缓存到 session。
 func (s *session) searchProducts(ctx context.Context, args searchArgs) (*searchResult, error) {
-	if args.MaxItems <= 0 {
-		args.MaxItems = s.intent.MaxItems
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	products, err := s.provider.SearchProducts(ctx, tools.SearchProductsReq{
-		Query:       args.Query,
-		Keywords:    args.Keywords,
-		BudgetCents: args.BudgetCents,
-		MaxItems:    args.MaxItems,
-	})
+	limits, err := s.toolConstraints(args.BudgetCents, args.MaxItems)
 	if err != nil {
 		return nil, err
 	}
+	if strings.TrimSpace(args.Query) == "" || utf8.RuneCountInString(args.Query) > agentcore.MaxQueryRunes || len(args.Keywords) > agentcore.MaxKeywords {
+		return nil, fmt.Errorf("%w: tool query or keyword count outside allowed range", agentcore.ErrInvalidInput)
+	}
+	for _, keyword := range args.Keywords {
+		if utf8.RuneCountInString(keyword) > agentcore.MaxKeywordRunes {
+			return nil, fmt.Errorf("%w: tool keyword is too long", agentcore.ErrInvalidInput)
+		}
+	}
+	search, err := tools.SearchWithTrace(ctx, s.provider, tools.SearchProductsReq{
+		Query:       args.Query,
+		Keywords:    args.Keywords,
+		BudgetCents: limits.BudgetCents,
+		MaxItems:    limits.MaxItems,
+	})
+	for _, call := range safety.ToolCalls(search.Calls) {
+		s.recordCall(call)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	products := search.Candidates
 	s.storeCandidates(products)
+	// 原始快照先入会话，使后来的缺货/非法快照也能使旧候选失效。
+	products = agentcore.NormalizeCandidates(products)
+	filtered := make([]tools.ProductCandidate, 0, len(products))
+	for _, product := range products {
+		if product.PriceCents <= limits.BudgetCents {
+			filtered = append(filtered, product)
+		}
+	}
 	return &searchResult{
-		Products: products,
-		Count:    len(products),
+		Products: filtered,
+		Count:    len(filtered),
 		Source:   s.provider.Name(),
 	}, nil
 }
 
 // selectBundle 是 select_bundle 的执行逻辑：从缓存候选中挑选套装并写回 session。
 func (s *session) selectBundle(ctx context.Context, args selectArgs) (*selectResult, error) {
-	_ = ctx
-	if args.MaxItems <= 0 {
-		args.MaxItems = s.intent.MaxItems
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	// 与 MaxItems 同等回落：模型按 schema 提示传 0 时用解析意图的预算兜底，
-	// 否则预算约束会被静默绕过。
-	if args.BudgetCents <= 0 {
-		args.BudgetCents = s.intent.BudgetCents
+	limits, err := s.toolConstraints(args.BudgetCents, args.MaxItems)
+	if err != nil {
+		return nil, err
+	}
+	if len(args.CandidateIds) > agentcore.MaxCandidateIDs {
+		return nil, fmt.Errorf("%w: too many candidate IDs", agentcore.ErrInvalidInput)
+	}
+	// 未知 ID 整次拒绝，而不是静默剔除后假装完成了模型请求。
+	known := make(map[string]struct{})
+	for _, candidate := range s.filterCandidates(nil) {
+		known[candidate.Id] = struct{}{}
+	}
+	for _, id := range args.CandidateIds {
+		if _, ok := known[id]; !ok {
+			return nil, fmt.Errorf("%w: unknown candidate ID", agentcore.ErrInvalidInput)
+		}
 	}
 	candidates := s.filterCandidates(args.CandidateIds)
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no product candidates available; call %s first", toolSearchProducts)
 	}
 	items, total := s.selector.Select(candidates, agentcore.Intent{
-		BudgetCents: args.BudgetCents,
-		MaxItems:    args.MaxItems,
+		BudgetCents: limits.BudgetCents,
+		MaxItems:    limits.MaxItems,
 	})
-	s.setBundle(items, total)
+	s.setBundle(items, total, candidates, limits)
 	return &selectResult{Items: items, TotalPriceCents: total}, nil
+}
+
+// toolConstraints 是搜索和选择的唯一约束入口，调整记录不包含原始工具参数。
+func (s *session) toolConstraints(budget int64, count int32) (agentcore.Constraints, error) {
+	limits, err := agentcore.NewConstraints(s.intent)
+	if err != nil {
+		return agentcore.Constraints{}, err
+	}
+	limits, adjusted, err := limits.Restrict(budget, count)
+	if err != nil {
+		return agentcore.Constraints{}, err
+	}
+	if adjusted {
+		s.recordCall(agentcore.ToolCall{Name: "constraints.adjusted", Success: true, Detail: "tool limits capped by user constraints"})
+	}
+	return limits, nil
 }

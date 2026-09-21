@@ -81,14 +81,11 @@ func mapRecommendResp(resp *recommendservice.RecommendResp) *types.AgentRecommen
 		})
 	}
 
-	intent := resp.GetIntent()
 	return &types.AgentRecommendResp{
-		Intent: types.AgentIntent{
-			BudgetCents: intent.GetBudgetCents(),
-			MaxItems:    intent.GetMaxItems(),
-			Keywords:    intent.GetKeywords(),
-			Preferences: intent.GetPreferences(),
-		},
+		Intent:            mapIntent(resp.GetIntent()),
+		Status:            resp.GetStatus(),
+		DemandConflicts:   mapDemandConflicts(resp.GetDemandConflicts()),
+		Execution:         mapDemandExecution(resp.GetExecution()),
 		Items:             items,
 		TotalPriceCents:   resp.GetTotalPriceCents(),
 		Summary:           resp.GetSummary(),

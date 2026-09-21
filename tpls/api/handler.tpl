@@ -1,4 +1,20 @@
-// Code scaffolded by goctl. Not to edit.
+{{if eq .HandlerName "AgentRecommendStreamHandler"}}// Code scaffolded by goctl. Not to edit.
+
+package {{.PkgName}}
+
+import (
+	"net/http"
+
+	"budgetmatch-sim/cmd/app/internal/logic/agent"
+	"budgetmatch-sim/cmd/app/internal/svc"
+)
+
+func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		agent.NewAgentRecommendStreamLogic(r.Context(), svcCtx).ServeHTTP(w, r)
+	}
+}
+{{else}}// Code scaffolded by goctl. Not to edit.
 
 package {{.PkgName}}
 
@@ -6,6 +22,7 @@ import (
 	{{if .HasRequest}}"github.com/zeromicro/go-zero/core/logx"
 	{{end}}
 	"net/http"
+	{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}apperrors "budgetmatch-sim/infra/errors"{{end}}
 
 	{{if ne .HandlerName "AlipayNotifyHandler"}}"github.com/zeromicro/go-zero/rest/httpx"
 	{{end}}
@@ -26,15 +43,23 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		)
 
 		{{if .HasRequest}}if err := httpx.Parse(r, in); err != nil {
+			{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}logx.WithContext(ctx).Error("invalid demand planning request")
+			httpx.Error(w, apperrors.Invalid)
+			{{else}}
 			logx.WithContext(ctx).Errorf("parse params failed: %v", err)
 			httpx.Error(w, err)
+			{{end}}
 			return
 		}{{end}}
 
 		
 		{{if .HasRequest}}if err := svcCtx.Validator.Struct(in); err != nil {
+			{{if or (eq .HandlerName "AgentDemandPlanHandler") (eq .HandlerName "AgentDemandExecuteHandler")}}logx.WithContext(ctx).Error("invalid demand planning parameters")
+			httpx.Error(w, apperrors.Invalid)
+			{{else}}
 			logx.WithContext(ctx).Errorf("validate params failed: %v", err)
 			httpx.Error(w, err)
+			{{end}}
 			return
 		}{{end}}
 
@@ -47,3 +72,4 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 	}
 {{end}}}
+{{end}}

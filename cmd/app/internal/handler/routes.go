@@ -212,13 +212,25 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.AuthMiddleware},
 			[]rest.Route{
 				{
+					// Agent 需求规划（不执行推荐）
+					Method:  http.MethodPost,
+					Path:    "/intent/plan",
+					Handler: agent.AgentDemandPlanHandler(serverCtx),
+				},
+				{
+					// 执行已确认需求（显式 demo/mall 模式，有界快照核验，非库存预占）
+					Method:  http.MethodPost,
+					Path:    "/intent/execute",
+					Handler: agent.AgentDemandExecuteHandler(serverCtx),
+				},
+				{
 					// Agent 推荐
 					Method:  http.MethodPost,
 					Path:    "/recommend",
 					Handler: agent.AgentRecommendHandler(serverCtx),
 				},
 				{
-					// Agent 推荐 SSE
+					// Agent 推荐 SSE（stream_version=1 接入版本化增量；省略保留旧阶段流）
 					Method:  http.MethodPost,
 					Path:    "/recommend/stream",
 					Handler: agent.AgentRecommendStreamHandler(serverCtx),

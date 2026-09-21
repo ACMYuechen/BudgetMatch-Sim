@@ -20,7 +20,7 @@ JwtAuth:
 Database:
   LogLevel: 4
   Driver: "Postgres"
-  DSN: "host=127.0.0.1 user=root password=123456 dbname=budgetmatch-sim port=15432 sslmode=disable TimeZone=Asia/Shanghai"
+  DSN: "${DATABASE_DSN}"
   MaxOpenConns: 100
   MaxIdleConns: 20
   ConnMaxLifetime: 7200s
@@ -29,8 +29,8 @@ Database:
   PrepareStmt: true
 
 CacheRedis:
-  Address: "127.0.0.1:6379"
-  Password: "12345678"
+  Address: "${REDIS_ADDRESS}"
+  Password: "${REDIS_PASSWORD}"
   DB: 4
   PoolSize: 10
   MinIdleConns: 5
@@ -49,3 +49,8 @@ RocketMQ:
 
 ServiceAuth:
   Secret: "${PAYMENT_MALL_SERVICE_SECRET}"
+
+# 留空时索引服务拒绝全部调用，不影响原用户接口或支付确认。
+# 启用时使用独立随机密钥（至少 32 字节），必须与 Agent 的 IndexAuth 相同。
+IndexAuth:
+  Secret: "${AGENT_MALL_INDEX_SECRET}"

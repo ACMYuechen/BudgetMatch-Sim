@@ -9,6 +9,7 @@ import (
 	"budgetmatch-sim/infra/interceptor"
 	agentcore "budgetmatch-sim/services/rpc/agent/internal/agent"
 	"budgetmatch-sim/services/rpc/agent/internal/memory"
+	"budgetmatch-sim/services/rpc/agent/internal/safety"
 	"budgetmatch-sim/services/rpc/agent/pb"
 )
 
@@ -25,7 +26,41 @@ func authenticatedUserId(ctx context.Context) (string, error) {
 // toPBIntentState 将存储层结构化约束转换为公开 RPC 意图类型。
 func toPBIntentState(state memory.IntentState) *pb.Intent {
 	return &pb.Intent{BudgetCents: state.BudgetCents, MaxItems: state.MaxItems,
-		Keywords: state.Keywords, Preferences: state.Preferences}
+		Keywords: state.Keywords, Preferences: state.Preferences, Demand: toPBDemand(state.Demand)}
+}
+
+func toPBIntent(intent agentcore.Intent) *pb.Intent {
+	return &pb.Intent{BudgetCents: intent.BudgetCents, MaxItems: intent.MaxItems,
+		Keywords: intent.Keywords, Preferences: intent.Preferences, Demand: toPBDemand(intent.Demand)}
+}
+
+func toPBDemand(state *agentcore.DemandState) *pb.DemandState {
+	if state == nil {
+		return nil
+	}
+	return &pb.DemandState{SchemaVersion: int32(state.SchemaVersion), Required: state.Required,
+		Optional: state.Optional, Excluded: state.Excluded}
+}
+
+func toPBConflicts(issues []agentcore.DemandConflict) []*pb.DemandConflict {
+	out := make([]*pb.DemandConflict, 0, len(issues))
+	for _, issue := range issues {
+		out = append(out, &pb.DemandConflict{Code: issue.Code, Category: issue.Category})
+	}
+	return out
+}
+
+func toPBExecution(e *agentcore.DemandExecution) *pb.DemandExecution {
+	if e == nil {
+		return nil
+	}
+	return &pb.DemandExecution{PlanTurnId: e.PlanTurnID, Strategy: e.Strategy, Scope: e.Scope,
+		MappingVersion: e.MappingVersion, MappingSha256: e.MappingSHA256, SnapshotCheckedAtMs: e.SnapshotCheckedAtUnixMs,
+		CoveredRequired: append([]string{}, e.CoveredRequired...), MissingRequired: append([]string{}, e.MissingRequired...),
+		CoveredOptional: append([]string{}, e.CoveredOptional...), UnscoredPreferences: append([]string{}, e.UnscoredPreferences...),
+		MissingRequiredInWindow: append([]string{}, e.MissingRequiredInWindow...), SearchLimited: e.SearchLimited,
+		CandidateWindow: e.CandidateWindow, InitialExpansions: e.InitialExpansions, FinalExpansions: e.FinalExpansions,
+		InitialStopReason: e.InitialStopReason, FinalStopReason: e.FinalStopReason}
 }
 
 // toPBConversation 将领域会话转换为不暴露内部 user_id 和 version 的摘要。
@@ -39,7 +74,7 @@ func toPBConversation(conversation memory.Conversation) *pb.ConversationSummary 
 func toPBTurn(turn memory.Turn) (*pb.ConversationTurn, error) {
 	var result agentcore.Result
 	if err := json.Unmarshal(turn.ResultJSON, &result); err != nil {
-		return nil, err
+		return nil, safety.Protect(err)
 	}
 	return &pb.ConversationTurn{TurnId: turn.TurnId, Sequence: turn.Sequence, Query: turn.Query,
 		BudgetCents: turn.BudgetCents, MaxItems: turn.MaxItems, Intent: toPBIntentState(turn.Intent),
@@ -48,6 +83,18 @@ func toPBTurn(turn memory.Turn) (*pb.ConversationTurn, error) {
 
 // mapRecommendError 将领域错误收敛为网关可本地化的统一业务错误。
 func mapRecommendError(err error) error {
+	// 先保留可修正的文本错误类别，再归并普通 InvalidInput。
+	switch {
+	case errors.Is(err, agentcore.ErrBudgetCurrency):
+		return apperrors.AgentBudgetCurrency
+	case errors.Is(err, agentcore.ErrBudgetText):
+		return apperrors.AgentBudgetText
+	case errors.Is(err, agentcore.ErrItemLimitText):
+		return apperrors.AgentItemLimitText
+	}
+	if errors.Is(err, agentcore.ErrUnsafeResult) {
+		return apperrors.Internal
+	}
 	if errors.Is(err, agentcore.ErrInvalidInput) {
 		return apperrors.Invalid
 	}
@@ -57,7 +104,7 @@ func mapRecommendError(err error) error {
 	if errors.Is(err, agentcore.ErrTurnConflict) {
 		return apperrors.AgentTurnConflict
 	}
-	return err
+	return safety.Protect(err)
 }
 
 // normalizePBPage 与存储层使用相同的页码规则，并保留接口各自的默认页容量。

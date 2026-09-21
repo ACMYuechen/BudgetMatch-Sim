@@ -5,6 +5,7 @@ import (
 	"budgetmatch-sim/infra/serviceauth"
 	"context"
 	"strings"
+	"time"
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
@@ -18,16 +19,23 @@ import (
 type contextKey string
 
 const (
-	ContextKeyUserId      contextKey = "user_id"
-	ContextKeyRole        contextKey = "role"
-	ContextKeyToken       contextKey = "token"
-	ContextKeyServiceName contextKey = "service_name"
+	ContextKeyUserId         contextKey = "user_id"
+	ContextKeyRole           contextKey = "role"
+	ContextKeyToken          contextKey = "token"
+	ContextKeyServiceName    contextKey = "service_name"
+	ContextKeyServicePurpose contextKey = "service_purpose"
 )
 
 // ServiceMethodPolicy 描述某个 RPC 方法允许的服务调用方
 type ServiceMethodPolicy struct {
 	Caller   string
 	Audience string
+	// SecretName 非空时只取 ServiceSecrets 中的指定密钥；缺失时拒绝，绝不回退。
+	SecretName string
+	Purpose    string
+	// MaxStreamDuration > 0 requires a caller-supplied transport deadline before
+	// the streaming handler can receive any request. Unary policies ignore it.
+	MaxStreamDuration time.Duration
 }
 
 // AuthConfig 配置认证拦截器的行为。
@@ -41,11 +49,19 @@ type AuthConfig struct {
 	AdminMethods map[string]struct{}
 	// ServiceSecret 使用独立于用户 JWT 的服务认证密钥
 	ServiceSecret string
+	// ServiceSecrets 供新增服务策略选择独立密钥，ServiceSecret 保留兼容旧策略。
+	ServiceSecrets map[string]string
 	// ServiceMethods 中的方法只能使用服务 JWT 调用
 	ServiceMethods map[string]ServiceMethodPolicy
+	// StreamMaxDurations requires a caller-supplied transport deadline for each
+	// listed stream (including user methods). If a service policy also sets a
+	// limit, the stricter positive limit wins. Unary calls ignore this map.
+	StreamMaxDurations map[string]time.Duration
 }
 
 // UnaryServerInterceptor 返回一个 gRPC 一元拦截器，完成 JWT 校验与角色鉴权：
+//
+// 服务专用方法优先匹配独立策略，只接受服务 JWT，不进入下面的用户/白名单流程。
 //
 //  1. 白名单方法直接放行
 //  2. 从 gRPC metadata 提取 Authorization: Bearer <token>
@@ -62,12 +78,22 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 			if err != nil {
 				return nil, err
 			}
-			claims, err := serviceauth.ValidateToken(tokenString, cfg.ServiceSecret, policy.Caller, policy.Audience)
+			secret := cfg.ServiceSecret
+			if policy.SecretName != "" {
+				secret = cfg.ServiceSecrets[policy.SecretName]
+			}
+			var claims *serviceauth.Claims
+			if policy.Purpose != "" {
+				claims, err = serviceauth.ValidateScopedToken(tokenString, secret, policy.Caller, policy.Audience, policy.Purpose)
+			} else {
+				claims, err = serviceauth.ValidateToken(tokenString, secret, policy.Caller, policy.Audience)
+			}
 			if err != nil {
 				return nil, errors.InvalidToken
 			}
 
 			ctx = context.WithValue(ctx, ContextKeyServiceName, claims.Service)
+			ctx = context.WithValue(ctx, ContextKeyServicePurpose, claims.Purpose)
 			return handler(ctx, req)
 		}
 
