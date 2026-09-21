@@ -37,7 +37,7 @@
 
 历史记录：2026-09-20 同步 Flash 参数时，WSL Docker 当时不可用，独立测试 DSN 使用本机 15432。该地址已被下面的 Docker 配置更新，不再代表当前 `.env`。
 
-2026-09-21 已优先复用原 Docker PostgreSQL / Redis 卷，`.env` 的业务库指向 `127.0.0.1:5432/budgetmatch-sim`。随后按用户要求移除了常驻的独立测试 DSN；日常运行只维护业务连接，不需要配置测试库。真实集成测试统一复用 CI 已有的 `RAG_TEST_PG_DSN`，由 CI/测试入口临时提供，不从 `.env` 或 `DATABASE_DSN` 自动取值；未显式提供时跳过。历史独立测试库和账号未删除，原 1002 个业务用户及此前 Agent 保留库记录不动。数据源、镜像和端口说明见 [本地 Docker 数据源](docs/local-data.md)。不能把包含删表逻辑的测试指向业务库或保留演示库。
+2026-09-21 已优先复用原 Docker PostgreSQL / Redis 卷，`.env` 的业务库指向 `127.0.0.1:5432/budgetmatch-sim`。随后按用户要求移除了常驻的独立测试 DSN；日常运行只维护业务连接，不需要配置测试库。真实集成测试统一复用 CI 已有的 `RAG_TEST_PG_DSN`，由 CI/测试入口临时提供，不从 `.env` 或 `DATABASE_DSN` 自动取值；未显式提供时跳过。用户进一步授权后，已备份并删除该 Docker 实例中的 `budgetmatch_sim_test` 库和 `budgetmatch_test` 账号；业务库 10 张表的内容指纹及 1002 个用户保持不变，其他本机实例和生产数据源未修改。备份及范围说明见 [本地 Docker 数据源](docs/local-data.md)。不能把包含删表逻辑的测试指向业务库或保留演示库。
 
 文件仍为 `0600` 且不受 Git 跟踪，模型等其他原配置保持不变。本轮数据连接和独立测试通过，不代表整套业务服务已在本地启动，也不代表 SMTP/OSS/支付或新模型已做真实验收；JWT 密钥未自动轮换。生产使用单独的 `external-data` Secret，密码不写入本机业务配置或 Git，详见 [生产部署](docs/deployment-vps.md)。
 
