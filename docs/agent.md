@@ -37,6 +37,8 @@
 - [验证入口与执行清单](#13-验证入口与执行清单)
 - [执行记录](#14-执行记录)
 
+> 配置说明：业务 `.env` 中的独立测试 DSN 已移除，以下数据库集成测试命令按当前入口更新为 `RAG_TEST_PG_DSN`；历史测试库名、验收结果和授权记录保留，不代表仍需配置或启动历史测试库。当前本机数据源见 [本地 Docker 数据源](local-data.md)。
+
 ## 2. 现有接口、会话与长期记忆
 
 推荐接口使用 `conversation_id` 关联同一认证用户的多轮上下文，并使用 `turn_id` 保证单轮请求幂等。首次请求可不传 `conversation_id`，服务端生成后返回；前端应为每次发送生成新的 `turn_id`，网络重试沿用原值。
@@ -283,7 +285,7 @@ Mall 要求原始流 context 已带 30 秒以内的 deadline；方法策略 `Max
 
 升级时先部署支持新 RPC 的 Mall，再更新 Agent。旧 Mall 的 `Unimplemented`、权限失败、超时或容量不足均保留旧索引，不回退到旧实时分页。M3.2b1 的停旧同步器、存量索引绑定迁移及连接池限制仍必须遵守。本步不提供断点续传、增量 CDC、大目录外排、自动拆分或模型热迁移；目录与待发布向量仍驻留 Agent 内存，单个数据库字段在序列化限额检查前也已读入内存，不能把载荷限额当成经过压测的内存保证。
 
-本地驱动替身验证了事务选项、连接绑定、游标参数、提交/回滚与取消边界；内存 gRPC 覆盖完成/断流/迟到错误/慢接收者。[真实 PostgreSQL 并发更新测试](../services/rpc/mall/model/product_index/snapshot_integration_test.go) 仅在显式提供可丢弃的 `BUDGETMATCH_TEST_POSTGRES_DSN` 时执行，创建并清理随机隔离 schema；M6.2b 已在本次新建空库实跑通过（第 11.4 节），但不代表部署 RPC、网络中断或实际目录规模已验收。
+本地驱动替身验证了事务选项、连接绑定、游标参数、提交/回滚与取消边界；内存 gRPC 覆盖完成/断流/迟到错误/慢接收者。[真实 PostgreSQL 并发更新测试](../services/rpc/mall/model/product_index/snapshot_integration_test.go) 仅在显式提供可丢弃的 `RAG_TEST_PG_DSN` 时执行，创建并清理随机隔离 schema；M6.2b 已在本次新建空库实跑通过（第 11.4 节），但不代表部署 RPC、网络中断或实际目录规模已验收。
 
 ### 2.13 候选证据与严格实时校验（M3.2c）
 
@@ -1186,7 +1188,7 @@ Redis-only 是短期存储模式，租约与持久性能力不同于 PostgreSQL 
 
 ```bash
 # 从仓库根目录运行；直接展示并发重试、过期写入、删除竞争和缓存故障
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 -v \
   -run 'TestRedisLease|TestTieredFaultMatrix|TestFaultMatrix' \
   ./services/rpc/agent/internal/memory \
@@ -1229,7 +1231,7 @@ M6.2 后续按第 11.4 节完成本机隔离真实存储验收；M6.3 及后置 
 默认离线入口（Linux/Unix；Windows 子进程文件描述符不支持时跳过矩阵）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   GOMAXPROCS=2 go test -p 1 -race -count=1 -v \
@@ -1257,7 +1259,7 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
 获准且完成以上准备后才执行：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   AGENT_STORAGE_ACCEPTANCE_CONFIG='/绝对路径/独立验收.json' \
   AGENT_STORAGE_ACCEPTANCE_RUN_ID='<与配置相同的run_id>' \
   GOMAXPROCS=2 go test -p 1 -race -count=1 -timeout=180s -json \
@@ -1323,11 +1325,11 @@ M6.2 在该范围内完成；不外推到 Redis 默认持久化策略、Cluster/
 
 [dev-records 命令](../services/rpc/agent/cmd/dev-records/main.go) 与[实现/目标保护](../services/rpc/agent/internal/devrecords/config.go)为单独的开发工具，不由服务或普通测试自动调用。默认只读预检；显式 `-write-demo` 才申请保存两轮演示推荐。M6.2 的故障运行器没有改成复用开发库，也不把开发库连接串注入原有集成测试。
 
-此前配置核对发现：`.env` 的 `BUDGETMATCH_TEST_POSTGRES_DSN` 为 `127.0.0.1:15432/budgetmatch_sim_test`；Agent/Mall/Auth 仓库模板的 `Database.DSN` 为同端口的 `budgetmatch-sim`。两者都不能代替当时用户指定的远程目标，也不能证明页面读取目标。历史远程检查为 `5432` 可达、现有凭据认证失败、未执行 SQL。本轮新建的保留库名称另为 `budgetmatch_agent_dev`，使用第 11.10 节独立配置，既不覆盖旧 DSN，也不创建其指向的旧库名；同一端口不表示同一个数据库。
+此前配置核对发现：`.env` 当时的独立测试 DSN 为 `127.0.0.1:15432/budgetmatch_sim_test`；Agent/Mall/Auth 仓库模板的 `Database.DSN` 为同端口的 `budgetmatch-sim`。两者都不能代替当时用户指定的远程目标，也不能证明页面读取目标。历史远程检查为 `5432` 可达、现有凭据认证失败、未执行 SQL。本轮新建的保留库名称另为 `budgetmatch_agent_dev`，使用第 11.10 节独立配置，既不覆盖旧 DSN，也不创建其指向的旧库名；同一端口不表示同一个数据库。
 
 本机入口边界（显式远程模式另见第 11.8 节，共用只读/写入/复查流程）：
 
-- `-env` 与 `-config` 必须二选一，再提供 `-allow-local-dev-db` 和独立确认的 `-expect-db`；后者只能核对，不能覆盖源库名。dotenv 只提取 `-dsn-key`，不执行 shell/变量替换、不采用进程环境 DSN；YAML 只使用字面量 `Database.DSN`，不初始化其余服务依赖。源文件必须是普通非符号链接文件且不超过 256 KiB，重复 dotenv 目标键拒绝。
+- `-env` 与 `-config` 必须二选一，再提供 `-allow-local-dev-db` 和独立确认的 `-expect-db`；后者只能核对，不能覆盖源库名。dotenv 必须显式提供 `-dsn-key`（无默认值），只提取该键，不执行 shell/变量替换、不采用进程环境 DSN；YAML 只使用字面量 `Database.DSN`，不初始化其余服务依赖。源文件必须是普通非符号链接文件且不超过 256 KiB，重复 dotenv 目标键拒绝。
 - 为避免误连，仅支持仓库使用的 libpq `key=value` DSN、字面量 loopback IP、显式非特权端口/账号/口令/库名及 `sslmode=disable`。支持单引号/反斜杠转义，不支持连接 URL、DNS、Unix socket、多主机、service/passfile、额外 runtime options 或 `PG*` 环境覆盖；错误不回显原 DSN/驱动详情。仅用于本机开发，不是通用连接工具或生产 TLS 方案。
 - 使用新构造的连接参数，固定 `public` 搜索路径、UTC、连接/SQL/锁等待/空闲事务期限和单连接池；整个命令限时 30 秒。预检连接由 PostgreSQL `default_transaction_read_only=on` 强制只读，核对当前库、固定五张表的存在性与最多 1,001 行的有界计数，以及会话 schema 是否齐备。`preflight_only` 只表示完成只读检查，不代表 `schema_ready` / `user_ready` 或服务可用；不会自动建表、补索引或迁移。
 - 写入额外要求显式 `-user-id`（已有启用账号的 ID，不是用户名）和 `-run-id`。不新建账号、修改密码/角色或替用户挑选身份；只读报告不列出账号资料。写入事务内以 `FOR SHARE` 再次核对账号，使用与生产相同的用户/会话 advisory lock 键；忙时失败，不强占。两轮落库与检查同处一个外层事务，任一步失败回滚；提交确认丢失时报告结果可能未知，不能宣称必然未写入。
@@ -1340,11 +1342,12 @@ M6.2 在该范围内完成；不外推到 Redis 默认持久化策略、Cluster/
 ```bash
 # 只核对 .env 当前指定的库；不建表、不写演示记录。
 GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
-  -env .env -dsn-key BUDGETMATCH_TEST_POSTGRES_DSN \
-  -expect-db budgetmatch_sim_test -allow-local-dev-db
+  -env .env -dsn-key DATABASE_DSN \
+  -expect-db budgetmatch-sim -allow-local-dev-db
 
-# 若另行确认使用服务模板中的开发库，改用这一组源参数：
-# -config services/rpc/agent/etc/config.yaml -expect-db budgetmatch-sim
+# 也可使用另行核对的私密 YAML，其中必须包含字面量 Database.DSN：
+# -config /绝对路径/private-db.yaml -expect-db budgetmatch-sim
+# 服务模板里的 ${DATABASE_DSN} 占位符不会被该工具展开。
 
 # 在已确认的源参数后追加以下选项，才会保留演示会话：
 # -write-demo -user-id '<已有启用账号ID>' -run-id desktop-demo-001 \
@@ -1379,8 +1382,8 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
 
 ```bash
 GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
-  -env .env -dsn-key BUDGETMATCH_TEST_POSTGRES_DSN \
-  -expect-db budgetmatch_sim_test -allow-local-dev-db \
+  -env .env -dsn-key DATABASE_DSN \
+  -expect-db budgetmatch-sim -allow-local-dev-db \
   -verify-demo -user-id '<已有启用账号ID>' -run-id desktop-demo-001
 ```
 
@@ -1405,7 +1408,7 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
 - **传输保护**：远程 DSN 必须显式 `sslmode=verify-full`，`sslrootcert` 为 `system` 或绝对 CA 文件路径。文件 CA 先通过普通非符号链接/大小/PEM 检查；连接时由锁定版本驱动读取该显式来源，操作者应保持信任文件不变。证书必须覆盖选定 IP；不支持跳过身份校验、自动降级、DNS/SNI 别名或 mTLS。新构造的驱动参数清空隐式 `passfile`、`sslcert`、`sslkey`，本机模式也清空隐式 CA；仍拒绝 `PG*` 环境覆盖。
 - **状态与权限不扩大**：`target.tls_mode` 只是请求的传输策略，不代表握手成功。证书验证失败为 `tls_verification_failed`；驱动没有类型化原因的 TLS 拒绝保持 `database_error`，不靠错误文本猜测。源配置/CA 无效时不连接。远程写入仍需明确 `-write-demo`、已有启用账号、run ID 和 schema 检查；复用整轮事务、提交后换连接只读确认，不迁移、建账号或调用外部模型。
 
-以下全部是占位示例，文档保留地址不是实际服务器；先将可用凭据和可信 CA 放入私密文件，不通过命令行传密码，也不要修改 `BUDGETMATCH_TEST_POSTGRES_DSN`：
+以下全部是占位示例，文档保留地址不是实际服务器；先将可用凭据和可信 CA 放入私密文件，不通过命令行传密码，也不要把开发库配置注入集成测试：
 
 ```yaml
 Database:
@@ -1439,7 +1442,7 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/dev-records \
 用例共 8 个场景（3 个顶层测试 / 10 个含子测试通过事件），正常/异常终态用例另核对全部事件的版本、身份、序号与 SSE 帧 ID，重复次数与日志见执行记录。慢代理注入 1 秒请求期限，终态屏障人为等待 100 毫秒；这些是验证条件，不是生产吞吐、首 Token 时延或清理时延指标。进度为有界合成帧，未制造真实模型负载；处理器和自有监听退出也不等于已经证明第三方 SDK/MCP、OS 子进程或数据库锁清理。
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   GOMAXPROCS=2 go test -p 1 -race -count=10 -run TestProxyCloseout \
@@ -1606,7 +1609,7 @@ LLM_BASE_URL=https://api.deepseek.com/v1
 
 用户明确要求“环境参数有问题就同步修改，.env 必须保证可用”后，核对实际文件与模板，不以 shell `source` 执行私密配置。修正旧 `deepseek-chat` 为 `deepseek-flash`，增加 `LLM_THINKING=disabled`；补齐缺失的 `AGENT_MALL_INDEX_SECRET`、`ALIPAY_RETURN_URL` 可选键，保持 RAG 关闭及既有第三方/JWT/Payment 密钥不变。所有模板键现均存在，`.env` 仍为 `0600`、被 Git 忽略，不加入提交。
 
-原 `BUDGETMATCH_TEST_POSTGRES_DSN` 使用 root 账号，实际连接失败；核实目标为本次自有 `127.0.0.1:15432` 集群、测试角色和库均不存在后，另建 `budgetmatch_sim_test` 与随机口令的 `budgetmatch_test`。该角色无 superuser、建库、建角色、复制或绕过 RLS 权限，新库取消 PUBLIC 默认访问；只更新测试 DSN，不把保留记录的开发库交给清理性测试。测试账号连接及建 schema/表、写入、读取、回滚通过，原开发库全部用户/会话/轮次摘要前后一致，仍为 2/3/5。未修改已有角色、HBA、监听地址或重启 PostgreSQL。
+当时的独立测试 DSN 使用 root 账号，实际连接失败；核实目标为本次自有 `127.0.0.1:15432` 集群、测试角色和库均不存在后，另建 `budgetmatch_sim_test` 与随机口令的 `budgetmatch_test`。该角色无 superuser、建库、建角色、复制或绕过 RLS 权限，新库取消 PUBLIC 默认访问；只更新测试 DSN，不把保留记录的开发库交给清理性测试。测试账号连接及建 schema/表、写入、读取、回滚通过，原开发库全部用户/会话/轮次摘要前后一致，仍为 2/3/5。未修改已有角色、HBA、监听地址或重启 PostgreSQL。
 
 模型检查先进行一次只读 `GET /v1/models`：HTTP 200，Flash 在列表中。随后使用临时构建覆盖文件复用正式 `conf.UseEnv()`、配置结构和 SDK 工厂，从实际 `.env` 加载模型/模式；只有传输地址与认证替换为本机自有出站保护层，供应商 Key 不进入 Go 请求日志。请求发送前观测原始 SDK JSON，确认非思考参数来自应用而非保护层补入。只发合成提示“Reply with exactly OK.”，输出上限 16 Token，实际回复匹配、`stop` 和正常 EOF、完整 Usage 均通过：输入 9、输出 1、合计 10 Token。
 
@@ -1724,13 +1727,13 @@ Auth/App/Agent 重新编译自已提交代码，独立私密配置从当前 `.en
 
 ```bash
 # 相关回归；数据库变量未设置时，部分集成测试会跳过
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   go test -race -count=1 ./services/rpc/agent/... ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
 # M3/M5 改动共享认证后，补跑身份、Mall 方法策略与支付回归；禁止误连真实测试库
-env -u BUDGETMATCH_TEST_POSTGRES_DSN \
+env -u RAG_TEST_PG_DSN \
   go test -race -count=1 ./infra/interceptor/... ./infra/serviceauth/... \
   ./services/rpc/mall/... ./services/rpc/payment/...
 
@@ -1738,7 +1741,7 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN \
 git diff --check
 ```
 
-真实数据库集成测试使用 `AGENT_MEMORY_TEST_PG_DSN` / `RAG_TEST_PG_DSN`；`.env.example` 中的 `BUDGETMATCH_TEST_POSTGRES_DSN` 不能自动替代它们。测试可能建表、删表或写入键值，只能指向可丢弃环境。详细入口见 [CI 说明](ci.md)，报告必须列出运行、失败和跳过项。
+真实数据库集成测试统一复用 CI 的 `RAG_TEST_PG_DSN`；会话存储仍可用 `AGENT_MEMORY_TEST_PG_DSN` 显式覆盖。业务 `.env` / `.env.example` 不再保存独立测试 DSN，未提供测试变量时跳过，不自动读取业务 `DATABASE_DSN`。测试可能建表、删表或写入键值，只能指向可丢弃环境。详细入口见 [CI 说明](ci.md)，报告必须列出运行、失败和跳过项。
 
 前端变化后，在 `web-ui` 中运行现有 `npm run lint`、`npm run build`、`npm run test:e2e`，并补真实流式联调。当前 Web CI 不自动运行浏览器测试，不能以构建通过替代交互验收。
 
@@ -2090,7 +2093,7 @@ M2.3a 的自动化准备已完成，但 M2.3/M2 不标记完成。下一步需�
 验证命令（均不加载 `.env`，真实数据库测试变量显式移除）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   go test -race -count=1 ./infra/interceptor/... ./infra/serviceauth/... \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
@@ -2132,12 +2135,12 @@ Agent 基线：`b4d6b67`，分支 `refactor/agent`；工作区同期的独立 CI
 验证命令（真实数据库测试变量显式移除，不加载 `.env`）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   go test -race -count=1 ./infra/interceptor/... ./infra/serviceauth/... \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   go test -race -count=20 ./services/rpc/agent/internal/rag \
   ./services/rpc/agent/model/product_vectors
 
@@ -2176,13 +2179,13 @@ go run ./services/rpc/agent/cmd/eval -suite scripted -revision b4d6b67+M3.2a-wor
 验证命令（不加载 `.env`，数据库测试变量显式移除；限制并发以适配本机内存）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/rag ./services/rpc/agent/model/product_vectors
 
@@ -2221,16 +2224,16 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite scripted \
 - 独立终帧只在源事务成功后发送；Agent 验证快照 UUID、连续序号、SKU/商品身份、单调游标、总数及正常 EOF。终帧后错误/额外数据、提前 EOF、超时、超限、旧服务 `Unimplemented` 均不发布也不清理旧索引。没有旧实时分页的自动回退。
 - 双方共享页数/载荷预算：每页最多 200、全目录最多 50,000 SKU、每帧最多 2 MiB、全流最多 32 MiB、传输最多 30 秒；限额含义与升级限制见第 2.12 节。更新权限现状、README、项目约束和测试 DSN 说明；没有修改 CI/CD 工作流、部署脚本、真实配置或依赖版本。
 
-验证命令（移除三个真实数据库测试变量，Go 编译/测试串行调度，避免重复占用本机内存）：
+验证命令（移除真实数据库测试变量，Go 编译/测试串行调度，避免重复占用本机内存）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./infra/interceptor ./services/rpc/agent/internal/rag ./services/rpc/mall \
   ./services/rpc/mall/model/product_index \
@@ -2272,13 +2275,13 @@ git diff --check
 验证命令（移除真实数据库测试变量，所有 Go 任务以 `GOMAXPROCS=2`、`-p 1` 顺序运行）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/agent/recommend/... ./services/rpc/agent/internal/tools \
   ./services/rpc/agent/internal/rag ./services/rpc/agent/internal/svc \
@@ -2300,7 +2303,7 @@ git diff --check
 
 未运行与剩余边界：
 
-- 新增 `TestPostgresCandidateChecksObserveCommittedChanges` 仅在显式可丢弃 `BUDGETMATCH_TEST_POSTGRES_DSN` 下创建/清理随机 schema，覆盖提交后的改价、父/子下架及软删除/删除；本次仅编译并跳过。真实库、完整用户 JWT 服务联调、时间偏差与超时清理仍需另行授权。
+- 新增 `TestPostgresCandidateChecksObserveCommittedChanges` 仅在显式可丢弃 `RAG_TEST_PG_DSN` 下创建/清理随机 schema，覆盖提交后的改价、父/子下架及软删除/删除；本次仅编译并跳过。真实库、完整用户 JWT 服务联调、时间偏差与超时清理仍需另行授权。
 - 校验不是预占或下单承诺；模型提前写出的文件草稿不随最终重算追溯更新。预算/库存旧快照已过滤掉的商品、本轮 shortlist 以外的商品不自动补召回；不改变 M3.3/M4 的效果验收目标。
 - 未读取或修改真实 `.env`，未连接真实 Mall/PostgreSQL/Embedding/模型、未启动基础设施、未部署或重启；未修改 CI/CD 工作流、部署脚本或依赖版本，未提交或推送。升级仍须先 Mall 后 Agent；M3.2 外部验收未完成，下一步推进 M3.3 有界检索策略与基线对比。
 
@@ -2318,13 +2321,13 @@ git diff --check
 验证命令（Go 任务以 `GOMAXPROCS=2`、`-p 1` 顺序执行，测试移除真实数据库 DSN）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/agent/recommend/... ./services/rpc/agent/internal/tools \
   ./services/rpc/agent/internal/rag ./services/rpc/agent/internal/svc \
@@ -2376,13 +2379,13 @@ git diff --check
 验证命令（Go 任务双核、单包并行度顺序运行；测试移除真实数据库 DSN）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/eval ./services/rpc/agent/cmd/eval \
   ./services/rpc/agent/internal/tools
@@ -2442,13 +2445,13 @@ M4.1a 交付与边界：
 隔离验证（Go 命令双核、单包并行度、顺序运行）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/demand ./services/rpc/agent/internal/tools \
   ./services/rpc/agent/internal/eval ./services/rpc/agent/cmd/eval
@@ -2497,13 +2500,13 @@ git diff --check
 隔离验证（Go 命令双核、单包并行度、顺序运行）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=20 \
   ./services/rpc/agent/internal/agent/recommend/... \
   ./services/rpc/agent/internal/demand ./services/rpc/agent/internal/memory \
@@ -2548,13 +2551,13 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
 隔离验证（所有 Go 命令双核、单包并行度、顺序运行；数据库环境变量显式取消）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=10 \
   ./services/rpc/agent/internal/recommend/beam ./services/rpc/agent/internal/demand \
   ./services/rpc/agent/internal/tools ./services/rpc/agent/internal/agent/recommend
@@ -2612,13 +2615,13 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
 隔离验证（Go 命令均限制双核、单包并行度；不使用真实数据库变量）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=10 \
   ./services/rpc/agent/internal/demandexec ./services/rpc/agent/internal/recommend/beam \
   ./services/rpc/agent/internal/agent/recommend ./services/rpc/agent/internal/memory \
@@ -2642,14 +2645,14 @@ GOMAXPROCS=2 go build -p 1 ./...
 原有三套评测顺序复跑，代码标记为 `23b025d+M4.2b-worktree`，未覆盖既有归档：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval \
   -revision 23b025d+M4.2b-worktree \
   -compare services/rpc/agent/testdata/eval/baseline.v2/report.json -format json
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite scripted \
   -revision 23b025d+M4.2b-worktree -format json
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
   -revision 23b025d+M4.2b-worktree -format json
 ```
@@ -2671,10 +2674,10 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
 - 新执行固定使用关键词窗口，未接入旧向量/RRF 召回，也未改变旧默认策略。检索上限可能漏掉可行组合，公开范围/摘要和 `search_limited` 不声称全目录最优或生产效果提升。
 - README、唯一 Agent 文档、权限文档、配置与接口说明同步更新；PB 从 proto 生成，HTTP 说明从 API 定义生成。没有修改依赖、CI/CD、原有样本/标签/归档或真实 `.env`，没有执行迁移、录入分类、启用实例或部署。
 
-隔离验证（所有 Go 命令限制 `GOMAXPROCS=2`、`-p 1`；三个真实测试库变量均显式取消）：
+隔离验证（所有 Go 命令限制 `GOMAXPROCS=2`、`-p 1`；真实测试库变量均显式取消）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
@@ -2686,7 +2689,7 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
 新测试还覆盖：默认检查不读取分类表、分类握手及明确 unknown、错误版本/字段/响应拒绝、Mall 和 demo 证据不可混用、目录不可变与跨请求隔离、关键词输入/窗口/载荷上限、两次核验的权限/取消/依赖失败、改价/下架/分类变更后重选、类别撤销及版本回退、未找到时不返回部分方案。内存 gRPC 使用现有 JWT 拦截器、生产 Provider/Verifier 与执行接线，验证用户 Token 透传、无 Token 拒绝、规划→执行→持久化→重放、他人会话隔离及旧 Mall 失败不保存；另使用实际 Mall handler 的内存 RPC 测试复测普通用户/管理员允许、缺失/索引/支付凭据拒绝，不连接已部署的 Mall。
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=10 \
   ./services/rpc/mall/candidatecontract ./services/rpc/mall/model/product_index \
   ./services/rpc/mall/internal/logic/productservice ./services/rpc/agent/internal/demand \
@@ -2694,7 +2697,7 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
   ./services/rpc/agent/internal/recommend/beam ./services/rpc/agent/internal/agent/recommend \
   ./services/rpc/agent/internal/svc
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 ./services/rpc/agent/internal/recommend/beam \
   -run '^$' -fuzz '^FuzzBoundedSelectionSafety$' -fuzztime=10s -parallel=1
 ```
@@ -2756,14 +2759,14 @@ GOMAXPROCS=2 go run -p 1 ./services/rpc/agent/cmd/eval -suite retrieval \
 
 默认 Beam 在这次本机微基准中明显更慢、分配更多，不是性能优化承诺；更窄策略便宜但存在漏解。窗口 1/展开 1 也运行了三轮，分别只有 0/1 次展开，因返回空解而低成本不能被当作同等任务效果的提速。短时波动和质量回放 P95 都不是生产容量数据。
 
-验证入口（按顺序执行，显式取消三个真实数据库测试变量；不读取 `.env`）：
+验证入口（按顺序执行，显式取消真实数据库测试变量；不读取 `.env`）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=10 \
   ./services/rpc/agent/internal/eval ./services/rpc/agent/cmd/eval
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
@@ -2809,16 +2812,16 @@ goctl rpc protoc services/rpc/agent/proto/agent.proto \
 
 上述 plugin 路径是本机工具位置，其它机器使用相同版本的实际路径。第二次生成后四个生成文件 SHA-256 全部一致；仅移除生成器新建的重复 `agent.go` / `etc/agent.yaml` 脚手架，保留项目原 `main.go` / `etc/config.yaml`。
 
-验证全部使用 `GOMAXPROCS=2`、`-p 1` 和临时编译缓存，显式取消三个真实数据库测试变量，不读取 `.env`：
+验证全部使用 `GOMAXPROCS=2`、`-p 1` 和临时编译缓存，显式取消真实数据库测试变量，不读取 `.env`：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 \
   -run 'TestRecommendStream|TestUserStreamDeadline|TestStreamDeadlineUses|TestStreamClient' \
   ./services/rpc/agent/internal/logic/recommendservice ./infra/interceptor
@@ -2848,14 +2851,14 @@ env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_
 验证命令（顺序执行，显式移除真实数据库测试变量，不加载 `.env`）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
   -run 'Test(RecommendStreamEino|StreamProgress|StreamingTool|PrivateStream|BoundedStream|ServiceStream)' \
   ./services/rpc/agent/internal/agent/recommend/llm \
   ./services/rpc/agent/internal/agent/recommend \
   ./services/rpc/agent/internal/logic/recommendservice
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... \
@@ -2884,13 +2887,13 @@ git diff --check
 ```bash
 goctl api go -home ./tpls -api cmd/app/desc/app.api -dir cmd/app -style go_zero
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
   ./cmd/app/internal/logic/agent/... ./cmd/app/internal/handler/agent/...
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
   -run 'TestGateway|TestGeneratedStream' \
   ./cmd/app/internal/logic/agent ./cmd/app/internal/handler/agent
@@ -2933,13 +2936,13 @@ PLAYWRIGHT_BROWSERS_PATH=/tmp/budgetmatch-playwright-browsers \
 验证命令（Go 命令顺序执行，不在测试/构建时改 Go 源文件）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
   -run 'TestStreamBudget|TestUsageSnapshots|TestRunTrace|TestBoundedStreamUsage|TestBoundedStreamWhole|TestStreamService|TestRecommendStreamTrace' \
   ./services/rpc/agent/internal/runtrace ./services/rpc/agent/internal/agent/recommend \
   ./services/rpc/agent/internal/agent/recommend/llm ./services/rpc/agent/internal/logic/recommendservice
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
@@ -2984,12 +2987,12 @@ git diff --check
 验证命令（顺序执行 Go 检查，运行期间不修改 Go 源文件，不加载 `.env`）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
   -run 'TestRedisLease|TestTieredFaultMatrix|TestFaultMatrix' \
   ./services/rpc/agent/internal/memory ./services/rpc/agent/internal/logic/recommendservice
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
   ./infra/interceptor/... ./infra/serviceauth/... ./infra/middleware/... \
@@ -3026,12 +3029,12 @@ git diff --check
 验证命令（顺序执行，Go 检查期间不改 Go 源文件；日志写到本次临时目录）：
 
 ```bash
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -timeout=180s -json \
   ./services/rpc/agent/internal/storageacceptance
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
   ./services/rpc/agent/... ./services/rpc/mall/... ./services/rpc/payment/... \
@@ -3070,7 +3073,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts \
   -p test_agent_storage_acceptance.py -v
 
 # 后续离线回归再次移除所有真实入口；Go 任务顺序执行，期间不修改 Go 源文件。
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
@@ -3118,7 +3121,7 @@ git diff --check
 GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=10 -json \
   ./services/rpc/agent/internal/devrecords ./services/rpc/agent/cmd/dev-records
 
-env -u BUDGETMATCH_TEST_POSTGRES_DSN -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache go test -p 1 -race -count=1 -json \
@@ -3194,7 +3197,7 @@ M6.3a1 的本地入口已交付，M6.3a2 实际保留记录仍待目标库明确
 
 私有过程目录 `/tmp/budgetmatch-agent-remote-check.4ELGRe` 保留一次性只读检查脚本及 `tls-readonly.json`、`scram-readonly.json`；目录权限 `0700`、报告 `0600`。报告不包含口令或完整 DSN，真实地址仅保留在本地私有证据中，未写入仓库。`.env`、服务配置和 Go 源码本轮均未修改，原待提交的诊断工具代码保留，CLI 的本机目标限制没有放宽。只更新三份文档并检查补丁空白及本地文件链接，不重跑 Go 测试，不提交或推送。
 
-下一步需要正确目标的可用连接配置，建议通过本地私密文件提供，再以只读方式核实实际库名、结构和已有账号。不得将真实业务 DSN 写入供清理性测试使用的 `BUDGETMATCH_TEST_POSTGRES_DSN`，也不能直接把本机工具示例用于远程库。M6.3a2 实际保留记录和页面联调仍未完成。
+下一步需要正确目标的可用连接配置，建议通过本地私密文件提供，再以只读方式核实实际库名、结构和已有账号。不得将真实业务 DSN 写入供清理性测试使用的 `RAG_TEST_PG_DSN`，也不能直接把本机工具示例用于远程库。M6.3a2 实际保留记录和页面联调仍未完成。
 
 ### 2026-09-20：诊断代码本地提交与远程联调入口
 
@@ -3311,7 +3314,7 @@ README、权限文档及本页当前目标/收尾清单改为最新新建本机�
 
 ```bash
 # 显式取消真实存储测试入口，不能继承本机保留库或现有部署 DSN。
-env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN -u BUDGETMATCH_TEST_POSTGRES_DSN \
+env -u AGENT_MEMORY_TEST_PG_DSN -u RAG_TEST_PG_DSN \
   -u AGENT_STORAGE_ACCEPTANCE_CONFIG -u AGENT_STORAGE_ACCEPTANCE_RUN_ID \
   -u AGENT_STORAGE_ACCEPTANCE_RECOVERY -u AGENT_STORAGE_ACCEPTANCE_WORKER \
   GOMAXPROCS=2 GOCACHE=/tmp/budgetmatch-go-cache \

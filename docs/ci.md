@@ -40,11 +40,10 @@ Go 检查执行 `go mod download`、`go mod verify`、`go vet ./...`、竞态测
 | 环境变量 | 用途及当前行为 |
 | --- | --- |
 | `ETCD_HOSTS` | 配置中心与分布式锁测试必需；未设置时 Go 检查脚本启动临时 etcd 容器 |
-| `RAG_TEST_PG_DSN` | pgvector 集成测试，以及会话存储测试的备用 DSN；未设置时脚本启动临时 pgvector 容器。直接运行 `go test` 时，未配置会跳过相关数据库测试 |
+| `RAG_TEST_PG_DSN` | pgvector、商城订单事务、Outbox/Inbox、目录快照 MVCC、在线候选新鲜度集成测试共用连接，也是会话存储测试的备用 DSN；未设置时脚本启动临时 pgvector 容器。直接运行 `go test` 时，未配置会跳过相关数据库测试 |
 | `AGENT_MEMORY_TEST_PG_DSN` | 会话存储测试优先使用的 DSN；未设置时使用 `RAG_TEST_PG_DSN` |
-| `BUDGETMATCH_TEST_POSTGRES_DSN` | 商城订单事务、Outbox/Inbox 模型、商品目录快照 MVCC 及在线候选新鲜度集成测试；后两类创建并清理独立随机 schema。当前工作流和脚本未主动设置，缺少时这些测试会跳过 |
 
-GitHub Actions 提供专用 etcd 和 pgvector PostgreSQL 16，并设置前两个变量。自行提供变量时只能连接可丢弃的测试环境：测试会改写键值或创建、删除表，不能使用业务库或生产服务。`make test` 不负责启动这些依赖。
+GitHub Actions 提供专用 etcd 和 pgvector PostgreSQL 16，并设置前两个变量；商城用例也使用这一现有连接，不再依赖另一套本地测试 DSN。商城订单/Outbox/Inbox 及目录测试分别创建并清理随机 schema，避免并发迁移互相影响。自行提供变量时只能连接可丢弃的测试环境：测试会改写键值或创建、删除表，不能使用业务库或生产服务。业务 `.env` 和 `.env.example` 不保存测试连接，测试不回退读取 `DATABASE_DSN`；`make test` 不负责启动这些依赖。
 
 ### 可选真实 Nginx 代理回归
 

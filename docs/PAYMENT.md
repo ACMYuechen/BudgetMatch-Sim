@@ -232,13 +232,9 @@ GOCACHE=/tmp/budgetmatch-go-cache go test -count=1 \
 - 服务 Token 的调用方、audience、签名、有效期和用户 JWT 隔离；
 - ConfirmPayment 服务身份限制、幂等确认和事务回滚。
 
-PostgreSQL 事务集成测试必须使用独立测试库：
+PostgreSQL 事务集成测试复用 CI 已有的 `RAG_TEST_PG_DSN`，不需要在业务 `.env` 维护另一套测试库配置。`scripts/ci/go-check.sh` 未配置该变量时会启动临时 pgvector 容器；直接执行 `go test` 未显式提供时跳过数据库用例，不回退到业务 `DATABASE_DSN`。
 
-```dotenv
-BUDGETMATCH_TEST_POSTGRES_DSN="host=127.0.0.1 user=root password=123456 dbname=budgetmatch_sim_test port=15432 sslmode=disable TimeZone=Asia/Shanghai"
-```
-
-不要把集成测试指向日常开发库，避免测试数据影响本地订单。
+订单事务、Outbox/Inbox 用例分别创建并清理随机 schema。测试连接仍必须是可丢弃环境，不能指向日常开发库或生产库。
 
 ## 九、常见问题
 
