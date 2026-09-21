@@ -85,12 +85,12 @@ echo $! > $PID_DIR/payment-rpc.pid
 sleep 3
 
 echo "  → app (port 10002)"
-nohup go run -C cmd/app . > $LOG_DIR/app.log 2>&1 &
+nohup go run -C cmd/app -buildvcs=true . > $LOG_DIR/app.log 2>&1 &
 echo $! > $PID_DIR/app.pid
 sleep 2
 
 echo "  → admin (port 10001)"
-nohup go run -C cmd/admin . > $LOG_DIR/admin.log 2>&1 &
+nohup go run -C cmd/admin -buildvcs=true . > $LOG_DIR/admin.log 2>&1 &
 echo $! > $PID_DIR/admin.pid
 
 echo ""

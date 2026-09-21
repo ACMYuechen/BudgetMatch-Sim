@@ -21,6 +21,10 @@
 
 这些是服务监听端口，不代表都应对公网开放。实际暴露方式由 Compose / K3s 配置决定；当前 RPC 安全缺口见[权限文档](access-control.md#待修复风险)。
 
+App（10002）和 Admin（10001）的 `GET /api/health` 均返回 HTTP 200 与 `{"status":"OK","commit":"<完整源码提交 SHA>"}`，不需要登录或访问数据库。`commit` 表示构建时的业务仓库版本；本地未提交修改仍对应当前 HEAD。普通 Go 构建读取内嵌 VCS 信息，`make run` 已为两个网关启用 `-buildvcs=true`；手动 `go run` 也需加此参数。无版本信息时返回 `unknown`。
+
+容器构建通过 `COMMIT_SHA` 参数写入版本。手动 Compose 构建可运行 `COMMIT_SHA=$(git rev-parse HEAD) docker compose build`；代码 CI 和运维发布工作流自动传入业务源码 SHA，生产镜像的提交号与 `release.json` 的 `source_sha` 一致。
+
 ## 数据与基础设施
 
 | 依赖 | 用途 | 地址规则 |

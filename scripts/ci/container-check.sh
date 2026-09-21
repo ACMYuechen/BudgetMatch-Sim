@@ -173,6 +173,9 @@ build_image() {
 
   local image="budgetmatch-sim/${name}:${IMAGE_TAG}"
   local -a build_args=("$@")
+  if [[ "${name}" != "web-ui" ]]; then
+    build_args+=(--build-arg "COMMIT_SHA=$(git rev-parse HEAD)")
+  fi
 
   echo "Building ${image}"
   if docker buildx version >/dev/null 2>&1; then

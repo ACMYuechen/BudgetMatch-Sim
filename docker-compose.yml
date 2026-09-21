@@ -109,6 +109,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./services/rpc/auth
         PORT: 10003
     container_name: budgetmatch-sim-auth-rpc
@@ -136,6 +137,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./services/rpc/seckill
         PORT: 10004
     container_name: budgetmatch-sim-seckill-rpc
@@ -163,6 +165,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./services/rpc/mall
         PORT: 10005
     container_name: budgetmatch-sim-mall-rpc
@@ -198,6 +201,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./services/rpc/agent
         PORT: 10006
     container_name: budgetmatch-sim-agent-rpc
@@ -237,6 +241,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./services/rpc/payment
         PORT: 10007
     container_name: budgetmatch-sim-payment-rpc
@@ -273,6 +278,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./cmd/app
         PORT: 10002
     container_name: budgetmatch-sim-app
@@ -310,6 +316,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        COMMIT_SHA: ${COMMIT_SHA:-}
         SERVICE_PATH: ./cmd/admin
         PORT: 10001
     container_name: budgetmatch-sim-admin

@@ -6,6 +6,8 @@ import (
 	"context"
 
 	"budgetmatch-sim/cmd/app/internal/svc"
+	"budgetmatch-sim/cmd/app/internal/types"
+	"budgetmatch-sim/infra/buildinfo"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -25,6 +27,6 @@ func NewHealthLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HealthLogi
 	}
 }
 
-func (l *HealthLogic) Health() error {
-	return nil
+func (l *HealthLogic) Health() (*types.HealthResp, error) {
+	return &types.HealthResp{Status: "OK", Commit: buildinfo.Commit()}, nil
 }
