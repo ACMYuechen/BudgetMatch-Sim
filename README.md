@@ -1,122 +1,56 @@
 # BudgetMatch-Sim
 
-BudgetMatch-Sim 是一个面向电商组合决策场景的智能推荐系统原型。项目以 go-zero 微服务架构承载认证、商城、秒杀、支付与推荐 Agent 等核心能力，结合商品价格、库存、预算和用户偏好等多维约束，通过规则引擎、向量检索与 LLM Agent 生成可解释、可落地的购物组合方案。它既是一个高并发电商业务底座，也是一套用于验证 AI Agent 参与真实交易链路决策的工程化实验平台。
+面向电商组合决策的智能推荐系统原型：提供认证、商城、秒杀、支付和推荐 Agent，结合预算、价格、库存与用户偏好生成购物组合。
 
-## 技术栈
+技术栈：Go / go-zero / gRPC、React / Vite / Ant Design、Eino ReAct、PostgreSQL / pgvector、Redis、etcd、RocketMQ；支持 Docker Compose 与 K3s 部署。
 
-- **语言**: Go 1.26.8（版本以 [go.mod](go.mod) 为准）
-- **Web 框架**: [go-zero](https://github.com/zeromicro/go-zero)
-- **RPC**: gRPC + Protocol Buffers
-- **前端**: React + Vite + Ant Design（`web-ui`）
-- **Agent 框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) ReAct
-- **MCP**: [Model Context Protocol](https://modelcontextprotocol.io/)（通过 `mark3labs/mcp-go` 接入）
-- **数据库**: PostgreSQL 16
-- **缓存**: Redis 7
-- **服务注册**: etcd
-- **消息队列**: RocketMQ
-- **部署**: Docker & Docker Compose
-- **代码生成**: goctl
+## 从这里开始
 
-## 服务架构
+| 你想做什么 | 阅读入口 |
+| --- | --- |
+| 找文档、了解阅读顺序 | [文档导航](docs/README.md) |
+| 看完成范围和剩余事项 | [项目状态](docs/status.md) |
+| 了解服务、端口和代码分层 | [架构与代码地图](docs/architecture.md) |
+| 配置数据库、密钥与模型 | [配置指南](SECRETS.md) · [本地数据源](docs/local-data.md) |
+| 开发推荐或前端功能 | [Agent 指南](docs/agent.md) · [前端指南](docs/frontend-roadmap.md) |
+| 部署和排查 CI | [CI/CD 总览](docs/cicd.md) · [VPS 运维](docs/deployment-vps.md) |
+| 查看权限边界和已知风险 | [权限与安全](docs/access-control.md) |
 
-下图使用 `make dev` 的默认宿主机访问端口；容器内端口与全容器模式的区别见下表。
+本地开发与自动化验证已有完整链路，但这不等于生产验收完成。已知 RPC 权限缺口、部署版本差异和人工复核事项见[项目状态](docs/status.md)。
 
-```
-            ┌─────────────┐      ┌─────────────┐
-            │  Admin API  │      │   App API   │   REST Gateway (cmd/)
-            │   :10001    │      │   :10002    │
-            └──────┬──────┘      └──────┬──────┘
-                   │                    │
-                   └──────────┬─────────┘
-                              │ gRPC
-       ┌──────────┬───────────┼─────────────┬──────────────┐
-       │          │           │             │              │
-┌──────┴─────┐ ┌──┴────┐ ┌────┴────┐ ┌──────┴─────┐ ┌──────┴──────┐
-│   auth-rpc │ │seckill│ │ mall-rpc│ │  agent-rpc │ │ payment-rpc │       RPC Services (services/rpc/)
-│  :10003    │ │:10004 │ │ :10005  │ │  :10006    │ │   :10007    │
-└────────────┘ └───────┘ └─────────┘ └────────────┘ └─────────────┘
-       │          │           │             │              │
-       └──────────┴───────────┴─────────────┴──────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-     ┌────────┴────────┐  ┌───┴────┐ ┌────────┴─────────┐
-     │  PostgreSQL     │  │  etcd  │ │    RocketMQ      │
-     │    :15432       │  │ :22379 │ │ :19876 / :10911  │
-     │  Redis :6379    │  │        │ │                  │
-     └─────────────────┘  └────────┘ └──────────────────┘
-```
+## 本地快速开始
 
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| `cmd/admin` | 10001 | 管理后台 REST API |
-| `cmd/app` | 10002 | 客户端 REST API |
-| `services/rpc/auth` | 10003 (gRPC) | 认证与用户 RPC |
-| `services/rpc/seckill` | 10004 (gRPC) | 秒杀活动 RPC |
-| `services/rpc/mall` | 10005 (gRPC) | 商城商品与订单 RPC |
-| `services/rpc/agent` | 10006 (gRPC) | 推荐 Agent RPC |
-| `services/rpc/payment` | 10007 (gRPC) | 支付 RPC（支付宝沙箱当面付） |
-| `web-ui` | 5173 / 8080 | Vite 开发服务器 / Compose 中的前端入口 |
-| `postgres` | 15432 | 主数据库，容器内为 5432 |
-| `redis` | 6379 | 缓存与限流 |
-| `etcd` | 22379 / 12379 | `make dev` / Compose 默认宿主机端口，容器内为 2379 |
-| `rocketmq` | 19876 / 9876；10911 | NameServer 的 `make dev` / Compose 默认宿主机端口；Broker 端口 |
+### 1. 准备依赖
 
-容器之间使用 `postgres:5432`、`etcd:2379`、`rocketmq-namesrv:9876` 等服务地址。etcd 和 NameServer 的宿主机端口可受环境变量覆盖，以 [开发脚本](scripts/dev.sh) 和 [Compose 配置](docker-compose.yml) 为准。
+- Go 版本与 [go.mod](go.mod) 一致，当前为 1.26.8。
+- 可用的 Docker daemon 和 Docker Compose。
+- Node.js 20 与 npm，用于前端开发。
+- 仅在生成代码时需要 goctl，见[开发规范](Contributors.md#工具链与依赖版本)。
 
-## 快速开始
-
-### 1. 前置依赖
-
-- Go 1.26.8，版本与 `go.mod` 保持一致
-- Docker & Docker Compose
-- Node.js 20 和 npm（运行或构建前端时需要，与当前 CI 保持一致）
-- [goctl](https://go-zero.dev/docs/tasks/installation/goctl)（生成代码时需要）
-
-项目工具链、gRPC 依赖与容器构建版本的维护方式见 [开发文档](Contributors.md#工具链与依赖版本)。
-
-### 2. 配置环境变量
+### 2. 配置环境
 
 ```bash
 [ -f .env ] || cp .env.example .env
+chmod 600 .env
 ```
 
-编辑 `.env` 填入你的真实密钥。必要变量：
+编辑 `.env`，核对数据库、Redis、JWT 等参数，详见[配置指南](SECRETS.md)。不要用模板覆盖已有密钥，也不要将生产密码复制到本地开发配置。
 
-| 变量 | 说明 |
-|------|------|
-| `DATABASE_DSN` | 宿主服务使用的本机 Docker PostgreSQL 连接，按实际端口/账号填写 |
-| `REDIS_ADDRESS` / `REDIS_PASSWORD` | 本机 Docker Redis 地址和密码；不复用生产配置 |
-| `JWT_SECRET` | JWT 签名密钥，建议 ≥ 32 位随机字符串 |
-| `EMAIL_FROM` | 发件邮箱（如 QQ 邮箱） |
-| `EMAIL_PASSWORD` | 邮箱 SMTP 授权码 |
-| `LLM_PROVIDER` | LLM 服务商（如 `openai`），留空则走本地规则推荐 |
-| `LLM_MODEL` | 模型名称（如 `gpt-4.1-mini` / `deepseek-flash`），不自动转换旧名称 |
-| `LLM_THINKING` | 使用 `deepseek-flash` 时必须为 `disabled`；其他模型留空 |
-| `LLM_BASE_URL` | 模型 API 地址（如 `https://api.openai.com/v1`） |
-| `LLM_API_KEY` | 模型 API 密钥 |
+已有 Docker 数据时先看[本地数据源](docs/local-data.md)：本机复用实例的 PostgreSQL 端口为 **5432**，模板面向新环境的默认值为 **15432**，不能直接混用。不要删除数据卷来解决连接问题。
 
-> 完整密钥说明见 [密钥配置指南](SECRETS.md)。`.env` 已加入 `.gitignore`，不会提交到仓库。
+仅体验规则推荐时，将 `LLM_PROVIDER` 与 `EMBEDDING_PROVIDER` 留空。模板默认的 `LLM_PROVIDER=openai` 需要有效模型配置；启用 Embedding 后，后台索引同步也可能产生外部调用。
 
-已有 Docker 数据时，先核对容器、卷和镜像，不要直接用示例覆盖 `.env`。本机已复用原有卷，实际 PostgreSQL 端口为 **5432**（模板默认仍为 15432），详细映射、独立测试库和向量扩展见 [本地 Docker 数据源](docs/local-data.md)。生产使用独立外部数据库，见 [VPS 部署](docs/deployment-vps.md)。下面的模型验收段落为历史记录，不代表当前数据源仍使用历史测试库。
-
-Flash 的非思考设置现由应用传给 SDK，不再依赖验收代理补字段。旧 `.env` 不会随模板自动更新，切换模型时须一起核对 `LLM_MODEL` 与 `LLM_THINKING`；配置缺失/不支持时在数据库等外部依赖初始化前拒绝启动。`LLM_PROVIDER` 留空仍关闭模型。示例、兼容与回退边界见 [Flash 配置迁移说明](docs/agent.md#1114-m63b-flash-正式配置接入与离线迁移检查)。用户授权后，本机 `.env` 已同步并完成一次真实 SDK 最小请求，测试 DSN 改用独立低权限测试库；不提交 `.env`，部署 Secret 未改，具体范围见 [实际配置验收](docs/agent.md#1115-m63b-env-同步与真实配置验收)。
-
-### 3. 一键启动
+### 3. 启动后端
 
 ```bash
 make dev
 ```
 
-该命令会：
-
-1. 加载 `.env` 环境变量
-2. 启动 PostgreSQL、Redis、etcd、RocketMQ 等基础设施
-3. 启动 auth-rpc、seckill-rpc、mall-rpc、agent-rpc、payment-rpc、app、admin 七个服务
+该命令加载 `.env`，启动基础设施和七个后端服务；不启动前端。脚本会清理开发端口上的旧进程，执行前确认没有其他项目占用这些端口。日志位于 `logs/`。
 
 ### 4. 启动前端
 
-`make dev` 只启动基础设施和七个后端服务。另开一个终端：
+另开终端：
 
 ```bash
 cd web-ui
@@ -124,153 +58,30 @@ npm ci
 npm run dev
 ```
 
-用户端地址为 `http://localhost:5173`，管理端为 `http://localhost:5173/admin`，需要管理员账户。Vite 将 `/api/admin` 代理到 `10001`，其余 `/api` 代理到 `10002`。
+用户端：`http://localhost:5173`；管理端：`http://localhost:5173/admin`，需要管理员账号。Vite 将 `/api/admin` 代理到 `10001`，其余 `/api` 代理到 `10002`。
 
-四个阶段的前端实现与模拟 API 验证已完成；另已通过本机真实 Auth/Agent/网关/数据库的登录、推荐与历史恢复联调，限定规则 + Mock 模式。浏览器经真实模型、商城、支付与部署环境的完整联调仍待验收；后端 Flash 限定实跑见下文 Agent 进度，不能代替浏览器验证。详细边界与浏览器测试命令见 [前端路线图](docs/frontend-roadmap.md)。
+### 5. 检查与停止
 
-### 5. 验证
+在仓库根目录执行：
 
 ```bash
 make smoke-test
-```
-
-### 6. 停止
-
-前台运行的 Vite 用 `Ctrl+C` 停止，后端与基础设施使用：
-
-```bash
 make dev-stop
 ```
 
-## 常用命令
+冒烟检查不能代替完整业务验收。前台 Vite 使用 `Ctrl+C` 停止；`make dev-stop` 会停止后端及 Compose 基础设施，不删除数据卷。
 
-```bash
-# 查看帮助
-make help
+## 常用开发命令
 
-# 生成所有 API/RPC 代码
-make api-all
+| 命令 | 用途与注意事项 |
+| --- | --- |
+| `make help` | 查看可用目标 |
+| `make test` | Go 测试；不自动加载 `.env`，数据库集成用例需要显式测试环境 |
+| `bash scripts/ci/go-check.sh` | Go CI 检查；可准备并清理自有临时集成环境，见 [CI 指南](docs/ci.md) |
+| `go run ./services/rpc/agent/cmd/eval -format markdown` | 离线规则评测，不调用外部模型 |
+| `make api-all` | 重新生成 API/RPC 代码及 Swagger；执行后检查生成差异 |
+| `make docker-up` / `make docker-down` | 全容器模式；先核对与宿主机开发模式不同的连接配置 |
 
-# 运行 Go 测试（需配置独立测试环境，见 docs/ci.md）
-make test
+接口定义以 [App API](cmd/app/desc/app.api)、[Admin API](cmd/admin/desc/admin.api) 和各服务的 `.proto` 为准。生成的 Swagger JSON 不受 Git 跟踪，干净检出中不保证存在。
 
-# 查看服务日志
-tail -f logs/auth-rpc.log
-tail -f logs/seckill-rpc.log
-tail -f logs/mall-rpc.log
-tail -f logs/agent-rpc.log
-tail -f logs/payment-rpc.log
-tail -f logs/app.log
-tail -f logs/admin.log
-
-# 测试推荐接口
-curl -X POST http://localhost:10002/api/agent/recommend \
-	-H "Authorization: Bearer <登录返回的token>" \
-  -H "Content-Type: application/json" \
-	-d '{"query":"预算5000买手机","budget_cents":500000,"max_items":3,"turn_id":"<本轮UUID>"}'
-
-# Docker 全量部署
-make docker-up
-make docker-down
-```
-
-## 目录结构
-
-```
-.
-├── .github/workflows/  # CI 检查与 main 手动发布入口
-├── cmd/                # REST API Gateway 层
-│   ├── admin/          # 管理后台
-│   └── app/            # 客户端 API
-├── services/           # gRPC 业务服务层
-│   └── rpc/
-│       ├── auth/       # 认证与用户服务
-│       ├── seckill/    # 秒杀服务
-│       ├── mall/       # 商城商品与订单服务
-│       ├── agent/      # 推荐 Agent 服务
-│       └── payment/    # 支付服务（支付宝沙箱当面付）
-├── infra/              # 基础设施封装（数据库、Redis、JWT、OSS、限流等）
-├── web-ui/             # 用户端、管理端与 Playwright 浏览器测试
-├── deploy/             # Argo CD 声明、服务器环境配置与发布镜像定义
-├── docs/               # 文档与生成的 Swagger
-├── scripts/            # 开发脚本；ci/ 检查、deploy/ 发布工具
-├── tests/cicd/         # CI/CD 工具回归测试
-├── tpls/               # goctl 模板
-├── Makefile            # 常用命令
-├── docker-compose.yml  # 基础设施编排
-└── Dockerfile          # 服务构建镜像
-```
-
-## 关键路径
-
-| 路径 | 说明 |
-|------|------|
-| `cmd/<app>/desc/**/*.api` | REST API 定义 |
-| `cmd/<app>/internal/logic/` | API 层业务逻辑（手写） |
-| `cmd/<app>/internal/handler/` | HTTP handler（goctl 生成） |
-| `services/rpc/<service>/proto/<service>.proto` | RPC protobuf 定义 |
-| `services/rpc/<service>/internal/logic/` | RPC 层业务逻辑（手写） |
-| `services/rpc/<service>/pb/` | 生成的 protobuf Go 代码（不要编辑） |
-| `services/rpc/<service>/client/` | 生成的 RPC 客户端包装（不要编辑） |
-| `infra/errors` | 统一业务错误码、文案和 HTTP 状态映射 |
-| `infra/interceptor` | gRPC 认证与 token 透传拦截器 |
-
-## Agent 能力
-
-- LLM 链路使用 Eino ReAct Agent，入口在 `services/rpc/agent/internal/agent/recommend/llm/agent.go`。
-- 默认 Eino 工具为 `search_products`、`select_bundle`。文件工具默认关闭；启用后按认证用户隔离，写入另需 `AllowWrite` 和本轮 `/save <相对路径>` 指令，只创建、不覆盖。
-- MCP 默认关闭，只注入精确白名单内且声明只读的工具；配置在 `services/rpc/agent/etc/config.yaml`。日志与公开工具记录只保留执行元数据，不记录正文或原始错误。
-- 支持可恢复多轮对话：`conversation_id` 标识会话，`turn_id` 保证单轮幂等；结构化约束跨轮继承，配置 PostgreSQL 时长期保存会话与完整轮次，Redis 可作为最近窗口缓存。
-- 已提供无外部依赖的离线规则评测：`go run ./services/rpc/agent/cmd/eval -format markdown`，64 条合成用例的终态门禁通过，可满足任务成功率为 25/40；原始失败基线保留，可用 `-compare` 对比。`-suite scripted` 另运行 16 个 Fake Model + 真实 ReAct 容错场景，不调用付费 API；真实向量/模型对照未运行。
-- `go run ./services/rpc/agent/cmd/eval -suite retrieval -format markdown` 比较固定排序输入上的关键词/向量单路消融、向量优先与 RRF；质量、故障、读取窗口和调用量分开报告。它不运行真实语义检索、不评估最终组合，也不自动切换默认策略。
-- `go run ./services/rpc/agent/cmd/eval -suite demand -format markdown` 另跑同快照贪心/Beam 及受限策略对照、独立穷举和商城核验内存回放；保留漏解反例，分开报告安全、覆盖和计算开销。仅为合成回归，不改旧基线、线上策略或真实配置，详见 [M4.3a 报告](services/rpc/agent/testdata/eval/demand-baseline.v1/report.md)。
-- 人工复核准备入口：`go run ./services/rpc/agent/cmd/eval-review -out /tmp/agent-review-001`，输出全量工作单与待填写记录；`-check <review.json>` 校验数据版本和完整性，不认证人工身份、不自动通过验收。
-- 新增 `RecommendStream` RPC：用户 JWT、≤30 秒传输 deadline、共享校验/原子保存、重放及取消传播。已接入 Eino Stream、脱敏工具事件和有界背压；独立解释模型只接收四个数字，增量不保存、不作为下单依据。M5.3a 新网页以 `stream_version: 1` 接入 RPC/SSE，临时文本和工具状态在失败/停止时清除，final + done + 正常 EOF 后才展示权威方案；旧请求保留 unary 阶段 SSE，不因流中失败自动重跑。增加一次受限模型调用；M6.3b 已获得本机 Flash 单轮时延/用量样本，实际账单和部署性能仍未验收，详见 [HTTP 协议与兼容边界](docs/agent.md#106-m53a-网关与网页版本化接入)。
-- M5.3b 增加流式生成/核验保存/发送的分段预算、全轮 65,536 近似 Token 准入与请求汇总日志；记录供应商报告 Usage、首个公开增量、锁等待/总耗时、路径与提交/重放状态。重复 Usage 不叠加，缺失或未完成记 unknown，货币成本仍 unknown；不是实际账单或强制终止不响应取消的依赖。详见 [预算与统计口径](docs/agent.md#107-m53b-分段预算与请求级用量追踪)。
-- M6.1 补充双 Service/RPC 共享 Redis 模拟器的并发/故障验证，并修复 Redis-only 租约过期后旧请求仍能写入的边界：保存、删除、追加及标题写入共用令牌条件提交，执行期限短于租约，失效不自动重获锁提交旧结果。保持原 key/JSON/API，不代表真实 Redis failover、Cluster 或多进程已验收，详见 [故障矩阵与交付清单](docs/agent.md#11-m6并发故障与交付验证)。
-- M6.2 已在用户授权的新建 PostgreSQL/pgvector、Redis 单节点实例上完成三轮多进程故障矩阵、异常停止后的结果重放、全新 PG 数据目录的备份恢复及已有存储集成用例。实例均已关闭，合成数据/日志保留；普通测试仍默认跳过真实入口，不能将结果外推为 Cluster/掉电/生产灾备或模型质量结论。运行条件与影响范围见 [真实存储验收](docs/agent.md#114-m62b-独立真实存储重启与备份恢复验收)。
-- M6.3a1 提供单独的 `dev-records` 本机开发库入口：默认只读预检，显式选择库/已有账号后才保存两轮演示历史；重复执行严格重放，不清库、不迁移、不调用外部模型。2026-09-20 用户最新要求改用新建本机库，独立配置与启动方式见[本机保留库联调](docs/agent.md#1110-m63a2-新建本机保留库与真实-rpc-联调)；不复用或覆盖 `.env` 的清理性测试 DSN。
-- M6.3a2 已通过提交后确认、重放、只读复查、正常重启和 10 项真实 TCP RPC 检查；另通过[真实登录与浏览器验收](docs/agent.md#1111-m63a2-真实登录与保留库浏览器验收)的 8 个步骤，覆盖 Auth 签发 JWT、HTTP/SSE 两轮推荐、刷新恢复及双账号隔离。该步结束时 `127.0.0.1:15432/budgetmatch_agent_dev` 保留 2 个普通账号、2 个会话和 4 轮，原历史不变；数据库继续运行，临时服务已停止。商品仍为规则演示 Mock，常规网页配置未切换，不代表真实模型、商城或部署验收。另保留显式授权与 `verify-full` TLS 的[远程联调入口](docs/agent.md#118-m63a2-显式远程目标与-tls-连接保护)；本轮未访问远程，历史失败不被本机成功覆盖。
-- M6.3b 补齐[本机 TCP 代理预验收](docs/agent.md#119-m63b-本机-tcp-代理预验收)：HTTP 客户端 → Go 反向代理 → 网关 → TCP gRPC，覆盖进度及时转发、终帧后的迟到错误、客户端/代理断连和实际 socket 写超时。RPC 生产者为受控替身，不调用模型或数据库，不代表部署中的 Nginx/Ingress 或供应商验收；剩余条件集中见[最终收尾门槛](docs/agent.md#131-最终收尾门槛)。
-- M6.3b 经用户确认完成[本机 Flash 真实流式与取消验收](docs/agent.md#1113-m63b-flash-真实流式与取消验收)，修复真实 SDK 拒绝解释流空工具绑定的问题。成功轮次有 50 个公开增量，落库与同 ID 重放通过；重启需等待只读接口就绪，取消请求未落库。失败调用一并计入本轮 10 次 / 5 元授权，实际 8 次请求，总费用保守上界 2.134688 元，取消 Usage / 实际账单未知。现保留 2 账号 / 3 会话 / 5 轮，`.env` 与既有服务不变；自有临时服务已停止。不是部署代理、真实饱和背压、浏览器模型联调或版本回滚通过。
-- M6.3b 已补齐 Flash 正式配置透传、启动前校验、Compose 与 K8s 清单离线兼容检查；保护层接受应用显式的非思考参数，不放宽原调用/费用边界。本机 `.env` 已同步，真实最小请求通过；累计 9 次调用，总费用保守上界 2.134714 元。部署环境切换、代理和版本回滚仍待验收。
-- M6.3b 新增[本机真实 Nginx 验收](docs/agent.md#1116-m63b-本机真实-nginx-模板与保留库联调)：加载仓库模板，真实登录/用户隔离、已有结果重放、断连取消数据库锁等待和自有代理重启通过，保留 2/3/5 记录且零新增模型调用。另提供显式开启的 Nginx 回归入口；不是 VPS/Ingress、真实供应商饱和背压或版本回滚验收。
-- M4.2d 补齐[结构化执行的向量/RRF 接线](docs/agent.md#m42d显式有界向量rrf-与结构化执行接线)：显式 `DemandExecution.Retrieval: rag` 才启用，共享索引，保留有界回退、在线用户鉴权和 Mall 双次事实核验；默认关键词/执行关闭，不代表真实语义效果已验收。
-- [硅基流动 BGE-M3 配置](docs/agent.md#217-硅基流动-bge-m3-配置与兼容边界)使用 `EMBEDDING_DIMENSIONS=1024`，远端省略固定模型不支持的 `dimensions` 参数。[真实本机 RAG 闭环](docs/agent.md#1118-本机真实-rag-闭环与新记录版本回退)已连通独立 pgvector、Mall、Embedding 和向量/RRF 执行，验证价格/库存变化、失败不落库及新旧版本重放；只用 6 个合成 SKU，不代表真实业务质量或部署验收。
-- [本机二进制回退与自动验收归档](docs/agent.md#1117-m63c-本机二进制回退与本轮自动验收归档)已完成：新 Agent → `d7ff36a` → 新 Agent，保留记录重放一致；29 包竞态回归和四套离线门禁通过。单实例切换有短暂错误，不是 VPS/K3s 回滚或无中断发布；部署与真实质量/费用验收仍需对应条件。
-- 接口、会话、评测口径与分步计划统一见 [Agent 开发文档](docs/agent.md)。当前授权范围内的代码和本机联调已收尾，`/intent/execute` 默认仍关闭；未在现有业务环境迁移、回填或启用。尚缺实际部署代理/回滚与账单核对、真实业务分类和检索质量评测、独立人工复核，条件见[最终收尾门槛](docs/agent.md#131-最终收尾门槛)，不把本机通过当作生产结项。
-
-## 错误处理与日志规范
-
-- 统一业务错误定义在 `infra/errors`，`AppError.Error()` 输出 `code:msgId`，HTTP 状态码由错误码前三位决定。
-- RPC logic 返回业务错误时直接返回 `infra/errors` 中的错误值，例如 `errors.UserNotFound`、`errors.MallStockNotEnough`、`errors.InvalidToken`。
-- API logic 调用 RPC 失败时，先用 `l.Logger.Errorf(...)` 记录上下文，再原样 `return err` / `return nil, err`；不要把 RPC 返回的业务错误包装成 `errors.Internal`、`errors.Database` 等本地错误，否则客户端会丢失真实业务错误码。
-- API logic 的本地校验错误仍然直接返回本地 `infra/errors`，例如未登录、参数非法、RPC 响应对象为空等不来自 RPC `err` 的分支。
-- logic 层所有 error 返回点都必须至少打印一条 `logx` 日志，优先使用 go-zero 生成的 `l.Logger.Errorf(...)`，日志内容要包含操作语义和原始错误。
-
-相关开发规范见：
-
-- [开发与 Git 提交规范](Contributors.md)
-- [CI/CD 总览与目录导航](docs/cicd.md)
-- [CI 说明](docs/ci.md)
-- [服务器 Argo CD 手动发布](docs/gitops.md)
-- [前端进度与验证](docs/frontend-roadmap.md)
-- [错误库规范](infra/errors/README.md)
-
-## 接口文档
-
-接口契约以仓库中的 go-zero API 定义为准：
-
-- Admin API: [cmd/admin/desc/admin.api](cmd/admin/desc/admin.api)
-- App API: [cmd/app/desc/app.api](cmd/app/desc/app.api)
-
-需要 Swagger 时运行 `make api-all`，生成 `docs/admin-api.json` 和 `docs/app-api.json`，可通过 Swagger UI 或导入 Postman 查看。这些 JSON 属于被 Git 忽略的生成产物，干净检出中不保证存在；该命令还会重新生成 API/RPC 代码，执行后应检查差异。
-
-- 权限控制现状：[微服务权限控制文档](docs/access-control.md)（网关/RPC 权限矩阵、数据归属、服务身份与待补项）
-
-## 开发注意
-
-- 服务本地启动时会自动建表（`AutoMigrate: true`）。
-- `cmd/admin` 和 `cmd/app` 不直连数据库，数据操作通过对应 RPC 服务完成。
-- `agent-rpc` 不配置 LLM 时自动走确定性规则推荐；配置后由 Eino ReAct Agent 编排 LLM 工具调用，失败时自动降级到规则推荐。
-- 不要编辑 `pb/`、`client/`、`types.go`、`routes.go` 等生成代码，重新执行 `make api-all` 会覆盖这些文件。
+协作开发请先阅读 [Contributors.md](Contributors.md)。阶段日志、旧环境和详细验收证据统一存放在[历史归档](docs/archive/README.md)，不再作为快速开始步骤。

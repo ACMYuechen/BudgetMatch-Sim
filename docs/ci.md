@@ -1,5 +1,7 @@
 # CI 运行说明
 
+[文档导航](README.md) · [CI/CD 总览](cicd.md)
+
 本文描述当前 [工作流](../.github/workflows/ci.yml) 和 [检查脚本](../scripts/ci/) 的实际行为。目录职责和发布入口见 [CI/CD 总览](cicd.md)。初版设计背景保留在 [CI 需求规格](requirements/ci.md)；其中尚未实现的目标不能视为已验收。
 
 ## 本地运行
@@ -56,7 +58,7 @@ BUDGETMATCH_TEST_NGINX_BIN=/usr/sbin/nginx \
 
 自行替换为已安装/解包的路径；入口不下载软件，不需要 root，不加载系统 Nginx 配置或 `.env`。它在临时目录生成独立配置，仅将仓库 `web-ui/nginx/default.conf` 的监听、上游与静态目录替换为本次自有 loopback 目标，先运行 `nginx -t`，再启动并关闭自己的代理。模板结构变化会要求复核地址替换，错误的显式路径会失败而不是跳过。
 
-真实 HTTP/TCP gRPC 搭配合成身份/生产者，覆盖增量及时转发、正常 EOF 终态屏障、迟到错误、缺失/非法终态和取消传播，断流不自动重跑 unary。该入口不连接数据库/模型，不等于 Auth、真实供应商、部署 Ingress 或饱和背压验收；本机真实服务与保留库的独立证据见 [Agent 第 11.16 节](agent.md#1116-m63b-本机真实-nginx-模板与保留库联调)。现有 CI 未安装/配置此入口，不能将默认 skip 算作 CI 已覆盖真实 Nginx。
+真实 HTTP/TCP gRPC 搭配合成身份/生产者，覆盖增量及时转发、正常 EOF 终态屏障、迟到错误、缺失/非法终态和取消传播，断流不自动重跑 unary。该入口不连接数据库/模型，不等于 Auth、真实供应商、部署 Ingress 或饱和背压验收；本机真实服务与保留库的独立证据见 [Agent 验收归档](archive/agent-development.md#1116-m63b-本机真实-nginx-模板与保留库联调)。现有 CI 未安装/配置此入口，不能将默认 skip 算作 CI 已覆盖真实 Nginx。
 
 ## 前端检查
 
@@ -70,7 +72,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-浏览器系统库要求、模拟 API 范围与验收记录见 [前端路线图](frontend-roadmap.md#本地开发与验证)。这些测试不替代真实服务联调。
+浏览器系统库要求与模拟 API 范围见 [前端指南](frontend-roadmap.md#本地开发与验证)。这些测试不替代真实服务联调。
 
 ## 安全检查
 

@@ -1,85 +1,59 @@
-# BudgetMatch-Sim VPS 部署
+# VPS 运维
 
-服务器：`ubuntu@51.79.164.39:22`。
+[文档导航](README.md) · [GitOps 发布流程](gitops.md) · [历史发布与切库记录](archive/deployment-vps-2026-09.md)
 
-- 用户端：http://51.79.164.39:8080/
-- 管理端：http://51.79.164.39:8080/admin
-- 使用服务器现有 K3s，命名空间为 `budgetmatch-sim`。
-- 发布目录为 `/opt/budgetmatch-sim/current`，完整运维说明为该目录内的 `DEPLOYMENT.md`。
-- 原有 Headlamp 继续使用 80/443 端口，本应用通过 HTTP 8080 访问。
+以下为 2026-09-21 已记录的部署配置，不是服务器实时探测结果。操作前核对当前镜像、集群与 Secret 引用；本地提交或 CI 构建成功不代表生产已更新。
 
-## 账户与数据
+## 环境速查
 
-2026-09-21 按用户确认切换到全新外部数据库，不迁移旧业务数据。管理员用户名为 `admin`，新随机密码仅保存在服务器受保护的文件中：
+| 项目 | 已记录配置 |
+| --- | --- |
+| 服务器 | `ubuntu@51.79.164.39:22`，现有 K3s |
+| 命名空间 | `budgetmatch-sim` |
+| 业务入口 | `http://51.79.164.39:8080/`，管理端 `/admin` |
+| 集群管理 | Headlamp 使用原 80/443；不直接公开 Argo CD 管理端口 |
+| 发布目录 | `/opt/budgetmatch-sim/current`，实际镜像以 `apps.yaml` 为准 |
+| PostgreSQL | `39.108.76.53:5432`，数据库 `postgres`，用户 `nailong` |
+| Redis | `39.108.76.53:6379` |
 
-```sh
-cat /opt/budgetmatch-sim/current/credentials-external.json
-```
+## Secret 与数据归属
 
-当前 PostgreSQL 为 `39.108.76.53:5432`，账号 `nailong`，数据库 `postgres`；Redis 为 `39.108.76.53:6379`。初始化了 13 张业务表和 1 个新管理员，商品、订单、秒杀订单、Agent 会话均为空。旧发布的示例商品、订单、账号未导入；旧 `credentials.json` 只对应保留的旧库。
+- `external-data` 提供应用的 `DATABASE_DSN`、`REDIS_ADDRESS`、`REDIS_PASSWORD` 等外部数据连接；声明入口为 [vps.yaml](../deploy/environments/vps.yaml) 的 `dataSecret`。
+- `runtime` 保留 JWT、模型、邮箱等运行配置及旧内部数据源凭据。不要把外部 Redis 密码覆盖到仍保留的内部 Redis。
+- 新库管理员名为 `admin`，随机密码只保存在服务器的 `/opt/budgetmatch-sim/current/credentials-external.json`。旧 `credentials.json` 仅对应旧库；不要复制文件内容进文档或 Git。
+- `secrets.yaml`、管理员凭据等私密文件应保持 `0600`。排查时检查引用和键是否存在，不输出 Secret / Pod 的完整环境变量。
+- 最近一次按授权使用全新外部数据库，不迁移旧数据；旧 PostgreSQL / Redis PVC、etcd、RocketMQ 和 Agent 工作目录保留。**不要删除命名空间或 PVC**，对应存储可能随之删除。
 
-应用的数据库和 Redis 连接来自 Secret `external-data`，通过 `DATABASE_DSN`、`REDIS_ADDRESS`、`REDIS_PASSWORD` 注入。Secret `runtime` 继续保存 JWT、模型、邮箱等原配置及旧内部数据库凭据；不覆盖内部 Redis 的密码。`deploy/environments/vps.yaml` 的 `dataSecret` 和渲染器已同步此分离方式，后续发布必须包含这些改动，不能用旧清单切回内部数据源。
+切库时的备份位置、初始表/账号数量和只读验收范围见[切库归档](archive/deployment-vps-2026-09.md)，不能将当时的空表数量当作当前数据状态。
 
-etcd、RocketMQ、Agent 工作目录和旧 PostgreSQL / Redis 的 PVC 保留，未删除旧库或旧卷。K3s 已启用开机启动，服务由 Deployment 管理。发布目录的 `apps.yaml`、`secrets.yaml`、`DEPLOYMENT.md` 已同步实际生效配置；`secrets.yaml` 和新管理员凭据均为 600，不应提交到仓库。
-LLM 与邮箱配置沿用本地环境；支付宝沙箱与 Embedding 未配置，支付暂不可用，商品检索使用关键词模式。
+## 已部署版本的限制
 
-切换沿用原镜像，没有部署本地最新 Agent 代码或调用外部模型。新 PostgreSQL 未启用 TLS，且没有 pgvector 扩展；向量检索保持关闭。跨公网数据连接仍需后续落实 TLS / 私网通道和来源 IP 限制，本次没有修改数据库服务器的防火墙或系统。
+上次数据源切换沿用原业务镜像，**没有部署本地最新 Agent 或切换 Flash / Embedding**。生产 PostgreSQL 当时没有 pgvector，向量检索保持关闭，使用关键词检索；支付宝沙箱配置也未完成，不能据此宣称支付可用。
 
-### 新库初始化与超时
+商城 `Database.AutoMigrate=false`。后续表结构变更必须先备份、审核并显式迁移，不能仅更新镜像。App / Admin 的 AuthRpc、SeckillRpc 超时为 10 秒，MallRpc 为 15 秒；App → AgentRpc 保留 60 秒。这些设置只缓解已观察到的跨服务器延迟，不代表负载验收通过。
 
-首次自动建表在跨服务器连接上较慢，商城最后一张缺失表使用当前运行版本的**纯表结构**补齐，没有复制任何旧业务行。商城 `Database.AutoMigrate=false`，避免每次启动重复执行远程 DDL；以后升级商城表结构时，必须先备份并显式迁移，不能只发布镜像。
+业务入口仍为 HTTP，外部 PostgreSQL 未启用 TLS。数据库来源 IP 限制、TLS / 私网通道、RPC 暴露收敛和业务权限修复仍需落实，见[权限与安全](access-control.md#待修复风险)。
 
-验收曾出现默认 2 秒 RPC 超时导致的查询失败和 401。App / Admin 的 `AuthRpc`、`SeckillRpc` 超时现为 10 秒，`MallRpc` 为 15 秒；Agent 原 60 秒配置保留。这只缓解已经观察到的跨服务器延迟，不代表网络性能已压测通过。
+## 只读排查
 
-切换前资源、原运行 Secret 与发布文件备份位于服务器 `/var/backups/budgetmatch-data-cutover.242e66`（root 私有目录）。旧数据库仍在原卷中，但不再承载应用读写。Argo CD 自动同步仍关闭；后续手动发布应先核对新的 Secret 引用。
+在目标服务器上执行：
 
-## 常用操作
-
-在服务器上执行：
-
-```sh
-sudo k3s kubectl -n budgetmatch-sim get pods,svc,pvc
+```bash
+sudo k3s kubectl -n budgetmatch-sim get deployments,pods,svc,pvc
+sudo k3s kubectl -n budgetmatch-sim get deployments \
+  -o custom-columns='NAME:.metadata.name,IMAGES:.spec.template.spec.containers[*].image'
 sudo k3s kubectl -n budgetmatch-sim logs deployment/app --tail=100
 sudo k3s kubectl -n budgetmatch-sim logs deployment/agent-rpc --tail=100
-sudo k3s kubectl -n budgetmatch-sim rollout restart deployment/app
 ```
 
-当前外部 PostgreSQL 备份（借用保留的 PostgreSQL Pod 客户端，密码只经标准输入传递）：
+日志可能包含用户数据或尚未脱敏的认证信息，仅在受控终端检查，分享前脱敏。Pod Ready / TCP 探针正常不等于登录、支付、流式或数据库业务均通过。
 
-```sh
-umask 077
-sudo k3s kubectl -n budgetmatch-sim get secret external-data -o jsonpath='{.data.DATABASE_PASSWORD}' |
-  base64 -d |
-  sudo k3s kubectl -n budgetmatch-sim exec -i deployment/postgres -- sh -c \
-    'IFS= read -r PGPASSWORD; export PGPASSWORD PGCONNECT_TIMEOUT=8; exec pg_dump -h 39.108.76.53 -p 5432 -U nailong -d postgres -Fc' \
-  > budgetmatch-external-postgres.backup
-```
+## 发布前核对
 
-备份应另存到服务器之外。不要删除命名空间或 PVC，当前存储类会连同对应数据一起删除。
+1. 按 [GitOps 指南](gitops.md)核对成功 CI 的源码提交、两份镜像 digest 和待同步的 GitOps revision；Argo CD 保持人工确认后 Sync。
+2. 确认新清单继续引用 `external-data`，不会把应用切回旧内部库；核对配置与当前镜像兼容性。
+3. 对数据库迁移、模型切换和真实调用分别确认范围。Flash 需支持新字段的二进制与 `LLM_THINKING=disabled` 配套；启用 RAG 前补齐 pgvector、Embedding 和索引密钥。
+4. 备份数据及当前配置，验证备份可恢复，并准备不删会话/PVC 的回退方案。旧二进制可能忽略新字段，不能假定保留 Flash 配置就可安全回滚。
+5. 同步后验证实际 revision、服务就绪和真实业务路径，重点覆盖登录、用户隔离、流式终态、代理取消和新旧记录重放。
 
-## 发布版本
-
-业务基线为 `132ea3f3ca3b3c9afd17b75d04085fd923ad7003`，并包含本次联调发现的修复：
-
-1. 商品列表的 `keyword` 参数允许省略或为空。
-2. 认证中间件向推荐接口使用的请求上下文写入已验证的用户 ID。
-3. App 到 Agent 的 RPC 客户端超时设为 60 秒。
-4. 日志中间件保留底层响应的流式刷新能力，支持 SSE 推荐。
-
-镜像与部署清单保存在服务器发布目录；具体镜像版本以 `apps.yaml` 为准。
-
-### 后续 Agent 模型配置迁移（尚未在服务器执行）
-
-`refactor/agent` 已增加 `LLM_THINKING` / `Model.Thinking`：使用 `deepseek-flash` 时必须显式为 `disabled`，其他兼容模型留空，关闭模型仍只需清空 `LLM_PROVIDER`。渲染器仅将这个新增环境变量的 Secret 引用设为可选；其它凭据引用仍必需。未使用 Flash 的旧 Secret 不必补键，Flash 缺失该值则由新应用在连接数据库前拒绝启动。
-
-该模型迁移阶段只做了模板渲染和 SDK 本地检查；2026-09-21 的数据源切换没有发布新模型配置或新镜像。正式模型切换须在明确的发布窗口中，将支持该字段的新镜像、模型名与非思考配置配套核对，不单独把旧二进制切到 Flash。旧版本可能忽略新字段，不能认为保留 Flash 配置就能安全回滚；需回到保留安全修复的规则模式或已验收的兼容版本，且不删除会话/PVC。实际步骤与授权边界见 [Agent 最终收尾门槛](agent.md#131-最终收尾门槛)。历史发布验证不代表此模型迁移已上线。
-
-## 验证结果
-
-2026-09-21 新数据源验收：六个消费者 Pod 的实际数据库/Redis 环境变量与 `external-data` 一致，全部业务 Deployment 就绪；公网首页为 200。新管理员登录、用户信息、前后台空商品列表、秒杀活动列表、空会话列表均通过，匿名管理接口返回 401。新库确认只有 1 个新管理员，未创建订单或模型会话，未进行生产负载测试。
-
-以下为旧库切换前的历史验收，不代表新库导入了相关数据：
-
-已通过公网接口验证：管理员登录、用户信息、商品与后台目录、秒杀列表、下单与取消后的库存恢复、模型推荐、SSE 重放、会话持久化与删除、匿名访问拒绝。
-真实 Chromium 浏览器已验证登录、用户商品页、后台商品页与流式推荐，未出现页面运行时错误。
-对应商品参数解析、认证上下文、流式日志中间件及相关逻辑测试通过。
+完整运维记录还位于服务器发布目录的 `DEPLOYMENT.md`。备份文件需私密保存并另存服务器之外；历史命令仅供审查，执行前重新核对实例、凭据来源和输出路径。剩余交付事项统一见[项目状态](status.md)。

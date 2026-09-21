@@ -1,60 +1,61 @@
-# 密钥配置指南
+# 配置与密钥指南
 
-项目运行前需要配置以下环境变量。真实密钥保存在项目根目录 `.env` 文件中（已加入 `.gitignore`，不会提交）。
+[文档导航](docs/README.md) · [本地数据源](docs/local-data.md) · [生产环境](docs/deployment-vps.md)
 
-## 必要环境变量
+变量全集以 [.env.example](.env.example) 和服务 YAML 为准。本页解释配置分组与安全边界，不保存真实密钥或重复记录历史联调过程。
 
-| 变量名 | 说明 | 获取方式 |
-|--------|------|---------|
-| `DATABASE_DSN` | 宿主服务的数据库连接，包含密码，不输出到日志 | 核对本机 Docker 实际账号、库名和映射端口后填写 |
-| `REDIS_ADDRESS` | 宿主服务的 Redis 地址 | 核对本机 Docker 映射端口；本机为 `127.0.0.1:6379` |
-| `REDIS_PASSWORD` | Redis 密码 | 与已验证的本机 Docker 实例一致，不复用生产密码 |
-| `JWT_SECRET` | JWT 签名密钥 | 自行生成随机字符串，长度建议 ≥ 32 |
-| `EMAIL_FROM` | 发件邮箱 | QQ 邮箱账号 |
-| `EMAIL_PASSWORD` | 邮箱 SMTP 授权码 | QQ 邮箱 → 设置 → 账户 → 开启 SMTP 服务 |
+## 建立本地配置
 
-## 可选环境变量
+仅在文件不存在时复制模板，随后按已核对的数据源填写：
 
-| 变量名 | 说明 | 获取方式 |
-|--------|------|---------|
-| `LLM_PROVIDER` | 推荐模型的兼容接口名；`openai` 启用，留空/`noop` 关闭 | 按目标模型服务填写 |
-| `LLM_MODEL` | 模型名；Flash 为 `deepseek-flash`，不自动映射旧名称 | 目标服务的模型列表 |
-| `LLM_THINKING` | Flash 必须为 `disabled`；其他模型留空 | 非密钥配置，当前只支持 Flash 非思考模式 |
-| `LLM_BASE_URL` | 模型 API 地址，如 `https://api.deepseek.com/v1` | 目标模型服务文档 |
-| `LLM_API_KEY` | 启用模型时必填的访问密钥 | 目标服务控制台；不写入代码、日志或清单明文 |
-| `OSS_ENDPOINT` | 阿里云 OSS 接入域名 | 阿里云控制台 → OSS → Bucket 概览 |
-| `OSS_ACCESS_KEY_ID` | 阿里云 AccessKey ID | 阿里云 RAM 控制台 → 创建子账号 → 创建 AccessKey |
-| `OSS_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret | 同上，创建时只显示一次 |
-| `OSS_BUCKET_NAME` | OSS Bucket 名称 | 阿里云 OSS 控制台 |
-| `OSS_DOMAIN` | OSS 自定义域名或外网域名 | Bucket 概览页面 |
-| `ALIPAY_APP_ID` | 支付宝沙箱应用 AppID | 详见 [docs/PAYMENT.md](docs/PAYMENT.md) |
-| `ALIPAY_PRIVATE_KEY` | 应用私钥 | 详见 [docs/PAYMENT.md](docs/PAYMENT.md) |
-| `ALIPAY_PUBLIC_KEY` | 支付宝公钥（验签用） | 详见 [docs/PAYMENT.md](docs/PAYMENT.md) |
-| `ALIPAY_NOTIFY_URL` | 异步通知地址（公网可达，可留空） | 部署后填网关通知地址 |
-| `ALIPAY_RETURN_URL` | 同步跳转地址（当面付可留空） | — |
+```bash
+[ -f .env ] || cp .env.example .env
+chmod 600 .env
+```
 
-已有 `.env` 需手动合并模板变更，不要覆盖密钥。Flash 需同时配置 `LLM_MODEL=deepseek-flash` 和 `LLM_THINKING=disabled`；换用其他兼容模型时清空 `LLM_THINKING`。缺失或不支持的 Flash 模式在外部依赖初始化前报错；只清空 `LLM_PROVIDER` 则继续走规则推荐，不要求删除保留的模型配置。部署渲染保留 `LLM_API_KEY` 等原有必需 Secret 引用，仅将新 `LLM_THINKING` 引用标为可选，以兼容未使用 Flash 的旧环境；这不免除 Flash 的应用校验。详见 [Agent 配置迁移](docs/agent.md#1114-m63b-flash-正式配置接入与离线迁移检查)。
+已有文件应逐项合并模板变化，不整体覆盖。`.env` 被 Git 忽略，但不代表其不会进入终端输出、备份或安全扫描；不要上传完整文件、DSN、Token 或 Secret。
 
-历史记录：2026-09-20 同步 Flash 参数时，WSL Docker 当时不可用，独立测试 DSN 使用本机 15432。该地址已被下面的 Docker 配置更新，不再代表当前 `.env`。
+`make dev` 自动加载 `.env`。手动运行服务时，可在已核对文件内容的终端加载：
 
-2026-09-21 已优先复用原 Docker PostgreSQL / Redis 卷，`.env` 的业务库指向 `127.0.0.1:5432/budgetmatch-sim`。随后按用户要求移除了常驻的独立测试 DSN；日常运行只维护业务连接，不需要配置测试库。真实集成测试统一复用 CI 已有的 `RAG_TEST_PG_DSN`，由 CI/测试入口临时提供，不从 `.env` 或 `DATABASE_DSN` 自动取值；未显式提供时跳过。用户进一步授权后，已备份并删除该 Docker 实例中的 `budgetmatch_sim_test` 库和 `budgetmatch_test` 账号；业务库 10 张表的内容指纹及 1002 个用户保持不变，其他本机实例和生产数据源未修改。备份及范围说明见 [本地 Docker 数据源](docs/local-data.md)。不能把包含删表逻辑的测试指向业务库或保留演示库。
+```bash
+set -a
+source .env
+set +a
+```
 
-文件仍为 `0600` 且不受 Git 跟踪，模型等其他原配置保持不变。本轮数据连接和独立测试通过，不代表整套业务服务已在本地启动，也不代表 SMTP/OSS/支付或新模型已做真实验收；JWT 密钥未自动轮换。生产使用单独的 `external-data` Secret，密码不写入本机业务配置或 Git，详见 [生产部署](docs/deployment-vps.md)。
+`source` 会执行 shell 内容，只加载自己维护的可信文件。
 
-## 快速配置
+## 基础运行配置
 
-1. 仅在配置不存在时复制模板：
+| 变量 | 用途与约束 |
+| --- | --- |
+| `POSTGRES_IMAGE` / `POSTGRES_PORT` | Compose 镜像与映射端口；已有卷先核对 PostgreSQL 版本和 libc |
+| `DATABASE_DSN` | 宿主机服务的业务库连接，包含密码；本机复用实例为 5432，模板为 15432 |
+| `REDIS_ADDRESS` / `REDIS_PASSWORD` / `REDIS_PORT` | 匹配实际 Docker Redis，不复用生产密码 |
+| `JWT_SECRET` | 用户 JWT 签名密钥，使用独立随机值，建议至少 32 字节；各消费方保持一致 |
+| `ETCD_HOSTS` / `DEV_ETCD_*` | 服务发现与开发脚本宿主端口，默认开发入口为 22379 |
+| `ROCKETMQ_NAMESERVERS` / `DEV_ROCKETMQ_*` / `ROCKETMQ_BROKER_IP1` | 消息服务与 Broker 通告地址，区分宿主机和全容器模式 |
+| `EMAIL_FROM` / `EMAIL_PASSWORD` | 邮箱注册、验证码等功能使用的发件邮箱及 SMTP 授权码，不是邮箱登录密码 |
+| `PAYMENT_MALL_SERVICE_SECRET` | Payment → Mall 的独立服务身份密钥，至少 32 字节，与用户 JWT 分离；双方一致 |
 
-   ```bash
-   [ -f .env ] || cp .env.example .env
-   ```
+Compose 应用容器使用内部服务地址，不使用容器内的 `127.0.0.1` 访问宿主服务。细节见[本地连接模式](docs/local-data.md#宿主机与容器模式)。
 
-2. 编辑 `.env`，填入你的真实密钥。
+## 按需启用能力
 
-3. 加载自己维护、已核对内容的 `.env`（保留 DSN 中的空格和引号）：
+| 能力 | 配置 | 关闭方式 / 注意事项 |
+| --- | --- | --- |
+| LLM 推荐 | `LLM_PROVIDER`、`LLM_MODEL`、`LLM_BASE_URL`、`LLM_API_KEY`、`LLM_THINKING` | Provider 留空或 `noop` 走规则；模板默认启用兼容接口，需要自行补齐密钥或关闭 |
+| 商品 Embedding | `EMBEDDING_PROVIDER`、`EMBEDDING_MODEL`、`EMBEDDING_BASE_URL`、`EMBEDDING_API_KEY`、`EMBEDDING_DIMENSIONS` | Provider 留空关闭；与 LLM 分别配置，后台同步也可能触发调用 |
+| 后台商品索引身份 | `AGENT_MALL_INDEX_SECRET` | 启用 RAG 时必填，至少 32 字节；Agent / Mall 一致且不复用 JWT / 支付密钥 |
+| OSS | `OSS_ENDPOINT`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`、`OSS_BUCKET_NAME`、`OSS_DOMAIN` | 按实际使用配置，不将访问密钥暴露给浏览器 |
+| 支付宝沙箱 | `ALIPAY_APP_ID`、`ALIPAY_SELLER_ID`、`ALIPAY_PRIVATE_KEY`、`ALIPAY_PUBLIC_KEY`、通知/返回 URL | 未配置时支付服务可启动，但支付功能不可用；完整接入见[支付指南](docs/PAYMENT.md) |
 
-   ```bash
-   set -a
-   source .env
-   set +a
-   ```
+Flash 必须使用 `LLM_MODEL=deepseek-flash` 与 `LLM_THINKING=disabled`；其他模型的 Thinking 留空，不自动转换旧名称。新字段在部署 Secret 引用中可选，是兼容旧环境的措施，**不免除 Flash 的应用校验**。
+
+BGE-M3 使用 `BAAI/bge-m3` 和 1024 维，不能沿用模板的 1536。RAG 还需要 pgvector、Mall 和独立索引身份；模型/维度变化不得自动删表重建。完整示例与索引约束见 [Agent 指南](docs/agent.md#模型与-embedding)。
+
+## 测试与部署边界
+
+普通开发不维护常驻测试 DSN；清理性集成测试由测试入口显式提供 `RAG_TEST_PG_DSN` 等连接，不读取业务 `.env` 或回退 `DATABASE_DSN`，见 [CI 指南](docs/ci.md#go-检查与测试环境)。已删除的旧测试库和账号不需要重新创建。
+
+生产连接由独立 `external-data` Secret 提供，模型/JWT/邮箱等位于 `runtime`，不要把生产密码写回本地业务配置。模板、渲染结果、本机连接通过和生产真实验收是不同层次；更新配置不代表 SMTP、OSS、支付或模型已验证可用。

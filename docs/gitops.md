@@ -1,5 +1,7 @@
 # 自动构建与 Argo CD 手动发布
 
+[文档导航](README.md) · [CI/CD 总览](cicd.md) · [VPS 运维与数据源](deployment-vps.md)
+
 目标服务器 `ubuntu@51.79.164.39`，现有 K3s 命名空间 `budgetmatch-sim`，业务入口仍为 `http://51.79.164.39:8080/`。80/443 保留给现有 Headlamp，不公开 Argo CD 管理端口。
 
 目录职责见 [CI/CD 总览](cicd.md)：操作脚本在 `scripts/deploy/`，环境配置在 `deploy/environments/`，Argo CD 声明在 `deploy/argocd/`。

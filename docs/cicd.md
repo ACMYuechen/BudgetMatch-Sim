@@ -1,5 +1,7 @@
 # CI/CD 总览
 
+[文档导航](README.md) · [CI 检查](ci.md) · [GitOps 发布](gitops.md) · [VPS 运维](deployment-vps.md)
+
 CI 负责检查，CD 负责发布；工作流入口、执行脚本、部署配置和测试分开放置。
 
 ## 三个入口

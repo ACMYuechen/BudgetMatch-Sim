@@ -1,71 +1,65 @@
-# 本地 Docker 数据源
+# 本地数据源
 
-本地配置以 Docker 实际容器、数据卷、账号及连通性为准，`.env` 是核对后的结果，不是判断已有数据源的依据。生产数据源独立，见 [VPS 部署](deployment-vps.md)。
+[文档导航](README.md) · [配置指南](../SECRETS.md) · [恢复与清理记录](archive/local-data-2026-09.md)
 
-## 2026-09-21 本机配置
+原则：**先核对 Docker 中已有的容器、卷、账号和端口，再填写 `.env`**。配置文件是核对结果，不是删除或重建已有数据的理由。本文记录 2026-09-21 整理时的已知配置，不保证容器此刻正在运行。
 
-当前采用“依赖运行在 Docker、Go 服务运行在宿主机”的地址配置：
+## 本机复用配置
 
-| 依赖 | 宿主地址 | 数据与用途 |
+| 依赖 | 宿主机地址 | 数据范围 |
 | --- | --- | --- |
-| PostgreSQL | `127.0.0.1:5432` | 业务库 `budgetmatch-sim`，原 Docker 账号 `root` |
-| Redis | `127.0.0.1:6379` | 复用原 `budgetmatch-sim_redis_data` |
-| etcd | `127.0.0.1:22379` | 补齐缺失容器，配置保存在 `budgetmatch-sim_etcd_data` |
-| RocketMQ NameServer | `127.0.0.1:19876` | 补齐缺失容器，使用已有 5.1.4 镜像 |
-| RocketMQ Broker | `127.0.0.1:10911`，VIP 端口 `10909` | 向宿主客户端通告可达的回环地址 |
+| PostgreSQL | `127.0.0.1:5432` | 业务库 `budgetmatch-sim`，原账号 `root`，卷 `budgetmatch-sim_postgres_data` |
+| Redis | `127.0.0.1:6379` | 原卷 `budgetmatch-sim_redis_data` |
+| etcd | `127.0.0.1:22379` | 卷 `budgetmatch-sim_etcd_data` |
+| RocketMQ NameServer | `127.0.0.1:19876` | 本地开发消息服务 |
+| RocketMQ Broker | `127.0.0.1:10911`，VIP `10909` | 须向宿主客户端通告可达地址 |
 
-复用原 `budgetmatch-sim_postgres_data`，原业务库有 1002 个用户。未清库、未重置已有账号密码，也未改用生产数据库。原独立 Agent 保留库（15432 / 15433）不删除、不停止；5432 避免与其冲突。
+`.env.example` 为新环境保留 PostgreSQL 默认端口 **15432**；本机的 15432 / 15433 另有历史 Agent 保留实例，不要覆盖、停止或用于清理性测试。生产数据源独立，见 [VPS 运维](deployment-vps.md)。
 
-`.env` 只保留日常运行需要的业务数据连接，常驻独立测试 DSN 已按用户要求删除，模板也不再提供测试库配置。JWT、模型、Embedding 和邮箱等其他原配置不变。`.env` 保持忽略、权限 600；密码和私有备份不进入 Git。
+密码只保存在被 Git 忽略的 `.env` 或私密配置中。不要输出完整 DSN、`docker inspect` 的全部环境变量或展开后的 Secret 来排查连接。
 
-数据库集成测试复用 CI 已有的 `RAG_TEST_PG_DSN`，仅在测试时显式提供可丢弃环境；`scripts/ci/go-check.sh` 未收到该值时会启动自己的临时 pgvector 容器并在结束后清理。直接 `go test` 未配置时跳过数据库用例，不会读取 `.env` 或回退到 `DATABASE_DSN`。商城用例在测试库内使用随机 schema，避免不同测试互相干扰；这不是允许它们连接业务库。`dev-records -env` 现在必须明确提供 `-dsn-key`，默认仍只读。
+## 启动前检查
 
-RPC 配置现在读取 `${DATABASE_DSN}`、`${REDIS_ADDRESS}` 和 `${REDIS_PASSWORD}`，不再忽略 `.env`、固定连到 15432。Compose 中应用容器仍显式使用 `postgres:5432`、`redis:6379`，不是容器内的 `127.0.0.1`。
+以下只查看容器、卷与端口，不修改数据：
 
-## 复用镜像与向量扩展
+```bash
+docker compose -p budgetmatch-sim ps -a
+docker volume ls --filter name=budgetmatch-sim
+ss -ltn '( sport = :5432 or sport = :15432 or sport = :15433 or sport = :6379 )'
+```
 
-原 Docker 卷对应 PostgreSQL **16.14 Alpine**。没有将它直接挂到 Debian/glibc 镜像，也没有执行 `docker compose down -v`。本机扩展镜像基于原镜像的固定 digest，仅增加 pgvector **0.8.6**；源码归档有 SHA-256 校验，多阶段构建不把编译工具留在运行镜像中。
+确认 `.env` 的 `POSTGRES_PORT`、`POSTGRES_IMAGE`、`DATABASE_DSN`、`REDIS_ADDRESS` 和密码与实际实例一致，再按[首页](../README.md#本地快速开始)使用 `make dev`。仅修改 `.env` 中的密码不会自动修改已有数据库卷里的账号密码。
 
-构建入口：
+## 宿主机与容器模式
 
-```sh
+| 运行方式 | 应用连接方式 | 注意事项 |
+| --- | --- | --- |
+| `make dev` | Go 服务在宿主机，依赖在 Docker，使用回环地址及映射端口 | 脚本加载 `.env`，设置宿主可达的 etcd / Broker 通告地址，并清理开发端口进程 |
+| 手动启动依赖 | 宿主服务仍使用映射端口 | 必须自行核对 `ETCD_ADVERTISE_CLIENT_URLS` 和 `ROCKETMQ_BROKER_IP1`，不能假定具有开发脚本的覆盖设置 |
+| 全容器 Compose | 应用使用 `postgres:5432`、`redis:6379` 等服务名 | 清除仅供宿主模式使用的回环通告覆盖；容器中的 `127.0.0.1` 不是宿主机 |
+| 本地 K3s | 以 Pod 的服务发现和 Secret 为准 | Docker 数据源配置正确，不等于本地 K3s 已部署或验证最新应用 |
+
+`make dev-stop` 停止开发服务及 Compose 基础设施，不删除卷。不要执行带卷删除选项的清理来解决连接失败，也不要把文档中的历史运行状态当作停止其他实例的依据。
+
+## PostgreSQL 镜像与向量扩展
+
+原数据卷使用 PostgreSQL 16.14 Alpine。本机使用 [postgres-local.Dockerfile](../deploy/images/postgres-local.Dockerfile) 在固定基础镜像上增加 pgvector 0.8.6，镜像名为 `budgetmatch-sim-postgres:16-alpine-vector`。
+
+需要重建本机镜像时，从仓库根目录执行：
+
+```bash
 docker build -f deploy/images/postgres-local.Dockerfile \
   -t budgetmatch-sim-postgres:16-alpine-vector deploy/images
 ```
 
-默认 Alpine 源下载慢时，可加 `--build-arg APK_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/alpine`；保留 APK 签名校验。当前 `.env` 的 `POSTGRES_IMAGE` 使用这个本地镜像，`POSTGRES_PORT=5432`。业务库与独立测试库分别启用 `vector`，不调用 Embedding / LLM，不导入测试商品或会话。
+模板的 `pgvector/pgvector:pg16` 面向新建兼容卷。不要将现有 Alpine 卷直接挂到 Debian/glibc 镜像；更换 libc 或 PostgreSQL 大版本须先备份并单独迁移。安装 `vector` 扩展不等于启用 Embedding，后者可能触发外部调用，见 [Agent 配置](agent.md#模型与-embedding)。
 
-`POSTGRES_IMAGE` 的通用默认值仍是 `pgvector/pgvector:pg16`，适合新卷；已有卷必须先确认版本和 libc 再选择镜像。升级 PostgreSQL 主版本或切换 libc 是独立的数据迁移任务，不应通过改镜像加删卷实现。
+## 测试与业务数据隔离
 
-## 启停与配置边界
+- 普通开发只维护业务连接，不需要在 `.env` 里配置常驻测试 DSN。
+- PostgreSQL 集成测试显式使用 `RAG_TEST_PG_DSN`；Agent 记忆测试可用专门的 `AGENT_MEMORY_TEST_PG_DSN`。它们不自动加载 `.env`，也不回退 `DATABASE_DSN`。
+- 直接 `go test` 未提供测试连接时，部分数据库用例会跳过；`scripts/ci/go-check.sh` 可准备自有临时 pgvector / etcd 环境并清理。详见 [CI 指南](ci.md#go-检查与测试环境)。
+- 随机 schema 等隔离措施用于可丢弃测试环境，不授权测试连接业务库或保留库。
+- 需要留下演示历史时使用 `dev-records` 显式入口；默认只读，`-env` 必须搭配 `-dsn-key`，写入另需确认目标库和已有账号。
 
-在仓库根目录启动或恢复依赖：
-
-```sh
-docker compose -p budgetmatch-sim up -d postgres redis etcd rocketmq-namesrv rocketmq-broker
-docker compose -p budgetmatch-sim ps
-```
-
-这里只管理本项目依赖，不删除其他项目容器、卷或本机 k3s。依赖端口仅绑定 `127.0.0.1`。`make dev` 会加载 `.env`，并为宿主服务设置 etcd、NameServer 和 Broker 地址；注意它原有的端口清理行为，本轮没有执行该脚本，也没有启动整套 Go 服务或调用付费模型。
-
-宿主模式使用 `ROCKETMQ_BROKER_IP1=127.0.0.1`，因为 NameServer 返回的容器网段地址在本机不可达。**全容器运行时应清空该值，并清除宿主专用 `ETCD_ADVERTISE_CLIENT_URLS` 覆写**，让容器使用内部网络地址；不能把宿主模式 `.env` 直接当成完整容器部署配置。
-
-etcd 配置初始化遵循“仅补缺失键”，已有值保留；本轮新增持久卷前已保存并恢复六项 `/config/` 配置。Redis 复用已有持久卷，不执行 `FLUSHALL`。
-
-本轮是数据依赖恢复与配置同步，不是本地 k3s 应用发布。本地 k3s 中此前暂存的生产凭据已清除。以后如在 k3s 内部署应用，应另外验证 Pod 到 Docker 的路由；Pod 的 `127.0.0.1` 不是宿主机。
-
-## 数据保护与验证
-
-原 PostgreSQL、Redis 卷启动前已做冷备份；`.env`、etcd 配置及业务表指纹在本机私有目录 `~/.local/share/budgetmatch-docker-reuse.lbfWH5/` 保留。不要将这些文件提交仓库或公开传输。备份归档不等于已经做过恢复演练。
-
-对业务库只做连接、只读查询及扩展初始化；清理性集成测试只能使用显式选择的可丢弃测试环境，不要求固定库名。最初移除配置时没有删除数据库；随后按用户追加授权执行了下面的定向清理。没有清空现有业务表、迁移此前 Agent 保留库记录，不代表最新业务代码或完整浏览器流程已在本机上线。
-
-实际验证：10 张原业务表的行数及内容指纹在扩展安装前后完全一致，1002 个用户保留；pgvector 0.8.6 的 1024 维读取与距离运算通过。独立 Docker 测试库以非超级用户运行 `product_vectors`、`product_index` 两个 Go 包，82 项测试通过、0 跳过；配置/渲染检查 52 项通过，Compose 实际展开配置与脚本语法检查通过。未向生产库执行这些清理性测试。
-
-### 独立测试库与账号清理
-
-用户要求先提交代码、再删除对应数据库和账号后，已从本地 Docker `127.0.0.1:5432` 删除 `budgetmatch_sim_test` 和 `budgetmatch_test`。执行前核对了原 PostgreSQL 容器、数据卷、集群标识、数据库及角色 OID；测试库内无用户表，账号只拥有该测试库，无其他对象依赖、角色成员关系或活动连接。没有使用强制断连、跨库清理或级联删除角色。
-
-删除后数据库和角色均不存在，其他数据库/角色目录信息及业务库 10 张表的完整内容指纹前后一致，1002 个业务用户保留。`15432` / `15433` 的独立历史实例、Agent 保留库、Redis 和生产环境不在清理范围内。
-
-恢复用备份保存在本机私有目录 `~/.local/share/budgetmatch-testdb-removal.Ncnblw/`：`budgetmatch_sim_test.dump`、`budgetmatch_test-role.sql`、删除前业务表指纹和目录快照。目录权限 `0700`，备份文件 `0600`；角色文件含恢复凭据，只能私密保存，不提交 Git。已检查归档目录可读取，未执行恢复演练；恢复操作说明位于该私有目录的 `RESTORE.md`。此前测试通过的记录为历史验证，不表示测试库仍存在。
+弃用的 Docker 测试库 `budgetmatch_sim_test` 与账号 `budgetmatch_test` 已按授权备份后删除；5432 业务数据及其他实例不在删除范围内。私密备份位置、数据指纹与恢复说明索引保留在[维护归档](archive/local-data-2026-09.md#独立测试库与账号清理)，未做恢复演练，不把“备份可读取”当作“恢复已验证”。
