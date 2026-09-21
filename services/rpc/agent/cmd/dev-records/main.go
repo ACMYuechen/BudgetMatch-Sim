@@ -24,7 +24,7 @@ func run(args []string, out, stderr io.Writer, execute executor) int {
 	var o devrecords.Options
 	var reportPath string
 	fs.StringVar(&o.EnvFile, "env", "", "explicit dotenv file (no shell expansion)")
-	fs.StringVar(&o.DSNKey, "dsn-key", "BUDGETMATCH_TEST_POSTGRES_DSN", "only selected key is read; never used as an implicit default connection")
+	fs.StringVar(&o.DSNKey, "dsn-key", "", "required with -env: explicitly select the dotenv key to read")
 	fs.StringVar(&o.ConfigFile, "config", "", "alternative YAML source containing literal Database.DSN")
 	fs.StringVar(&o.ExpectedDB, "expect-db", "", "independently confirmed database name; must match source")
 	fs.BoolVar(&o.AllowLocal, "allow-local-dev-db", false, "confirm access to selected local development database")
