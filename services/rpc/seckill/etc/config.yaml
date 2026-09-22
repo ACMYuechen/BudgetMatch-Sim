@@ -49,3 +49,12 @@ MallRpc:
   Endpoints:
     - 127.0.0.1:10005
   NonBlock: true
+
+# Required for current account status / role checks on direct RPC calls.
+AuthRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: auth.rpc
+  NonBlock: true
+  Timeout: 2000

@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
@@ -31,6 +32,16 @@ func NewUpdateOrderStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) (*pb.UpdateOrderStatusResp, error) {
+	if err := interceptor.RequireAdmin(l.ctx); err != nil {
+		return nil, err
+	}
+	if in == nil || in.OrderId == "" {
+		return nil, errors.Invalid
+	}
+	// A verified payment callback is the only authority for marking orders paid.
+	if in.Status == pb.OrderStatus_ORDER_STATUS_PAID {
+		return nil, errors.MallInvalidOrderTransition
+	}
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
@@ -75,13 +86,6 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 			l.Logger.Errorf("return error: %v", errors.MallInvalidOrderTransition)
 			return errors.MallInvalidOrderTransition
 		}
-		// 首次转为已支付时补充支付时间
-		if newStatus == mall_orders.OrderStatusPaid && order.PayTime.IsZero() {
-			if err := tx.Model(&mall_orders.MallOrders{}).Where("id = ?", order.Id).Update("pay_time", now).Error; err != nil {
-				l.Logger.Errorf("return error: %v", err)
-				return err
-			}
-		}
 		if newStatus == mall_orders.OrderStatusCancelled {
 			for _, item := range cancellationItems {
 				if err := l.svcCtx.SkuStore.RestoreStockTx(tx, item.SkuId, item.Quantity, now); err != nil {
@@ -91,13 +95,11 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 			}
 		}
 
-		if newStatus == mall_orders.OrderStatusPaid || newStatus == mall_orders.OrderStatusCancelled {
-			eventType := mq.EventTypePaid
-			event := mq.OrderEvent{OrderId: order.Id, UserId: order.UserId, Status: int32(newStatus)}
-			if newStatus == mall_orders.OrderStatusCancelled {
-				eventType = mq.EventTypeCancelled
-				event.SkuId = cancellationItems[0].SkuId
-				event.Quantity = cancellationItems[0].Quantity
+		if newStatus == mall_orders.OrderStatusCancelled {
+			eventType := mq.EventTypeCancelled
+			event := mq.OrderEvent{
+				OrderId: order.Id, UserId: order.UserId, Status: int32(newStatus),
+				SkuId: cancellationItems[0].SkuId, Quantity: cancellationItems[0].Quantity,
 			}
 			outboxEvent, err := outbox.NewOrderEvent(eventType, now, event)
 			if err != nil {
@@ -125,7 +127,7 @@ func (l *UpdateOrderStatusLogic) UpdateOrderStatus(in *pb.UpdateOrderStatusReq) 
 func isValidOrderTransition(current, next int) bool {
 	switch current {
 	case mall_orders.OrderStatusPending:
-		return next == mall_orders.OrderStatusPaid || next == mall_orders.OrderStatusCancelled
+		return next == mall_orders.OrderStatusCancelled
 	case mall_orders.OrderStatusPaid:
 		return next == mall_orders.OrderStatusShipped || next == mall_orders.OrderStatusCancelled
 	case mall_orders.OrderStatusShipped:

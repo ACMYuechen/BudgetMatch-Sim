@@ -12,7 +12,8 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	JwtAuth     auth.Config `json:"jwtAuth"`
+	AuthRpc     zrpc.RpcClientConf `json:"authRpc"`
+	JwtAuth     auth.Config        `json:"jwtAuth"`
 	Database    database.Config
 	CacheRedis  redis.Config  `json:"cacheRedis"`
 	Alipay      alipay.Config `json:"alipay"`

@@ -28,12 +28,12 @@ func TestCreateOrderRollsBackWhenOutboxInsertFails(t *testing.T) {
 	serviceContext.OrderOutboxStore = &failingOutboxStore{MallOrderOutboxModel: serviceContext.OrderOutboxStore}
 	product, sku := seedProductAndSku(t, serviceContext, 5)
 
-	_, err := NewCreateOrderLogic(context.Background(), serviceContext).CreateOrder(&pb.CreateOrderReq{
+	_, err := NewCreateOrderLogic(orderUserContext("user-1", 100), serviceContext).CreateOrder(&pb.CreateOrderReq{
 		UserId: "user-1", SkuId: sku.Id, Quantity: 2, IdempotencyKey: "create-rollback-" + product.Id,
 	})
 	require.Error(t, err)
 
-	order, findErr := serviceContext.OrderStore.FindByIdempotencyKey(context.Background(), "create-rollback-"+product.Id)
+	order, findErr := serviceContext.OrderStore.FindByIdempotencyKey(context.Background(), scopedIdempotencyKey("user-1", "create-rollback-"+product.Id))
 	require.NoError(t, findErr)
 	assert.Nil(t, order)
 	storedSku, findErr := serviceContext.SkuStore.FindOne(context.Background(), sku.Id)
@@ -45,13 +45,13 @@ func TestCreateOrderRollsBackWhenOutboxInsertFails(t *testing.T) {
 func TestCancelOrderRollsBackWhenOutboxInsertFails(t *testing.T) {
 	tx, serviceContext := newIntegrationServiceContext(t)
 	_, sku := seedProductAndSku(t, serviceContext, 5)
-	created, err := NewCreateOrderLogic(context.Background(), serviceContext).CreateOrder(&pb.CreateOrderReq{
+	created, err := NewCreateOrderLogic(orderUserContext("user-1", 100), serviceContext).CreateOrder(&pb.CreateOrderReq{
 		UserId: "user-1", SkuId: sku.Id, Quantity: 2, IdempotencyKey: "cancel-rollback-" + sku.Id,
 	})
 	require.NoError(t, err)
 	serviceContext.OrderOutboxStore = &failingOutboxStore{MallOrderOutboxModel: serviceContext.OrderOutboxStore}
 
-	_, err = NewCancelOrderLogic(context.Background(), serviceContext).CancelOrder(&pb.CancelOrderReq{OrderId: created.OrderId, UserId: "user-1"})
+	_, err = NewCancelOrderLogic(orderUserContext("user-1", 100), serviceContext).CancelOrder(&pb.CancelOrderReq{OrderId: created.OrderId, UserId: "user-1"})
 	require.Error(t, err)
 
 	order, findErr := serviceContext.OrderStore.FindOne(context.Background(), created.OrderId)
@@ -66,7 +66,7 @@ func TestCancelOrderRollsBackWhenOutboxInsertFails(t *testing.T) {
 func TestConfirmPaymentRollsBackWhenOutboxInsertFails(t *testing.T) {
 	tx, serviceContext := newIntegrationServiceContext(t)
 	_, sku := seedProductAndSku(t, serviceContext, 5)
-	created, err := NewCreateOrderLogic(context.Background(), serviceContext).CreateOrder(&pb.CreateOrderReq{
+	created, err := NewCreateOrderLogic(orderUserContext("user-1", 100), serviceContext).CreateOrder(&pb.CreateOrderReq{
 		UserId: "user-1", SkuId: sku.Id, Quantity: 2, IdempotencyKey: "payment-rollback-" + sku.Id,
 	})
 	require.NoError(t, err)

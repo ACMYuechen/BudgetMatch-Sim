@@ -5,7 +5,9 @@ import (
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
+	"budgetmatch-sim/services/rpc/auth/model/user"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -41,6 +43,10 @@ func (l *EmailLoginLogic) EmailLogin(in *pb.EmailLoginReq) (*pb.LoginResp, error
 	if err := auth.ComparePassword(u.Password, in.Password); err != nil {
 		l.Logger.Infof("invalid password for email: %v", in.Email)
 		return nil, errors.InvalidPassword
+	}
+
+	if u.Status != user.StatusNormal || !role.IsGlobalUserRole(int64(u.Role)) {
+		return nil, errors.Unauthorized
 	}
 
 	// 生成 token

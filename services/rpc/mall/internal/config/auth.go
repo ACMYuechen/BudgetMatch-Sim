@@ -37,6 +37,7 @@ func (c Config) RPCAuthConfig() interceptor.AuthConfig {
 			},
 		},
 		AdminMethods: map[string]struct{}{
+			"/mall.OrderService/UpdateOrderStatus":   {},
 			"/mall.ProductService/CreateProduct":     {},
 			"/mall.ProductService/UpdateProduct":     {},
 			"/mall.ProductService/DeleteProduct":     {},

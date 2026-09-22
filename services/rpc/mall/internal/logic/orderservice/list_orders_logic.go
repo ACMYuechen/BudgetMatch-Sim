@@ -6,6 +6,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/model/mall_orders"
 	"budgetmatch-sim/services/rpc/mall/pb"
@@ -26,6 +27,13 @@ func NewListOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListOr
 }
 
 func (l *ListOrdersLogic) ListOrders(in *pb.ListOrdersReq) (*pb.ListOrdersResp, error) {
+	if in == nil {
+		return nil, errors.Invalid
+	}
+	userId, err := interceptor.UserScope(l.ctx, in.UserId, true)
+	if err != nil {
+		return nil, err
+	}
 	paymentStatus := int(in.PaymentStatus)
 	if paymentStatus < -1 || paymentStatus > int(pb.PaymentStatus_PAYMENT_STATUS_ABNORMAL) {
 		l.Logger.Errorf("invalid payment status: %d", paymentStatus)
@@ -35,7 +43,7 @@ func (l *ListOrdersLogic) ListOrders(in *pb.ListOrdersReq) (*pb.ListOrdersResp, 
 	req := mall_orders.MallOrdersListReq{
 		Page:          int(in.Page),
 		Size:          int(in.PageSize),
-		UserId:        in.UserId,
+		UserId:        userId,
 		Status:        int(in.Status),
 		PaymentStatus: paymentStatus,
 	}

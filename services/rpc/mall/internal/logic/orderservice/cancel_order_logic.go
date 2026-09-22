@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
 	"budgetmatch-sim/services/rpc/mall/internal/outbox"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
@@ -30,6 +31,13 @@ func NewCancelOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cance
 }
 
 func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderResp, error) {
+	if in == nil {
+		return nil, errors.Invalid
+	}
+	userId, err := interceptor.UserScope(l.ctx, in.UserId, false)
+	if err != nil {
+		return nil, err
+	}
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
@@ -39,7 +47,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
-	if order.UserId != in.UserId {
+	if order.UserId != userId {
 		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
@@ -64,7 +72,7 @@ func (l *CancelOrderLogic) CancelOrder(in *pb.CancelOrderReq) (*pb.CancelOrderRe
 
 		// 更新订单状态为已取消（乐观锁校验：待支付 + 指定用户）
 		ok, err := l.svcCtx.OrderStore.UpdateStatusTx(
-			tx, order.Id, in.UserId,
+			tx, order.Id, userId,
 			mall_orders.OrderStatusPending, mall_orders.OrderStatusCancelled, now,
 		)
 		if err != nil {

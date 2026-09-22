@@ -6,6 +6,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/mall/internal/svc"
 	"budgetmatch-sim/services/rpc/mall/pb"
 )
@@ -25,6 +26,13 @@ func NewGetOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetOrder
 }
 
 func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
+	if in == nil {
+		return nil, errors.Invalid
+	}
+	userId, err := interceptor.UserScope(l.ctx, in.UserId, true)
+	if err != nil {
+		return nil, err
+	}
 	order, err := l.svcCtx.OrderStore.FindOne(l.ctx, in.OrderId)
 	if err != nil {
 		l.Logger.Errorf("failed to find order: %v", err)
@@ -34,7 +42,7 @@ func (l *GetOrderLogic) GetOrder(in *pb.GetOrderReq) (*pb.GetOrderResp, error) {
 		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}
-	if in.UserId != "" && order.UserId != in.UserId {
+	if userId != "" && order.UserId != userId {
 		l.Logger.Errorf("return error: %v", errors.MallOrderNotFound)
 		return nil, errors.MallOrderNotFound
 	}

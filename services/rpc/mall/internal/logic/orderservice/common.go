@@ -1,6 +1,9 @@
 package orderservicelogic
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"budgetmatch-sim/services/rpc/mall/model/mall_order_items"
@@ -104,4 +107,10 @@ func rollbackWithBackoff(fn func() error, retries int) error {
 		time.Sleep(time.Duration(50*(1<<i)) * time.Millisecond)
 	}
 	return err
+}
+
+// JSON framing prevents collisions when IDs or client keys contain separators.
+func scopedIdempotencyKey(userId, key string) string {
+	data, _ := json.Marshal([2]string{userId, key})
+	return fmt.Sprintf("v2:%x", sha256.Sum256(data))
 }

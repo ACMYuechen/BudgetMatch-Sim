@@ -8,6 +8,7 @@ import (
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
+	"budgetmatch-sim/services/rpc/auth/model/user"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -17,6 +18,13 @@ import (
 type contextKey string
 
 const ContextKeyUser contextKey = "user"
+
+var adminMethods = map[string]struct{}{
+	"/auth.UserService/GetUserById":    {},
+	"/auth.UserService/ListUsers":      {},
+	"/auth.UserService/UpdateUserInfo": {},
+	"/auth.UserService/DeleteUser":     {},
+}
 
 var noAuthMethods = map[string]struct{}{
 	"/auth.AuthService/UsernameLogin": {},
@@ -72,7 +80,15 @@ func AuthInterceptor(svcCtx *svc.ServiceContext) grpc.UnaryServerInterceptor {
 		}
 
 		// 角色级鉴权：拒绝非全局用户身份（如已注销/封禁等异常角色）
-		if !role.IsGlobalUserRole(int64(u.Role)) {
+		if u.Status != user.StatusNormal || !role.IsGlobalUserRole(int64(u.Role)) {
+			return nil, errors.Unauthorized
+		}
+
+		tokenRole, err := auth.GetUserRoleFromToken(tokenString, svcCtx.Config.JwtAuth.Secret)
+		if err != nil || tokenRole != u.Role {
+			return nil, errors.InvalidToken
+		}
+		if _, adminOnly := adminMethods[info.FullMethod]; adminOnly && !role.IsGlobalAdminRole(int64(u.Role)) {
 			return nil, errors.Unauthorized
 		}
 

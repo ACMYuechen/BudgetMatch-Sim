@@ -43,7 +43,7 @@ func (m *AuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
-		if resp.User == nil || resp.User.Id == "" {
+		if resp == nil || resp.User == nil || resp.User.Id == "" {
 			logx.WithContext(ctx).Error("invalid token response")
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return

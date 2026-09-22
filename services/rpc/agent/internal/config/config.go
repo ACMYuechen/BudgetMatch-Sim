@@ -27,6 +27,7 @@ import (
 // 显式选择混合检索时要求完整 RAG 依赖，不适用缺失依赖时的演示降级。
 type Config struct {
 	zrpc.RpcServerConf
+	AuthRpc         zrpc.RpcClientConf    `json:"authRpc"`
 	JwtAuth         auth.Config           `json:"jwtAuth"`             // JwtAuth JWT 认证配置
 	Model           model.Config          `json:"model,optional"`      // Model LLM 模型配置
 	Embedding       model.EmbeddingConfig `json:"embedding,optional"`  // Embedding 向量模型配置，未配置时 RAG 关闭

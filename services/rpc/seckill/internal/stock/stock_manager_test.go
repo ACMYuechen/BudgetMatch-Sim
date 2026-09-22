@@ -1,6 +1,11 @@
 package stock
 
 import (
+	"budgetmatch-sim/infra/errors"
+	"context"
+	"github.com/stretchr/testify/require"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,6 +17,7 @@ import (
 func setupTestRedis(t *testing.T) (*miniredis.Miniredis, redis.UniversalClient) {
 	s := miniredis.RunT(t)
 	r := redis.NewClient(&redis.Options{Addr: s.Addr()})
+	t.Cleanup(func() { _ = r.Close() })
 	return s, r
 }
 
@@ -63,19 +69,40 @@ func TestStockManager_DeductMissingKey(t *testing.T) {
 }
 
 func TestStockManager_Token(t *testing.T) {
+	server, r := setupTestRedis(t)
+	sm := NewStockManager(r)
+	ctx := context.Background()
+	require.NoError(t, sm.SetToken(ctx, "token", "owner", "activity", "sku", time.Second))
+	for _, binding := range [][3]string{{"other", "activity", "sku"}, {"owner", "other", "sku"}, {"owner", "activity", "other"}} {
+		require.ErrorIs(t, sm.ConsumeToken(ctx, "token", binding[0], binding[1], binding[2]), errors.SeckillTokenInvalid)
+	}
+	// Invalid callers cannot destroy the owner's capability.
+	require.NoError(t, sm.ConsumeToken(ctx, "token", "owner", "activity", "sku"))
+	require.ErrorIs(t, sm.ConsumeToken(ctx, "token", "owner", "activity", "sku"), errors.SeckillTokenInvalid)
+	require.NoError(t, sm.SetToken(ctx, "expired", "owner", "activity", "sku", time.Second))
+	server.FastForward(2 * time.Second)
+	require.ErrorIs(t, sm.ConsumeToken(ctx, "expired", "owner", "activity", "sku"), errors.SeckillTokenInvalid)
+	require.NoError(t, r.Set(ctx, "seckill:token:legacy", "sku", time.Minute).Err())
+	require.ErrorIs(t, sm.ConsumeToken(ctx, "legacy", "owner", "activity", "sku"), errors.SeckillTokenInvalid)
+}
+
+func TestStockManager_TokenConcurrentConsumption(t *testing.T) {
 	_, r := setupTestRedis(t)
 	sm := NewStockManager(r)
-
-	err := sm.SetToken("tok1", "sku1", time.Second)
-	assert.NoError(t, err)
-
-	sku, err := sm.GetToken("tok1")
-	assert.NoError(t, err)
-	assert.Equal(t, "sku1", sku)
-
-	err = sm.DelToken("tok1")
-	assert.NoError(t, err)
-
-	_, err = sm.GetToken("tok1")
-	assert.Equal(t, redis.Nil, err)
+	ctx := context.Background()
+	require.NoError(t, sm.SetToken(ctx, "token", "owner", "activity", "sku", time.Minute))
+	var accepted atomic.Int32
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() {
+			err := sm.ConsumeToken(ctx, "token", "owner", "activity", "sku")
+			if err == nil {
+				accepted.Add(1)
+			} else {
+				assert.ErrorIs(t, err, errors.SeckillTokenInvalid)
+			}
+		})
+	}
+	wg.Wait()
+	require.Equal(t, int32(1), accepted.Load())
 }

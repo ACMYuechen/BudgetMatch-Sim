@@ -56,6 +56,7 @@ func TestUsernameLogin_Success(t *testing.T) {
 				Username: "testuser",
 				Password: hashed,
 				Role:     role.RoleSuperAdmin,
+				Status:   user.StatusNormal,
 			}, nil
 		},
 	}
@@ -120,6 +121,7 @@ func TestUsernameLogin_InvalidPassword(t *testing.T) {
 				Username: "testuser",
 				Password: hashed,
 				Role:     role.RoleSuperAdmin,
+				Status:   user.StatusNormal,
 			}, nil
 		},
 	}

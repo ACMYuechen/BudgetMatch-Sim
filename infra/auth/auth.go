@@ -2,7 +2,9 @@ package auth
 
 import (
 	"crypto/tls"
+	"math"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -35,12 +37,28 @@ func GenerateToken(userId string, secret string, expire int64, role int) (string
 
 // 检查 Token 是否有效
 func ValidateToken(tokenString string, secret string) (*jwt.Token, error) {
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
+	if strings.TrimSpace(secret) == "" {
+		return nil, jwt.ErrInvalidKey
+	}
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid || !claims.VerifyExpiresAt(time.Now().Unix(), true) {
+		return nil, jwt.ErrTokenInvalidClaims
+	}
+	id, ok := claims["user_id"].(string)
+	if !ok || strings.TrimSpace(id) == "" {
+		return nil, jwt.ErrTokenInvalidClaims
+	}
+	r, ok := claims["role"].(float64)
+	if !ok || math.Trunc(r) != r || r < 0 || r > math.MaxInt32 {
+		return nil, jwt.ErrTokenInvalidClaims
+	}
+	return token, nil
 }
 
 // token 过期检查
