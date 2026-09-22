@@ -42,6 +42,9 @@ type ServiceMethodPolicy struct {
 type AuthConfig struct {
 	// Secret 是 JWT 签名密钥。
 	Secret string
+	// ValidateUser checks current account state at the authority. Production
+	// services install this for both unary calls and stream admission.
+	ValidateUser func(context.Context, string) (string, int64, error)
 	// NoAuthMethods 是跳过认证的方法白名单（full gRPC method name）。
 	NoAuthMethods map[string]struct{}
 	// AdminMethods 是需要全局管理员角色（role 1-99）的方法集合。
@@ -123,6 +126,16 @@ func UnaryServerInterceptor(cfg AuthConfig) grpc.UnaryServerInterceptor {
 		userRole, err := auth.GetUserRoleFromToken(tokenString, cfg.Secret)
 		if err != nil {
 			return nil, errors.InvalidToken
+		}
+
+		if cfg.ValidateUser != nil {
+			currentID, currentRole, err := cfg.ValidateUser(ctx, tokenString)
+			if err != nil {
+				return nil, err
+			}
+			if currentID != userId || currentRole != int64(userRole) {
+				return nil, errors.InvalidToken
+			}
 		}
 
 		// 6. 角色鉴权

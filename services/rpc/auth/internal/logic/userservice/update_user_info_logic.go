@@ -5,6 +5,7 @@ import (
 
 	"budgetmatch-sim/infra/errors"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
+	"budgetmatch-sim/services/rpc/auth/model/user"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -26,6 +27,13 @@ func NewUpdateUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Up
 
 // 管理后台接口 — 更新用户信息（按 user_id 定位，仅覆盖请求中提供的字段）
 func (l *UpdateUserInfoLogic) UpdateUserInfo(in *pb.UpdateUserInfoReq) (*pb.UpdateUserInfoResp, error) {
+	actor, err := requireAdmin(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+	if in == nil {
+		return nil, errors.Invalid
+	}
 	if in.UserId == "" {
 		l.Logger.Errorf("return error: %v", errors.Invalid)
 		return nil, errors.Invalid
@@ -39,6 +47,13 @@ func (l *UpdateUserInfoLogic) UpdateUserInfo(in *pb.UpdateUserInfoReq) (*pb.Upda
 	if u == nil {
 		l.Logger.Errorf("return error: %v", errors.UserNotFound)
 		return nil, errors.UserNotFound
+	}
+
+	if err := authorizeUserMutation(actor, u, in.Role); err != nil {
+		return nil, err
+	}
+	if in.Status != 0 && in.Status != user.StatusNormal && in.Status != user.StatusDisabled {
+		return nil, errors.Invalid
 	}
 
 	// 仅覆盖请求中提供（非零）的字段

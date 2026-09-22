@@ -9,6 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/seckill/internal/svc"
 	"budgetmatch-sim/services/rpc/seckill/pb"
 )
@@ -28,6 +29,13 @@ func NewAcquireTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Acqu
 }
 
 func (l *AcquireTokenLogic) AcquireToken(in *pb.AcquireTokenReq) (*pb.AcquireTokenResp, error) {
+	if in == nil || in.ActivityId == "" || in.SkuId == "" {
+		return nil, errors.Invalid
+	}
+	userId, err := interceptor.UserScope(l.ctx, in.UserId, false)
+	if err != nil {
+		return nil, err
+	}
 	// validate activity
 	activity, err := l.svcCtx.ActivityStore.FindOne(l.ctx, in.ActivityId)
 	if err != nil {
@@ -79,7 +87,7 @@ func (l *AcquireTokenLogic) AcquireToken(in *pb.AcquireTokenReq) (*pb.AcquireTok
 	}
 
 	// rate limit: user-level token bucket (capacity 5, refill 1 per 60s per user)
-	userKey := fmt.Sprintf("seckill:limit:user:%s", in.UserId)
+	userKey := fmt.Sprintf("seckill:limit:user:%s", userId)
 	if !l.svcCtx.UserRateLimiter.Allow(l.ctx, userKey) {
 		l.Logger.Errorf("return error: %v", errors.TooManyRequests)
 		return nil, errors.TooManyRequests
@@ -87,7 +95,7 @@ func (l *AcquireTokenLogic) AcquireToken(in *pb.AcquireTokenReq) (*pb.AcquireTok
 
 	// generate token and store in Redis
 	token := uuid.New().String()
-	if err := l.svcCtx.StockManager.SetToken(token, in.SkuId, 60*time.Second); err != nil {
+	if err := l.svcCtx.StockManager.SetToken(l.ctx, token, userId, in.ActivityId, in.SkuId, 60*time.Second); err != nil {
 		l.Logger.Errorf("failed to set token: %v", err)
 		return nil, errors.Internal
 	}

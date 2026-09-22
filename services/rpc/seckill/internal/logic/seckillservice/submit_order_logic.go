@@ -10,6 +10,7 @@ import (
 
 	"budgetmatch-sim/infra/dlock"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/seckill/internal/svc"
 	"budgetmatch-sim/services/rpc/seckill/model/seckill_order"
 	"budgetmatch-sim/services/rpc/seckill/pb"
@@ -30,19 +31,20 @@ func NewSubmitOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Submi
 }
 
 func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderResp, error) {
-	// 1. 原子校验并消费 token（GETDEL），保证一次性使用，避免并发复用
-	skuIdFromToken, err := l.svcCtx.StockManager.ConsumeToken(in.Token)
-	if err == redis.Nil {
-		l.Logger.Errorf("return error: %v", errors.SeckillTokenInvalid)
-		return nil, errors.SeckillTokenInvalid
+	if in == nil || in.ActivityId == "" || in.SkuId == "" {
+		return nil, errors.Invalid
+	}
+	userId, err := interceptor.UserScope(l.ctx, in.UserId, false)
+	if err != nil {
+		return nil, err
+	}
+	// Match all ownership fields and consume once in the same Redis operation.
+	err = l.svcCtx.StockManager.ConsumeToken(l.ctx, in.Token, userId, in.ActivityId, in.SkuId)
+	if err == errors.SeckillTokenInvalid {
+		return nil, err
 	}
 	if err != nil {
-		l.Logger.Errorf("failed to consume token: %v", err)
 		return nil, errors.Internal
-	}
-	if skuIdFromToken != in.SkuId {
-		l.Logger.Errorf("return error: %v", errors.SeckillTokenInvalid)
-		return nil, errors.SeckillTokenInvalid
 	}
 
 	// 2. 校验活动时间和状态
@@ -88,14 +90,14 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 	}
 
 	// 5. 用户级限流：令牌桶容量为 5，每 60 秒补充 1 个令牌
-	userKey := fmt.Sprintf("seckill:limit:user:%s", in.UserId)
+	userKey := fmt.Sprintf("seckill:limit:user:%s", userId)
 	if !l.svcCtx.UserRateLimiter.Allow(l.ctx, userKey) {
 		l.Logger.Errorf("return error: %v", errors.TooManyRequests)
 		return nil, errors.TooManyRequests
 	}
 
 	// 6. 检查用户是否已购买
-	existingOrder, err := l.svcCtx.OrderStore.FindByActivityAndSkuAndUser(l.ctx, in.ActivityId, in.SkuId, in.UserId)
+	existingOrder, err := l.svcCtx.OrderStore.FindByActivityAndSkuAndUser(l.ctx, in.ActivityId, in.SkuId, userId)
 	if err != nil {
 		l.Logger.Errorf("failed to check existing order: %v", err)
 		return nil, errors.Database
@@ -165,7 +167,7 @@ func (l *SubmitOrderLogic) SubmitOrder(in *pb.SubmitOrderReq) (*pb.SubmitOrderRe
 			"order_id":     orderId,
 			"activity_id":  in.ActivityId,
 			"sku_id":       in.SkuId,
-			"user_id":      in.UserId,
+			"user_id":      userId,
 			"quantity":     qty,
 			"total_amount": totalAmount,
 		},

@@ -5,7 +5,9 @@ import (
 
 	"budgetmatch-sim/infra/auth"
 	"budgetmatch-sim/infra/errors"
+	"budgetmatch-sim/infra/role"
 	"budgetmatch-sim/services/rpc/auth/internal/svc"
+	"budgetmatch-sim/services/rpc/auth/model/user"
 	"budgetmatch-sim/services/rpc/auth/pb"
 
 	"github.com/redis/go-redis/v9"
@@ -28,7 +30,7 @@ func NewLoginByCodeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Login
 
 func (l *LoginByCodeLogic) LoginByCode(in *pb.LoginByCodeReq) (*pb.LoginResp, error) {
 	if in.Email == "" || in.Code == "" {
-		l.Logger.Infof("invalid email or code: email=%v, code=%v", in.Email, in.Code)
+		l.Logger.Infof("invalid email or code: email=%v", in.Email)
 		return nil, errors.InvalidEmail
 	}
 	// 从Redis取验证码
@@ -60,6 +62,10 @@ func (l *LoginByCodeLogic) LoginByCode(in *pb.LoginByCodeReq) (*pb.LoginResp, er
 	if u == nil {
 		l.Logger.Infof("user not found with email: %v", in.Email)
 		return nil, errors.UserNotFound
+	}
+
+	if u.Status != user.StatusNormal || !role.IsGlobalUserRole(int64(u.Role)) {
+		return nil, errors.Unauthorized
 	}
 
 	// 生成 token

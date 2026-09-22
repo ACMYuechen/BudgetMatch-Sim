@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"budgetmatch-sim/infra/authclient"
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/mall/internal/config"
 	"budgetmatch-sim/services/rpc/mall/internal/mq"
@@ -32,6 +33,7 @@ func main() {
 	if err := c.ValidateIndexAuth(); err != nil {
 		panic(err)
 	}
+	authConfig := authclient.WithAuthority(c.RPCAuthConfig(), c.AuthRpc)
 	ctx := svc.NewServiceContext(c)
 
 	sg := service.NewServiceGroup()
@@ -51,8 +53,8 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(c.RPCAuthConfig()))
-	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(c.RPCAuthConfig()))
+		interceptor.UnaryServerInterceptor(authConfig))
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(authConfig))
 
 	sg.Add(s)
 	sg.Add(outbox.NewMetricsCollector(ctx.OrderOutboxStore, 15*time.Second))

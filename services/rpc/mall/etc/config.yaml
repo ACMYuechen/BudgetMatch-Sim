@@ -54,3 +54,12 @@ ServiceAuth:
 # 启用时使用独立随机密钥（至少 32 字节），必须与 Agent 的 IndexAuth 相同。
 IndexAuth:
   Secret: "${AGENT_MALL_INDEX_SECRET}"
+
+# Required for current account status / role checks on direct RPC calls.
+AuthRpc:
+  Etcd:
+    Hosts:
+      - ${ETCD_HOSTS}
+    Key: auth.rpc
+  NonBlock: true
+  Timeout: 2000

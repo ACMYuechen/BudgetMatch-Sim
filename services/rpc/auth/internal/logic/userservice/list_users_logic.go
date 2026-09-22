@@ -27,6 +27,13 @@ func NewListUsersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListUse
 
 // 管理后台接口 — 用户列表
 func (l *ListUsersLogic) ListUsers(in *pb.ListUsersReq) (*pb.ListUsersResp, error) {
+	_, err := requireAdmin(l.ctx)
+	if err != nil {
+		return nil, err
+	}
+	if in == nil {
+		return nil, errors.Invalid
+	}
 	req := user.UsersListFilterReq{
 		Page:   int(in.Page),
 		Size:   int(in.PageSize),

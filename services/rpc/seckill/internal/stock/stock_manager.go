@@ -2,6 +2,7 @@ package stock
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -118,26 +119,38 @@ func (sm *StockManager) Preheat(activityId, skuId string, remain int64, ttlSecon
 	return nil
 }
 
-// SetToken creates a seckill token with TTL.
-func (sm *StockManager) SetToken(token, skuId string, ttl time.Duration) error {
-	return sm.redis.Set(context.Background(), fmt.Sprintf("seckill:token:%s", token), skuId, ttl).Err()
+// SetToken binds a short-lived capability to one user, activity and SKU.
+func (sm *StockManager) SetToken(ctx context.Context, token, userId, activityId, skuId string, ttl time.Duration) error {
+	if token == "" || userId == "" || activityId == "" || skuId == "" || ttl <= 0 {
+		return errors.SeckillTokenInvalid
+	}
+	binding, _ := json.Marshal([3]string{userId, activityId, skuId})
+	return sm.redis.Set(ctx, "seckill:token:"+token, string(binding), ttl).Err()
 }
 
-// GetToken validates token and returns associated skuId.
-func (sm *StockManager) GetToken(token string) (string, error) {
-	return sm.redis.Get(context.Background(), fmt.Sprintf("seckill:token:%s", token)).Result()
-}
+const consumeTokenScript = `
+if redis.call("GET", KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+redis.call("DEL", KEYS[1])
+return 1
+`
 
-// DelToken deletes a token after use.
-func (sm *StockManager) DelToken(token string) error {
-	return sm.redis.Del(context.Background(), fmt.Sprintf("seckill:token:%s", token)).Err()
-}
-
-// ConsumeToken 原子地校验并删除 token（GETDEL），返回其绑定的 skuId。
-// 相比 GetToken + DelToken 两步操作，这里保证 token 一次性消费，
-// 避免并发场景下同一 token 在删除前被重复读取使用。
-func (sm *StockManager) ConsumeToken(token string) (string, error) {
-	return sm.redis.GetDel(context.Background(), fmt.Sprintf("seckill:token:%s", token)).Result()
+// ConsumeToken does not burn another user's token when any binding mismatches.
+// Legacy SKU-only tokens fail closed and expire naturally within 60 seconds.
+func (sm *StockManager) ConsumeToken(ctx context.Context, token, userId, activityId, skuId string) error {
+	if token == "" || userId == "" || activityId == "" || skuId == "" {
+		return errors.SeckillTokenInvalid
+	}
+	binding, _ := json.Marshal([3]string{userId, activityId, skuId})
+	consumed, err := sm.redis.Eval(ctx, consumeTokenScript, []string{"seckill:token:" + token}, string(binding)).Int64()
+	if err != nil {
+		return err
+	}
+	if consumed != 1 {
+		return errors.SeckillTokenInvalid
+	}
+	return nil
 }
 
 // toInt64 安全地将 Redis/Lua 返回值转换为 int64，避免裸类型断言在异常返回类型时 panic。

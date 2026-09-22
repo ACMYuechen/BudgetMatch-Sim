@@ -144,3 +144,28 @@ func TestTokenClaims(t *testing.T) {
 		t.Fatalf("exp 时间不合理: %v, 期望在 %v 附近", exp, expectedExp)
 	}
 }
+
+func TestValidateTokenRejectsMalformedIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		method jwt.SigningMethod
+		claims jwt.MapClaims
+		secret string
+	}{
+		{"missing expiry", jwt.SigningMethodHS256, jwt.MapClaims{"user_id": "user", "role": 100}, testSecret},
+		{"empty identity", jwt.SigningMethodHS256, jwt.MapClaims{"user_id": " ", "role": 100, "exp": time.Now().Unix() + 3600}, testSecret},
+		{"fractional role", jwt.SigningMethodHS256, jwt.MapClaims{"user_id": "user", "role": 1.5, "exp": time.Now().Unix() + 3600}, testSecret},
+		{"wrong algorithm", jwt.SigningMethodHS384, jwt.MapClaims{"user_id": "user", "role": 100, "exp": time.Now().Unix() + 3600}, testSecret},
+		{"empty secret", jwt.SigningMethodHS256, jwt.MapClaims{"user_id": "user", "role": 100, "exp": time.Now().Unix() + 3600}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			token, err := jwt.NewWithClaims(tc.method, tc.claims).SignedString([]byte(tc.secret))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := ValidateToken(token, tc.secret); err == nil {
+				t.Fatal("malformed identity accepted")
+			}
+		})
+	}
+}

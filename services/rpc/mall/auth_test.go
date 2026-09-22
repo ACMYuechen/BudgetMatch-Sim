@@ -133,7 +133,8 @@ func TestMallRPCMethodAuthMatrix(t *testing.T) {
 	wrongKey := mintIndexToken(t, c.ServiceAuth.Secret, serviceauth.ServiceAgent, serviceauth.ServiceMall, serviceauth.PurposeProductIndexRead)
 	// Explicit expected set, independent of production configuration.
 	adminOnly := map[string]bool{
-		"CreateProduct": true, "UpdateProduct": true, "DeleteProduct": true,
+		"UpdateOrderStatus": true,
+		"CreateProduct":     true, "UpdateProduct": true, "DeleteProduct": true,
 		"CreateSku": true, "UpdateSku": true, "DeleteSku": true,
 		"GetOrderOutboxStats": true, "ListOrderOutbox": true, "GetOrderOutbox": true, "ReplayOrderOutbox": true,
 	}

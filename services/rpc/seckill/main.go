@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/authclient"
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/seckill/internal/config"
 	activityservice "budgetmatch-sim/services/rpc/seckill/internal/server/activityservice"
@@ -26,6 +27,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	authConfig := authclient.WithAuthority(seckillAuthConfig(c.JwtAuth.Secret), c.AuthRpc)
 	ctx := svc.NewServiceContext(c)
 
 	// create service group
@@ -46,8 +48,9 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(seckillAuthConfig(c.JwtAuth.Secret)))
+		interceptor.UnaryServerInterceptor(authConfig))
 
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(authConfig))
 	sg.Add(s)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)

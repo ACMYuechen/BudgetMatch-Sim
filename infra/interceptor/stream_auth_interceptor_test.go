@@ -154,3 +154,26 @@ func TestStreamDeadlineUsesStricterServiceOrMethodLimit(t *testing.T) {
 		require.False(t, called)
 	}
 }
+
+func TestUserStreamChecksCurrentAccountBeforeHandler(t *testing.T) {
+	token, err := auth.GenerateToken("user", testUserSecret, 3600, role.RoleUser)
+	require.NoError(t, err)
+	for _, valid := range []bool{true, false} {
+		checked, called := false, false
+		cfg := AuthConfig{Secret: testUserSecret, ValidateUser: func(context.Context, string) (string, int64, error) {
+			checked = true
+			if !valid {
+				return "", 0, errors.New("account disabled")
+			}
+			return "user", role.RoleUser, nil
+		}}
+		err := StreamServerInterceptor(cfg)(nil, &authTestStream{ctx: incomingBearerContext(token)}, &grpc.StreamServerInfo{FullMethod: "/agent.RecommendService/RecommendStream"}, func(any, grpc.ServerStream) error { called = true; return nil })
+		require.True(t, checked)
+		require.Equal(t, valid, called)
+		if valid {
+			require.NoError(t, err)
+		} else {
+			require.Error(t, err)
+		}
+	}
+}

@@ -17,7 +17,7 @@
 | 生产部署与运维 | [BudgetMatch-Sim-Gitops（私有仓库）](https://github.com/ACMYuechen/BudgetMatch-Sim-Gitops) |
 | 查看权限边界和已知风险 | [权限与安全](docs/access-control.md) |
 
-本地开发与自动化验证已有完整链路，但这不等于生产验收完成。已知 RPC 权限缺口、部署版本差异和人工复核事项见[项目状态](docs/status.md)。
+本地开发与自动化验证已有完整链路，但这不等于生产验收完成。RPC 权限修复的部署要求、剩余安全限制和人工复核事项见[项目状态](docs/status.md)。
 
 ## 本地快速开始
 

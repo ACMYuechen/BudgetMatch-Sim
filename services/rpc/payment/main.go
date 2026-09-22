@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"budgetmatch-sim/infra/authclient"
 	"budgetmatch-sim/infra/interceptor"
 	"budgetmatch-sim/services/rpc/payment/internal/config"
 	paymentserviceServer "budgetmatch-sim/services/rpc/payment/internal/server/paymentservice"
@@ -24,6 +25,12 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	authConfig := authclient.WithAuthority(interceptor.AuthConfig{
+		Secret: c.JwtAuth.Secret,
+		NoAuthMethods: map[string]struct{}{
+			"/payment.PaymentService/HandleNotify": {}, // 支付宝异步回调
+		},
+	}, c.AuthRpc)
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
@@ -37,13 +44,9 @@ func main() {
 	// 注册请求日志拦截器（最外层）和认证拦截器
 	s.AddUnaryInterceptors(
 		interceptor.LoggingInterceptor(c.JwtAuth.Secret),
-		interceptor.UnaryServerInterceptor(interceptor.AuthConfig{
-			Secret: c.JwtAuth.Secret,
-			NoAuthMethods: map[string]struct{}{
-				"/payment.PaymentService/HandleNotify": {}, // 支付宝异步回调
-			},
-		}),
+		interceptor.UnaryServerInterceptor(authConfig),
 	)
+	s.AddStreamInterceptors(interceptor.StreamServerInterceptor(authConfig))
 	defer s.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
